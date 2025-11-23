@@ -1,0 +1,28 @@
+-- AlterTable
+ALTER TABLE "Case" ADD COLUMN     "admissionDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "attorney" STRING;
+ALTER TABLE "Case" ADD COLUMN     "city" STRING;
+ALTER TABLE "Case" ADD COLUMN     "convened" BOOL NOT NULL DEFAULT false;
+ALTER TABLE "Case" ADD COLUMN     "courtNumber" STRING;
+ALTER TABLE "Case" ADD COLUMN     "debtorIdNumber" STRING;
+ALTER TABLE "Case" ADD COLUMN     "designatedOperator" STRING;
+ALTER TABLE "Case" ADD COLUMN     "designationDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "filingDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "firstHearingDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "firstHearingTime" STRING;
+ALTER TABLE "Case" ADD COLUMN     "hasLegalProcesses" BOOL NOT NULL DEFAULT false;
+ALTER TABLE "Case" ADD COLUMN     "inadmissionDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "judicialFileNumber" STRING;
+ALTER TABLE "Case" ADD COLUMN     "owedCapital" DECIMAL(65,30);
+ALTER TABLE "Case" ADD COLUMN     "plaintiff" STRING;
+ALTER TABLE "Case" ADD COLUMN     "positionAcceptanceDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "processType" STRING;
+ALTER TABLE "Case" ADD COLUMN     "rejection" BOOL NOT NULL DEFAULT false;
+ALTER TABLE "Case" ADD COLUMN     "resultDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "resultDeliveryDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "resultType" STRING;
+ALTER TABLE "Case" ADD COLUMN     "riskCenterCommunication" BOOL NOT NULL DEFAULT false;
+ALTER TABLE "Case" ADD COLUMN     "siccacNumber" STRING;
+ALTER TABLE "Case" ADD COLUMN     "suspensionDate" TIMESTAMP(3);
+ALTER TABLE "Case" ADD COLUMN     "tramite" STRING;
+ALTER TABLE "Case" ADD COLUMN     "withdrawal" BOOL NOT NULL DEFAULT false;

@@ -1,0 +1,193 @@
+'use client';
+
+import { Eye, Edit, Trash2 } from 'lucide-react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { formatCurrency } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
+
+import type { Case } from '@/features/case/schemas';
+
+interface CaseTableProps {
+  cases: Case[];
+  onViewDetails: (caseItem: Case) => void;
+  onEdit: (caseItem: Case) => void;
+  onDelete: (caseItem: Case) => void;
+  isLoading?: boolean;
+}
+
+export function CaseTable({
+  cases,
+  onViewDetails,
+  onEdit,
+  onDelete,
+  isLoading = false,
+}: Readonly<CaseTableProps>) {
+  const { checkPermission } = useAuth();
+
+  const canViewCases = checkPermission('Ver casos');
+  const canEditCases = checkPermission('Editar casos');
+  const canDeleteCases = checkPermission('Eliminar casos');
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'Insolvencia':
+        return 'bg-red-100 text-red-800';
+      case 'Conciliación':
+        return 'bg-blue-100 text-blue-800';
+      case 'Acuerdo de Apoyo':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatIdNumber = (idNumber: string) => {
+    const cleaned = idNumber.replace(/\D/g, '');
+    if (cleaned.length <= 3) return cleaned;
+    if (cleaned.length <= 6) {
+      return `${cleaned.slice(0, -3)}.${cleaned.slice(-3)}`;
+    }
+    return `${cleaned.slice(0, -6)}.${cleaned.slice(-6, -3)}.${cleaned.slice(-3)}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID Caso</TableHead>
+              <TableHead>Deudor</TableHead>
+              <TableHead>Cédula</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Monto Total</TableHead>
+              <TableHead>Acreedores</TableHead>
+              <TableHead>Próxima Audiencia</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <Skeleton className="h-4 w-20" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-20" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-8" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID Caso</TableHead>
+            <TableHead>Deudor</TableHead>
+            <TableHead>Cédula</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Monto Total</TableHead>
+            <TableHead>Acreedores</TableHead>
+            <TableHead>Próxima Audiencia</TableHead>
+            <TableHead>Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {cases.map((caseItem) => (
+            <TableRow key={caseItem.id}>
+              <TableCell className="font-medium">
+                {caseItem.caseNumber}
+              </TableCell>
+              <TableCell>{caseItem.debtorName}</TableCell>
+              <TableCell>{formatIdNumber(caseItem.debtor.idNumber)}</TableCell>
+              <TableCell>
+                <Badge className={getTypeColor(caseItem.type)}>
+                  {caseItem.type}
+                </Badge>
+              </TableCell>
+              <TableCell>{formatCurrency(caseItem.totalDebt)}</TableCell>
+              <TableCell>{caseItem.creditors}</TableCell>
+              <TableCell>
+                {caseItem.hearingDate
+                  ? new Date(caseItem.hearingDate).toLocaleDateString('es-CO')
+                  : 'No programada'}
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onViewDetails(caseItem)}
+                    title="Ver detalles"
+                    disabled={!canViewCases}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(caseItem)}
+                    title="Editar caso"
+                    disabled={!canEditCases}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(caseItem)}
+                    title="Eliminar caso"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    disabled={!canDeleteCases}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}

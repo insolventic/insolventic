@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - stg
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  quality-checks:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_ENV: ${{ github.base_ref == 'stg' && 'preview' || github.base_ref == 'main' && 'production' || 'development' }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npm run postinstall --if-present
+
+      - name: Pull Vercel environment info
+        run: |
+          npx vercel pull --yes --environment=$DEPLOY_ENV --token=$VERCEL_TOKEN
+          cp .vercel/.env.$DEPLOY_ENV.local .env
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (type & syntax check)
+        run: npm run build
