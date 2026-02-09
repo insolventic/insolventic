@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acta de Acuerdo de Pago</title>
+    <link rel="stylesheet" href="/CSS/styles-acuerdo-pago.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Resolución -->
+        <p class="text-center bold">RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003 MINJUSTICIA</p>
+
+        <!-- Título principal -->
+        <p class="text-center bold title-main">ACTA DE ACUERDO DE PAGO No. ND-{{NUMERO_ACUERDO}}-{{ANO_ACUERDO}}</p>
+
+        <p class="text-center bold subtitle">NEGOCIACIÓN DE DEUDAS</p>
+        <p class="text-center bold subtitle">DE LA PERSONA NATURAL NO COMERCIANTE Y DE LA PEQUEÑA COMERCIANTE</p>
+
+        <!-- Información del deudor -->
+        <table class="info-table">
+            <tr>
+                <td class="label-cell">DEUDOR</td>
+                <td>{{NOMBRE_DEUDOR}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">CC.</td>
+                <td>{{CEDULA_DEUDOR}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">TRAMITE No.</td>
+                <td>{{NUMERO_TRAMITE}}-2025</td>
+            </tr>
+        </table>
+
+        <!-- Antecedentes -->
+        <h2 class="section-title">ANTECEDENTES</h2>
+
+        <p class="justified">El Centro de Conciliación y Arbitraje CONSTRUCTORES DE PAZ, aprobado por resolución 1459 del 05 de septiembre de 2003 del Ministerio de Justicia y del Derecho, y autorizado mediante Resolución 001 de 2014 para conocer de los tramites de Negociación de deudas y quien autoriza a la Dra. BEATRIZ HELENA MALAVERA LOPEZ, para que lleve a cabo la audiencia correspondiente al Trámite de la negociación de deudas</p>
+
+        <!-- Consideraciones -->
+        <h2 class="section-title">CONSIDERACIONES</h2>
+
+        <p class="justified">El deudor presentó solicitud de negociación de sus deudas con sus acreedores, con el objeto de normalizar sus relaciones crediticias de conformidad a lo estipulado en el Título IV del Código General del Proceso y lo reglamentado en el Decreto 1069 de 2015.</p>
+
+        <p class="justified">Este procedimiento se aceptó el {{DIA_ACEPTACION}} de {{MES_ACEPTACION}} del {{ANO_ACEPTACION}} y, para el caso, se realizó el correspondiente Control de Legalidad según lo dispuesto en el Artículo 132 del C.G.P. y, en el mismo sentido, se verificaron los supuestos de insolvencia de que trata del Artículo 538 del C.G.P. se estableció que:</p>
+
+        <ol class="consideraciones-list">
+            <li>{{GENERO_DEUDOR}} es persona natural no comerciante, tal cual se observa en la documentación que aporta y la manifestación que hace.</li>
+            <li>Se encuentra en cesación de pagos con dos (2) o más obligaciones a favor de dos (2) o más acreedores y por más de noventa (90) días.</li>
+            <li>El valor porcentual de sus obligaciones representa más del cincuenta por ciento (50%) del pasivo total a su cargo.</li>
+            <li>Analizada la solicitud presentada, se encontró ajustada a lo establecido en el Artículo 539 del C.G.P.</li>
+        </ol>
+
+        <p class="justified">El día {{DIA_AUDIENCIA}} de {{MES_AUDIENCIA}} de {{ANO_AUDIENCIA}}, previa citación se llevó a cabo el inicio de la audiencia de negociación de deudas. En esta audiencia nuevamente se hizo Control de Legalidad según lo ordenado en el Artículo 132 del C.G. P. dado que no se presentó ningún recurso, quedó en firme.</p>
+
+        <p class="justified">Se comunicó de este proceso a la DIAN, a la Secretaría de Hacienda Departamental de Cundinamarca, Secretaría de Hacienda del Distrito de Bogotá, cámara de Comercio y se comunicará de esta negociación a las Centrales de Riesgo correspondientes.</p>
+
+        <p class="justified">Paso seguido, según lo advertido en el artículo 19 de la ley 2445 de 2025 que modifica el Artículo 550 de la ley 1564 de 2012, se corrió traslado a los acreedores de la existencia, naturaleza y cuantía de los créditos reportados por {{GENERO_DEUDOR}} en su solicitud, los cuales quedaron definidos en su correspondiente clase, cuantía y con su derecho de voto, de la siguiente manera:</p>
+
+        <!-- Cuadro de calificación -->
+        <h3 class="subsection-title">CALIFICACIÓN Y GRADUACIÓN DE CRÉDITOS</h3>
+        
+        <div class="cuadro-placeholder">
+            {{CUADRO_CALIFICACION_GRADUACION}}
+        </div>
+
+        <p class="justified">Conforme a lo expuesto, la voluntad de pago que tiene {{GENERO_DEUDOR}} y su interés y compromiso en resolver su situación financiera, los Acreedores consideran que es posible realizar un acuerdo de pago teniendo en cuenta las consideraciones consagradas en el presente documento.</p>
+
+        <p class="justified">Así las cosas, surtidos los trámites legales previstos en la ley 2445 de 2025 que modifica la ley 1564 del 2012, especialmente en el artículo 3° de la ley 2445 de 2025 que modifica el artículo 531 y siguientes de la ley 1564 del 2012 las partes han celebrado el presente Acuerdo de pago, con el objeto de normalizar los pasivos a cargo de {{GENERO_DEUDOR}}.</p>
+
+        <!-- Declaraciones -->
+        <h2 class="section-title">DECLARACIONES</h2>
+
+        <p class="justified"><strong>El deudor</strong> declara expresamente a la fecha de suscripción del presente Acuerdo de Pago que:</p>
+
+        <ol class="declaraciones-list">
+            <li>Firma este Acuerdo de Pago de manera Voluntaria y libre, que todos sus Acreedores son los mencionados el día de hoy.</li>
+            <li>La celebración del presente Acuerdo de Pago, se encuentra permitido por la ley y no está vulnerando derechos ciertos e indiscutibles de personas a su cargo o por quien deba responder.</li>
+            <li>A la fecha de la firma del presente Acuerdo de Pago no ha omitido informar al Operador de Insolvencia, a los Acreedores o a terceros, ningún hecho relevante ni fundamental relacionado con sus condiciones financieras o económicas y, que la información divulgada es sustancialmente cierta y correcta, comprometiéndose a realizar los mejores esfuerzos para que dicha declaraciones continúen conservando su veracidad durante la vigencia del presente Acuerdo de Pago, salvo aspectos contingentes que no dependan de su control.</li>
+            <li>No tiene a su cargo pasivo pensional.</li>
+            <li>El presente Acuerdo de Pago, se constituye en una obligación válida y legalmente vinculante para las partes de acuerdo con los términos aquí contenidos y su celebración no viola ninguna disposición legal o reglamentaria.</li>
+        </ol>
+
+        <p class="justified"><strong>Los Acreedores</strong> declaran expresamente a la fecha de suscripción del presente Acuerdo de Pago que:</p>
+
+        <ol class="declaraciones-list">
+            <li>Quienes suscriben este Acuerdo de Pago se encuentran suficientemente facultados para ello y cuentan con las autorizaciones corporativas correspondientes.</li>
+            <li>Su participación en la aprobación del presente Acuerdo de Pago, se ha adelantado con base en las informaciones disponibles, con la mayor buena fe y el mejor espíritu de colaboración y, que, por lo tanto, no asumen responsabilidad alguna por el contenido de las proyecciones, ni por su cumplimiento ante el deudor ni ante terceros.</li>
+            <li>El Acuerdo de Pago, se constituye en una obligación válida, legalmente vinculante y ejecutable para todos los Acreedores, inclusive para los disidentes y los ausentes.</li>
+            <li>Este acuerdo no contiene cláusulas que violen el orden legal de prelación de créditos, no alteran el orden establecido en la ley ni dispone ordenes distintos de los establecidos.</li>
+            <li>Este acuerdo no contiene privilegios a los créditos reportados, conciliados y no cambia los decididos por el Juzgado, no vulnera la igualdad entre los acreedores.</li>
+            <li>Este acuerdo incluye a todos los acreedores reportados.</li>
+            <li>Este acuerdo no contiene cláusulas que vulneren o violen la Constitución o la ley, lo aquí decidido, fue autorizado expresamente por {{GENERO_DEUDOR}} y los acreedores que por mayoría votaron positivo de conformidad con el numeral 10 del artículo 21 de la ley 2445 de 2025 que modifica el artículo 553 de la ley 1564 de 2012.</li>
+        </ol>
+
+        <!-- Inventario de bienes -->
+        <h2 class="section-title">INVENTARIO DE BIENES</h2>
+
+        <p class="justified">El deudor manifiesta {{DECLARACION_BIENES}}</p>
+
+        <div class="inventario-content">
+            {{DETALLE_BIENES}}
+        </div>
+
+        <!-- Acreedores y prelación -->
+        <h2 class="section-title">ACREEDORES Y PRELACIÓN DE CRÉDITOS</h2>
+
+        <p class="justified">Para efectos de cumplimiento de las obligaciones contenidas en el presente Acuerdo de Pago, los Acreedores que a continuación se relacionan son los titulares de las obligaciones causadas con anterioridad al último día calendario del mes inmediatamente anterior a aquel en que se presentó la solicitud de negociación de deudas.</p>
+
+        <p class="justified">Se señala que las fórmulas consagradas en el presente Acuerdo de Pago han sido concertadas con los diferentes Acreedores y respetan los privilegios previstos para la Primera Clase.</p>
+
+        <p class="justified">La calificación y graduación de créditos referida en este convenio contempla expresamente los términos previstos en el Código General de Proceso que versa sobre la negociación de deudas de persona natural no comerciante, por lo tanto:</p>
+
+        <p class="justified numbered-paragraph"><strong>1.</strong> El presente Acuerdo es aprobado mediante voto positivo del <strong>{{PORCENTAJE_APROBACION}}%</strong> de los acreedores que representan más del cincuenta por ciento (50%) del monto total del capital de la deuda, además, cuenta con la aceptación expresa del deudor, tal cual se contempla en el Numeral 2 del artículo 21 de la ley 2445 de 2025 que modifica el artículo 553 de la ley 1564 de 2012 del Código General del Proceso.</p>
+
+        <p class="justified numbered-paragraph"><strong>2.</strong> Este Acuerdo de Pago no Vulnera ni degrada los derechos de ningún acreedor, de garantes, avalistas o de terceros.</p>
+
+        <!-- Forma de pago -->
+        <h2 class="section-title">FORMA DE PAGO</h2>
+
+        <h3 class="subsection-title">A. PLAZO.</h3>
+
+        <p class="justified">{{GENERO_DEUDOR}} solicita un plazo de {{NUMERO_MESES}} meses contados a partir del {{DIA_INICIO_PAGO}} de {{MES_INICIO_PAGO}} de 2025.</p>
+
+        <h3 class="subsection-title">B. SOBRE EL PAGO DEL CAPITAL</h3>
+
+        <p class="justified">{{GENERO_DEUDOR}} pagará a los acreedores el capital de la siguiente manera:</p>
+
+        <div class="pago-placeholder">
+            {{DETALLE_PAGO_CAPITAL}}
+        </div>
+
+        <h3 class="subsection-title">C. RÉGIMEN DE INTERESES CAUSADOS</h3>
+
+        <p class="justified">{{GENERO_DEUDOR}} solicita condonación de los intereses causados a los acreedores.</p>
+
+        <h3 class="subsection-title">D. FORMA DE PAGO A LOS ACREEDORES</h3>
+
+        <div class="forma-pago-content">
+            {{FORMA_PAGO_ACREEDORES}}
+        </div>
+
+        <!-- Vigencia -->
+        <h2 class="section-title">VIGENCIA DEL ACUERDO</h2>
+
+        <p class="justified">El presente Acuerdo de Pago tendrá una vigencia de {{NUMERO_MESES}} meses contados, a partir del {{DIA_VIGENCIA}} de {{MES_VIGENCIA}} de 2025.</p>
+
+        <!-- Proyección de pagos -->
+        <h2 class="section-title">PROYECCIÓN DE PAGOS</h2>
+
+        <div class="proyeccion-placeholder">
+            {{PROYECCION_PAGOS}}
+        </div>
+
+        <!-- Cláusulas varias -->
+        <h2 class="section-title">CLÁUSULAS VARIAS</h2>
+
+        <ol class="clausulas-list">
+            <li>La celebración, interpretación y ejecución de este Acuerdo de Pago se sujetará a las leyes de la República de Colombia.</li>
+            <li>La aprobación del presente Acuerdo de Pago no constituye novación, ni renuncia de los derechos ni de las obligaciones objeto del mismo. No obstante, las obligaciones a cargo de {{GENERO_DEUDOR}} se entienden modificadas en cuanto a las condiciones estipuladas en el Acuerdo de Pago, sin necesidad de sustituir los documentos que las respaldan.</li>
+            <li>Los Acreedores, podrán ceder en cualquier momento y a cualquier título los créditos y se tendrá al cesionario como sustituto del cedente. En todo caso, el Acreedor cedente deberá advertir al cesionario interesado sobre la existencia del presente Acuerdo de Pago y, por su parte, el cesionario deberá aceptar expresamente las condiciones del presente Acuerdo de Pago y del crédito que adquiera. Para tal efecto, el Cedente notificará a {{GENERO_DEUDOR}} para lo pertinente respecto de los pagos al correo electrónico: {{EMAIL_NOTIFICACIONES}}</li>
+            <li>El presente acuerdo sustituye y deja sin efectos cualquier convenio verbal o escrito celebrado con anterioridad entre las partes, con el mismo objeto.</li>
+            <li>Los efectos de la presente acta y el acuerdo de negociación de pasivos descrito en esta, sólo se surtirán una vez se haya procedido a su registro en los términos que contempla el artículo 14 de la ley 640 del 2001.</li>
+            <li>Estando de acuerdo las partes, deudor y acreedores, sobre todo lo anterior, manifiestan que aceptan libremente el acuerdo, declarándose las partes totalmente satisfechas y se responsabilizan a cumplirlo, el Operador de Insolvencia Económica de la Persona Natural No Comerciante y de la Pequeña Comerciante, <strong>APRUEBA</strong> dichas fórmulas de arreglo y aclara nuevamente a las partes que el presente acuerdo hace tránsito a cosa juzgada y contra esta proceden los recursos contemplados en el Artículo 23 de la ley 2445 de 2025 que modifica el artículo 557 de la ley 1564 de 2012 del Código General del Proceso.</li>
+            <li>Una vez cumplido el acuerdo, {{GENERO_DEUDOR}} se comunicará con el Centro de Conciliación, para que de acuerdo a lo establecido en el artículo 558 del Código General del Proceso verifique su cumplimiento y emita la certificación correspondiente.</li>
+        </ol>
+
+        <!-- Información adicional -->
+        <h2 class="section-title">INFORMACIÓN ADICIONAL</h2>
+
+        <p class="justified"><strong>SOBRE IMPUGNACIÓN:</strong> Este acuerdo no fue impugnado.</p>
+
+        <p class="justified"><strong>SOBRE REFORMA DEL ACUERDO:</strong> se debe tener en cuenta lo establecido en el artículo 556 CGP y parágrafo séptimo del artículo tercero del reglamento interno.</p>
+
+        <p class="justified"><strong>SOBRE INCUMPLIMIENTO DEL ACUERDO:</strong> se debe tener en cuenta lo establecido en el artículo 560 CGP y parágrafo octavo del artículo tercero del reglamento interno.</p>
+
+        <p class="justified"><strong>SOBRE NULIDAD DEL ACUERDO:</strong> se debe tener en cuenta lo establecido en el Decreto 2677 del 2012 y parágrafo noveno del artículo tercero del reglamento interno.</p>
+
+        <!-- Control de legalidad -->
+        <h2 class="section-title">CONTROL DE LEGALIDAD</h2>
+
+        <p class="justified">Nuevamente se realiza Control de Legalidad de acuerdo a lo estipulado en el Artículo 132 del C.G.P. y se verifica el cumplimiento de todos los requisitos establecidos para este trámite de negociación de pasivos.</p>
+
+        <p class="fecha-final">Dado en Bogotá el {{DIA_FIRMA}} de {{MES_FIRMA}} de 2025.</p>
+
+        <!-- Firmas -->
+        <div class="firmas-container">
+            <div class="firma-deudor">
+                <p class="bold">DEUDOR</p>
+                <div class="espacio-firma"></div>
+                <p class="bold">{{NOMBRE_DEUDOR}}</p>
+                <p class="bold">CC. {{CEDULA_DEUDOR}}</p>
+            </div>
+        </div>
+
+        <!-- Firma operadora -->
+        <div class="firma-section">
+            <img src="/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+            <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+        </div>
+
+        <p class="bold text-center operadora-nombre">BEATRIZ HELENA MALAVERA LOPEZ<br>OPERADORA DE INSOLVENCIA</p>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+            Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+            Cel. 311 811 7520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co</p>
+            <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+        </div>
+    </div>
+</body>
+</html>

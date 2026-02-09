@@ -128,7 +128,15 @@ model Case {
   applicantSignatureName  String?
   applicantSignatureId    String?
   applicantSignature      String?
-  
+
+  // Zoom Meeting Info
+  zoomMeetingId           String?
+  zoomPassword            String?
+  zoomLink                String?
+
+  // Google Drive folder for case documents
+  driveFolderId           String?
+
   assets                  Asset[]
   debtor                  Debtor         @relation(fields: [debtorId], references: [id])
   operator                User           @relation(fields: [operatorId], references: [id])

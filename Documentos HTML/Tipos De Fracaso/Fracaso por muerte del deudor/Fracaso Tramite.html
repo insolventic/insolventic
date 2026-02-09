@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constancia de No Acuerdo - Fallecimiento del Deudor</title>
+    <link rel="stylesheet" href="/CSS/fracaso/styles-fracaso-fallecimiento.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Resolución -->
+        <p class="text-center bold">RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003 MINJUSTICIA</p>
+
+        <!-- Encabezado del proceso -->
+        <div class="proceso-header">
+            <p class="text-center bold">PROCESO DE NEGOCIACIÓN DE DEUDAS DE LA PERSONA NATURAL NO COMERCIANTE Y DE LA PEQUEÑA COMERCIANTE</p>
+        </div>
+
+        <!-- Título principal -->
+        <p class="text-center bold title-main">CONSTANCIA DE NO ACUERDO No. {{NUMERO_CONSTANCIA}}-{{ANO_CONSTANCIA}}</p>
+
+        <!-- Información del deudor -->
+        <table class="info-table">
+            <tr>
+                <td class="label-cell">DEUDOR</td>
+                <td>{{NOMBRE_DEUDOR}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">CC.</td>
+                <td>{{CEDULA_DEUDOR}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">RADICADO</td>
+                <td>{{NUMERO_RADICADO}}-{{ANO_RADICADO}}</td>
+            </tr>
+        </table>
+
+        <!-- Constancia inicial -->
+        <p class="justified"><strong>BEATRIZ HELENA MALAVERA LOPEZ,</strong> obrando en mi calidad de operadora de Insolvencia Económica de la persona natural no comerciante y de la pequeña comerciante del Centro de Conciliación Constructores de Paz, autorizado por el Ministerio de Justicia y del Derecho, dejo constancia de lo siguiente:</p>
+
+        <!-- Acreedores -->
+        <h2 class="section-title">ACREEDORES:</h2>
+
+        <p class="justified">Los acreedores que fueron reconocidos en el proceso de negociación de deudas, los valores de capital conciliado. Los que se hicieron presentes o no y, los derechos de voto, fueron los siguientes:</p>
+
+        <h3 class="subsection-title">CALIFICACIÓN Y GRADUACIÓN DE CRÉDITOS</h3>
+
+        <div class="cuadro-placeholder">
+            {{CUADRO_CALIFICACION_GRADUACION}}
+        </div>
+
+        <!-- Causa del fracaso -->
+        <h2 class="section-title">CAUSA DEL FRACASO DE LA NEGOCIACIÓN</h2>
+
+        <p class="justified">La conciliadora designada declara que según lo establecido en el artículo 68 del Código General del Proceso</p>
+
+        <blockquote class="cita-legal">
+            <em>"Fallecido un litigante o declarado ausente o en interdicción, el proceso continuará con el cónyuge, el albacea con tenencia de bienes, los herederos o el correspondiente curador."</em>
+        </blockquote>
+
+        <p class="justified declaracion-fracaso">En consideración a lo anterior y en consideración al fallecimiento del deudor se declara el fracaso de la negociación, se dispone el envío del expediente al Señor Juez Civil Municipal de Bogotá (Reparto) para el inicio del trámite de liquidación patrimonial tal cual se ordena en el artículo 563 del Código General del Proceso.</p>
+
+        <!-- Constancia final -->
+        <p class="constancia-final">En constancia se firma en la ciudad de Bogotá a los {{NUMERO_DIA}} días del mes de {{NOMBRE_MES}} de 2025.</p>
+
+        <!-- Firmas e imágenes -->
+        <div class="firma-section">
+            <img src="/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+            <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+        </div>
+
+        <p class="bold text-center operadora-nombre"><em>BEATRIZ HELENA MALAVERA LOPEZ<br>OPERADORA DE INSOLVENCIA</em></p>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+            Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+            Cel. 311 811 7520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co</p>
+            <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+        </div>
+    </div>
+</body>
+</html>

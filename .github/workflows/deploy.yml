@@ -1,0 +1,57 @@
+name: Deploy to Staging & Production
+
+on:
+  push:
+    branches:
+      - stg
+      - main
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      DEPLOY_ENV: ${{ github.ref == 'refs/heads/stg' && 'preview' || 'production' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Pull Vercel environment info
+        run: |
+          npx vercel pull --yes --environment=$DEPLOY_ENV --token=$VERCEL_TOKEN
+          cp .vercel/.env.$DEPLOY_ENV.local .env
+
+      - name: Install dependencies (npm ci)
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npm run postinstall --if-present
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Build Vercel project (prebuilt output)
+        run: |
+          if [ "$DEPLOY_ENV" = "production" ]; then
+            npx vercel build --prod --token $VERCEL_TOKEN
+          else
+            npx vercel build --token $VERCEL_TOKEN
+          fi
+
+      - name: Deploy to Vercel
+        run: |
+          if [ "$DEPLOY_ENV" = "production" ]; then
+            npx vercel deploy --prod --prebuilt --token $VERCEL_TOKEN
+          else
+            npx vercel deploy --prebuilt --token $VERCEL_TOKEN
+          fi

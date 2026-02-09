@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trámite de Negociación de Deudas – Audiencia</title>
+    <link rel="stylesheet" href="/CSS/tramite audiencia.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Encabezado -->
+        <p class="text-center bold">RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003 MINJUSTICIA</p>
+        
+        <p class="text-center bold title-main">TRÁMITE DE NEGOCIACIÓN DE DEUDAS</p>
+        
+        <p class="text-center bold">AUDIENCIA {{NUMERO_AUDIENCIA}}-2025</p>
+
+        <!-- Tabla de información del deudor -->
+        <table class="info-table">
+            <tr>
+                <td class="label-cell">Deudor</td>
+                <td>{{NOMBRE_DEUDOR}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">CC.</td>
+                <td>{{CEDULA_DEUDOR}}</td>
+            </tr>
+        </table>
+
+        <p class="bold section-spacing">RADICADO {{NUMERO_RADICADO}}-2025</p>
+
+        <p>Bogotá, a los {{NUMERO_DIA}} ({{NUMERO_DIA_LETRAS}}) días del mes de {{NOMBRE_MES}} del año dos mil veinticinco (2025)</p>
+
+        <p class="bold section-spacing">VERIFICACIÓN ARTÍCULO 544 CGP. {{NUMERO_DIAS}} DÍAS</p>
+
+        <p>Admitido el proceso de Negociación de Pasivos correspondiente al trámite de Insolvencia Económica de la Persona Natural No Comerciante y de la pequeña comerciante en referencia, se procede con el inicio de la negociación de conformidad con lo establecido en la ley:</p>
+
+        <p class="bold section-spacing">DESARROLLO DE LA AUDIENCIA DE NEGOCIACIÓN DE DEUDAS<br>
+        ARTÍCULO 550 CGP Modificado por el artículo 19 de la Ley 2445 de 2025</p>
+
+        <p class="italic">Se pregunta a los asistentes si tienen algún reparo jurídico que hacer contra la decisión de admisión de este procedimiento de negociación de pasivos.</p>
+
+        <!-- Opciones de desarrollo de audiencia -->
+        <div class="indented">
+            <p>Como quiera que hay reparos se resolverá sobre los mismos en esta audiencia se cede el uso de la palabra a {{NOMBRE_PERSONA}} se verifican las pruebas {{DESCRIPCION_PRUEBAS}}.</p>
+            
+            <p>Se suspende esta audiencia con el fin de que se presenten las pruebas que se pretenden hacer valer y se resolverá en la próxima audiencia.</p>
+        </div>
+
+        <ol class="main-list">
+            <li>Como quiera que no hay reparos se pone en conocimiento de los acreedores la relación de acreencias y se reciben los valores de las obligaciones por parte de los acreedores presentes, dentro de las Facultades y Atribuciones del Operador de Insolvencia, se suspende esta audiencia con el fin de notificar a los ausentes y verificar la información presentada.</li>
+        </ol>
+
+        <p class="bold section-spacing">PARA SEGUNDA AUDIENCIA</p>
+
+        <ol class="main-list">
+            <li>De conformidad a lo establecido en el Artículo 550 del Código General del Proceso se continúa con la audiencia de negociación de deudas en la cual se verifican los valores de las obligaciones, dentro de las Facultades y Atribuciones del Operador de Insolvencia, se suspende esta audiencia con el fin de verificar la información presentada y notificar a los ausentes.</li>
+            
+            <li>De conformidad a lo establecido en el Artículo 550 del Código General del Proceso se continúa con la audiencia de negociación de deudas en la cual es socializada la propuesta, dentro de las Facultades y Atribuciones del Operador de Insolvencia, se suspende esta audiencia toda vez que se hace necesario ajustar la misma para que sea revisada nuevamente por los acreedores.</li>
+        </ol>
+
+        <p class="bold section-spacing">Otros scripts</p>
+
+        <div class="indented">
+            <p>De conformidad a lo establecido en el Artículo 550 del Código General del Proceso, se da inicio a la audiencia de negociación de deudas, no obstante, se suspende ya que no existe quórum para continuar con la misma debido a la inasistencia de los acreedores.</p>
+            
+            <p>De conformidad a lo establecido en el Artículo 550 del Código General del Proceso se continúa con la audiencia de negociación de deudas en la cual se califican y gradúan las obligaciones quedando en firme y conciliada la relación detallada de las mismas, dentro de las Facultades y Atribuciones del Operador de Insolvencia, se suspende esta audiencia con el fin de presentar la propuesta de pago.</p>
+            
+            <p>{{GENERO_DEUDOR}} otorga poder amplio y suficiente al Abogado {{NOMBRE_ABOGADO}} C.C. {{CEDULA_ABOGADO}} y T.P. {{TARJETA_PROFESIONAL}} del C.S.J quien acepta el cargo, por lo tanto, se reconoce personería como apoderado {{GENERO_APODERADO}}.</p>
+        </div>
+
+        <p class="bold section-spacing">RESUELVE</p>
+
+        <p>Suspender esta audiencia y fijar fecha para el día <strong>{{DIA_PROXIMA}} de {{MES_PROXIMA}} de 2025 a las {{HORA_PROXIMA}}</strong> los asistentes quedan notificados de acuerdo a la información reportada en la audiencia virtual.</p>
+
+        <!-- Tabla de datos Zoom -->
+        <table class="zoom-table">
+            <tr>
+                <td class="label-cell">DATOS INGRESO REUNIÓN ZOOM</td>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td class="label-cell">ID de reunión:</td>
+                <td>{{ID_REUNION_ZOOM}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">Código de acceso</td>
+                <td>{{CODIGO_ACCESO_ZOOM}}</td>
+            </tr>
+        </table>
+
+        <!-- Tabla de firmas -->
+        <table class="firma-table">
+            <thead>
+                <tr>
+                    <th>ACREEDORES</th>
+                    <th>FIRMA</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                <tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+                <tr>
+                    <td class="bold">Deudor<br><br>{{NOMBRE_DEUDOR}}<br><br>CC. {{CEDULA_DEUDOR}}</td>
+                    <td>&nbsp;</td>
+                </tr>
+                <tr>
+                    <td class="bold">APODERADO DEL DEUDOR</td>
+                    <td>&nbsp;</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="bold">Cúmplase,</p>
+
+        <!-- Firmas e imágenes -->
+        <div class="firma-section">
+            <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+            <img src="/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-small">
+        </div>
+
+        <p class="bold text-center">BEATRIZ HELENA MALAVERA LOPEZ<br>OPERADORA DE INSOLVENCIA</p>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+            Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+            Cel. 311 811 7520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co</p>
+            <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+        </div>
+    </div>
+</body>
+</html>

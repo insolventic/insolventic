@@ -1,0 +1,811 @@
+'use client';
+
+import { useState, useEffect, useRef, useTransition } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { updateCase, getCaseById } from '@/features/case/actions';
+import { uploadCaseDocuments } from '@/features/document/actions';
+import {
+  updateCaseFormSchema,
+  type UpdateCaseFormData,
+  type Case,
+  type DebtorOption,
+  type CreditorOption,
+} from '@/features/case/schemas';
+import { getAllCreditors } from '@/features/creditor/actions';
+import { getAllDebtors, createDebtor } from '@/features/debtor/actions';
+
+import { CreateDebtorDialog } from './create-case-dialog/create-debtor-dialog';
+import { CreditorsTab } from './edit-case-dialog/creditors-tab';
+import { AssetsTab } from './edit-case-dialog/assets-tab';
+import { DebtorSection } from './create-case-dialog/debtor-section';
+import { DocumentsSection } from './create-case-dialog/documents-section';
+import { CaseDetailsSection } from './create-case-dialog/case-details-section';
+import { LegalProcessSection } from './create-case-dialog/legal-process-section';
+import { ApplicantScopeSection } from './create-case-dialog/applicant-scope-section';
+import { IncomeSection } from './create-case-dialog/income-section';
+import { LibranzasTab } from './edit-case-dialog/libranzas-tab';
+import { SuspendedServicesTab } from './edit-case-dialog/suspended-services-tab';
+import { DependentsTab } from './edit-case-dialog/dependents-tab';
+import { PaymentProposalSection } from './create-case-dialog/payment-proposal-section';
+import { SpouseSection } from './create-case-dialog/spouse-section';
+import { LegalFoundationsSection } from './create-case-dialog/legal-foundations-section';
+import { NotificationsSection } from './create-case-dialog/notifications-section';
+import { SignatureSection } from './create-case-dialog/signature-section';
+
+interface EditCaseDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  case: Case;
+  onCaseUpdated: () => void;
+}
+
+export function EditCaseDialog({
+  open,
+  onOpenChange,
+  case: caseData,
+  onCaseUpdated,
+}: Readonly<EditCaseDialogProps>) {
+  const [dataLoading, setDataLoading] = useState(false);
+  const [debtors, setDebtors] = useState<DebtorOption[]>([]);
+  const [creditors, setCreditors] = useState<CreditorOption[]>([]);
+  const [selectedDebtorId, setSelectedDebtorId] = useState<string>('');
+  const [selectedDebtor, setSelectedDebtor] = useState<DebtorOption | null>(
+    null,
+  );
+  const [showCreateDebtorDialog, setShowCreateDebtorDialog] = useState(false);
+  const [newDebtorForm, setNewDebtorForm] = useState({
+    name: '',
+    idNumber: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: 'Bogotá',
+    department: 'Cundinamarca',
+    monthlyIncome: 0,
+    monthlyExpenses: 0,
+  });
+  const [creatingDebtor, setCreatingDebtor] = useState(false);
+  const [initializedCaseId, setInitializedCaseId] = useState<string | null>(
+    null,
+  );
+  const documentsToUploadRef = useRef<
+    Array<{ docName: string; files: File[] }>
+  >([]);
+
+  const form = useForm({
+    resolver: zodResolver(updateCaseFormSchema),
+    defaultValues: {
+      id: caseData.id,
+      debtorId: caseData.debtorId,
+      type: caseData.type as
+        | 'INSOLVENCY'
+        | 'CONCILIATION'
+        | 'SUPPORT_AGREEMENT',
+
+      totalDebt: caseData.totalDebt.toString(),
+      creditors: caseData.creditors,
+      operatorId: caseData.operatorId,
+      causes: caseData.causes ?? [],
+      debts: [],
+      assets: [],
+      legalProcesses: [],
+      phase: caseData.phase ?? 'Inicial',
+      hearingDate: caseData.hearingDate
+        ? caseData.hearingDate.toISOString().split('T')[0]
+        : null,
+    },
+  });
+
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (
+      open &&
+      caseData &&
+      (initializedCaseId !== caseData.id || !initializedCaseId)
+    ) {
+      const loadData = async () => {
+        setDataLoading(true);
+        try {
+          const [debtorsResult, creditorsResult, caseResult] =
+            await Promise.all([
+              getAllDebtors(),
+              getAllCreditors(),
+              getCaseById(caseData.id),
+            ]);
+          setDebtors(
+            (debtorsResult.data || []).map((debtor) => ({
+              id: debtor.id,
+              name: debtor.name,
+              idNumber: debtor.idNumber,
+              email: debtor.email,
+              phone: debtor.phone,
+              address: debtor.address,
+              city: debtor.city,
+              department: debtor.department,
+              monthlyIncome: Number(debtor.monthlyIncome),
+              monthlyExpenses: Number(debtor.monthlyExpenses ?? 0),
+            })),
+          );
+          setCreditors((creditorsResult.data || []) as CreditorOption[]);
+          const fullCase = caseResult.data;
+          if (fullCase) {
+            setSelectedDebtorId(fullCase.debtorId);
+
+            let caseTypeValue = '';
+            if (fullCase.type === 'Insolvencia') caseTypeValue = 'INSOLVENCY';
+            else if (fullCase.type === 'Conciliación')
+              caseTypeValue = 'CONCILIATION';
+            else if (fullCase.type === 'Acuerdo de Apoyo')
+              caseTypeValue = 'SUPPORT_AGREEMENT';
+
+            form.reset({
+              id: fullCase.id,
+              debtorId: fullCase.debtorId,
+              type: caseTypeValue as
+                | 'INSOLVENCY'
+                | 'CONCILIATION'
+                | 'SUPPORT_AGREEMENT',
+
+              totalDebt: fullCase.totalDebt.toString(),
+              creditors: fullCase.creditors,
+              operatorId: fullCase.operatorId,
+              causes: fullCase.causes ?? [],
+              debts: (fullCase.debts ?? []).map((debt) => ({
+                id: debt.id,
+                creditor: debt.creditor.name,
+                creditorId: debt.creditorId,
+                amount: debt.amount.toString(),
+                type: debt.type,
+                interestRate: debt.interestRate.toString(),
+                creditorAddress: debt.creditorAddress ?? '',
+                creditorCity: debt.creditorCity ?? '',
+                creditorEmail: debt.creditorEmail ?? '',
+                capitalAmount: debt.capitalAmount?.toString() ?? '',
+                interestAmount: debt.interestAmount?.toString() ?? '',
+                isDeferred: debt.isDeferred ?? false,
+                documentType: debt.documentType ?? '',
+                grantDate: debt.grantDate
+                  ? debt.grantDate.toISOString().split('T')[0]
+                  : '',
+                dueDate: debt.dueDate
+                  ? debt.dueDate.toISOString().split('T')[0]
+                  : '',
+                creditClassification: debt.creditClassification ?? '',
+                hasActiveLibranza: debt.hasActiveLibranza ?? false,
+                creditorClass: debt.creditorClass ?? '',
+                percentageOfTotal: debt.percentageOfTotal?.toString() ?? '',
+                daysOverdue: debt.daysOverdue ?? 0,
+                coDebtorName: debt.coDebtorName ?? '',
+                coDebtorCity: debt.coDebtorCity ?? '',
+                coDebtorAddress: debt.coDebtorAddress ?? '',
+              })),
+              assets: (fullCase.assets ?? []).map((asset) => ({
+                id: asset.id,
+                name: asset.name,
+                type: asset.type,
+                value: asset.value.toString(),
+                description: '',
+                location: '',
+                registrationNumber: '',
+                encumbered: false,
+                encumbranceDetails: '',
+              })),
+              phase: fullCase.phase ?? 'Inicial',
+              hearingDate: fullCase.hearingDate
+                ? fullCase.hearingDate.toISOString().split('T')[0]
+                : null,
+              tramite: fullCase.tramite ?? '',
+              filingDate: fullCase.filingDate
+                ? fullCase.filingDate.toISOString().split('T')[0]
+                : '',
+              debtorIdNumber: fullCase.debtorIdNumber ?? '',
+              convened: fullCase.convened ?? '',
+              attorney: fullCase.attorney ?? '',
+              owedCapital: fullCase.owedCapital?.toString() ?? '',
+              designatedOperator: fullCase.designatedOperator ?? '',
+              designationDate: fullCase.designationDate
+                ? fullCase.designationDate.toISOString().split('T')[0]
+                : '',
+              positionAcceptanceDate: fullCase.positionAcceptanceDate
+                ? fullCase.positionAcceptanceDate.toISOString().split('T')[0]
+                : '',
+              inadmissionDate: fullCase.inadmissionDate
+                ? fullCase.inadmissionDate.toISOString().split('T')[0]
+                : '',
+              admissionDate: fullCase.admissionDate
+                ? fullCase.admissionDate.toISOString().split('T')[0]
+                : '',
+              firstHearingDate: fullCase.firstHearingDate
+                ? fullCase.firstHearingDate.toISOString().split('T')[0]
+                : '',
+              firstHearingTime: fullCase.firstHearingTime ?? '',
+              rejection: fullCase.rejection ?? false,
+              withdrawal: fullCase.withdrawal ?? false,
+              hasLegalProcesses: fullCase.hasLegalProcesses ?? false,
+              courtNumber: fullCase.courtNumber ?? '',
+              city: fullCase.city ?? '',
+              processType: fullCase.processType ?? '',
+              plaintiff: fullCase.plaintiff ?? '',
+              judicialFileNumber: fullCase.judicialFileNumber ?? '',
+              suspensionDate: fullCase.suspensionDate
+                ? fullCase.suspensionDate.toISOString().split('T')[0]
+                : '',
+              resultDeliveryDate: fullCase.resultDeliveryDate
+                ? fullCase.resultDeliveryDate.toISOString().split('T')[0]
+                : '',
+              resultType: fullCase.resultType ?? '',
+              resultDate: fullCase.resultDate
+                ? fullCase.resultDate.toISOString().split('T')[0]
+                : '',
+              siccacNumber: fullCase.siccacNumber ?? '',
+              riskCenterCommunication:
+                fullCase.riskCenterCommunication ?? false,
+
+              // Ámbito de Aplicación
+              applicantScope: fullCase.applicantScope ?? [],
+
+              // Ingresos y Gastos (from debtor)
+              monthlyIncome: fullCase.debtor?.monthlyIncome?.toString() ?? '',
+              monthlyExpenses:
+                fullCase.debtor?.monthlyExpenses?.toString() ?? '',
+              otherIncomeDescription:
+                fullCase.debtor?.otherIncomeDescription ?? '',
+              otherIncomeAmount:
+                fullCase.debtor?.otherIncomeAmount?.toString() ?? '',
+              hasEmployerCertification:
+                fullCase.debtor?.hasEmployerCertification ?? false,
+
+              // Libranzas
+              libranzas: (fullCase.libranzas ?? []).map((libranza) => ({
+                id: libranza.id,
+                payerName: libranza.payerName,
+                payerAddress: libranza.payerAddress ?? '',
+                payerEmail: libranza.payerEmail ?? '',
+                payerPhone: libranza.payerPhone ?? '',
+                deductedAmount: libranza.deductedAmount.toString(),
+                productAndCreditor: libranza.productAndCreditor ?? '',
+              })),
+
+              // Servicios Suspendidos
+              suspendedServices: (fullCase.suspendedServices ?? []).map(
+                (service) => ({
+                  id: service.id,
+                  creditorName: service.creditorName,
+                  address: service.address ?? '',
+                  email: service.email ?? '',
+                  phone: service.phone ?? '',
+                  suspendedProduct: service.suspendedProduct ?? '',
+                  amountOwed: service.amountOwed.toString(),
+                }),
+              ),
+
+              // Dependientes
+              dependents: (fullCase.dependents ?? []).map((dependent) => ({
+                id: dependent.id,
+                name: dependent.name,
+                age: dependent.age,
+                relationship: dependent.relationship,
+              })),
+
+              // Procesos Judiciales
+              legalProcesses: (fullCase.legalProcesses ?? []).map(
+                (process) => ({
+                  id: process.id,
+                  processType: process.processType ?? '',
+                  plaintiff: process.plaintiff ?? '',
+                  court: process.court ?? '',
+                  fileNumber: process.fileNumber ?? '',
+                  precautionaryMeasure: process.precautionaryMeasure ?? '',
+                }),
+              ),
+
+              // Propuesta de Pago
+              gracePeriodRequested: fullCase.gracePeriodRequested ?? false,
+              gracePeriodMonths: fullCase.gracePeriodMonths ?? undefined,
+              paymentInKind: fullCase.paymentInKind ?? false,
+              paymentInKindDescription: fullCase.paymentInKindDescription ?? '',
+              assetSaleAuthorized: fullCase.assetSaleAuthorized ?? false,
+              assetSaleDescription: fullCase.assetSaleDescription ?? '',
+              cashFlowPayment: fullCase.cashFlowPayment ?? false,
+              paymentTermMonths: fullCase.paymentTermMonths ?? undefined,
+              monthlyPaymentAmount:
+                fullCase.monthlyPaymentAmount?.toString() ?? '',
+              variablePayment: fullCase.variablePayment?.toString() ?? '',
+              extraordinaryPayment: fullCase.extraordinaryPayment ?? false,
+              extraordinaryPaymentDate: fullCase.extraordinaryPaymentDate ?? '',
+              capitalReduction: fullCase.capitalReduction ?? false,
+              capitalReductionPercent:
+                fullCase.capitalReductionPercent?.toString() ?? '',
+              insuranceOffering: fullCase.insuranceOffering ?? '',
+              forgiveAccruedInterest: fullCase.forgiveAccruedInterest ?? false,
+              forgiveFutureInterest: fullCase.forgiveFutureInterest ?? false,
+              paymentOrder: fullCase.paymentOrder ?? {},
+              hasClassPrivileges: fullCase.hasClassPrivileges ?? false,
+              classPrivilegesDescription:
+                fullCase.classPrivilegesDescription ?? '',
+              thirdPartyPaymentAuth: fullCase.thirdPartyPaymentAuth ?? false,
+              guaranteeSubstitution: fullCase.guaranteeSubstitution ?? false,
+
+              // Sociedad Conyugal
+              spouseName: fullCase.spouseName ?? '',
+              spouseIdNumber: fullCase.spouseIdNumber ?? '',
+              spouseAddress: fullCase.spouseAddress ?? '',
+              spousePhone: fullCase.spousePhone ?? '',
+              spouseEmail: fullCase.spouseEmail ?? '',
+
+              // Tarifa y Fundamentos
+              requestedFee: fullCase.requestedFee ?? '',
+              legalFoundations: fullCase.legalFoundations ?? '',
+
+              // Notificaciones
+              notificationAddress: fullCase.notificationAddress ?? '',
+              notificationPhone: fullCase.notificationPhone ?? '',
+              notificationEmail: fullCase.notificationEmail ?? '',
+
+              // Firma
+              applicantSignatureName: fullCase.applicantSignatureName ?? '',
+              applicantSignatureId: fullCase.applicantSignatureId ?? '',
+              applicantSignature: fullCase.applicantSignature ?? '',
+            });
+            setInitializedCaseId(caseData.id);
+          }
+        } catch {
+          toast.error('Error al cargar los datos');
+        } finally {
+          setDataLoading(false);
+        }
+      };
+      void loadData();
+    }
+  }, [open, caseData, form, initializedCaseId]);
+
+  useEffect(() => {
+    if (!showCreateDebtorDialog && open) {
+      const reloadDebtors = async () => {
+        try {
+          const debtorsResult = await getAllDebtors();
+          setDebtors((debtorsResult.data || []) as DebtorOption[]);
+        } catch {}
+      };
+      void reloadDebtors();
+    }
+  }, [showCreateDebtorDialog, open]);
+
+  useEffect(() => {
+    if (selectedDebtorId && debtors.length > 0) {
+      const debtor = debtors.find(
+        (d: DebtorOption) => d.id === selectedDebtorId,
+      );
+      if (debtor) {
+        setSelectedDebtor(debtor);
+
+        form.setValue('debtorId', debtor.id);
+      }
+    }
+  }, [selectedDebtorId, debtors, form]);
+
+  const insolvencyCauses = [
+    'Sobreendeudamiento por falta de recursos',
+    'Pérdida de empleo',
+    'Divorcio',
+    'Enfermedad',
+    'Accidente',
+    'Estafa',
+    'Disminución de ingresos',
+    'Falta de educación financiera',
+    'Muerte de cónyuge',
+    'Nuevos créditos para cubrir otros',
+    'Mala inversión',
+  ];
+
+  const handleCauseChange = (cause: string) => {
+    const currentCauses = form.getValues('causes') ?? [];
+    const newCauses = currentCauses.includes(cause)
+      ? currentCauses.filter((c: string) => c !== cause)
+      : [...currentCauses, cause];
+    form.setValue('causes', newCauses);
+  };
+
+  const handleSubmit = (data: UpdateCaseFormData) => {
+    startTransition(async () => {
+      const creditorsCount = data.debts?.length ?? caseData.creditors;
+
+      const submitData = {
+        id: caseData.id,
+        debtorId: data.debtorId,
+        type: data.type,
+        totalDebt: data.totalDebt,
+        creditors: creditorsCount,
+        operatorId: data.operatorId,
+        hearingDate: data.hearingDate,
+        phase: data.phase ?? undefined,
+        causes: data.causes,
+        tramite: data.tramite,
+        filingDate: data.filingDate,
+        debtorIdNumber: data.debtorIdNumber,
+        convened: data.convened,
+        attorney: data.attorney,
+        owedCapital: data.owedCapital,
+        designatedOperator: data.designatedOperator,
+        designationDate: data.designationDate,
+        positionAcceptanceDate: data.positionAcceptanceDate,
+        inadmissionDate: data.inadmissionDate,
+        admissionDate: data.admissionDate,
+        firstHearingDate: data.firstHearingDate,
+        firstHearingTime: data.firstHearingTime,
+        rejection: data.rejection,
+        withdrawal: data.withdrawal,
+        hasLegalProcesses: data.hasLegalProcesses,
+        courtNumber: data.courtNumber,
+        city: data.city,
+        processType: data.processType,
+        plaintiff: data.plaintiff,
+        judicialFileNumber: data.judicialFileNumber,
+        suspensionDate: data.suspensionDate,
+        resultDeliveryDate: data.resultDeliveryDate,
+        resultType: data.resultType,
+        resultDate: data.resultDate,
+        siccacNumber: data.siccacNumber,
+        riskCenterCommunication: data.riskCenterCommunication,
+
+        // Ámbito de Aplicación
+        applicantScope: data.applicantScope,
+
+        // Ingresos y Gastos (update debtor separately if needed)
+        monthlyIncome: data.monthlyIncome,
+        monthlyExpenses: data.monthlyExpenses,
+        otherIncomeDescription: data.otherIncomeDescription,
+        otherIncomeAmount: data.otherIncomeAmount,
+        hasEmployerCertification: data.hasEmployerCertification,
+
+        // Libranzas
+        libranzas: data.libranzas,
+
+        // Servicios Suspendidos
+        suspendedServices: data.suspendedServices,
+
+        // Dependientes
+        dependents: data.dependents,
+
+        // Propuesta de Pago
+        gracePeriodRequested: data.gracePeriodRequested,
+        gracePeriodMonths: data.gracePeriodMonths,
+        paymentInKind: data.paymentInKind,
+        paymentInKindDescription: data.paymentInKindDescription,
+        assetSaleAuthorized: data.assetSaleAuthorized,
+        assetSaleDescription: data.assetSaleDescription,
+        cashFlowPayment: data.cashFlowPayment,
+        paymentTermMonths: data.paymentTermMonths,
+        monthlyPaymentAmount: data.monthlyPaymentAmount,
+        variablePayment: data.variablePayment,
+        extraordinaryPayment: data.extraordinaryPayment,
+        extraordinaryPaymentDate: data.extraordinaryPaymentDate,
+        capitalReduction: data.capitalReduction,
+        capitalReductionPercent: data.capitalReductionPercent,
+        insuranceOffering: data.insuranceOffering,
+        forgiveAccruedInterest: data.forgiveAccruedInterest,
+        forgiveFutureInterest: data.forgiveFutureInterest,
+        paymentOrder: data.paymentOrder,
+        hasClassPrivileges: data.hasClassPrivileges,
+        classPrivilegesDescription: data.classPrivilegesDescription,
+        thirdPartyPaymentAuth: data.thirdPartyPaymentAuth,
+        guaranteeSubstitution: data.guaranteeSubstitution,
+
+        // Sociedad Conyugal
+        spouseName: data.spouseName,
+        spouseIdNumber: data.spouseIdNumber,
+        spouseAddress: data.spouseAddress,
+        spousePhone: data.spousePhone,
+        spouseEmail: data.spouseEmail,
+
+        // Tarifa y Fundamentos
+        requestedFee: data.requestedFee,
+        legalFoundations: data.legalFoundations,
+
+        // Notificaciones
+        notificationAddress: data.notificationAddress,
+        notificationPhone: data.notificationPhone,
+        notificationEmail: data.notificationEmail,
+
+        // Firma
+        applicantSignatureName: data.applicantSignatureName,
+        applicantSignatureId: data.applicantSignatureId,
+        applicantSignature: data.applicantSignature,
+      };
+
+      const { success, error } = await updateCase(submitData);
+
+      if (success) {
+        toast.success('Caso actualizado exitosamente');
+        onCaseUpdated();
+        onOpenChange(false);
+        form.reset();
+
+        // Upload documents if there are any
+        if (documentsToUploadRef.current.length > 0) {
+          try {
+            const payload = {
+              caseId: caseData.id,
+              personName:
+                (selectedDebtor?.name as string) || caseData.debtorName,
+              documents: await Promise.all(
+                documentsToUploadRef.current.flatMap(({ docName, files }) =>
+                  files.map(async (f) => ({
+                    docName,
+                    fileName: f.name,
+                    mimeType: f.type || 'application/pdf',
+                    dataBase64: await fileToBase64(f),
+                  })),
+                ),
+              ),
+            } as const;
+
+            // Temporary: uploadCaseDocuments hasn't been migrated yet
+            await uploadCaseDocuments(payload);
+          } catch {}
+        }
+      } else {
+        toast.error(error ?? 'Error al actualizar el caso');
+      }
+    });
+  };
+
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1] || '';
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const handleCreateDebtor = async () => {
+    if (
+      !newDebtorForm.name ||
+      !newDebtorForm.idNumber ||
+      !newDebtorForm.email ||
+      !newDebtorForm.phone
+    ) {
+      toast.error('Por favor complete todos los campos requeridos');
+      return;
+    }
+
+    setCreatingDebtor(true);
+    try {
+      const {
+        success,
+        data: result,
+        error,
+      } = await createDebtor({
+        ...newDebtorForm,
+        idType: 'CC',
+        occupation: 'Empleado',
+        birthDate: undefined,
+        dependents: 0,
+        maritalStatus: 'SOLTERO',
+        educationLevel: 'UNIVERSITARIO',
+        emergencyContact: '',
+        emergencyPhone: '',
+        bankAccount: '',
+        bankName: '',
+        accountType: 'AHORROS',
+        description: '',
+      });
+
+      if (!success || error) {
+        toast.error(error ?? 'Error al crear el deudor');
+      } else {
+        toast.success('Deudor creado exitosamente');
+        setShowCreateDebtorDialog(false);
+        setNewDebtorForm({
+          name: '',
+          idNumber: '',
+          email: '',
+          phone: '',
+          address: '',
+          city: 'Bogotá',
+          department: 'Cundinamarca',
+          monthlyIncome: 0,
+          monthlyExpenses: 0,
+        });
+        const debtorsResult = await getAllDebtors();
+        setDebtors(
+          (debtorsResult.data || []).map((debtor) => ({
+            id: debtor.id,
+            name: debtor.name,
+            idNumber: debtor.idNumber,
+            email: debtor.email,
+            phone: debtor.phone,
+            address: debtor.address,
+            city: debtor.city,
+            department: debtor.department,
+            monthlyIncome: Number(debtor.monthlyIncome),
+            monthlyExpenses: Number(debtor.monthlyExpenses ?? 0),
+          })),
+        );
+        if (result?.id) {
+          setSelectedDebtorId(result.id);
+        }
+      }
+    } catch {
+      toast.error('Error al crear el deudor');
+    } finally {
+      setCreatingDebtor(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedDebtorId('');
+      setSelectedDebtor(null);
+      form.reset();
+      setInitializedCaseId(null);
+      setNewDebtorForm({
+        name: '',
+        idNumber: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: 'Bogotá',
+        department: 'Cundinamarca',
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
+      });
+    }
+  }, [open, form]);
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+          <DialogHeader>
+            <DialogTitle>Editar Caso {caseData.caseNumber}</DialogTitle>
+            <DialogDescription>
+              Modifique la información del caso de {caseData.debtorName}. Los
+              cambios se aplicarán inmediatamente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <FormProvider {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)}>
+              <Tabs defaultValue="debtor" className="space-y-4">
+                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+                  <TabsTrigger value="debtor">1. Solicitante</TabsTrigger>
+                  <TabsTrigger value="case-details">2. Detalles</TabsTrigger>
+                  <TabsTrigger value="legal-process">3. Proceso</TabsTrigger>
+                  <TabsTrigger value="creditors">4. Acreedores</TabsTrigger>
+                  <TabsTrigger value="assets">5. Bienes</TabsTrigger>
+                  <TabsTrigger value="income">6. Ingresos</TabsTrigger>
+                  <TabsTrigger value="payment">7. Propuesta</TabsTrigger>
+                  <TabsTrigger value="legal">8. Legal</TabsTrigger>
+                </TabsList>
+
+                {/* Tab 1: Deudor + Ámbito de Aplicación */}
+                <TabsContent value="debtor" className="space-y-6">
+                  <DebtorSection
+                    debtors={debtors}
+                    selectedDebtorId={selectedDebtorId}
+                    selectedDebtor={selectedDebtor}
+                    insolvencyCauses={insolvencyCauses}
+                    onDebtorSelect={setSelectedDebtorId}
+                    onCreateDebtorClick={() => setShowCreateDebtorDialog(true)}
+                    onCauseChange={handleCauseChange}
+                    loading={dataLoading}
+                  />
+                  <div className="border-t pt-6">
+                    <ApplicantScopeSection />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 2: Detalles del Caso */}
+                <TabsContent value="case-details" className="space-y-4">
+                  <CaseDetailsSection />
+                </TabsContent>
+
+                {/* Tab 3: Proceso Legal */}
+                <TabsContent value="legal-process" className="space-y-4">
+                  <LegalProcessSection />
+                </TabsContent>
+
+                {/* Tab 4: Acreedores + Libranzas + Servicios Suspendidos */}
+                <TabsContent value="creditors" className="space-y-6">
+                  <CreditorsTab caseId={caseData.id} creditors={creditors} />
+                  <div className="border-t pt-6">
+                    <LibranzasTab caseId={caseData.id} />
+                  </div>
+                  <div className="border-t pt-6">
+                    <SuspendedServicesTab caseId={caseData.id} />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 5: Bienes + Documentos */}
+                <TabsContent value="assets" className="space-y-6">
+                  <AssetsTab caseId={caseData.id} />
+                  <div className="border-t pt-6">
+                    <DocumentsSection
+                      onFilesSelected={(sel) => {
+                        documentsToUploadRef.current = sel;
+                      }}
+                    />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 6: Ingresos + Gastos + Dependientes */}
+                <TabsContent value="income" className="space-y-6">
+                  <IncomeSection />
+                  <div className="border-t pt-6">
+                    <DependentsTab caseId={caseData.id} />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 7: Propuesta de Pago + Cónyuge */}
+                <TabsContent value="payment" className="space-y-6">
+                  <PaymentProposalSection />
+                  <div className="border-t pt-6">
+                    <SpouseSection />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 8: Legal + Notificaciones + Firma */}
+                <TabsContent value="legal" className="space-y-6">
+                  <LegalFoundationsSection />
+                  <div className="border-t pt-6">
+                    <NotificationsSection />
+                  </div>
+                  <div className="border-t pt-6">
+                    <SignatureSection />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </DialogClose>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Guardando Cambios...
+                    </>
+                  ) : (
+                    'Guardar Cambios'
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </FormProvider>
+        </DialogContent>
+      </Dialog>
+
+      <CreateDebtorDialog
+        open={showCreateDebtorDialog}
+        onOpenChange={setShowCreateDebtorDialog}
+        newDebtorForm={newDebtorForm}
+        creatingDebtor={creatingDebtor}
+        onFormChange={setNewDebtorForm}
+        onSubmit={handleCreateDebtor}
+      />
+    </>
+  );
+}

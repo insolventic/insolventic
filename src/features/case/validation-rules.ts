@@ -1,0 +1,568 @@
+/**
+ * Validation Rules for Case Creation
+ *
+ * This file contains validation utilities and rules that complement
+ * the main Zod schemas in schemas.ts
+ */
+
+import type { CreateCaseFormData } from './schemas';
+
+// ============================================
+// CONSTANTS
+// ============================================
+
+export const SMMLV_2025 = 1300000; // Salario mínimo Colombia 2025
+
+export const CREDITOR_CLASSES = {
+  PRIMERA: 'Primera Clase - Laborales y Alimentos',
+  SEGUNDA: 'Segunda Clase - Fiscales',
+  TERCERA: 'Tercera Clase - Garantizados',
+  CUARTA: 'Cuarta Clase - Quirografarios',
+  QUINTA: 'Quinta Clase - Otros',
+} as const;
+
+export const CREDIT_CLASSIFICATIONS = {
+  GARANTIZADO: 'Crédito Garantizado',
+  PRIVILEGIADO: 'Crédito Privilegiado',
+  QUIROGRAFARIO: 'Crédito Quirografario',
+} as const;
+
+export const CAUSE_OPTIONS = [
+  { value: 'SOBREENDEUDAMIENTO', label: 'Sobreendeudamiento por falta de recursos' },
+  { value: 'PERDIDA_EMPLEO', label: 'Pérdida de empleo' },
+  { value: 'DIVORCIO', label: 'Divorcio' },
+  { value: 'ENFERMEDAD', label: 'Enfermedad' },
+  { value: 'ACCIDENTE', label: 'Accidente' },
+  { value: 'ESTAFA', label: 'Estafa' },
+  { value: 'DISMINUCION_INGRESOS', label: 'Disminución de ingresos' },
+  { value: 'MALA_EDUCACION_FINANCIERA', label: 'Falta de educación financiera y malos hábitos' },
+  { value: 'MUERTE_CONYUGE', label: 'Muerte de cónyuge' },
+  { value: 'NUEVOS_CREDITOS', label: 'Acudí a nuevos créditos para cubrir otros' },
+  { value: 'MALA_INVERSION', label: 'Mala inversión' },
+  { value: 'OTROS', label: 'Otros' },
+] as const;
+
+export const MARITAL_STATUS_OPTIONS = [
+  { value: 'SOLTERO', label: 'Soltero(a)' },
+  { value: 'CASADO', label: 'Casado(a)' },
+  { value: 'UNION_LIBRE', label: 'Unión Libre' },
+  { value: 'DIVORCIADO', label: 'Divorciado(a)' },
+  { value: 'VIUDO', label: 'Viudo(a)' },
+] as const;
+
+export const PROPERTY_TYPES = [
+  { value: 'CASA', label: 'Casa' },
+  { value: 'APARTAMENTO', label: 'Apartamento' },
+  { value: 'LOTE', label: 'Lote' },
+  { value: 'LOCAL', label: 'Local comercial' },
+  { value: 'BODEGA', label: 'Bodega' },
+  { value: 'OFICINA', label: 'Oficina' },
+  { value: 'FINCA', label: 'Finca' },
+  { value: 'OTRO', label: 'Otro' },
+] as const;
+
+export const MOVABLE_ASSET_CATEGORIES = [
+  { value: 'ELECTRONICO', label: 'Electrónicos y electrodomésticos' },
+  { value: 'ENSERES', label: 'Muebles y enseres' },
+  { value: 'VEHICULO', label: 'Vehículo' },
+  { value: 'JOYAS', label: 'Joyas y piedras preciosas' },
+  { value: 'EFECTIVO', label: 'Dinero en efectivo' },
+  { value: 'ACCIONES', label: 'Acciones y participaciones' },
+  { value: 'CUENTAS', label: 'Cuentas por cobrar' },
+] as const;
+
+export const RELATIONSHIP_OPTIONS = [
+  { value: 'HIJO', label: 'Hijo(a)' },
+  { value: 'CONYUGE', label: 'Cónyuge' },
+  { value: 'PADRE', label: 'Padre' },
+  { value: 'MADRE', label: 'Madre' },
+  { value: 'HERMANO', label: 'Hermano(a)' },
+  { value: 'ABUELO', label: 'Abuelo(a)' },
+  { value: 'OTRO', label: 'Otro' },
+] as const;
+
+// ============================================
+// VALIDATION RESULT TYPE
+// ============================================
+
+export interface ValidationIssue {
+  field: string;
+  message: string;
+  type: 'error' | 'warning';
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  issues: ValidationIssue[];
+  warnings: ValidationIssue[];
+}
+
+// ============================================
+// COHERENCE VALIDATION FUNCTIONS
+// ============================================
+
+/**
+ * Validates income/expenses coherence
+ */
+export function validateIncomeExpenses(
+  monthlyIncome: number | undefined,
+  monthlyExpenses: number | undefined
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  const income = monthlyIncome || 0;
+  const expenses = monthlyExpenses || 0;
+
+  if (expenses > income) {
+    issues.push({
+      field: 'monthlyExpenses',
+      message: 'Los gastos superan los ingresos. Verifique los datos.',
+      type: 'warning',
+    });
+  }
+
+  if (income > 0 && expenses === 0) {
+    issues.push({
+      field: 'monthlyExpenses',
+      message: 'Debe declarar gastos si tiene ingresos',
+      type: 'warning',
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * Validates debt limits based on SMMLV
+ */
+export function validateDebtLimits(
+  totalDebt: number,
+  creditorCount: number
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  // Check 150 creditor limit
+  if (creditorCount > 150) {
+    issues.push({
+      field: 'debts',
+      message: 'No puede tener más de 150 acreedores para este procedimiento',
+      type: 'error',
+    });
+  }
+
+  // Check if debt exceeds 150 SMMLV (may require different procedure)
+  if (totalDebt > 150 * SMMLV_2025) {
+    issues.push({
+      field: 'totalDebt',
+      message: 'La deuda total supera 150 SMMLV. Verifique si aplica este procedimiento.',
+      type: 'warning',
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * Validates payment proposal coherence
+ */
+export function validatePaymentProposal(data: Partial<CreateCaseFormData>): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  // Grace period validation
+  if (data.gracePeriodRequested && !data.gracePeriodMonths) {
+    issues.push({
+      field: 'gracePeriodMonths',
+      message: 'Debe especificar el número de meses de período de gracia',
+      type: 'error',
+    });
+  }
+
+  if (data.gracePeriodMonths && data.gracePeriodMonths > 24) {
+    issues.push({
+      field: 'gracePeriodMonths',
+      message: 'El período de gracia no puede exceder 24 meses',
+      type: 'error',
+    });
+  }
+
+  // Dation in payment
+  if (data.paymentInKind && !data.paymentInKindDescription) {
+    issues.push({
+      field: 'paymentInKindDescription',
+      message: 'Debe describir el bien ofrecido como dación en pago',
+      type: 'error',
+    });
+  }
+
+  // Asset sale authorization
+  if (data.assetSaleAuthorized && !data.assetSaleDescription) {
+    issues.push({
+      field: 'assetSaleDescription',
+      message: 'Debe describir el bien autorizado para venta',
+      type: 'error',
+    });
+  }
+
+  // Capital reduction
+  if (data.capitalReduction && !data.capitalReductionPercent) {
+    issues.push({
+      field: 'capitalReductionPercent',
+      message: 'Debe especificar el porcentaje de reducción de capital',
+      type: 'error',
+    });
+  }
+
+  if (data.capitalReductionPercent && data.capitalReductionPercent > 100) {
+    issues.push({
+      field: 'capitalReductionPercent',
+      message: 'El porcentaje de reducción no puede superar 100%',
+      type: 'error',
+    });
+  }
+
+  // Payment term
+  if (data.paymentTermMonths && data.paymentTermMonths > 120) {
+    issues.push({
+      field: 'paymentTermMonths',
+      message: 'El plazo de pago no puede exceder 120 meses (10 años)',
+      type: 'error',
+    });
+  }
+
+  // Extraordinary payment
+  if (data.extraordinaryPayment && !data.extraordinaryPaymentDate) {
+    issues.push({
+      field: 'extraordinaryPaymentDate',
+      message: 'Debe especificar la fecha del pago extraordinario',
+      type: 'error',
+    });
+  }
+
+  // Class privileges
+  if (data.hasClassPrivileges && !data.classPrivilegesDescription) {
+    issues.push({
+      field: 'classPrivilegesDescription',
+      message: 'Debe describir los privilegios de clase solicitados',
+      type: 'error',
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * Validates spouse data based on marital status
+ */
+export function validateSpouseData(
+  maritalStatus: string | undefined,
+  spouseData: {
+    spouseName?: string | null;
+    spouseIdNumber?: string | null;
+  }
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (maritalStatus && ['CASADO', 'UNION_LIBRE'].includes(maritalStatus)) {
+    if (!spouseData.spouseName) {
+      issues.push({
+        field: 'spouseName',
+        message: 'Debe ingresar el nombre del cónyuge',
+        type: 'error',
+      });
+    }
+
+    if (!spouseData.spouseIdNumber) {
+      issues.push({
+        field: 'spouseIdNumber',
+        message: 'Debe ingresar la cédula del cónyuge',
+        type: 'error',
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Validates assets declaration coherence
+ */
+export function validateAssetsDeclaration(
+  hasAssets: boolean,
+  assetCount: number
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (hasAssets && assetCount === 0) {
+    issues.push({
+      field: 'assets',
+      message: 'Si declara tener bienes, debe agregar al menos uno',
+      type: 'error',
+    });
+  }
+
+  if (!hasAssets && assetCount > 0) {
+    issues.push({
+      field: 'hasAssets',
+      message: 'Marcó que no tiene bienes pero agregó bienes a la lista',
+      type: 'warning',
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * Validates legal processes declaration coherence
+ */
+export function validateLegalProcesses(
+  hasLegalProcesses: boolean,
+  processCount: number
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (hasLegalProcesses && processCount === 0) {
+    issues.push({
+      field: 'legalProcesses',
+      message: 'Si declara tener procesos judiciales, debe agregar al menos uno',
+      type: 'error',
+    });
+  }
+
+  if (!hasLegalProcesses && processCount > 0) {
+    issues.push({
+      field: 'hasLegalProcesses',
+      message: 'Marcó que no tiene procesos pero agregó procesos a la lista',
+      type: 'warning',
+    });
+  }
+
+  return issues;
+}
+
+/**
+ * Validates attorney data if acting with attorney
+ */
+export function validateAttorneyData(
+  hasAttorney: boolean,
+  attorneyData: {
+    attorney?: string | null;
+    // Add more attorney fields as needed
+  }
+): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (hasAttorney && !attorneyData.attorney) {
+    issues.push({
+      field: 'attorney',
+      message: 'Debe ingresar los datos del apoderado',
+      type: 'error',
+    });
+  }
+
+  return issues;
+}
+
+// ============================================
+// REQUIRED DOCUMENTS VALIDATION
+// ============================================
+
+export const REQUIRED_DOCUMENTS = [
+  { id: 'cedula', name: 'Cédula de ciudadanía', always: true },
+  { id: 'redam', name: 'Certificado REDAM', always: true },
+  { id: 'ingresos', name: 'Certificado de ingresos', always: true },
+];
+
+export const CONDITIONAL_DOCUMENTS = [
+  { id: 'matricula', name: 'Matrícula mercantil', condition: 'isSmallMerchant' },
+  { id: 'tradicion', name: 'Certificado de tradición', condition: 'hasRealEstate' },
+  { id: 'poder', name: 'Poder notariado', condition: 'hasAttorney' },
+];
+
+export function getRequiredDocuments(caseData: Partial<CreateCaseFormData>): string[] {
+  const required = REQUIRED_DOCUMENTS.map(d => d.id);
+
+  // Check conditional documents
+  const isSmallMerchant = caseData.applicantScope?.includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE');
+  const hasRealEstate = caseData.assets?.some(a => a.type === 'INMUEBLE');
+  // const hasAttorney = !!caseData.attorney; // TODO: Add attorney check
+
+  if (isSmallMerchant) {
+    required.push('matricula');
+  }
+
+  if (hasRealEstate) {
+    required.push('tradicion');
+  }
+
+  return required;
+}
+
+// ============================================
+// COMPLETE CASE VALIDATION
+// ============================================
+
+/**
+ * Performs complete validation of case data
+ * Returns all errors and warnings
+ */
+export function validateCaseComplete(data: Partial<CreateCaseFormData>): ValidationResult {
+  const issues: ValidationIssue[] = [];
+  const warnings: ValidationIssue[] = [];
+
+  // Calculate totals from debts
+  const debts = data.debts || [];
+  const totalDebt = debts.reduce((sum, d) => {
+    const capital = typeof d.capitalAmount === 'string'
+      ? parseFloat(d.capitalAmount) || 0
+      : (d.capitalAmount || 0);
+    const interest = typeof d.interestAmount === 'string'
+      ? parseFloat(d.interestAmount) || 0
+      : (d.interestAmount || 0);
+    return sum + capital + interest;
+  }, 0);
+
+  // Basic required fields
+  if (!data.debtorId) {
+    issues.push({ field: 'debtorId', message: 'Debe seleccionar un deudor', type: 'error' });
+  }
+
+  if (!data.causes || data.causes.length === 0) {
+    issues.push({ field: 'causes', message: 'Debe seleccionar al menos una causa', type: 'error' });
+  }
+
+  if (!data.applicantScope || data.applicantScope.length === 0) {
+    issues.push({ field: 'applicantScope', message: 'Debe seleccionar el ámbito de aplicación', type: 'error' });
+  }
+
+  if (debts.length === 0) {
+    issues.push({ field: 'debts', message: 'Debe agregar al menos un acreedor', type: 'error' });
+  }
+
+  // Income/Expenses validation
+  const incomeIssues = validateIncomeExpenses(
+    typeof data.monthlyIncome === 'number' ? data.monthlyIncome : undefined,
+    typeof data.monthlyExpenses === 'number' ? data.monthlyExpenses : undefined
+  );
+
+  incomeIssues.forEach(issue => {
+    if (issue.type === 'error') issues.push(issue);
+    else warnings.push(issue);
+  });
+
+  // Debt limits validation
+  const debtIssues = validateDebtLimits(totalDebt, debts.length);
+  debtIssues.forEach(issue => {
+    if (issue.type === 'error') issues.push(issue);
+    else warnings.push(issue);
+  });
+
+  // Payment proposal validation
+  const proposalIssues = validatePaymentProposal(data);
+  proposalIssues.forEach(issue => {
+    if (issue.type === 'error') issues.push(issue);
+    else warnings.push(issue);
+  });
+
+  // Assets validation
+  const assetIssues = validateAssetsDeclaration(
+    false, // TODO: Get from form data
+    (data.assets || []).length
+  );
+  assetIssues.forEach(issue => {
+    if (issue.type === 'error') issues.push(issue);
+    else warnings.push(issue);
+  });
+
+  // Legal processes validation
+  const processIssues = validateLegalProcesses(
+    data.hasLegalProcesses || false,
+    (data.legalProcesses || []).length
+  );
+  processIssues.forEach(issue => {
+    if (issue.type === 'error') issues.push(issue);
+    else warnings.push(issue);
+  });
+
+  // Notification fields
+  if (!data.notificationEmail) {
+    issues.push({ field: 'notificationEmail', message: 'Email de notificación es requerido', type: 'error' });
+  }
+
+  if (!data.notificationAddress) {
+    issues.push({ field: 'notificationAddress', message: 'Dirección de notificación es requerida', type: 'error' });
+  }
+
+  if (!data.notificationPhone) {
+    issues.push({ field: 'notificationPhone', message: 'Teléfono de notificación es requerido', type: 'error' });
+  }
+
+  return {
+    isValid: issues.length === 0,
+    issues,
+    warnings,
+  };
+}
+
+// ============================================
+// FIELD REQUIREMENTS BY DOCUMENT
+// ============================================
+
+export const DOCUMENT_REQUIRED_FIELDS: Record<string, string[]> = {
+  'solicitud-insolvencia': [
+    'NOMBRE_DEUDOR',
+    'CEDULA_DEUDOR',
+    'DIRECCION_DEUDOR',
+    'EMAIL_DEUDOR',
+    'TELEFONO_DEUDOR',
+    'ACREEDOR_1',
+    'VALOR_1',
+    'TOTAL_ACREENCIAS',
+    'INGRESO_PRINCIPAL',
+    'GASTOS_MENSUALES',
+    'PROPUESTA_DISPONIBLE',
+  ],
+  'designacion-conciliador': [
+    'NOMBRE_DEUDOR',
+    'CEDULA_DEUDOR',
+    'FECHA_RADICACION',
+    'FECHA_DESIGNACION',
+  ],
+  'aceptacion-cargo': [
+    'NOMBRE_DEUDOR',
+    'CEDULA_DEUDOR',
+    'FECHA_RADICACION',
+    'FECHA_DESIGNACION',
+    'FECHA_ACEPTACION',
+  ],
+  'auto-admision': [
+    'NOMBRE_DEUDOR',
+    'CEDULA_DEUDOR',
+    'RADICADO',
+    'FECHA_ADMISION',
+    'FECHA_AUDIENCIA',
+    'HORA_AUDIENCIA',
+    'ZOOM_ID',
+    'ZOOM_CODIGO',
+    'ZOOM_LINK',
+  ],
+};
+
+/**
+ * Checks if all required fields for a document type are filled
+ */
+export function canGenerateDocument(
+  documentType: string,
+  placeholders: Record<string, string>
+): { canGenerate: boolean; missingFields: string[] } {
+  const requiredFields = DOCUMENT_REQUIRED_FIELDS[documentType] || [];
+
+  const missingFields = requiredFields.filter(field => {
+    const value = placeholders[field];
+    return !value || value.trim() === '' || value === 'N/A';
+  });
+
+  return {
+    canGenerate: missingFields.length === 0,
+    missingFields,
+  };
+}

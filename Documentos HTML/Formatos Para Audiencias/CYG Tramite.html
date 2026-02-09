@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calificación y Graduación de Créditos</title>
+    <link rel="stylesheet" href="/CSS/styles-calificacion-graduacion.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Encabezado principal -->
+        <div class="encabezado-principal">
+            <h1>PROCEDIMIENTO DE INSOLVENCIA DE LA PERSONA NATURAL NO COMERCIANTE Y DE LA PEQUEÑA COMERCIANTE</h1>
+            <p class="centro-nombre">CENTRO DE CONCILIACION Y ARBITRAJE CONSTRUCTORES DE PAZ</p>
+        </div>
+
+        <!-- Título del documento -->
+        <h2 class="titulo-documento">CALIFICACIÓN Y GRADUACIÓN DE CREDITOS TRAMITE No. {{NUMERO_TRAMITE}}</h2>
+
+        <!-- Información del deudor y fecha -->
+        <div class="info-header">
+            <div class="info-deudor-box">
+                <p class="label-deudor">DEUDOR</p>
+                <div class="deudor-datos">
+                    <div class="campo-deudor">
+                        <label>NOMBRE</label>
+                        <input type="text" class="input-deudor" value="{{NOMBRE_DEUDOR}}">
+                    </div>
+                    <div class="campo-deudor">
+                        <label>CEDULA</label>
+                        <input type="text" class="input-deudor" value="{{CEDULA_DEUDOR}}">
+                    </div>
+                </div>
+            </div>
+            <div class="info-fecha-box">
+                <p class="label-fecha">FECHA Y HORA</p>
+                <input type="datetime-local" class="input-fecha">
+            </div>
+        </div>
+
+        <!-- Tabla de calificación y graduación -->
+        <div class="tabla-wrapper">
+            <table class="tabla-calificacion">
+                <thead>
+                    <tr>
+                        <th class="col-acreedor">NOMBRE O ENTIDAD ACREEDORA<br>CEDULA O NIT.</th>
+                        <th class="col-numero">NUMERO DE<br>OBLIGACION</th>
+                        <th class="col-prelacion">CALIFICACIÓN /<br>PRELACIÓN</th>
+                        <th class="col-capital">VR. CAPITAL<br>PESOS</th>
+                        <th class="col-intereses">INTERESES</th>
+                        <th class="col-porcentaje">PORCENTAJE DE<br>PARTICIPACION<br>CONCURSAL</th>
+                        <th class="col-apoderado">APODERADO<br>(NOMBRE, IDENTIFICACION,<br>CORREO Y TELEFONO)</th>
+                        <th class="col-firma">FIRMA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Filas dinámicas de acreedores (11 filas) -->
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="1"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="1">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="2"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="2">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="3"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="3">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="4"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="4">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="5"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="5">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="6"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="6">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="7"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="7">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="8"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="8">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="9"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="9">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="10"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="10">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                    <tr class="fila-acreedor">
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="text" class="input-tabla"></td>
+                        <td><input type="number" class="input-tabla input-numero" data-row="11"></td>
+                        <td><input type="number" class="input-tabla input-numero"></td>
+                        <td class="celda-porcentaje" data-row="11">0.00%</td>
+                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td class="celda-firma"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="fila-totales">
+                        <td colspan="3" class="label-totales">TOTALES</td>
+                        <td class="total-capital">$0.00</td>
+                        <td class="total-intereses">$0.00</td>
+                        <td class="total-porcentaje">100.00%</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Firma del deudor y operadora -->
+        <div class="firma-footer">
+            <div class="firma-deudor">
+                <div class="firma-linea"></div>
+                <p class="nombre-cedula-deudor">{{NOMBRE_DEUDOR}}<br>{{CEDULA_DEUDOR}}</p>
+            </div>
+            <div class="firma-operadora">
+                <img src="/img/Logo construpaz.png" alt="Logo" class="logo-firma">
+                <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+                <p class="nombre-operadora">BEATRIZ HELENA MALAVERA LOPEZ<br>OPERADORA DE INSOLVENCIA</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Calle 74 No. 15-80 Interior 1 Oficina 308 Edificio Osaka Trade Center<br>
+            Tel. 3118117520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co<br>
+            <strong>VIGILADO Ministerio de justicia y del Derecho.</strong></p>
+        </div>
+    </div>
+
+    <script>
+        // Script para calcular totales y porcentajes automáticamente
+        function calcularTotales() {
+            const inputs = document.querySelectorAll('.input-numero[data-row]');
+            let totalCapital = 0;
+            let totalIntereses = 0;
+            
+            // Calcular totales
+            document.querySelectorAll('.input-numero[data-row]').forEach(input => {
+                const valor = parseFloat(input.value) || 0;
+                totalCapital += valor;
+            });
+            
+            document.querySelectorAll('.input-numero:not([data-row])').forEach(input => {
+                const valor = parseFloat(input.value) || 0;
+                totalIntereses += valor;
+            });
+            
+            // Actualizar totales
+            document.querySelector('.total-capital').textContent = '$' + totalCapital.toLocaleString('es-CO', {minimumFractionDigits: 2});
+            document.querySelector('.total-intereses').textContent = '$' + totalIntereses.toLocaleString('es-CO', {minimumFractionDigits: 2});
+            
+            // Calcular porcentajes
+            document.querySelectorAll('.celda-porcentaje').forEach(celda => {
+                const row = celda.getAttribute('data-row');
+                const inputCapital = document.querySelector(`.input-numero[data-row="${row}"]`);
+                const valor = parseFloat(inputCapital.value) || 0;
+                const porcentaje = totalCapital > 0 ? (valor / totalCapital * 100) : 0;
+                celda.textContent = porcentaje.toFixed(2) + '%';
+            });
+        }
+        
+        // Event listeners
+        document.querySelectorAll('.input-numero').forEach(input => {
+            input.addEventListener('input', calcularTotales);
+        });
+        
+        // Calcular al cargar
+        calcularTotales();
+    </script>
+</body>
+</html>

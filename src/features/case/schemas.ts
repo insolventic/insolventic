@@ -1,0 +1,1076 @@
+import { z } from 'zod';
+
+const decimalToNumber = z.any().transform((val) => {
+  if (val && typeof val === 'object' && 'toNumber' in val) {
+    return val.toNumber();
+  }
+  return Number(val);
+});
+
+const mapCaseTypeToSpanish = z.string().transform((type) => {
+  const typeMap: Record<string, string> = {
+    INSOLVENCY: 'Insolvencia',
+    CONCILIATION: 'Conciliación',
+    SUPPORT_AGREEMENT: 'Acuerdo de Apoyo',
+  };
+  return typeMap[type] || type;
+});
+
+const debtorForCaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  idNumber: z.string(),
+  idType: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  address: z.string(),
+  city: z.string().nullable(),
+  department: z.string().nullable(),
+  birthDate: z.coerce.date().nullable(),
+  maritalStatus: z.string().nullable(),
+  occupation: z.string().nullable(),
+  monthlyIncome: decimalToNumber,
+  monthlyExpenses: decimalToNumber,
+  otherIncomeDescription: z.string().nullable().optional(),
+  otherIncomeAmount: decimalToNumber.nullable().optional(),
+  hasEmployerCertification: z.boolean().optional(),
+  dependents: z.coerce.number().nullable(),
+  educationLevel: z.string().nullable(),
+  totalDebt: decimalToNumber,
+  emergencyContact: z.string().nullable(),
+  emergencyPhone: z.string().nullable(),
+  bankAccount: z.string().nullable(),
+  bankName: z.string().nullable(),
+  accountType: z.string().nullable(),
+  description: z.string().nullable(),
+  activeCases: z.coerce.number(),
+  createdDate: z.coerce.date(),
+  lastUpdate: z.coerce.date(),
+});
+
+const operatorForCaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+});
+
+const creditorForDebtSchema = z.object({
+  name: z.string(),
+});
+
+const documentForCaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  uploadDate: z.coerce.date(),
+  url: z.string(),
+  caseId: z.string(),
+});
+
+const debtForCaseSchema = z.object({
+  id: z.string(),
+  amount: decimalToNumber,
+  interestRate: decimalToNumber,
+  type: z.string(),
+  caseId: z.string(),
+  creditorId: z.string(),
+  debtorId: z.string().nullable(),
+  creditor: creditorForDebtSchema,
+
+  // Detailed creditor information
+  creditorAddress: z.string().nullable(),
+  creditorCity: z.string().nullable(),
+  creditorEmail: z.string().nullable(),
+  capitalAmount: decimalToNumber.nullable(),
+  interestAmount: decimalToNumber.nullable(),
+  isDeferred: z.boolean(),
+  documentType: z.string().nullable(),
+  grantDate: z.coerce.date().nullable(),
+  dueDate: z.coerce.date().nullable(),
+  creditClassification: z.string().nullable(),
+  hasActiveLibranza: z.boolean(),
+  creditorClass: z.string().nullable(),
+  percentageOfTotal: decimalToNumber.nullable(),
+  daysOverdue: z.number().nullable(),
+
+  // Co-debtor/Guarantor info
+  coDebtorName: z.string().nullable(),
+  coDebtorCity: z.string().nullable(),
+  coDebtorAddress: z.string().nullable(),
+});
+
+const assetForCaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  value: decimalToNumber,
+  caseId: z.string(),
+  debtorId: z.string().nullable(),
+  description: z.string().nullable().optional(),
+  propertyType: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  registrationNumber: z.string().nullable().optional(),
+  encumbrance: z.string().nullable().optional(),
+  affectation: z.string().nullable().optional(),
+  precautionaryMeasure: z.string().nullable().optional(),
+  proofDocument: z.string().nullable().optional(),
+  isFamilyHome: z.boolean().nullable().optional(),
+  isInalienablePatrimony: z.boolean().nullable().optional(),
+  brand: z.string().nullable().optional(),
+  model: z.string().nullable().optional(),
+  condition: z.string().nullable().optional(),
+  licensePlate: z.string().nullable().optional(),
+  transitAuthority: z.string().nullable().optional(),
+  guaranteeInFavorOf: z.string().nullable().optional(),
+  guaranteeAmount: decimalToNumber.nullable().optional(),
+  material: z.string().nullable().optional(),
+});
+
+export const debtSchema = z.object({
+  id: z.string().optional(),
+  creditor: z.string().min(1, 'El acreedor es requerido'),
+  creditorId: z.string().optional(), // Optional - not used in detailed form
+  amount: z.string().optional(), // Optional - using capitalAmount/interestAmount instead
+  type: z.string().min(1, 'El tipo de deuda es requerido'),
+  interestRate: z.string().min(1, 'La tasa de interés es requerida'),
+
+  // Detailed creditor information
+  creditorAddress: z.string().optional(),
+  creditorCity: z.string().optional(),
+  creditorEmail: z.string().optional(),
+  capitalAmount: z.string().optional(),
+  interestAmount: z.string().optional(),
+  isDeferred: z.boolean().default(false),
+  documentType: z.string().optional(),
+  grantDate: z.string().optional(),
+  dueDate: z.string().optional(),
+  creditClassification: z.string().optional(),
+  hasActiveLibranza: z.boolean().default(false),
+  creditorClass: z.string().optional(),
+  percentageOfTotal: z.string().optional(),
+  daysOverdue: z.number().optional(),
+
+  // Co-debtor/Guarantor info
+  coDebtorName: z.string().optional(),
+  coDebtorCity: z.string().optional(),
+  coDebtorAddress: z.string().optional(),
+});
+
+export const assetSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'El nombre del bien es requerido'),
+  type: z.string().min(1, 'El tipo de bien es requerido'),
+  value: z.string().min(1, 'El valor es requerido'),
+  description: z.string().optional(),
+
+  // Real Estate specific fields
+  propertyType: z.string().optional(),
+  address: z.string().optional(),
+  registrationNumber: z.string().optional(),
+  encumbrance: z.string().optional(),
+  affectation: z.string().optional(),
+  precautionaryMeasure: z.string().optional(),
+  proofDocument: z.string().optional(),
+  isFamilyHome: z.boolean().default(false),
+  isInalienablePatrimony: z.boolean().default(false),
+
+  // Personal Property specific fields
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  condition: z.string().optional(),
+  licensePlate: z.string().optional(),
+  transitAuthority: z.string().optional(),
+  guaranteeInFavorOf: z.string().optional(),
+  guaranteeAmount: z.string().optional(),
+  material: z.string().optional(),
+});
+export const libranzaSchema = z.object({
+  id: z.string().optional(),
+  payerName: z.string().min(1, 'El nombre del pagador es requerido'),
+  payerAddress: z.string().optional(),
+  payerEmail: z.string().optional(),
+  payerPhone: z.string().optional(),
+  deductedAmount: z.string().min(1, 'La suma descontada es requerida'),
+  productAndCreditor: z.string().optional(),
+});
+
+export const suspendedServiceSchema = z.object({
+  id: z.string().optional(),
+  creditorName: z.string().min(1, 'El nombre del acreedor es requerido'),
+  address: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  suspendedProduct: z.string().optional(),
+  amountOwed: z.string().min(1, 'El valor adeudado es requerido'),
+});
+
+export const dependentSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, 'El nombre es requerido'),
+  age: z.number().min(0, 'La edad debe ser mayor a 0'),
+  relationship: z.string().min(1, 'El parentesco es requerido'),
+});
+
+// Schemas for database responses (with Decimal types)
+const libranzaForCaseSchema = z.object({
+  id: z.string(),
+  payerName: z.string(),
+  payerAddress: z.string().nullable(),
+  payerEmail: z.string().nullable(),
+  payerPhone: z.string().nullable(),
+  deductedAmount: decimalToNumber,
+  productAndCreditor: z.string().nullable(),
+});
+
+const suspendedServiceForCaseSchema = z.object({
+  id: z.string(),
+  creditorName: z.string(),
+  address: z.string().nullable(),
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  suspendedProduct: z.string().nullable(),
+  amountOwed: decimalToNumber,
+});
+
+const dependentForCaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  age: z.number(),
+  relationship: z.string(),
+});
+
+// Legal Process schemas
+export const legalProcessSchema = z.object({
+  id: z.string().optional(),
+  processType: z.string().min(1, 'El tipo de proceso es requerido'),
+  plaintiff: z.string().min(1, 'El demandante es requerido'),
+  court: z.string().min(1, 'El juzgado es requerido'),
+  fileNumber: z.string().min(1, 'El expediente es requerido'),
+  precautionaryMeasure: z.string().optional(),
+});
+
+const legalProcessForCaseSchema = z.object({
+  id: z.string(),
+  description: z.string(),
+  processType: z.string().nullable(),
+  plaintiff: z.string().nullable(),
+  court: z.string().nullable(),
+  fileNumber: z.string().nullable(),
+  precautionaryMeasure: z.string().nullable(),
+});
+
+export const caseSchema = z.object({
+  id: z.string(),
+  caseNumber: z.string(),
+  debtorName: z.string(),
+  type: mapCaseTypeToSpanish,
+  totalDebt: decimalToNumber,
+  creditors: z.coerce.number(),
+  createdDate: z.coerce.date(),
+  hearingDate: z.coerce.date().nullable(),
+  phase: z.string().nullable(),
+  causes: z.array(z.string()),
+  debtorId: z.string(),
+  operatorId: z.string(),
+
+  tramite: z.string().nullable(),
+  filingDate: z.coerce.date().nullable(),
+  debtorIdNumber: z.string().nullable(),
+  convened: z.string().nullable(),
+  attorney: z.string().nullable(),
+  owedCapital: decimalToNumber.nullable(),
+  designatedOperator: z.string().nullable(),
+  designationDate: z.coerce.date().nullable(),
+  positionAcceptanceDate: z.coerce.date().nullable(),
+  inadmissionDate: z.coerce.date().nullable(),
+  admissionDate: z.coerce.date().nullable(),
+  firstHearingDate: z.coerce.date().nullable(),
+  firstHearingTime: z.string().nullable(),
+  rejection: z.boolean(),
+  withdrawal: z.boolean(),
+  hasLegalProcesses: z.boolean(),
+
+  courtNumber: z.string().nullable(),
+  city: z.string().nullable(),
+  processType: z.string().nullable(),
+  plaintiff: z.string().nullable(),
+  judicialFileNumber: z.string().nullable(),
+  suspensionDate: z.coerce.date().nullable(),
+  resultDeliveryDate: z.coerce.date().nullable(),
+
+  resultType: z.string().nullable(),
+  resultDate: z.coerce.date().nullable(),
+  siccacNumber: z.string().nullable(),
+  riskCenterCommunication: z.boolean(),
+
+  // Ámbito de Aplicación
+  applicantScope: z.array(z.string()).optional(),
+
+  // Ingresos y Gastos
+  monthlyIncome: decimalToNumber.optional().nullable(),
+  monthlyExpenses: decimalToNumber.optional().nullable(),
+  otherIncomeDescription: z.string().optional().nullable(),
+  otherIncomeAmount: decimalToNumber.optional().nullable(),
+  hasEmployerCertification: z.boolean().optional(),
+
+  // Propuesta de Pago
+  gracePeriodRequested: z.boolean().optional(),
+  gracePeriodMonths: z.coerce.number().optional().nullable(),
+  paymentInKind: z.boolean().optional(),
+  paymentInKindDescription: z.string().optional().nullable(),
+  assetSaleAuthorized: z.boolean().optional(),
+  assetSaleDescription: z.string().optional().nullable(),
+  cashFlowPayment: z.boolean().optional(),
+  paymentTermMonths: z.coerce.number().optional().nullable(),
+  monthlyPaymentAmount: decimalToNumber.optional().nullable(),
+  variablePayment: decimalToNumber.optional().nullable(),
+  extraordinaryPayment: z.boolean().optional(),
+  extraordinaryPaymentDate: z.string().optional().nullable(),
+  capitalReduction: z.boolean().optional(),
+  capitalReductionPercent: decimalToNumber.optional().nullable(),
+  insuranceOffering: z.string().optional().nullable(),
+  forgiveAccruedInterest: z.boolean().optional(),
+  forgiveFutureInterest: z.boolean().optional(),
+  paymentOrder: z.any().optional().nullable(), // JsonValue from Prisma
+  hasClassPrivileges: z.boolean().optional(),
+  classPrivilegesDescription: z.string().optional().nullable(),
+  thirdPartyPaymentAuth: z.boolean().optional(),
+  guaranteeSubstitution: z.boolean().optional(),
+
+  // Sociedad Conyugal
+  spouseName: z.string().optional().nullable(),
+  spouseIdNumber: z.string().optional().nullable(),
+  spouseAddress: z.string().optional().nullable(),
+  spousePhone: z.string().optional().nullable(),
+  spouseEmail: z.string().optional().nullable(),
+
+  // Tarifa y Fundamentos
+  requestedFee: z.string().optional().nullable(),
+  legalFoundations: z.string().optional().nullable(),
+
+  // Notificaciones
+  notificationAddress: z.string().optional().nullable(),
+  notificationPhone: z.string().optional().nullable(),
+  notificationEmail: z.string().optional().nullable(),
+
+  // Firma
+  applicantSignatureName: z.string().optional().nullable(),
+  applicantSignatureId: z.string().optional().nullable(),
+  applicantSignature: z.string().optional().nullable(),
+
+  // Zoom Meeting Info
+  zoomMeetingId: z.string().optional().nullable(),
+  zoomPassword: z.string().optional().nullable(),
+  zoomLink: z.string().optional().nullable(),
+
+  // Google Drive folder for case documents
+  driveFolderId: z.string().optional().nullable(),
+
+  debtor: debtorForCaseSchema,
+  operator: operatorForCaseSchema,
+  _count: z.object({
+    documents: z.coerce.number(),
+  }),
+});
+
+export type Case = z.infer<typeof caseSchema>;
+
+export const caseWithRelationsSchema = caseSchema.extend({
+  documents: z.array(documentForCaseSchema),
+  debts: z.array(debtForCaseSchema),
+  assets: z.array(assetForCaseSchema),
+  libranzas: z.array(libranzaForCaseSchema).optional(),
+  suspendedServices: z.array(suspendedServiceForCaseSchema).optional(),
+  dependents: z.array(dependentForCaseSchema).optional(),
+  legalProcesses: z.array(legalProcessForCaseSchema).optional(),
+});
+
+export type CaseWithRelations = z.infer<typeof caseWithRelationsSchema>;
+
+export const caseSummarySchema = caseSchema.omit({
+  debtor: true,
+  operator: true,
+  _count: true,
+});
+
+export type CaseSummary = z.infer<typeof caseSummarySchema>;
+export const createCaseSchema = z.object({
+  debtorId: z.string().min(1, 'El deudor es requerido'),
+  type: z.enum(['INSOLVENCY', 'CONCILIATION', 'SUPPORT_AGREEMENT'], {
+    message: 'Tipo de caso inválido',
+  }),
+  totalDebt: z.union([
+    z.number().min(0, 'La deuda total debe ser mayor a 0'),
+    z
+      .string()
+      .min(1, 'La deuda total es requerida')
+      .transform((val) => parseFloat(val.replace(/[^0-9.-]/g, ''))),
+  ]),
+  creditors: z.union([
+    z.number().min(0, 'El número de acreedores debe ser mayor o igual a 0'),
+    z.string().transform((val) => parseInt(val) || 0),
+  ]),
+  hearingDate: z.string().optional().nullable(),
+  phase: z.string().optional(),
+  operatorId: z.string().min(1, 'El operador es requerido'),
+  caseNumber: z.string().optional(),
+  causes: z.array(z.string()).default([]),
+
+  tramite: z.string().optional(),
+  filingDate: z.string().optional(),
+  debtorIdNumber: z.string().optional(),
+  convened: z.string().optional(),
+  attorney: z.string().optional(),
+  owedCapital: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  designatedOperator: z.string().optional(),
+  designationDate: z.string().optional(),
+  positionAcceptanceDate: z.string().optional(),
+  inadmissionDate: z.string().optional(),
+  admissionDate: z.string().optional(),
+  firstHearingDate: z.string().optional(),
+  firstHearingTime: z.string().optional(),
+  rejection: z.boolean().default(false),
+  withdrawal: z.boolean().default(false),
+  hasLegalProcesses: z.boolean().default(false),
+  courtNumber: z.string().optional(),
+  city: z.string().optional(),
+  processType: z.string().optional(),
+  plaintiff: z.string().optional(),
+  judicialFileNumber: z.string().optional(),
+  suspensionDate: z.string().optional(),
+  resultDeliveryDate: z.string().optional(),
+  resultType: z.string().optional(),
+  resultDate: z.string().optional(),
+  siccacNumber: z.string().optional(),
+  riskCenterCommunication: z.boolean().default(false),
+
+  // Ámbito de Aplicación
+  applicantScope: z.array(z.string()).default([]),
+
+  // Ingresos y Gastos
+  monthlyIncome: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  monthlyExpenses: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  otherIncomeDescription: z.string().optional(),
+  otherIncomeAmount: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  hasEmployerCertification: z.boolean().default(false),
+
+  // Propuesta de Pago
+  gracePeriodRequested: z.boolean().default(false),
+  gracePeriodMonths: z.number().optional(),
+  paymentInKind: z.boolean().default(false),
+  paymentInKindDescription: z.string().optional(),
+  assetSaleAuthorized: z.boolean().default(false),
+  assetSaleDescription: z.string().optional(),
+  cashFlowPayment: z.boolean().default(false),
+  paymentTermMonths: z.number().optional(),
+  monthlyPaymentAmount: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  variablePayment: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  extraordinaryPayment: z.boolean().default(false),
+  extraordinaryPaymentDate: z.string().optional(),
+  capitalReduction: z.boolean().default(false),
+  capitalReductionPercent: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  insuranceOffering: z.string().optional(),
+  forgiveAccruedInterest: z.boolean().default(false),
+  forgiveFutureInterest: z.boolean().default(false),
+  paymentOrder: z
+    .object({
+      primera: z.string().optional().nullable(),
+      segunda: z.string().optional().nullable(),
+      tercera: z.string().optional().nullable(),
+      cuarta: z.string().optional().nullable(),
+      quinta: z.string().optional().nullable(),
+    })
+    .optional()
+    .catch({}),
+  hasClassPrivileges: z.boolean().default(false),
+  classPrivilegesDescription: z.string().optional(),
+  thirdPartyPaymentAuth: z.boolean().default(false),
+  guaranteeSubstitution: z.boolean().default(false),
+
+  // Sociedad Conyugal
+  spouseName: z.string().optional(),
+  spouseIdNumber: z.string().optional(),
+  spouseAddress: z.string().optional(),
+  spousePhone: z.string().optional(),
+  spouseEmail: z.string().optional(),
+
+  // Tarifa y Fundamentos
+  requestedFee: z.string().optional(),
+  legalFoundations: z.string().optional(),
+
+  // Notificaciones
+  notificationAddress: z.string().optional(),
+  notificationPhone: z.string().optional(),
+  notificationEmail: z.string().optional(),
+
+  // Firma
+  applicantSignatureName: z.string().optional(),
+  applicantSignatureId: z.string().optional(),
+  applicantSignature: z.string().optional(),
+
+  // Zoom Meeting Info
+  zoomMeetingId: z.string().optional(),
+  zoomPassword: z.string().optional(),
+  zoomLink: z.string().optional(),
+});
+
+export type CreateCaseData = z.infer<typeof createCaseSchema>;
+export const updateCaseSchema = z.object({
+  id: z.string().min(1, 'El ID es requerido'),
+  debtorId: z.string().min(1, 'El deudor es requerido').optional(),
+  type: z
+    .enum(['INSOLVENCY', 'CONCILIATION', 'SUPPORT_AGREEMENT'], {
+      message: 'Tipo de caso inválido',
+    })
+    .optional(),
+  totalDebt: z
+    .union([
+      z.number().min(0, 'La deuda total debe ser mayor a 0'),
+      z
+        .string()
+        .min(1, 'La deuda total es requerida')
+        .transform((val) => parseFloat(val.replace(/[^0-9.-]/g, ''))),
+    ])
+    .optional(),
+  creditors: z
+    .union([
+      z.number().min(1, 'Debe haber al menos un acreedor'),
+      z.string().transform((val) => parseInt(val) || 0),
+    ])
+    .optional(),
+  hearingDate: z.string().optional().nullable(),
+  phase: z.string().optional(),
+  operatorId: z.string().optional(),
+  causes: z.array(z.string()).optional(),
+
+  tramite: z.string().optional(),
+  filingDate: z.string().optional(),
+  debtorIdNumber: z.string().optional(),
+  convened: z.string().optional(),
+  attorney: z.string().optional(),
+  owedCapital: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  designatedOperator: z.string().optional(),
+  designationDate: z.string().optional(),
+  positionAcceptanceDate: z.string().optional(),
+  inadmissionDate: z.string().optional(),
+  admissionDate: z.string().optional(),
+  firstHearingDate: z.string().optional(),
+  firstHearingTime: z.string().optional(),
+  rejection: z.boolean().optional(),
+  withdrawal: z.boolean().optional(),
+  hasLegalProcesses: z.boolean().optional(),
+  courtNumber: z.string().optional(),
+  city: z.string().optional(),
+  processType: z.string().optional(),
+  plaintiff: z.string().optional(),
+  judicialFileNumber: z.string().optional(),
+  suspensionDate: z.string().optional(),
+  resultDeliveryDate: z.string().optional(),
+  resultType: z.string().optional(),
+  resultDate: z.string().optional(),
+  siccacNumber: z.string().optional(),
+  riskCenterCommunication: z.boolean().optional(),
+
+  // Ámbito de Aplicación
+  applicantScope: z.array(z.string()).optional(),
+
+  // Ingresos y Gastos
+  monthlyIncome: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  monthlyExpenses: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  otherIncomeDescription: z.string().optional(),
+  otherIncomeAmount: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  hasEmployerCertification: z.boolean().optional(),
+
+  // Propuesta de Pago
+  gracePeriodRequested: z.boolean().optional(),
+  gracePeriodMonths: z.number().optional(),
+  paymentInKind: z.boolean().optional(),
+  paymentInKindDescription: z.string().optional(),
+  assetSaleAuthorized: z.boolean().optional(),
+  assetSaleDescription: z.string().optional(),
+  cashFlowPayment: z.boolean().optional(),
+  paymentTermMonths: z.number().optional(),
+  monthlyPaymentAmount: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  variablePayment: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  extraordinaryPayment: z.boolean().optional(),
+  extraordinaryPaymentDate: z.string().optional(),
+  capitalReduction: z.boolean().optional(),
+  capitalReductionPercent: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  insuranceOffering: z.string().optional(),
+  forgiveAccruedInterest: z.boolean().optional(),
+  forgiveFutureInterest: z.boolean().optional(),
+  paymentOrder: z
+    .object({
+      primera: z.string().optional().nullable(),
+      segunda: z.string().optional().nullable(),
+      tercera: z.string().optional().nullable(),
+      cuarta: z.string().optional().nullable(),
+      quinta: z.string().optional().nullable(),
+    })
+    .optional()
+    .catch({}),
+  hasClassPrivileges: z.boolean().optional(),
+  classPrivilegesDescription: z.string().optional(),
+  thirdPartyPaymentAuth: z.boolean().optional(),
+  guaranteeSubstitution: z.boolean().optional(),
+
+  // Sociedad Conyugal
+  spouseName: z.string().optional(),
+  spouseIdNumber: z.string().optional(),
+  spouseAddress: z.string().optional(),
+  spousePhone: z.string().optional(),
+  spouseEmail: z.string().optional(),
+
+  // Tarifa y Fundamentos
+  requestedFee: z.string().optional(),
+  legalFoundations: z.string().optional(),
+
+  // Notificaciones
+  notificationAddress: z.string().optional(),
+  notificationPhone: z.string().optional(),
+  notificationEmail: z.string().optional(),
+
+  // Firma
+  applicantSignatureName: z.string().optional(),
+  applicantSignatureId: z.string().optional(),
+  applicantSignature: z.string().optional(),
+
+  // Zoom Meeting Info
+  zoomMeetingId: z.string().optional(),
+  zoomPassword: z.string().optional(),
+  zoomLink: z.string().optional(),
+});
+
+export type UpdateCaseData = z.infer<typeof updateCaseSchema>;
+export const addDebtToCaseSchema = z.object({
+  caseId: z.string().min(1, 'El ID del caso es requerido'),
+  creditorId: z.string().min(1, 'El ID del acreedor es requerido'),
+  amount: z.string().min(1, 'El monto es requerido'),
+  type: z.string().min(1, 'El tipo de deuda es requerido'),
+  interestRate: z.string().min(1, 'La tasa de interés es requerida'),
+});
+
+export type AddDebtToCaseData = z.infer<typeof addDebtToCaseSchema>;
+export const debtResponseSchema = z.object({
+  id: z.string(),
+  amount: decimalToNumber,
+  interestRate: decimalToNumber,
+  type: z.string(),
+  creditor: z.string(),
+  creditorId: z.string(),
+});
+export const removeDebtFromCaseSchema = z.object({
+  debtId: z.string().min(1, 'El ID de la deuda es requerido'),
+});
+
+export type RemoveDebtFromCaseData = z.infer<typeof removeDebtFromCaseSchema>;
+
+// Libranza schemas
+export const addLibranzaToCaseSchema = z.object({
+  caseId: z.string().min(1, 'El ID del caso es requerido'),
+  payerName: z.string().min(1, 'El nombre del pagador es requerido'),
+  payerAddress: z.string().optional(),
+  payerEmail: z.string().optional(),
+  payerPhone: z.string().optional(),
+  deductedAmount: z.string().min(1, 'La suma descontada es requerida'),
+  productAndCreditor: z.string().optional(),
+});
+
+export type AddLibranzaToCaseData = z.infer<typeof addLibranzaToCaseSchema>;
+
+export const removeLibranzaFromCaseSchema = z.object({
+  libranzaId: z.string().min(1, 'El ID de la libranza es requerido'),
+});
+
+export type RemoveLibranzaFromCaseData = z.infer<
+  typeof removeLibranzaFromCaseSchema
+>;
+
+export const libranzaResponseSchema = z.object({
+  id: z.string(),
+  payerName: z.string(),
+  payerAddress: z.string().nullable(),
+  payerEmail: z.string().nullable(),
+  payerPhone: z.string().nullable(),
+  deductedAmount: z.string(),
+  productAndCreditor: z.string().nullable(),
+});
+
+// Suspended Service schemas
+export const addSuspendedServiceToCaseSchema = z.object({
+  caseId: z.string().min(1, 'El ID del caso es requerido'),
+  creditorName: z.string().min(1, 'El nombre del acreedor es requerido'),
+  address: z.string().optional(),
+  email: z.string().optional(),
+  phone: z.string().optional(),
+  amountOwed: z.string().min(1, 'La suma adeudada es requerida'),
+  serviceType: z.string().optional(),
+});
+
+export type AddSuspendedServiceToCaseData = z.infer<
+  typeof addSuspendedServiceToCaseSchema
+>;
+
+export const removeSuspendedServiceFromCaseSchema = z.object({
+  suspendedServiceId: z.string().min(1, 'El ID del servicio es requerido'),
+});
+
+export type RemoveSuspendedServiceFromCaseData = z.infer<
+  typeof removeSuspendedServiceFromCaseSchema
+>;
+
+export const suspendedServiceResponseSchema = z.object({
+  id: z.string(),
+  creditorName: z.string(),
+  address: z.string().nullable(),
+  email: z.string().nullable(),
+  phone: z.string().nullable(),
+  amountOwed: z.string(),
+  serviceType: z.string().nullable(),
+});
+
+// Asset schemas
+export const addAssetToCaseSchema = z.object({
+  caseId: z.string().min(1, 'El ID del caso es requerido'),
+  name: z.string().min(1, 'El nombre del bien es requerido'),
+  type: z.string().min(1, 'El tipo de bien es requerido'),
+  value: z.string().min(1, 'El valor es requerido'),
+  description: z.string().optional(),
+  propertyType: z.string().optional(),
+  address: z.string().optional(),
+  registrationNumber: z.string().optional(),
+  encumbrance: z.string().optional(),
+  affectation: z.string().optional(),
+  precautionaryMeasure: z.string().optional(),
+  proofDocument: z.string().optional(),
+  isFamilyHome: z.boolean().optional(),
+  isInalienablePatrimony: z.boolean().optional(),
+  brand: z.string().optional(),
+  model: z.string().optional(),
+  condition: z.string().optional(),
+  licensePlate: z.string().optional(),
+  transitAuthority: z.string().optional(),
+  guaranteeInFavorOf: z.string().optional(),
+  guaranteeAmount: z.string().optional(),
+  material: z.string().optional(),
+});
+
+export type AddAssetToCaseData = z.infer<typeof addAssetToCaseSchema>;
+
+export const removeAssetFromCaseSchema = z.object({
+  assetId: z.string().min(1, 'El ID del bien es requerido'),
+});
+
+export type RemoveAssetFromCaseData = z.infer<typeof removeAssetFromCaseSchema>;
+
+export const assetResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  value: z.string(),
+  description: z.string().nullable(),
+  propertyType: z.string().nullable(),
+  address: z.string().nullable(),
+  registrationNumber: z.string().nullable(),
+  encumbrance: z.string().nullable(),
+  affectation: z.string().nullable(),
+  precautionaryMeasure: z.string().nullable(),
+  proofDocument: z.string().nullable(),
+  isFamilyHome: z.boolean().nullable(),
+  isInalienablePatrimony: z.boolean().nullable(),
+  brand: z.string().nullable(),
+  model: z.string().nullable(),
+  condition: z.string().nullable(),
+  licensePlate: z.string().nullable(),
+  transitAuthority: z.string().nullable(),
+  guaranteeInFavorOf: z.string().nullable(),
+  guaranteeAmount: z.string().nullable(),
+  material: z.string().nullable(),
+});
+
+// Dependent schemas
+export const addDependentToCaseSchema = z.object({
+  caseId: z.string().min(1, 'El ID del caso es requerido'),
+  name: z.string().min(1, 'El nombre es requerido'),
+  age: z.string().min(1, 'La edad es requerida'),
+  relationship: z.string().min(1, 'El parentesco es requerido'),
+});
+
+export type AddDependentToCaseData = z.infer<typeof addDependentToCaseSchema>;
+
+export const removeDependentFromCaseSchema = z.object({
+  dependentId: z.string().min(1, 'El ID del dependiente es requerido'),
+});
+
+export type RemoveDependentFromCaseData = z.infer<
+  typeof removeDependentFromCaseSchema
+>;
+
+export const dependentResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  age: z.string(),
+  relationship: z.string(),
+});
+
+export const caseStatsSchema = z.object({
+  total: z.coerce.number(),
+  byType: z.array(
+    z.object({
+      type: z.string(),
+      _count: z.object({
+        id: z.coerce.number(),
+      }),
+    }),
+  ),
+  averageDebt: z.coerce.number(),
+  totalDebt: decimalToNumber.nullable(),
+  totalCreditors: z.coerce.number().nullable(),
+});
+
+export type CaseStats = z.infer<typeof caseStatsSchema>;
+export const creditorOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  nit: z.string(),
+  type: z.string(),
+});
+
+export const documentDataSchema = z.object({
+  name: z.string(),
+  type: z.string(),
+  caseId: z.string(),
+  debtorName: z.string(),
+  size: z.string(),
+  format: z.string(),
+  additionalInfo: z.string(),
+  hearingDate: z.string(),
+  hearingTime: z.string(),
+  zoomId: z.string(),
+  zoomPassword: z.string(),
+  paymentTerms: z.string(),
+  monthlyAmount: z.string(),
+});
+
+export const documentTemplateSchema = z.object({
+  id: z.string(),
+  fileName: z.string(),
+});
+
+export const newDebtorFormSchema = z.object({
+  name: z.string(),
+  idNumber: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  address: z.string(),
+  city: z.string(),
+  department: z.string(),
+  monthlyIncome: z.number(),
+  monthlyExpenses: z.number(),
+});
+export type DebtData = z.infer<typeof debtSchema>;
+export type AssetData = z.infer<typeof assetSchema>;
+export type FormDebt = z.infer<typeof debtSchema>;
+export type DebtorOption = Pick<
+  z.infer<typeof debtorForCaseSchema>,
+  | 'id'
+  | 'name'
+  | 'idNumber'
+  | 'email'
+  | 'phone'
+  | 'address'
+  | 'city'
+  | 'department'
+  | 'monthlyIncome'
+  | 'monthlyExpenses'
+>;
+export type CreditorOption = z.infer<typeof creditorOptionSchema>;
+export type NewDebtForm = Pick<
+  FormDebt,
+  'creditor' | 'amount' | 'type' | 'interestRate'
+> & {
+  creditorId: string | undefined;
+};
+export type NewDebtorForm = z.infer<typeof newDebtorFormSchema>;
+export type DocumentData = z.infer<typeof documentDataSchema>;
+export type DocumentTemplate = z.infer<typeof documentTemplateSchema>;
+export type CaseFormSubmissionData = z.infer<typeof createCaseSchema>;
+export type EditCaseFormSubmissionData = z.infer<typeof updateCaseSchema>;
+export const CaseType = {
+  INSOLVENCY: 'INSOLVENCY',
+  CONCILIATION: 'CONCILIATION',
+  SUPPORT_AGREEMENT: 'SUPPORT_AGREEMENT',
+} as const;
+
+export type CaseTypeEnum = (typeof CaseType)[keyof typeof CaseType];
+export const getAllCasesSchema = z.array(caseSchema);
+export const getCaseByIdSchema = z.string();
+export const deleteCaseSchema = z.object({ id: z.string() });
+
+export const createCaseFormSchema = createCaseSchema.extend({
+  debts: z.array(debtSchema).default([]).optional(),
+  assets: z.array(assetSchema).default([]).optional(),
+  libranzas: z.array(libranzaSchema).default([]).optional(),
+  suspendedServices: z.array(suspendedServiceSchema).default([]).optional(),
+  dependents: z.array(dependentSchema).default([]).optional(),
+  legalProcesses: z.array(legalProcessSchema).default([]).optional(),
+});
+
+export const updateCaseFormSchema = updateCaseSchema.extend({
+  debts: z.array(debtSchema).default([]).optional(),
+  assets: z.array(assetSchema).default([]).optional(),
+  libranzas: z.array(libranzaSchema).default([]).optional(),
+  suspendedServices: z.array(suspendedServiceSchema).default([]).optional(),
+  dependents: z.array(dependentSchema).default([]).optional(),
+  legalProcesses: z.array(legalProcessSchema).default([]).optional(),
+});
+
+export type CreateCaseFormData = z.infer<typeof createCaseFormSchema>;
+export type UpdateCaseFormData = z.infer<typeof updateCaseFormSchema>;
+// Form input types (before Zod transformations - what useForm actually uses)
+export type CreateCaseFormInput = z.input<typeof createCaseFormSchema>;
+export type UpdateCaseFormInput = z.input<typeof updateCaseFormSchema>;
+export type LibranzaData = z.infer<typeof libranzaSchema>;
+export type SuspendedServiceData = z.infer<typeof suspendedServiceSchema>;
+export type DependentData = z.infer<typeof dependentSchema>;
+export type LegalProcessData = z.infer<typeof legalProcessSchema>;

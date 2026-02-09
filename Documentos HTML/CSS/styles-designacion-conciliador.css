@@ -1,0 +1,471 @@
+/* Reset y configuración base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #000;
+    background-color: #fff;
+}
+
+/* Contenedor principal */
+.container {
+    max-width: 21cm;
+    margin: 0 auto;
+    padding: 2cm 2.5cm;
+    background-color: #fff;
+}
+
+/* Utilidades de texto */
+.text-center {
+    text-align: center;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+/* Logo principal */
+.logo-section {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    max-width: 400px;
+    height: auto;
+}
+
+/* Título del proceso */
+.proceso-title {
+    font-size: 12px;
+    margin: 16px 0;
+    line-height: 1.5;
+}
+
+/* Título principal */
+.titulo-principal {
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0 25px 0;
+    line-height: 1.4;
+}
+
+/* Tabla de información del deudor */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0 15px 0;
+}
+
+.info-table td {
+    border: 1px solid #000;
+    padding: 8px 10px;
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.info-table .label-cell {
+    font-weight: bold;
+    width: 25%;
+    background-color: #f5f5f5;
+}
+
+/* Tabla de fechas */
+.fechas-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0 25px 0;
+}
+
+.fechas-table td {
+    border: 1px solid #000;
+    padding: 8px 10px;
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.fechas-table .label-cell-fechas {
+    font-weight: bold;
+    width: 55%;
+    background-color: #f5f5f5;
+}
+
+/* Sección de contenido */
+.content-section {
+    margin: 30px 0 40px 0;
+}
+
+.parrafo-justified {
+    text-align: justify;
+    margin-bottom: 18px;
+    line-height: 1.8;
+    font-size: 12px;
+}
+
+.parrafo-justified strong {
+    font-weight: bold;
+    color: #000;
+}
+
+/* Sección de firmas */
+.firma-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+    margin: 50px 0 20px 0;
+    padding: 20px 0;
+}
+
+.logo-firma {
+    max-width: 290px;
+    height: auto;
+}
+
+.firma-img {
+    max-width: 180px;
+    height: auto;
+}
+
+/* Nombre del director */
+.director-nombre {
+    margin-top: 10px;
+    margin-bottom: 30px;
+    line-height: 1.6;
+    font-size: 12px;
+}
+
+/* Footer */
+.footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid #ccc;
+    text-align: center;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.footer p {
+    margin-bottom: 8px;
+}
+
+/* Impresión */
+@media print {
+    body {
+        background-color: #fff;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+    
+    @page {
+        margin: 2cm 2.5cm;
+        size: letter;
+    }
+    
+    .footer {
+        border-top: none;
+    }
+    
+    /* Prevenir cortes de página */
+    .proceso-title,
+    .titulo-principal {
+        page-break-after: avoid;
+    }
+    
+    .info-table,
+    .fechas-table {
+        page-break-inside: avoid;
+    }
+    
+    .content-section {
+        page-break-inside: avoid;
+    }
+    
+    .firma-section,
+    .director-nombre {
+        page-break-inside: avoid;
+        page-break-before: avoid;
+    }
+    
+    .parrafo-justified {
+        orphans: 3;
+        widows: 3;
+    }
+    
+    /* Mantener colores de fondo en impresión */
+    .info-table .label-cell,
+    .fechas-table .label-cell-fechas {
+        background-color: #f5f5f5;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* Responsive para tablets */
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 1.5cm 1cm;
+    }
+    
+    .logo {
+        max-width: 300px;
+    }
+    
+    .titulo-principal {
+        font-size: 13px;
+    }
+    
+    .firma-section {
+        flex-direction: column;
+        gap: 20px;
+        margin: 40px 0 20px 0;
+    }
+    
+    .logo-firma,
+    .firma-img {
+        max-width: 200px;
+    }
+    
+    .info-table .label-cell {
+        width: 30%;
+    }
+    
+    .fechas-table .label-cell-fechas {
+        width: 60%;
+    }
+}
+
+/* Responsive para móviles */
+@media screen and (max-width: 480px) {
+    body {
+        font-size: 11px;
+    }
+    
+    .container {
+        padding: 1cm 0.5cm;
+    }
+    
+    .logo {
+        max-width: 250px;
+    }
+    
+    .proceso-title {
+        font-size: 11px;
+    }
+    
+    .titulo-principal {
+        font-size: 12px;
+    }
+    
+    .parrafo-justified {
+        font-size: 11px;
+        text-align: left;
+        line-height: 1.7;
+    }
+    
+    .info-table td,
+    .fechas-table td {
+        font-size: 11px;
+        padding: 6px 8px;
+    }
+    
+    .info-table .label-cell {
+        width: 32%;
+    }
+    
+    .fechas-table .label-cell-fechas {
+        width: 62%;
+    }
+    
+    .logo-firma {
+        max-width: 200px;
+    }
+    
+    .firma-img {
+        max-width: 140px;
+    }
+    
+    .director-nombre {
+        font-size: 11px;
+    }
+    
+    .footer {
+        font-size: 10px;
+    }
+}
+
+/* Animación de entrada suave */
+@media screen {
+    .container {
+        animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+/* Estados hover para modo edición */
+body.edit-mode .info-table td:not(.label-cell):hover,
+body.edit-mode .fechas-table td:not(.label-cell-fechas):hover {
+    background-color: #fffbea;
+    cursor: text;
+    transition: background-color 0.2s ease;
+}
+
+body.edit-mode .parrafo-justified:hover {
+    background-color: #fffbea;
+    cursor: text;
+    transition: background-color 0.2s ease;
+    padding: 4px;
+    margin-left: -4px;
+    margin-right: -4px;
+    border-radius: 2px;
+}
+
+/* Mejora de legibilidad en pantallas grandes */
+@media screen and (min-width: 1200px) {
+    .container {
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+    
+    body {
+        background-color: #f5f5f5;
+        padding: 20px 0;
+    }
+}
+
+/* Espaciado especial entre secciones */
+.info-table + .fechas-table {
+    margin-top: 15px;
+}
+
+.fechas-table + .content-section {
+    margin-top: 30px;
+}
+
+/* Estilo para campos editables (variables) */
+body.edit-mode td[contenteditable="true"] {
+    background-color: #fff3cd;
+    border: 1px dashed #ffc107;
+}
+
+/* Énfasis en texto importante */
+.parrafo-justified strong {
+    position: relative;
+}
+
+/* Decoración del título principal */
+.titulo-principal::after {
+    content: "";
+    display: block;
+    width: 60px;
+    height: 3px;
+    background-color: #333;
+    margin: 10px auto 0;
+}
+
+/* Mejorar visibilidad de las celdas de etiqueta */
+.info-table .label-cell,
+.fechas-table .label-cell-fechas {
+    font-weight: bold;
+    text-transform: none;
+    letter-spacing: 0.3px;
+}
+
+/* Hover en tablas para mejor interactividad */
+.info-table tr:hover td:not(.label-cell),
+.fechas-table tr:hover td:not(.label-cell-fechas) {
+    background-color: #f9f9f9;
+    transition: background-color 0.2s ease;
+}
+
+/* Espaciado consistente */
+h1, h2, h3, p, table {
+    clear: both;
+}
+
+/* Prevenir saltos de línea huérfanas */
+p {
+    orphans: 3;
+    widows: 3;
+}
+
+/* Estilo para contenido destacado */
+.content-section p:first-child {
+    margin-top: 0;
+}
+
+.content-section p:last-child {
+    margin-bottom: 0;
+}
+
+/* Mejora visual para impresión de tablas */
+@media print {
+    .info-table,
+    .fechas-table {
+        border: 1px solid #000;
+    }
+    
+    .info-table td,
+    .fechas-table td {
+        border: 1px solid #000;
+    }
+}
+
+/* Separador visual entre secciones importantes */
+.content-section::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #ccc 20%, #ccc 80%, transparent);
+    margin-bottom: 25px;
+}
+
+.content-section::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #ccc 20%, #ccc 80%, transparent);
+    margin-top: 35px;
+}
+
+/* Ocultar separadores en impresión */
+@media print {
+    .content-section::before,
+    .content-section::after {
+        display: none;
+    }
+}
+
+/* Espaciado adicional para claridad */
+.logo-section + .proceso-title {
+    margin-top: 20px;
+}
+
+/* Efecto visual en hover para firmas */
+.firma-section:hover .logo-firma,
+.firma-section:hover .firma-img {
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+}
