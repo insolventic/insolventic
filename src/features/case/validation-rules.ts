@@ -5,7 +5,7 @@
  * the main Zod schemas in schemas.ts
  */
 
-import type { CreateCaseFormData } from './schemas';
+import type { CreateCaseFormData, CreateCaseFormInput } from './schemas';
 
 // ============================================
 // CONSTANTS
@@ -165,7 +165,7 @@ export function validateDebtLimits(
 /**
  * Validates payment proposal coherence
  */
-export function validatePaymentProposal(data: Partial<CreateCaseFormData>): ValidationIssue[] {
+export function validatePaymentProposal(data: Partial<CreateCaseFormInput>): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   // Grace period validation
@@ -212,7 +212,10 @@ export function validatePaymentProposal(data: Partial<CreateCaseFormData>): Vali
     });
   }
 
-  if (data.capitalReductionPercent && data.capitalReductionPercent > 100) {
+  const capitalReductionPercent = typeof data.capitalReductionPercent === 'string'
+    ? parseFloat(data.capitalReductionPercent)
+    : data.capitalReductionPercent;
+  if (capitalReductionPercent && capitalReductionPercent > 100) {
     issues.push({
       field: 'capitalReductionPercent',
       message: 'El porcentaje de reducción no puede superar 100%',
@@ -378,7 +381,7 @@ export const CONDITIONAL_DOCUMENTS = [
   { id: 'poder', name: 'Poder notariado', condition: 'hasAttorney' },
 ];
 
-export function getRequiredDocuments(caseData: Partial<CreateCaseFormData>): string[] {
+export function getRequiredDocuments(caseData: Partial<CreateCaseFormInput>): string[] {
   const required = REQUIRED_DOCUMENTS.map(d => d.id);
 
   // Check conditional documents
@@ -405,7 +408,7 @@ export function getRequiredDocuments(caseData: Partial<CreateCaseFormData>): str
  * Performs complete validation of case data
  * Returns all errors and warnings
  */
-export function validateCaseComplete(data: Partial<CreateCaseFormData>): ValidationResult {
+export function validateCaseComplete(data: Partial<CreateCaseFormInput>): ValidationResult {
   const issues: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
 

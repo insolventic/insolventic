@@ -325,13 +325,15 @@ export function CreateCaseDialog({
   };
 
   // Watch form changes to update warnings
+  // CORRECCIÓN: form.watch() retorna una función de suscripción estable
+  // No se debe usar form.watch como dependencia - causa bucle infinito
   useEffect(() => {
     const subscription = form.watch(() => {
       validateCoherence();
     });
     return () => subscription.unsubscribe();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.watch]);
+  }, []);
 
   const handleSubmit = async (data: CreateCaseFormData) => {
     // Count creditors from debts array
@@ -423,6 +425,15 @@ export function CreateCaseDialog({
       zoomMeetingId: data.zoomMeetingId,
       zoomPassword: data.zoomPassword,
       zoomLink: data.zoomLink,
+      // Post-Acuerdo fields
+      paymentStartDate: data.paymentStartDate,
+      agreementValidityDate: data.agreementValidityDate,
+      approvalPercentage: data.approvalPercentage,
+      failureDate: data.failureDate,
+      failureType: data.failureType,
+      isBilateral: data.isBilateral,
+      bilateralAgreementNumber: data.bilateralAgreementNumber,
+      bilateralCreditorId: data.bilateralCreditorId,
     };
 
     startTransition(async () => {

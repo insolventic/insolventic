@@ -654,6 +654,61 @@ export function getTemplatesForAgreement(): DocumentTemplate[] {
 }
 
 /**
+ * Get templates for failure (fracaso) by failure type
+ */
+export function getTemplatesForFailure(failureType?: string): DocumentTemplate[] {
+  if (!failureType) {
+    // Return all failure templates
+    return FRACASO_TEMPLATES.filter(t => t.generateOnFailure);
+  }
+
+  // Map failure type to folder name
+  const failureTypeMap: Record<string, string> = {
+    'acuerdo-bilateral': 'Fracaso por acuerdo bilateral',
+    'falta-pago-gastos': 'Fracaso por falta de pago gastos',
+    'impugnacion': 'Fracaso por impugnacion del acuerdo',
+    'inasistencia-vencimiento': 'Fracaso por inasistencia y vencimiento de terminos',
+    'inasistencia-animo': 'Fracaso por inasistencia-Animo de conciliar',
+    'incumplimiento': 'Fracaso por incumplimiento',
+    'muerte-deudor': 'Fracaso por muerte del deudor',
+    'propuesta-mala': 'Fracaso por propuesta mala',
+    'propuesta-vencimiento': 'Fracaso por propuesta mala y vencimiento de terminos',
+    'propuesta-quorum': 'Fracaso por propuestsa mala y Quorum',
+    'reforma-acuerdo': 'Fracaso por reforma del acuerdo',
+    'vencimiento-terminos': 'Fracaso por vencimiento de terminos',
+  };
+
+  const folderName = failureTypeMap[failureType];
+  if (!folderName) {
+    return [];
+  }
+
+  return FRACASO_TEMPLATES.filter(t =>
+    t.generateOnFailure && t.folderPath.includes(folderName)
+  );
+}
+
+/**
+ * Get available failure types
+ */
+export function getFailureTypes(): Array<{ id: string; name: string; description: string }> {
+  return [
+    { id: 'acuerdo-bilateral', name: 'Acuerdo Bilateral', description: 'Fracaso por celebración de acuerdo bilateral' },
+    { id: 'falta-pago-gastos', name: 'Falta de Pago de Gastos', description: 'Fracaso por falta de pago de gastos de administración' },
+    { id: 'impugnacion', name: 'Impugnación del Acuerdo', description: 'Fracaso por impugnación del acuerdo' },
+    { id: 'inasistencia-vencimiento', name: 'Inasistencia y Vencimiento', description: 'Fracaso por inasistencia y vencimiento de términos' },
+    { id: 'inasistencia-animo', name: 'Inasistencia sin Ánimo', description: 'Fracaso por inasistencia sin ánimo de conciliar' },
+    { id: 'incumplimiento', name: 'Incumplimiento', description: 'Fracaso por incumplimiento del acuerdo' },
+    { id: 'muerte-deudor', name: 'Muerte del Deudor', description: 'Fracaso por fallecimiento del deudor' },
+    { id: 'propuesta-mala', name: 'Propuesta Inadecuada', description: 'Fracaso por propuesta de pago inadecuada' },
+    { id: 'propuesta-vencimiento', name: 'Propuesta y Vencimiento', description: 'Fracaso por propuesta mala y vencimiento de términos' },
+    { id: 'propuesta-quorum', name: 'Propuesta y Quórum', description: 'Fracaso por propuesta mala y falta de quórum' },
+    { id: 'reforma-acuerdo', name: 'Reforma del Acuerdo', description: 'Fracaso por reforma del acuerdo' },
+    { id: 'vencimiento-terminos', name: 'Vencimiento de Términos', description: 'Fracaso por vencimiento de términos' },
+  ];
+}
+
+/**
  * Get a template by ID
  */
 export function getTemplateById(id: string): DocumentTemplate | undefined {

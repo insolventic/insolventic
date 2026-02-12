@@ -494,13 +494,18 @@ export async function createCase(
             select: { id: true },
           });
 
-          // If not found, create new creditor
+          // If not found, create new creditor with required fields
           if (!existingCreditor) {
+            const autoNit = `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             existingCreditor = await prisma.creditor.create({
               data: {
                 name: creditorName,
-                nit: `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Auto-generated unique NIT
+                nit: autoNit,
                 type: 'BANK', // Default type
+                email: `${autoNit.toLowerCase()}@placeholder.com`, // Required field
+                phone: 'N/A', // Required field
+                address: 'Pendiente de actualizar', // Required field
+                representative: 'Pendiente de actualizar', // Required field
                 tenantId,
               },
               select: { id: true },

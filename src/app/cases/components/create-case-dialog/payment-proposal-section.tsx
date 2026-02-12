@@ -1,13 +1,53 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  FormField,
+  FormItem,
+  FormControl,
+  FormLabel,
+} from '@/components/ui/form';
 
+/**
+ * PaymentProposalSection - Optimized version
+ *
+ * CAMBIOS PRINCIPALES para eliminar "Maximum update depth exceeded":
+ * 1. Usar useWatch en lugar de form.watch() - useWatch usa una suscripción estable
+ * 2. Usar FormField para checkboxes en lugar de checked={form.watch()}
+ * 3. FormField maneja el estado internamente sin causar re-renders del padre
+ */
 export function PaymentProposalSection() {
   const form = useFormContext();
+
+  // useWatch con un array de nombres es más eficiente que múltiples form.watch()
+  // Solo causa un re-render cuando CUALQUIERA de estos valores cambia
+  const watchedValues = useWatch({
+    control: form.control,
+    name: [
+      'gracePeriodRequested',
+      'paymentInKind',
+      'assetSaleAuthorized',
+      'cashFlowPayment',
+      'extraordinaryPayment',
+      'capitalReduction',
+      'hasClassPrivileges',
+    ],
+  });
+
+  // Destructurar para legibilidad
+  const [
+    gracePeriodRequested,
+    paymentInKind,
+    assetSaleAuthorized,
+    cashFlowPayment,
+    extraordinaryPayment,
+    capitalReduction,
+    hasClassPrivileges,
+  ] = watchedValues;
 
   return (
     <div className="space-y-8">
@@ -32,19 +72,25 @@ export function PaymentProposalSection() {
       {/* Periodo de Gracia */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Período de Gracia</h4>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="gracePeriodRequested"
-            checked={form.watch('gracePeriodRequested')}
-            onCheckedChange={(checked) =>
-              form.setValue('gracePeriodRequested', checked as boolean)
-            }
-          />
-          <Label htmlFor="gracePeriodRequested" className="cursor-pointer">
-            ¿Solicita Período de Gracia?
-          </Label>
-        </div>
-        {form.watch('gracePeriodRequested') && (
+        <FormField
+          control={form.control}
+          name="gracePeriodRequested"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Checkbox
+                  id="gracePeriodRequested"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel htmlFor="gracePeriodRequested" className="cursor-pointer font-normal">
+                ¿Solicita Período de Gracia?
+              </FormLabel>
+            </FormItem>
+          )}
+        />
+        {gracePeriodRequested && (
           <div className="space-y-2">
             <Label htmlFor="gracePeriodMonths">
               Meses de Período de Gracia
@@ -61,19 +107,25 @@ export function PaymentProposalSection() {
       {/* Dación en Pago */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Dación en Pago</h4>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="paymentInKind"
-            checked={form.watch('paymentInKind')}
-            onCheckedChange={(checked) =>
-              form.setValue('paymentInKind', checked as boolean)
-            }
-          />
-          <Label htmlFor="paymentInKind" className="cursor-pointer">
-            ¿Ofrece Dación en Pago?
-          </Label>
-        </div>
-        {form.watch('paymentInKind') && (
+        <FormField
+          control={form.control}
+          name="paymentInKind"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Checkbox
+                  id="paymentInKind"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel htmlFor="paymentInKind" className="cursor-pointer font-normal">
+                ¿Ofrece Dación en Pago?
+              </FormLabel>
+            </FormItem>
+          )}
+        />
+        {paymentInKind && (
           <div className="space-y-2">
             <Label htmlFor="paymentInKindDescription">
               Descripción del Bien
@@ -90,19 +142,25 @@ export function PaymentProposalSection() {
       {/* Autorización de Venta de Bien */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Autorización de Venta de Bien</h4>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="assetSaleAuthorized"
-            checked={form.watch('assetSaleAuthorized')}
-            onCheckedChange={(checked) =>
-              form.setValue('assetSaleAuthorized', checked as boolean)
-            }
-          />
-          <Label htmlFor="assetSaleAuthorized" className="cursor-pointer">
-            ¿Autoriza Venta de Bien?
-          </Label>
-        </div>
-        {form.watch('assetSaleAuthorized') && (
+        <FormField
+          control={form.control}
+          name="assetSaleAuthorized"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Checkbox
+                  id="assetSaleAuthorized"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel htmlFor="assetSaleAuthorized" className="cursor-pointer font-normal">
+                ¿Autoriza Venta de Bien?
+              </FormLabel>
+            </FormItem>
+          )}
+        />
+        {assetSaleAuthorized && (
           <div className="space-y-2">
             <Label htmlFor="assetSaleDescription">Descripción del Bien</Label>
             <Textarea
@@ -117,19 +175,25 @@ export function PaymentProposalSection() {
       {/* Pago con Flujo de Caja */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Pago con Flujo de Caja</h4>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="cashFlowPayment"
-            checked={form.watch('cashFlowPayment')}
-            onCheckedChange={(checked) =>
-              form.setValue('cashFlowPayment', checked as boolean)
-            }
-          />
-          <Label htmlFor="cashFlowPayment" className="cursor-pointer">
-            ¿Pago con Flujo de Caja?
-          </Label>
-        </div>
-        {form.watch('cashFlowPayment') && (
+        <FormField
+          control={form.control}
+          name="cashFlowPayment"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Checkbox
+                  id="cashFlowPayment"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel htmlFor="cashFlowPayment" className="cursor-pointer font-normal">
+                ¿Pago con Flujo de Caja?
+              </FormLabel>
+            </FormItem>
+          )}
+        />
+        {cashFlowPayment && (
           <>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -163,19 +227,25 @@ export function PaymentProposalSection() {
                 />
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="extraordinaryPayment"
-                checked={form.watch('extraordinaryPayment')}
-                onCheckedChange={(checked) =>
-                  form.setValue('extraordinaryPayment', checked as boolean)
-                }
-              />
-              <Label htmlFor="extraordinaryPayment" className="cursor-pointer">
-                ¿Cuota Extraordinaria?
-              </Label>
-            </div>
-            {form.watch('extraordinaryPayment') && (
+            <FormField
+              control={form.control}
+              name="extraordinaryPayment"
+              render={({ field }) => (
+                <FormItem className="flex items-center space-x-2 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      id="extraordinaryPayment"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel htmlFor="extraordinaryPayment" className="cursor-pointer font-normal">
+                    ¿Cuota Extraordinaria?
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            {extraordinaryPayment && (
               <div className="space-y-2">
                 <Label htmlFor="extraordinaryPaymentDate">
                   Fecha/Mes de Cuota Extraordinaria
@@ -194,19 +264,25 @@ export function PaymentProposalSection() {
       {/* Quitas de Capital */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Quitas de Capital</h4>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="capitalReduction"
-            checked={form.watch('capitalReduction')}
-            onCheckedChange={(checked) =>
-              form.setValue('capitalReduction', checked as boolean)
-            }
-          />
-          <Label htmlFor="capitalReduction" className="cursor-pointer">
-            ¿Solicita Quitas de Capital?
-          </Label>
-        </div>
-        {form.watch('capitalReduction') && (
+        <FormField
+          control={form.control}
+          name="capitalReduction"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Checkbox
+                  id="capitalReduction"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel htmlFor="capitalReduction" className="cursor-pointer font-normal">
+                ¿Solicita Quitas de Capital?
+              </FormLabel>
+            </FormItem>
+          )}
+        />
+        {capitalReduction && (
           <div className="space-y-2">
             <Label htmlFor="capitalReductionPercent">
               Porcentaje de Quitas (%)
@@ -238,30 +314,42 @@ export function PaymentProposalSection() {
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Condonación de Intereses</h4>
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="forgiveAccruedInterest"
-              checked={form.watch('forgiveAccruedInterest')}
-              onCheckedChange={(checked) =>
-                form.setValue('forgiveAccruedInterest', checked as boolean)
-              }
-            />
-            <Label htmlFor="forgiveAccruedInterest" className="cursor-pointer">
-              Condonación Intereses Causados
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="forgiveFutureInterest"
-              checked={form.watch('forgiveFutureInterest')}
-              onCheckedChange={(checked) =>
-                form.setValue('forgiveFutureInterest', checked as boolean)
-              }
-            />
-            <Label htmlFor="forgiveFutureInterest" className="cursor-pointer">
-              Condonación Intereses Futuros
-            </Label>
-          </div>
+          <FormField
+            control={form.control}
+            name="forgiveAccruedInterest"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    id="forgiveAccruedInterest"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel htmlFor="forgiveAccruedInterest" className="cursor-pointer font-normal">
+                  Condonación Intereses Causados
+                </FormLabel>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="forgiveFutureInterest"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    id="forgiveFutureInterest"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel htmlFor="forgiveFutureInterest" className="cursor-pointer font-normal">
+                  Condonación Intereses Futuros
+                </FormLabel>
+              </FormItem>
+            )}
+          />
         </div>
       </div>
 
@@ -271,17 +359,26 @@ export function PaymentProposalSection() {
         <div className="grid grid-cols-2 gap-4">
           {(['primera', 'segunda', 'tercera', 'cuarta', 'quinta'] as const).map(
             (order) => (
-              <div key={order} className="space-y-2">
-                <Label htmlFor={`paymentOrder.${order}`} className="capitalize">
-                  {order} - Valor $:
-                </Label>
-                <Input
-                  id={`paymentOrder.${order}`}
-                  type="text"
-                  {...form.register(`paymentOrder.${order}`)}
-                  value={form.watch(`paymentOrder.${order}`) || ''}
-                />
-              </div>
+              <FormField
+                key={order}
+                control={form.control}
+                name={`paymentOrder.${order}`}
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel htmlFor={`paymentOrder.${order}`} className="capitalize">
+                      {order} - Valor $:
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        id={`paymentOrder.${order}`}
+                        type="text"
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             ),
           )}
         </div>
@@ -290,19 +387,25 @@ export function PaymentProposalSection() {
       {/* Privilegios entre Clases */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Privilegios entre Clases</h4>
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="hasClassPrivileges"
-            checked={form.watch('hasClassPrivileges')}
-            onCheckedChange={(checked) =>
-              form.setValue('hasClassPrivileges', checked as boolean)
-            }
-          />
-          <Label htmlFor="hasClassPrivileges" className="cursor-pointer">
-            ¿Hay Privilegios entre Clases?
-          </Label>
-        </div>
-        {form.watch('hasClassPrivileges') && (
+        <FormField
+          control={form.control}
+          name="hasClassPrivileges"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Checkbox
+                  id="hasClassPrivileges"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <FormLabel htmlFor="hasClassPrivileges" className="cursor-pointer font-normal">
+                ¿Hay Privilegios entre Clases?
+              </FormLabel>
+            </FormItem>
+          )}
+        />
+        {hasClassPrivileges && (
           <div className="space-y-2">
             <Label htmlFor="classPrivilegesDescription">
               Descripción de Privilegios
@@ -320,30 +423,42 @@ export function PaymentProposalSection() {
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Otras Autorizaciones</h4>
         <div className="space-y-3">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="thirdPartyPaymentAuth"
-              checked={form.watch('thirdPartyPaymentAuth')}
-              onCheckedChange={(checked) =>
-                form.setValue('thirdPartyPaymentAuth', checked as boolean)
-              }
-            />
-            <Label htmlFor="thirdPartyPaymentAuth" className="cursor-pointer">
-              Autorización de Pago por Terceros
-            </Label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="guaranteeSubstitution"
-              checked={form.watch('guaranteeSubstitution')}
-              onCheckedChange={(checked) =>
-                form.setValue('guaranteeSubstitution', checked as boolean)
-              }
-            />
-            <Label htmlFor="guaranteeSubstitution" className="cursor-pointer">
-              Sustitución o Disminución de Garantías
-            </Label>
-          </div>
+          <FormField
+            control={form.control}
+            name="thirdPartyPaymentAuth"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    id="thirdPartyPaymentAuth"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel htmlFor="thirdPartyPaymentAuth" className="cursor-pointer font-normal">
+                  Autorización de Pago por Terceros
+                </FormLabel>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guaranteeSubstitution"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    id="guaranteeSubstitution"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel htmlFor="guaranteeSubstitution" className="cursor-pointer font-normal">
+                  Sustitución o Disminución de Garantías
+                </FormLabel>
+              </FormItem>
+            )}
+          />
         </div>
       </div>
     </div>

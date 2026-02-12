@@ -1,12 +1,13 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export function ApplicantScopeSection() {
   const form = useFormContext();
-  const applicantScope = form.watch('applicantScope') || [];
+  // useWatch es más eficiente que form.watch() - suscripción estable
+  const applicantScope = useWatch({ control: form.control, name: 'applicantScope' }) || [];
 
   const scopeOptions = [
     { id: 'non-merchant', label: 'Persona natural no comerciante' },

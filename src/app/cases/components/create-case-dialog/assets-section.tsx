@@ -1,7 +1,8 @@
 'use client';
 
 import { Plus, Trash2 } from 'lucide-react';
-import { useFormContext, useFieldArray } from 'react-hook-form';
+import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
+import { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -27,145 +28,124 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export function AssetsSection() {
+/**
+ * AssetItem - Componente memoizado para cada bien
+ *
+ * SOLUCIÓN al problema "Maximum update depth exceeded":
+ * - useWatch se usa DENTRO del componente hijo, no en el padre
+ * - Cada AssetItem solo se re-renderiza cuando SU tipo cambia
+ * - El padre (AssetsSection) no se re-renderiza por cambios de tipo
+ */
+interface AssetItemProps {
+  index: number;
+  fieldId: string;
+  onRemove: (index: number) => void;
+}
+
+const AssetItem = memo(function AssetItem({ index, fieldId, onRemove }: AssetItemProps) {
   const form = useFormContext();
-  const { fields, append, remove } = useFieldArray({
+
+  // useWatch dentro del componente hijo - solo este componente se re-renderiza
+  const assetType = useWatch({
     control: form.control,
-    name: 'assets',
+    name: `assets.${index}.type`,
   });
 
-  const addAsset = (type: 'INMUEBLE' | 'VEHICULO' | 'OTRO') => {
-    append({
-      name: '',
-      type,
-      value: '',
-      description: '',
-      propertyType: '',
-      address: '',
-      registrationNumber: '',
-      encumbrance: '',
-      affectation: '',
-      precautionaryMeasure: '',
-      proofDocument: '',
-      isFamilyHome: false,
-      isInalienablePatrimony: false,
-      brand: '',
-      model: '',
-      condition: '',
-      licensePlate: '',
-      transitAuthority: '',
-      guaranteeInFavorOf: '',
-      guaranteeAmount: '',
-      material: '',
-    });
-  };
-
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle>Inventario de Bienes</CardTitle>
-        <CardDescription>
-          Registre los bienes muebles e inmuebles del deudor
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {fields.map((field, index) => {
-          const assetType = form.watch(`assets.${index}.type`);
-          return (
-            <div
-              key={field.id}
-              className="space-y-4 rounded-lg border bg-slate-50 p-6"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-purple-700">
-                  Bien #{index + 1} - {assetType || 'Sin tipo'}
-                </h3>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => remove(index)}
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name={`assets.${index}.type`}
-                  render={({ field: formField }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Tipo de Bien <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <Select
-                        onValueChange={formField.onChange}
-                        value={formField.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione tipo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="INMUEBLE">Inmueble</SelectItem>
-                          <SelectItem value="VEHICULO">Vehículo</SelectItem>
-                          <SelectItem value="EQUIPO">
-                            Equipo Eléctrico/Electrónico
-                          </SelectItem>
-                          <SelectItem value="MUEBLE">Mueble</SelectItem>
-                          <SelectItem value="JOYA">Joya</SelectItem>
-                          <SelectItem value="DINERO">
-                            Dinero/Efectivo
-                          </SelectItem>
-                          <SelectItem value="ACCION">Acción/Título</SelectItem>
-                          <SelectItem value="CUENTA_COBRAR">
-                            Cuenta por Cobrar
-                          </SelectItem>
-                          <SelectItem value="OTRO">Otro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+    <div
+      key={fieldId}
+      className="space-y-4 rounded-lg border bg-slate-50 p-6"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-purple-700">
+          Bien #{index + 1} - {assetType || 'Sin tipo'}
+        </h3>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => onRemove(index)}
+          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name={`assets.${index}.type`}
+          render={({ field: formField }) => (
+            <FormItem>
+              <FormLabel>
+                Tipo de Bien <span className="text-red-500">*</span>
+              </FormLabel>
+              <Select
+                onValueChange={formField.onChange}
+                value={formField.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione tipo" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="INMUEBLE">Inmueble</SelectItem>
+                  <SelectItem value="VEHICULO">Vehículo</SelectItem>
+                  <SelectItem value="EQUIPO">
+                    Equipo Eléctrico/Electrónico
+                  </SelectItem>
+                  <SelectItem value="MUEBLE">Mueble</SelectItem>
+                  <SelectItem value="JOYA">Joya</SelectItem>
+                  <SelectItem value="DINERO">
+                    Dinero/Efectivo
+                  </SelectItem>
+                  <SelectItem value="ACCION">Acción/Título</SelectItem>
+                  <SelectItem value="CUENTA_COBRAR">
+                    Cuenta por Cobrar
+                  </SelectItem>
+                  <SelectItem value="OTRO">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name={`assets.${index}.name`}
+          render={({ field: formField }) => (
+            <FormItem>
+              <FormLabel>
+                Nombre/Descripción{' '}
+                <span className="text-red-500">*</span>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...formField}
+                  placeholder="Ej: Casa, Carro Toyota"
                 />
-                <FormField
-                  control={form.control}
-                  name={`assets.${index}.name`}
-                  render={({ field: formField }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Nombre/Descripción{' '}
-                        <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          {...formField}
-                          placeholder="Ej: Casa, Carro Toyota"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`assets.${index}.value`}
-                  render={({ field: formField }) => (
-                    <FormItem>
-                      <FormLabel>
-                        Valor ($) <span className="text-red-500">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...formField} type="number" placeholder="0" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              {assetType === 'INMUEBLE' && (
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name={`assets.${index}.value`}
+          render={({ field: formField }) => (
+            <FormItem>
+              <FormLabel>
+                Valor ($) <span className="text-red-500">*</span>
+              </FormLabel>
+              <FormControl>
+                <Input {...formField} type="number" placeholder="0" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+      {assetType === 'INMUEBLE' && (
                 <div className="space-y-4 border-t pt-4">
                   <h4 className="text-sm font-medium text-gray-700">
                     Información del Inmueble
@@ -244,54 +224,105 @@ export function AssetsSection() {
                   </div>
                 </div>
               )}
-              {assetType === 'VEHICULO' && (
-                <div className="space-y-4 border-t pt-4">
-                  <h4 className="text-sm font-medium text-gray-700">
-                    Información del Vehículo
-                  </h4>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.brand`}
-                      render={({ field: formField }) => (
-                        <FormItem>
-                          <FormLabel>Marca</FormLabel>
-                          <FormControl>
-                            <Input {...formField} placeholder="Toyota" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.licensePlate`}
-                      render={({ field: formField }) => (
-                        <FormItem>
-                          <FormLabel>Placa</FormLabel>
-                          <FormControl>
-                            <Input {...formField} placeholder="ABC123" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.model`}
-                      render={({ field: formField }) => (
-                        <FormItem>
-                          <FormLabel>Modelo/Año</FormLabel>
-                          <FormControl>
-                            <Input {...formField} placeholder="2020" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
+      {assetType === 'VEHICULO' && (
+        <div className="space-y-4 border-t pt-4">
+          <h4 className="text-sm font-medium text-gray-700">
+            Información del Vehículo
+          </h4>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <FormField
+              control={form.control}
+              name={`assets.${index}.brand`}
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>Marca</FormLabel>
+                  <FormControl>
+                    <Input {...formField} placeholder="Toyota" />
+                  </FormControl>
+                </FormItem>
               )}
-            </div>
-          );
-        })}
+            />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.licensePlate`}
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>Placa</FormLabel>
+                  <FormControl>
+                    <Input {...formField} placeholder="ABC123" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.model`}
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>Modelo/Año</FormLabel>
+                  <FormControl>
+                    <Input {...formField} placeholder="2020" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+export function AssetsSection() {
+  const form = useFormContext();
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'assets',
+  });
+
+  const addAsset = (type: 'INMUEBLE' | 'VEHICULO' | 'OTRO') => {
+    append({
+      name: '',
+      type,
+      value: '',
+      description: '',
+      propertyType: '',
+      address: '',
+      registrationNumber: '',
+      encumbrance: '',
+      affectation: '',
+      precautionaryMeasure: '',
+      proofDocument: '',
+      isFamilyHome: false,
+      isInalienablePatrimony: false,
+      brand: '',
+      model: '',
+      condition: '',
+      licensePlate: '',
+      transitAuthority: '',
+      guaranteeInFavorOf: '',
+      guaranteeAmount: '',
+      material: '',
+    });
+  };
+
+  return (
+    <Card className="shadow-sm">
+      <CardHeader>
+        <CardTitle>Inventario de Bienes</CardTitle>
+        <CardDescription>
+          Registre los bienes muebles e inmuebles del deudor
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {fields.map((field, index) => (
+          <AssetItem
+            key={field.id}
+            index={index}
+            fieldId={field.id}
+            onRemove={remove}
+          />
+        ))}
         <div className="flex flex-wrap gap-2 pt-4">
           <Button
             type="button"

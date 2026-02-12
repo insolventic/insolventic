@@ -7,6 +7,7 @@ import {
   generateDocumentsForNewCase,
   generateDocumentsForAdmission,
   generateDocumentsForAgreement,
+  generateDocumentsForFailure,
   regenerateDocument,
   type GeneratedDocument,
 } from './generate-documents';
@@ -394,6 +395,113 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
         error instanceof Error
           ? error.message
           : 'Error al generar documentos de acuerdo',
+    };
+  }
+}
+
+/**
+ * Generate failure (fracaso) documents for a case
+ */
+export async function generateFailureDocuments(
+  caseId: string,
+  failureType: string
+): Promise<{
+  success: boolean;
+  data?: GeneratedDocument[];
+  error?: string;
+}> {
+  try {
+    const { tenantId } = await authenticateUser();
+
+    const caseData = await prisma.case.findUnique({
+      where: { id: caseId, tenantId },
+      include: {
+        debtor: true,
+        operator: {
+          select: { id: true, name: true, email: true },
+        },
+        documents: true,
+        debts: {
+          include: {
+            creditor: { select: { name: true } },
+          },
+        },
+        assets: true,
+        libranzas: true,
+        suspendedServices: true,
+        dependents: true,
+        legalProcesses: true,
+        _count: { select: { documents: true } },
+      },
+    });
+
+    if (!caseData) {
+      return { success: false, error: 'Caso no encontrado' };
+    }
+
+    if (!caseData.driveFolderId) {
+      return {
+        success: false,
+        error: 'El caso no tiene una carpeta de Google Drive asociada',
+      };
+    }
+
+    const result = await generateDocumentsForFailure(
+      caseData as unknown as CaseWithRelations,
+      caseData.driveFolderId,
+      failureType
+    );
+
+    // Create document records
+    for (const doc of result) {
+      if (doc.status === 'success' && doc.googleDriveId) {
+        await prisma.document.create({
+          data: {
+            name: doc.templateName,
+            type: 'generated',
+            status: 'completed',
+            url: doc.googleDriveUrl,
+            caseId,
+            tenantId,
+            googleDriveId: doc.googleDriveId,
+            fileName: doc.fileName,
+            mimeType: 'application/pdf',
+            isGenerated: true,
+          },
+        });
+      }
+    }
+
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error generating failure documents:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al generar documentos de fracaso',
+    };
+  }
+}
+
+/**
+ * Get available failure types for document generation
+ */
+export async function getFailureTypes(): Promise<{
+  success: boolean;
+  data?: Array<{ id: string; name: string; description: string }>;
+  error?: string;
+}> {
+  try {
+    await authenticateUser();
+    const { getFailureTypes: getTypes } = await import('./templates-config');
+    return { success: true, data: getTypes() };
+  } catch (error) {
+    console.error('Error getting failure types:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al obtener tipos de fracaso',
     };
   }
 }

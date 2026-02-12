@@ -201,58 +201,94 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
   const realEstate = assets.filter(a => a.type === 'INMUEBLE' || a.type === 'REAL_ESTATE');
   const personalProperty = assets.filter(a => a.type !== 'INMUEBLE' && a.type !== 'REAL_ESTATE');
 
-  // Real estate (first one)
-  const immueble = realEstate[0];
-  if (immueble) {
-    result['INMUEBLE_TIPO'] = immueble.propertyType || immueble.name || '';
-    result['INMUEBLE_DIRECCION'] = immueble.address || '';
-    result['INMUEBLE_MATRICULA'] = immueble.registrationNumber || '';
-    result['INMUEBLE_VALOR'] = formatCurrency(immueble.value);
-    result['INMUEBLE_GRAVAMEN'] = immueble.encumbrance || '';
-    result['INMUEBLE_AFECTACION'] = immueble.affectation || '';
-    result['INMUEBLE_MEDIDA'] = immueble.precautionaryMeasure || '';
-    result['INMUEBLE_VIVIENDA_FAMILIAR'] = boolToSiNo(immueble.isFamilyHome);
-    result['INMUEBLE_PATRIMONIO_FAMILIA'] = boolToSiNo(immueble.isInalienablePatrimony);
-    result['INMUEBLE_DOCUMENTO'] = immueble.proofDocument || '';
-  } else {
-    result['INMUEBLE_TIPO'] = 'N/A';
-    result['INMUEBLE_DIRECCION'] = 'N/A';
-    result['INMUEBLE_MATRICULA'] = 'N/A';
-    result['INMUEBLE_VALOR'] = 'N/A';
-    result['INMUEBLE_GRAVAMEN'] = 'N/A';
-    result['INMUEBLE_AFECTACION'] = 'N/A';
-    result['INMUEBLE_MEDIDA'] = 'N/A';
-    result['INMUEBLE_VIVIENDA_FAMILIAR'] = 'N/A';
-    result['INMUEBLE_PATRIMONIO_FAMILIA'] = 'N/A';
-    result['INMUEBLE_DOCUMENTO'] = 'N/A';
+  // Map ALL real estate properties (up to 5)
+  for (let i = 0; i < 5; i++) {
+    const immueble = realEstate[i];
+    const idx = i + 1;
+
+    if (immueble) {
+      result[`INMUEBLE_${idx}_TIPO`] = immueble.propertyType || immueble.name || '';
+      result[`INMUEBLE_${idx}_DIRECCION`] = immueble.address || '';
+      result[`INMUEBLE_${idx}_MATRICULA`] = immueble.registrationNumber || '';
+      result[`INMUEBLE_${idx}_VALOR`] = formatCurrency(immueble.value);
+      result[`INMUEBLE_${idx}_GRAVAMEN`] = immueble.encumbrance || '';
+      result[`INMUEBLE_${idx}_AFECTACION`] = immueble.affectation || '';
+      result[`INMUEBLE_${idx}_MEDIDA`] = immueble.precautionaryMeasure || '';
+      result[`INMUEBLE_${idx}_VIVIENDA_FAMILIAR`] = boolToSiNo(immueble.isFamilyHome);
+      result[`INMUEBLE_${idx}_PATRIMONIO_FAMILIA`] = boolToSiNo(immueble.isInalienablePatrimony);
+      result[`INMUEBLE_${idx}_DOCUMENTO`] = immueble.proofDocument || '';
+    }
   }
 
-  // Personal property by category
-  const findAssetByType = (types: string[]) =>
-    personalProperty.find(a => types.some(t => a.type?.toLowerCase().includes(t.toLowerCase())));
+  // Keep backward compatibility with single INMUEBLE_ variables
+  const firstImmueble = realEstate[0];
+  if (firstImmueble) {
+    result['INMUEBLE_TIPO'] = firstImmueble.propertyType || firstImmueble.name || '';
+    result['INMUEBLE_DIRECCION'] = firstImmueble.address || '';
+    result['INMUEBLE_MATRICULA'] = firstImmueble.registrationNumber || '';
+    result['INMUEBLE_VALOR'] = formatCurrency(firstImmueble.value);
+    result['INMUEBLE_GRAVAMEN'] = firstImmueble.encumbrance || '';
+    result['INMUEBLE_AFECTACION'] = firstImmueble.affectation || '';
+    result['INMUEBLE_MEDIDA'] = firstImmueble.precautionaryMeasure || '';
+    result['INMUEBLE_VIVIENDA_FAMILIAR'] = boolToSiNo(firstImmueble.isFamilyHome);
+    result['INMUEBLE_PATRIMONIO_FAMILIA'] = boolToSiNo(firstImmueble.isInalienablePatrimony);
+    result['INMUEBLE_DOCUMENTO'] = firstImmueble.proofDocument || '';
+  } else {
+    result['INMUEBLE_TIPO'] = 'No declara bienes inmuebles';
+    result['INMUEBLE_DIRECCION'] = '';
+    result['INMUEBLE_MATRICULA'] = '';
+    result['INMUEBLE_VALOR'] = '';
+    result['INMUEBLE_GRAVAMEN'] = '';
+    result['INMUEBLE_AFECTACION'] = '';
+    result['INMUEBLE_MEDIDA'] = '';
+    result['INMUEBLE_VIVIENDA_FAMILIAR'] = '';
+    result['INMUEBLE_PATRIMONIO_FAMILIA'] = '';
+    result['INMUEBLE_DOCUMENTO'] = '';
+  }
 
-  const electronics = findAssetByType(['electronico', 'electronic', 'electrodomestico']);
-  const furniture = findAssetByType(['mueble', 'enseres', 'furniture']);
-  const vehicle = findAssetByType(['vehiculo', 'vehicle', 'carro', 'moto']);
-  const jewelry = findAssetByType(['joya', 'jewelry']);
-  const cash = findAssetByType(['efectivo', 'cash', 'dinero']);
-  const stocks = findAssetByType(['accion', 'stock', 'inversion']);
-  const receivables = findAssetByType(['cuenta', 'receivable', 'cobrar']);
+  // Personal property by category - get ALL items, not just first
+  const filterAssetsByType = (types: string[]) =>
+    personalProperty.filter(a => types.some(t => a.type?.toLowerCase().includes(t.toLowerCase())));
 
-  result['MUEBLE_ELECTRONICO_DESC'] = electronics?.description || electronics?.name || 'N/A';
-  result['MUEBLE_ELECTRONICO_VALOR'] = electronics ? formatCurrency(electronics.value) : 'N/A';
-  result['MUEBLE_ENSERES_DESC'] = furniture?.description || furniture?.name || 'N/A';
-  result['MUEBLE_ENSERES_VALOR'] = furniture ? formatCurrency(furniture.value) : 'N/A';
-  result['MUEBLE_VEHICULO_DESC'] = vehicle ? `${vehicle.brand || ''} ${vehicle.model || ''} - ${vehicle.licensePlate || ''}`.trim() : 'N/A';
-  result['MUEBLE_VEHICULO_VALOR'] = vehicle ? formatCurrency(vehicle.value) : 'N/A';
-  result['MUEBLE_JOYAS_DESC'] = jewelry?.description || jewelry?.name || 'N/A';
-  result['MUEBLE_JOYAS_VALOR'] = jewelry ? formatCurrency(jewelry.value) : 'N/A';
-  result['MUEBLE_EFECTIVO_DESC'] = cash?.description || 'N/A';
-  result['MUEBLE_EFECTIVO_VALOR'] = cash ? formatCurrency(cash.value) : 'N/A';
-  result['MUEBLE_ACCIONES_DESC'] = stocks?.description || stocks?.name || 'N/A';
-  result['MUEBLE_ACCIONES_VALOR'] = stocks ? formatCurrency(stocks.value) : 'N/A';
-  result['MUEBLE_CUENTAS_DESC'] = receivables?.description || receivables?.name || 'N/A';
-  result['MUEBLE_CUENTAS_VALOR'] = receivables ? formatCurrency(receivables.value) : 'N/A';
+  const allElectronics = filterAssetsByType(['electronico', 'electronic', 'electrodomestico']);
+  const allFurniture = filterAssetsByType(['mueble', 'enseres', 'furniture']);
+  const allVehicles = filterAssetsByType(['vehiculo', 'vehicle', 'carro', 'moto']);
+  const allJewelry = filterAssetsByType(['joya', 'jewelry']);
+  const allCash = filterAssetsByType(['efectivo', 'cash', 'dinero']);
+  const allStocks = filterAssetsByType(['accion', 'stock', 'inversion']);
+  const allReceivables = filterAssetsByType(['cuenta', 'receivable', 'cobrar']);
+
+  // Generate consolidated descriptions for each category
+  const formatAssetList = (items: typeof personalProperty) => {
+    if (items.length === 0) return 'No declara';
+    return items.map(a => a.description || a.name || a.type).join('; ');
+  };
+
+  const sumValues = (items: typeof personalProperty) =>
+    items.reduce((sum, a) => sum + (a.value || 0), 0);
+
+  // Format vehicles with full details
+  const formatVehicleList = (vehicles: typeof personalProperty) => {
+    if (vehicles.length === 0) return 'No declara';
+    return vehicles.map(v =>
+      `${v.brand || ''} ${v.model || ''} - Placa: ${v.licensePlate || 'N/A'}`.trim()
+    ).join('; ');
+  };
+
+  result['MUEBLE_ELECTRONICO_DESC'] = formatAssetList(allElectronics);
+  result['MUEBLE_ELECTRONICO_VALOR'] = allElectronics.length > 0 ? formatCurrency(sumValues(allElectronics)) : 'N/A';
+  result['MUEBLE_ENSERES_DESC'] = formatAssetList(allFurniture);
+  result['MUEBLE_ENSERES_VALOR'] = allFurniture.length > 0 ? formatCurrency(sumValues(allFurniture)) : 'N/A';
+  result['MUEBLE_VEHICULO_DESC'] = formatVehicleList(allVehicles);
+  result['MUEBLE_VEHICULO_VALOR'] = allVehicles.length > 0 ? formatCurrency(sumValues(allVehicles)) : 'N/A';
+  result['MUEBLE_JOYAS_DESC'] = formatAssetList(allJewelry);
+  result['MUEBLE_JOYAS_VALOR'] = allJewelry.length > 0 ? formatCurrency(sumValues(allJewelry)) : 'N/A';
+  result['MUEBLE_EFECTIVO_DESC'] = formatAssetList(allCash);
+  result['MUEBLE_EFECTIVO_VALOR'] = allCash.length > 0 ? formatCurrency(sumValues(allCash)) : 'N/A';
+  result['MUEBLE_ACCIONES_DESC'] = formatAssetList(allStocks);
+  result['MUEBLE_ACCIONES_VALOR'] = allStocks.length > 0 ? formatCurrency(sumValues(allStocks)) : 'N/A';
+  result['MUEBLE_CUENTAS_DESC'] = formatAssetList(allReceivables);
+  result['MUEBLE_CUENTAS_VALOR'] = allReceivables.length > 0 ? formatCurrency(sumValues(allReceivables)) : 'N/A';
 
   // Totals
   const totalRealEstate = realEstate.reduce((sum, a) => sum + (a.value || 0), 0);
@@ -260,6 +296,11 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
   result['TOTAL_INMUEBLES'] = formatCurrency(totalRealEstate);
   result['TOTAL_MUEBLES'] = formatCurrency(totalPersonal);
   result['TOTAL_BIENES'] = formatCurrency(totalRealEstate + totalPersonal);
+
+  // Counts
+  result['CANTIDAD_INMUEBLES'] = realEstate.length.toString();
+  result['CANTIDAD_MUEBLES'] = personalProperty.length.toString();
+  result['CANTIDAD_BIENES'] = assets.length.toString();
 
   return result;
 }
@@ -474,6 +515,18 @@ function mapExternalEntities(caseData: CaseWithRelations): PlaceholderMap {
 function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
   // Calculate voting results
   const totalCreditors = caseData.debts.length;
+  const totalDebt = caseData.debts.reduce((sum, d) => sum + (d.amount || 0), 0);
+  const totalCapital = caseData.debts.reduce((sum, d) => sum + (d.capitalAmount || d.amount || 0), 0);
+
+  // Find majority creditor (largest debt)
+  const sortedDebts = [...caseData.debts].sort((a, b) => (b.amount || 0) - (a.amount || 0));
+  const majorityCreditor = sortedDebts[0];
+  const majorityCreditorName = majorityCreditor?.creditor?.name || '';
+  const majorityCreditorAmount = majorityCreditor?.amount || 0;
+  const majorityPercentage = totalDebt > 0 ? (majorityCreditorAmount / totalDebt) * 100 : 0;
+
+  // Approval percentage from database or calculate
+  const approvalPercentage = caseData.approvalPercentage || 0;
 
   // These would come from actual voting data - placeholders for now
   const negativeVotes = 0;
@@ -483,6 +536,17 @@ function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
     // Voting results
     ACREEDORES_NEGATIVOS: negativeVotes.toString(),
     PORCENTAJE_NEGATIVO: negativePercentage.toFixed(2) + '%',
+    PORCENTAJE_APROBACION_REAL: approvalPercentage.toString() + '%',
+    PORCENTAJE_VOTACION: approvalPercentage.toFixed(2) + '%',
+
+    // Majority creditor (for fracaso documents)
+    ACREEDOR_MAYORITARIO: majorityCreditorName,
+    VALOR_ACREEDOR_MAYORITARIO: formatCurrency(majorityCreditorAmount),
+    PORCENTAJE_ACREEDOR_MAYORITARIO: majorityPercentage.toFixed(2) + '%',
+
+    // Total capital (for fracaso documents)
+    TOTAL_CAPITAL_ADEUDADO: formatCurrency(totalCapital),
+    TOTAL_CAPITAL_FRACASO: formatCurrency(totalCapital),
 
     // Payment value
     VALOR_PAGO: formatCurrency(caseData.monthlyPaymentAmount),
@@ -492,9 +556,250 @@ function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
       ? 'Persona Natural Pequeño Comerciante'
       : 'Persona Natural No Comerciante',
 
-    // Gender variants
-    GENERO_DEUDOR_SINGULAR: caseData.debtor.name?.toLowerCase().endsWith('a') ? 'la' : 'el',
+    // Gender variants - improved logic
+    GENERO_DEUDOR_SINGULAR: getGenderArticle(caseData.debtor.name),
+
+    // Año de firma (usado en constancias)
+    ANO_FIRMA: getYear(new Date()),
+
+    // Nombres en formatos adicionales
+    NOMBRE_DEUDOR_MAYUSCULAS: caseData.debtor.name?.toUpperCase() || '',
+    CEDULA_DEUDOR_FORMATO: formatIdNumber(caseData.debtor.idNumber),
   };
+}
+
+// Helper to get gender article (el/la)
+function getGenderArticle(name: string): string {
+  if (!name) return 'el';
+  const firstName = name.split(' ')[0].toLowerCase();
+  // Common female name endings in Spanish
+  const femaleEndings = ['a', 'ia', 'na', 'da', 'ta', 'sa', 'za', 'ía'];
+  // Common male names that end in 'a'
+  const maleExceptions = ['joshua', 'josua', 'garcia', 'borja', 'kocha'];
+
+  if (maleExceptions.includes(firstName)) return 'el';
+
+  for (const ending of femaleEndings) {
+    if (firstName.endsWith(ending)) return 'la';
+  }
+  return 'el';
+}
+
+// Helper to format ID number with dots
+function formatIdNumber(idNumber: string): string {
+  if (!idNumber) return '';
+  // Remove any existing formatting
+  const cleaned = idNumber.replace(/\D/g, '');
+  // Add thousand separators (Colombian format)
+  return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Map fracaso (failure) specific variables
+function mapFracasoVariables(caseData: CaseWithRelations): PlaceholderMap {
+  // Failure date - now comes from database field
+  const failureDate = caseData.failureDate ? new Date(caseData.failureDate) : null;
+  const firstProcess = caseData.legalProcesses?.[0];
+
+  // Get bilateral creditor - if isBilateral is true, use bilateralCreditorId to find creditor name
+  let bilateralCreditorName = '';
+  if (caseData.isBilateral && caseData.bilateralCreditorId) {
+    const bilateralDebt = caseData.debts?.find(d => d.creditorId === caseData.bilateralCreditorId);
+    bilateralCreditorName = bilateralDebt?.creditor?.name || '';
+  }
+  // Fallback to first creditor if no bilateral creditor specified
+  if (!bilateralCreditorName) {
+    bilateralCreditorName = caseData.debts?.[0]?.creditor?.name || '';
+  }
+
+  return {
+    // Fechas de fracaso - Ahora vienen de la BD
+    DIA_FRACASO: failureDate ? getDayNumber(failureDate) : '____',
+    MES_FRACASO: failureDate ? getMonthName(failureDate) : '____________',
+    ANO_FRACASO: failureDate ? getYear(failureDate) : '______',
+    FECHA_FRACASO: failureDate ? formatDate(failureDate) : '________________',
+    TIPO_FRACASO: caseData.failureType || '',
+
+    // Información del juzgado
+    NUMERO_JUZGADO: firstProcess?.fileNumber || '____',
+    NUMERO_JUZGADO_FINAL: firstProcess?.fileNumber || '____',
+
+    // Acuerdo bilateral - Ahora viene de la BD
+    NOMBRE_ACREEDOR_BILATERAL: bilateralCreditorName || '________________________________',
+    RADICADO_BILATERAL: caseData.bilateralAgreementNumber || '________________',
+    ANO_BILATERAL: getYear(new Date()),
+    ES_BILATERAL: caseData.isBilateral ? 'SI' : 'NO',
+
+    // Constancia
+    NUMERO_CONSTANCIA: caseData.caseNumber?.replace(/[^0-9]/g, '') || '',
+    ANO_CONSTANCIA: getYear(new Date()),
+  };
+}
+
+// Map Sentido del Voto variables (lowercase naming as per HTML template)
+function mapSentidoVotoVariables(caseData: CaseWithRelations): PlaceholderMap {
+  return {
+    // Variables en minúsculas como están en el template Sentido Del Voto.html
+    deudor_nombre: caseData.debtor.name,
+    deudor_cedula: caseData.debtor.idNumber,
+    fecha_documento: formatDate(new Date()),
+    tramite_interno: caseData.caseNumber,
+    entidad_representada: '', // MANUAL - lo llena el acreedor
+    apoderado_nombre: '', // MANUAL
+    apoderado_cedula: '', // MANUAL
+    tarjeta_profesional: '', // MANUAL
+    correo_electronico: '', // MANUAL
+    telefono_contacto: '', // MANUAL
+    fecha_inicio_pago: '________________', // MANUAL - fecha de inicio de pagos post-acuerdo
+    numero_cuotas: caseData.paymentTermMonths?.toString() || '____',
+    valor_cuota: formatCurrency(caseData.monthlyPaymentAmount),
+    forma_pago: '', // MANUAL
+    observaciones: '', // MANUAL
+    votacion: '', // MANUAL - SI/NO
+    firma_votante: '', // MANUAL
+  };
+}
+
+// Generate Detalle de Bienes HTML
+function generateDetalleBienes(assets: CaseWithRelations['assets']): string {
+  if (!assets || assets.length === 0) {
+    return 'El deudor manifiesta no tener bienes a su nombre.';
+  }
+
+  const inmuebles = assets.filter(a => a.type === 'INMUEBLE' || a.type === 'REAL_ESTATE');
+  const muebles = assets.filter(a => a.type !== 'INMUEBLE' && a.type !== 'REAL_ESTATE');
+
+  let html = '';
+
+  if (inmuebles.length > 0) {
+    html += '<strong>Bienes Inmuebles:</strong><br>';
+    html += inmuebles.map((a, i) =>
+      `${i + 1}. ${a.propertyType || a.type}: ${a.address || a.name || 'Sin dirección'} - Matrícula: ${a.registrationNumber || 'N/A'} - Valor: ${formatCurrency(a.value)}`
+    ).join('<br>');
+    html += '<br><br>';
+  }
+
+  if (muebles.length > 0) {
+    html += '<strong>Bienes Muebles:</strong><br>';
+    html += muebles.map((a, i) =>
+      `${i + 1}. ${a.type}: ${a.name || a.description || 'Sin descripción'} - Valor: ${formatCurrency(a.value)}`
+    ).join('<br>');
+  }
+
+  return html;
+}
+
+// Generate Detalle de Pago de Capital HTML
+function generateDetallePagoCapital(debts: CaseWithRelations['debts'], monthlyAmount: number, totalCapital: number): string {
+  if (!debts || debts.length === 0) {
+    return '<em>Pendiente de registrar acreedores para calcular distribución de pagos.</em>';
+  }
+
+  let html = '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:11px;">';
+  html += '<tr style="background-color:#f0f0f0;"><th>Acreedor</th><th>Capital</th><th>% Participación</th><th>Cuota Mensual</th></tr>';
+
+  debts.forEach(debt => {
+    const capital = debt.capitalAmount || debt.amount || 0;
+    const percentage = totalCapital > 0 ? (capital / totalCapital) * 100 : 0;
+    const monthlyPayment = (percentage / 100) * monthlyAmount;
+
+    html += `<tr>
+      <td style="padding:5px;">${debt.creditor?.name || 'N/A'}</td>
+      <td style="padding:5px; text-align:right;">${formatCurrency(capital)}</td>
+      <td style="padding:5px; text-align:center;">${percentage.toFixed(2)}%</td>
+      <td style="padding:5px; text-align:right;">${formatCurrency(monthlyPayment)}</td>
+    </tr>`;
+  });
+
+  html += `<tr style="background-color:#e0e0e0; font-weight:bold;">
+    <td style="padding:5px;">TOTAL</td>
+    <td style="padding:5px; text-align:right;">${formatCurrency(totalCapital)}</td>
+    <td style="padding:5px; text-align:center;">100%</td>
+    <td style="padding:5px; text-align:right;">${formatCurrency(monthlyAmount)}</td>
+  </tr>`;
+  html += '</table>';
+
+  return html;
+}
+
+// Generate Forma de Pago a Acreedores HTML
+function generateFormaPagoAcreedores(debts: CaseWithRelations['debts']): string {
+  if (!debts || debts.length === 0) {
+    return '<em>Pendiente de registrar acreedores.</em>';
+  }
+
+  return debts.map(debt =>
+    `• <strong>${debt.creditor?.name || 'N/A'}:</strong> Consignación a cuenta bancaria o medio de pago acordado con el acreedor.`
+  ).join('<br>');
+}
+
+// Generate Proyección de Pagos HTML
+function generateProyeccionPagos(totalCapital: number, months: number, monthlyAmount: number, startDate?: Date): string {
+  if (!months || months <= 0 || !monthlyAmount) {
+    return 'Proyección pendiente de definir.';
+  }
+
+  const start = startDate || new Date();
+  let html = '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:10px;">';
+  html += '<tr style="background-color:#f0f0f0;"><th>#</th><th>Fecha</th><th>Cuota</th><th>Abono Capital</th><th>Saldo</th></tr>';
+
+  let balance = totalCapital;
+
+  // Generate ALL payment rows (no truncation)
+  for (let i = 1; i <= months; i++) {
+    const paymentDate = new Date(start);
+    paymentDate.setMonth(paymentDate.getMonth() + i);
+
+    // Calculate payment applied to capital
+    const capitalPayment = Math.min(monthlyAmount, balance);
+    balance = Math.max(0, balance - monthlyAmount);
+
+    html += `<tr>
+      <td style="padding:3px; text-align:center;">${i}</td>
+      <td style="padding:3px; text-align:center;">${paymentDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+      <td style="padding:3px; text-align:right;">${formatCurrency(monthlyAmount)}</td>
+      <td style="padding:3px; text-align:right;">${formatCurrency(capitalPayment)}</td>
+      <td style="padding:3px; text-align:right;">${formatCurrency(balance)}</td>
+    </tr>`;
+  }
+
+  // Add totals row
+  html += `<tr style="background-color:#e0e0e0; font-weight:bold;">
+    <td colspan="2" style="padding:5px; text-align:right;">TOTALES</td>
+    <td style="padding:5px; text-align:right;">${formatCurrency(monthlyAmount * months)}</td>
+    <td style="padding:5px; text-align:right;">${formatCurrency(totalCapital)}</td>
+    <td style="padding:5px; text-align:right;">$0</td>
+  </tr>`;
+
+  html += '</table>';
+  return html;
+}
+
+// Generate Inventario de Bienes HTML (for agreements)
+function generateInventarioBienes(assets: CaseWithRelations['assets']): string {
+  if (!assets || assets.length === 0) {
+    return 'El deudor manifiesta no poseer bienes a su nombre.';
+  }
+
+  const totalValue = assets.reduce((sum, a) => sum + (a.value || 0), 0);
+
+  let html = '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:11px;">';
+  html += '<tr style="background-color:#f0f0f0;"><th>Tipo</th><th>Descripción</th><th>Valor</th></tr>';
+
+  assets.forEach(asset => {
+    html += `<tr>
+      <td style="padding:5px;">${asset.type || 'N/A'}</td>
+      <td style="padding:5px;">${asset.name || asset.description || asset.address || 'Sin descripción'}</td>
+      <td style="padding:5px; text-align:right;">${formatCurrency(asset.value)}</td>
+    </tr>`;
+  });
+
+  html += `<tr style="background-color:#e0e0e0; font-weight:bold;">
+    <td colspan="2" style="padding:5px; text-align:right;">TOTAL</td>
+    <td style="padding:5px; text-align:right;">${formatCurrency(totalValue)}</td>
+  </tr>`;
+  html += '</table>';
+
+  return html;
 }
 
 // Map dynamic tables (these generate HTML content)
@@ -504,36 +809,180 @@ function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
     `${i + 1}. ${d.creditor.name} - ${formatCurrency(d.amount)}`
   ).join('<br>');
 
-  // Build assets inventory
-  const assetsInventory = caseData.assets.map((a, i) =>
-    `${i + 1}. ${a.name || a.type} - ${formatCurrency(a.value)}`
-  ).join('<br>');
-
   // Build total creditors table
   const totalCreditors = caseData.debts.length;
   const totalDebt = caseData.debts.reduce((sum, d) => sum + (d.amount || 0), 0);
+  const totalCapital = caseData.debts.reduce((sum, d) => sum + (d.capitalAmount || d.amount || 0), 0);
+  const monthlyAmount = caseData.monthlyPaymentAmount || 0;
+
+  // Build Calificación y Graduación table
+  const calificacionTable = generateCalificacionGraduacionTable(caseData.debts, totalCapital);
+
+  // Build propuesta de pago HTML
+  const propuestaPago = generatePropuestaPagoHtml(caseData);
+
+  // Build new dynamic content
+  const detalleBienes = generateDetalleBienes(caseData.assets);
+  const detallePagoCapital = generateDetallePagoCapital(caseData.debts, monthlyAmount, totalCapital);
+  const formaPagoAcreedores = generateFormaPagoAcreedores(caseData.debts);
+  const proyeccionPagos = generateProyeccionPagos(totalCapital, caseData.paymentTermMonths || 0, monthlyAmount);
+  const inventarioBienes = generateInventarioBienes(caseData.assets);
 
   return {
     // Dynamic table placeholders
-    LISTA_ACREEDORES: creditorsList || 'Sin acreedores registrados',
-    INVENTARIO_BIENES: assetsInventory || 'Sin bienes registrados',
+    LISTA_ACREEDORES: creditorsList || '',
 
-    // Summary tables (HTML to be generated separately if needed)
+    // Creditor count for conditional rendering
+    TIENE_ACREEDORES: caseData.debts.length > 0 ? 'SI' : 'NO',
+    TIENE_BIENES: caseData.assets.length > 0 ? 'SI' : 'NO',
+    TIENE_PROCESOS: (caseData.legalProcesses?.length || 0) > 0 ? 'SI' : 'NO',
+
+    // Summary tables
     CUADRO_TOTAL_ACREEDORES: `
-      <table border="1" cellpadding="5">
-        <tr><th>Total Acreedores</th><td>${totalCreditors}</td></tr>
-        <tr><th>Total Deuda</th><td>${formatCurrency(totalDebt)}</td></tr>
+      <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse;">
+        <tr><th style="text-align:left; padding:8px;">Total Acreedores</th><td style="padding:8px;">${totalCreditors}</td></tr>
+        <tr><th style="text-align:left; padding:8px;">Total Deuda</th><td style="padding:8px;">${formatCurrency(totalDebt)}</td></tr>
       </table>
     `,
 
-    // Placeholders for complex tables (to be filled by specific generators)
-    CUADRO_CALIFICACION_GRADUACION: '',
-    CUADRO_CALIFICACION_FIRMADO: '',
-    CUADRO_ACUERDO_BILATERAL: '',
-    CUADRO_FRACASO_NEGOCIACION: '',
-    PROPUESTA_REFORMA_PAGO: '',
-    PROYECTO_CALIFICACION_GRADUACION: '',
+    // Calificación y Graduación completa
+    CUADRO_CALIFICACION_GRADUACION: calificacionTable,
+    CUADRO_CALIFICACION_FIRMADO: calificacionTable,
+
+    // Fracaso tables
+    CUADRO_ACUERDO_BILATERAL: calificacionTable,
+    CUADRO_FRACASO_NEGOCIACION: calificacionTable,
+
+    // Propuesta de pago
+    PROPUESTA_PAGO: propuestaPago,
+    PROPUESTA_REFORMA_PAGO: propuestaPago,
+
+    // Proyecto calificación
+    PROYECTO_CALIFICACION_GRADUACION: calificacionTable,
+
+    // New dynamic content generators (FASE 2 del plan)
+    DETALLE_BIENES: detalleBienes,
+    INVENTARIO_BIENES: inventarioBienes,
+    DETALLE_PAGO_CAPITAL: detallePagoCapital,
+    FORMA_PAGO_ACREEDORES: formaPagoAcreedores,
+    PROYECCION_PAGOS: proyeccionPagos,
   };
+}
+
+// Generate Calificación y Graduación table HTML
+function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], totalCapital: number): string {
+  if (!debts || debts.length === 0) {
+    // Return empty table structure instead of error message
+    // The validation layer will prevent document generation if required
+    return `
+      <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:12px;">
+        <thead>
+          <tr style="background-color:#f0f0f0;">
+            <th style="padding:8px; border:1px solid #000;">ACREEDOR</th>
+            <th style="padding:8px; border:1px solid #000;">No.</th>
+            <th style="padding:8px; border:1px solid #000;">PRELACIÓN</th>
+            <th style="padding:8px; border:1px solid #000;">CAPITAL</th>
+            <th style="padding:8px; border:1px solid #000;">INTERESES</th>
+            <th style="padding:8px; border:1px solid #000;">% PARTICIPACIÓN</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6" style="padding:10px; text-align:center; color:#999;">Pendiente de registrar acreedores</td></tr>
+        </tbody>
+      </table>
+    `;
+  }
+
+  let tableRows = debts.map((debt, index) => {
+    const capital = debt.capitalAmount || debt.amount || 0;
+    const interest = debt.interestAmount || 0;
+    const percentage = totalCapital > 0 ? ((capital / totalCapital) * 100).toFixed(2) : '0.00';
+    const prelacion = debt.creditorClass || 'Quirografario';
+
+    return `
+      <tr>
+        <td style="padding:5px; border:1px solid #000;">${debt.creditor?.name || 'N/A'}</td>
+        <td style="padding:5px; border:1px solid #000; text-align:center;">${index + 1}</td>
+        <td style="padding:5px; border:1px solid #000; text-align:center;">${prelacion}</td>
+        <td style="padding:5px; border:1px solid #000; text-align:right;">${formatCurrency(capital)}</td>
+        <td style="padding:5px; border:1px solid #000; text-align:right;">${formatCurrency(interest)}</td>
+        <td style="padding:5px; border:1px solid #000; text-align:center;">${percentage}%</td>
+      </tr>
+    `;
+  }).join('');
+
+  const totalInterest = debts.reduce((sum, d) => sum + (d.interestAmount || 0), 0);
+
+  return `
+    <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:12px;">
+      <thead>
+        <tr style="background-color:#f0f0f0;">
+          <th style="padding:8px; border:1px solid #000;">ACREEDOR</th>
+          <th style="padding:8px; border:1px solid #000;">No.</th>
+          <th style="padding:8px; border:1px solid #000;">PRELACIÓN</th>
+          <th style="padding:8px; border:1px solid #000;">CAPITAL</th>
+          <th style="padding:8px; border:1px solid #000;">INTERESES</th>
+          <th style="padding:8px; border:1px solid #000;">% PARTICIPACIÓN</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableRows}
+      </tbody>
+      <tfoot>
+        <tr style="background-color:#e0e0e0; font-weight:bold;">
+          <td colspan="3" style="padding:8px; border:1px solid #000; text-align:right;">TOTALES</td>
+          <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(totalCapital)}</td>
+          <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(totalInterest)}</td>
+          <td style="padding:8px; border:1px solid #000; text-align:center;">100.00%</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+}
+
+// Generate Propuesta de Pago HTML
+function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
+  const monthlyIncome = caseData.monthlyIncome || caseData.debtor.monthlyIncome || 0;
+  const monthlyExpenses = caseData.monthlyExpenses || caseData.debtor.monthlyExpenses || 0;
+  const available = monthlyIncome - monthlyExpenses;
+  const totalCapital = caseData.debts.reduce((sum, d) => sum + (d.capitalAmount || d.amount || 0), 0);
+
+  return `
+    <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:12px;">
+      <tr>
+        <td style="padding:8px; border:1px solid #000;"><strong>Ingresos Mensuales:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(monthlyIncome)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; border:1px solid #000;"><strong>Gastos Mensuales:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(monthlyExpenses)}</td>
+      </tr>
+      <tr style="background-color:#f0f0f0;">
+        <td style="padding:8px; border:1px solid #000;"><strong>Disponible para Pago:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;"><strong>${formatCurrency(available)}</strong></td>
+      </tr>
+      <tr>
+        <td style="padding:8px; border:1px solid #000;"><strong>Total Capital Adeudado:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(totalCapital)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; border:1px solid #000;"><strong>Plazo Propuesto:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${caseData.paymentTermMonths || '____'} meses</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; border:1px solid #000;"><strong>Cuota Mensual Propuesta:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(caseData.monthlyPaymentAmount)}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; border:1px solid #000;"><strong>Periodo de Gracia:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${caseData.gracePeriodRequested ? `${caseData.gracePeriodMonths} meses` : 'No solicitado'}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px; border:1px solid #000;"><strong>Condonación de Intereses:</strong></td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${caseData.forgiveAccruedInterest ? 'Causados y Futuros' : 'No solicitada'}</td>
+      </tr>
+    </table>
+  `;
 }
 
 // Map payment proposal
@@ -730,15 +1179,17 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
       ? new Date(caseData.firstHearingDate || caseData.hearingDate!).getFullYear().toString()
       : '______',
 
-    // Payment terms - MANUAL
+    // Payment terms - Ahora con campos de BD
     NUMERO_MESES: caseData.paymentTermMonths?.toString() || '____',
-    DIA_INICIO_PAGO: '____', // MANUAL - post-acuerdo
-    MES_INICIO_PAGO: '____________', // MANUAL - post-acuerdo
-    ANO_INICIO_PAGO: '______', // MANUAL - post-acuerdo
-    DIA_VIGENCIA: '____', // MANUAL - vigencia del acuerdo
-    MES_VIGENCIA: '____________', // MANUAL - vigencia del acuerdo
-    ANO_VIGENCIA: '______', // MANUAL - vigencia del acuerdo
-    PORCENTAJE_APROBACION: '____', // MANUAL - resultado de votación
+    DIA_INICIO_PAGO: caseData.paymentStartDate ? getDayNumber(caseData.paymentStartDate) : '____',
+    MES_INICIO_PAGO: caseData.paymentStartDate ? getMonthName(caseData.paymentStartDate) : '____________',
+    ANO_INICIO_PAGO: caseData.paymentStartDate ? getYear(caseData.paymentStartDate) : '______',
+    FECHA_INICIO_PAGO: caseData.paymentStartDate ? formatDate(caseData.paymentStartDate) : '________________',
+    DIA_VIGENCIA: caseData.agreementValidityDate ? getDayNumber(caseData.agreementValidityDate) : '____',
+    MES_VIGENCIA: caseData.agreementValidityDate ? getMonthName(caseData.agreementValidityDate) : '____________',
+    ANO_VIGENCIA: caseData.agreementValidityDate ? getYear(caseData.agreementValidityDate) : '______',
+    FECHA_VIGENCIA: caseData.agreementValidityDate ? formatDate(caseData.agreementValidityDate) : '________________',
+    PORCENTAJE_APROBACION: caseData.approvalPercentage?.toString() || '____',
 
     // Control de Legalidad - MANUAL
     FECHA_CONTROL_LEGALIDAD: '________________', // MANUAL
@@ -799,6 +1250,9 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     ...mapExternalEntities(caseData),
     ...mapAgreementResult(caseData),
     ...mapDynamicTables(caseData),
+    // Fracaso and audiencia specific mappings
+    ...mapFracasoVariables(caseData),
+    ...mapSentidoVotoVariables(caseData),
   };
 }
 
@@ -815,4 +1269,127 @@ export function replacePlaceholders(html: string, placeholders: PlaceholderMap):
   }
 
   return result;
+}
+
+/**
+ * Validation result for placeholder coverage
+ */
+export interface PlaceholderCoverageResult {
+  /** Whether all placeholders are covered with non-empty values */
+  complete: boolean;
+  /** Total number of placeholders found in the HTML */
+  totalPlaceholders: number;
+  /** Number of placeholders with values */
+  coveredCount: number;
+  /** Coverage percentage (0-100) */
+  coveragePercentage: number;
+  /** Placeholders that exist in HTML but not in the mapper */
+  missing: string[];
+  /** Placeholders that exist in mapper but have empty/placeholder values */
+  empty: string[];
+  /** Placeholders that have actual data values */
+  filled: string[];
+}
+
+/**
+ * Validates that all variables in the HTML template have values in the mapper
+ * @param html - The HTML template content
+ * @param placeholders - The mapped placeholders
+ * @returns Validation result with coverage statistics
+ */
+export function validatePlaceholderCoverage(
+  html: string,
+  placeholders: PlaceholderMap
+): PlaceholderCoverageResult {
+  // Find all {{VARIABLE}} patterns in the HTML
+  const regex = /\{\{([A-Za-z0-9_]+)\}\}/g;
+  const matches = [...html.matchAll(regex)];
+  const foundVariables = [...new Set(matches.map(m => m[1]))]; // Unique variables
+
+  // Categorize variables
+  const missing: string[] = [];
+  const empty: string[] = [];
+  const filled: string[] = [];
+
+  // Values that indicate a manual/empty placeholder
+  const emptyIndicators = [
+    '',
+    '____',
+    '______',
+    '____________',
+    '________________',
+    '________________________________',
+    'N/A',
+    '____:____',
+  ];
+
+  for (const variable of foundVariables) {
+    if (!(variable in placeholders)) {
+      // Variable not found in mapper at all
+      missing.push(variable);
+    } else {
+      const value = placeholders[variable];
+      if (!value || emptyIndicators.includes(value.trim())) {
+        // Variable exists but has empty or placeholder value
+        empty.push(variable);
+      } else {
+        // Variable has actual data
+        filled.push(variable);
+      }
+    }
+  }
+
+  const totalPlaceholders = foundVariables.length;
+  const coveredCount = filled.length;
+  const coveragePercentage = totalPlaceholders > 0
+    ? Math.round((coveredCount / totalPlaceholders) * 100)
+    : 100;
+
+  return {
+    complete: missing.length === 0 && empty.length === 0,
+    totalPlaceholders,
+    coveredCount,
+    coveragePercentage,
+    missing,
+    empty,
+    filled,
+  };
+}
+
+/**
+ * Get a summary report of placeholder coverage for debugging
+ * @param html - The HTML template content
+ * @param placeholders - The mapped placeholders
+ * @returns Formatted string report
+ */
+export function getPlaceholderCoverageReport(
+  html: string,
+  placeholders: PlaceholderMap
+): string {
+  const result = validatePlaceholderCoverage(html, placeholders);
+
+  let report = `\n=== Placeholder Coverage Report ===\n`;
+  report += `Coverage: ${result.coveragePercentage}% (${result.coveredCount}/${result.totalPlaceholders})\n`;
+  report += `Status: ${result.complete ? '✅ COMPLETE' : '⚠️ INCOMPLETE'}\n\n`;
+
+  if (result.missing.length > 0) {
+    report += `❌ Missing (${result.missing.length}):\n`;
+    result.missing.forEach(v => report += `   - ${v}\n`);
+    report += '\n';
+  }
+
+  if (result.empty.length > 0) {
+    report += `⚪ Empty/Manual (${result.empty.length}):\n`;
+    result.empty.forEach(v => report += `   - ${v}\n`);
+    report += '\n';
+  }
+
+  if (result.filled.length > 0 && result.filled.length <= 20) {
+    report += `✅ Filled (${result.filled.length}):\n`;
+    result.filled.forEach(v => report += `   - ${v}: "${placeholders[v]?.substring(0, 50)}${(placeholders[v]?.length || 0) > 50 ? '...' : ''}"\n`);
+  } else if (result.filled.length > 20) {
+    report += `✅ Filled: ${result.filled.length} variables (not listing all)\n`;
+  }
+
+  return report;
 }

@@ -137,6 +137,27 @@ model Case {
   // Google Drive folder for case documents
   driveFolderId           String?
 
+  // Campos de ingresos/gastos del caso (pueden diferir del deudor)
+  monthlyIncome           Decimal?
+  monthlyExpenses         Decimal?
+  otherIncomeDescription  String?
+  otherIncomeAmount       Decimal?
+  hasEmployerCertification Boolean  @default(false)
+
+  // Post-Acuerdo - Fechas y datos de resultado
+  paymentStartDate        DateTime?
+  agreementValidityDate   DateTime?
+  approvalPercentage      Decimal?
+
+  // Fracaso - Datos específicos
+  failureDate             DateTime?
+  failureType             String?
+
+  // Acuerdo Bilateral
+  isBilateral             Boolean   @default(false)
+  bilateralAgreementNumber String?
+  bilateralCreditorId     String?
+
   assets                  Asset[]
   debtor                  Debtor         @relation(fields: [debtorId], references: [id])
   operator                User           @relation(fields: [operatorId], references: [id])

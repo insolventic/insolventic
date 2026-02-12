@@ -1,21 +1,27 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
-import { useEffect } from 'react';
+import { useFormContext, useWatch } from 'react-hook-form';
+import { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  FormField,
+  FormItem,
+  FormControl,
+} from '@/components/ui/form';
 
 export function IncomeSection() {
   const form = useFormContext();
 
-  const monthlyIncome = form.watch('monthlyIncome') || 0;
-  const otherIncomeAmount = form.watch('otherIncomeAmount') || 0;
+  // useWatch es más eficiente que form.watch() porque solo re-renderiza cuando estos campos cambian
+  const monthlyIncome = useWatch({ control: form.control, name: 'monthlyIncome' }) || 0;
+  const otherIncomeAmount = useWatch({ control: form.control, name: 'otherIncomeAmount' }) || 0;
+  const monthlyExpenses = useWatch({ control: form.control, name: 'monthlyExpenses' }) || 0;
 
-  useEffect(() => {
-    const total = Number(monthlyIncome) + Number(otherIncomeAmount);
-    form.setValue('totalIncome', total);
-  }, [monthlyIncome, otherIncomeAmount, form]);
+  // Valores calculados con useMemo - NO usar setValue para valores derivados
+  const totalIncome = useMemo(() => Number(monthlyIncome) + Number(otherIncomeAmount), [monthlyIncome, otherIncomeAmount]);
+  const availableIncome = useMemo(() => totalIncome - Number(monthlyExpenses), [totalIncome, monthlyExpenses]);
 
   return (
     <div className="space-y-6">
@@ -64,22 +70,30 @@ export function IncomeSection() {
               step="0.01"
               readOnly
               className="bg-muted"
-              value={Number(monthlyIncome) + Number(otherIncomeAmount)}
+              value={totalIncome}
             />
           </div>
         </div>
 
-        <div className="mt-4 flex items-center space-x-2">
-          <Checkbox
-            id="hasEmployerCertification"
-            checked={form.watch('hasEmployerCertification')}
-            onCheckedChange={(checked) =>
-              form.setValue('hasEmployerCertification', checked as boolean)
-            }
+        <div className="mt-4">
+          <FormField
+            control={form.control}
+            name="hasEmployerCertification"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    id="hasEmployerCertification"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <Label htmlFor="hasEmployerCertification" className="cursor-pointer">
+                  Certificación de Empleador (Obligatorio si aplica)
+                </Label>
+              </FormItem>
+            )}
           />
-          <Label htmlFor="hasEmployerCertification" className="cursor-pointer">
-            Certificación de Empleador (Obligatorio si aplica)
-          </Label>
         </div>
       </div>
 
@@ -107,7 +121,7 @@ export function IncomeSection() {
               type="number"
               readOnly
               className="bg-muted"
-              value={Number(monthlyIncome) + Number(otherIncomeAmount)}
+              value={totalIncome}
             />
           </div>
           <div className="space-y-2">
@@ -116,7 +130,7 @@ export function IncomeSection() {
               type="number"
               readOnly
               className="bg-muted"
-              value={form.watch('monthlyExpenses') || 0}
+              value={monthlyExpenses}
             />
           </div>
           <div className="space-y-2">
@@ -125,11 +139,7 @@ export function IncomeSection() {
               type="number"
               readOnly
               className="bg-muted font-bold"
-              value={
-                Number(monthlyIncome) +
-                Number(otherIncomeAmount) -
-                Number(form.watch('monthlyExpenses') || 0)
-              }
+              value={availableIncome}
             />
           </div>
         </div>

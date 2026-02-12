@@ -65,6 +65,7 @@ const documentForCaseSchema = z.object({
   uploadDate: z.coerce.date(),
   url: z.string(),
   caseId: z.string(),
+  isGenerated: z.boolean().optional(),
 });
 
 const debtForCaseSchema = z.object({
@@ -366,6 +367,20 @@ export const caseSchema = z.object({
   // Google Drive folder for case documents
   driveFolderId: z.string().optional().nullable(),
 
+  // Post-Acuerdo - Fechas y datos de resultado
+  paymentStartDate: z.coerce.date().optional().nullable(),
+  agreementValidityDate: z.coerce.date().optional().nullable(),
+  approvalPercentage: decimalToNumber.optional().nullable(),
+
+  // Fracaso - Datos específicos
+  failureDate: z.coerce.date().optional().nullable(),
+  failureType: z.string().optional().nullable(),
+
+  // Acuerdo Bilateral
+  isBilateral: z.boolean().optional(),
+  bilateralAgreementNumber: z.string().optional().nullable(),
+  bilateralCreditorId: z.string().optional().nullable(),
+
   debtor: debtorForCaseSchema,
   operator: operatorForCaseSchema,
   _count: z.object({
@@ -582,6 +597,30 @@ export const createCaseSchema = z.object({
   zoomMeetingId: z.string().optional(),
   zoomPassword: z.string().optional(),
   zoomLink: z.string().optional(),
+
+  // Post-Acuerdo - Fechas y datos de resultado
+  paymentStartDate: z.string().optional(),
+  agreementValidityDate: z.string().optional(),
+  approvalPercentage: z
+    .union([
+      z.number().min(0).max(100).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+
+  // Fracaso - Datos específicos
+  failureDate: z.string().optional(),
+  failureType: z.string().optional(),
+
+  // Acuerdo Bilateral
+  isBilateral: z.boolean().optional().default(false),
+  bilateralAgreementNumber: z.string().optional(),
+  bilateralCreditorId: z.string().optional(),
 });
 
 export type CreateCaseData = z.infer<typeof createCaseSchema>;
@@ -779,6 +818,30 @@ export const updateCaseSchema = z.object({
   zoomMeetingId: z.string().optional(),
   zoomPassword: z.string().optional(),
   zoomLink: z.string().optional(),
+
+  // Post-Acuerdo - Fechas y datos de resultado
+  paymentStartDate: z.string().optional(),
+  agreementValidityDate: z.string().optional(),
+  approvalPercentage: z
+    .union([
+      z.number().min(0).max(100).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+
+  // Fracaso - Datos específicos
+  failureDate: z.string().optional(),
+  failureType: z.string().optional(),
+
+  // Acuerdo Bilateral
+  isBilateral: z.boolean().optional(),
+  bilateralAgreementNumber: z.string().optional(),
+  bilateralCreditorId: z.string().optional(),
 });
 
 export type UpdateCaseData = z.infer<typeof updateCaseSchema>;

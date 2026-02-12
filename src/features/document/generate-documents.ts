@@ -7,11 +7,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
 import { htmlToPdf } from '@/lib/html-to-pdf';
-import { mapCaseToPlaceholders, replacePlaceholders } from './placeholder-mapper';
+import { mapCaseToPlaceholders, replacePlaceholders, validatePlaceholderCoverage } from './placeholder-mapper';
 import {
   getTemplatesForCaseCreation,
   getTemplatesForAdmission,
   getTemplatesForAgreement,
+  getTemplatesForFailure,
   getTemplatePath,
   type DocumentTemplate,
 } from './templates-config';
@@ -26,8 +27,154 @@ export interface GeneratedDocument {
   fileName: string;
   googleDriveId: string;
   googleDriveUrl: string;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'skipped';
   error?: string;
+  /** Variables that were missing or empty */
+  missingVariables?: string[];
+  /** Coverage percentage */
+  coveragePercentage?: number;
+}
+
+/**
+ * Document requirements by category
+ * Defines which data must exist for each document type to generate
+ */
+const DOCUMENT_REQUIREMENTS: Record<string, {
+  requiresCreditors?: boolean;
+  requiresAssets?: boolean;
+  requiresLegalProcesses?: boolean;
+  requiresPaymentProposal?: boolean;
+  minCoveragePercentage?: number;
+  criticalVariables?: string[];
+}> = {
+  // Solicitud documents
+  'solicitud-insolvencia': {
+    requiresCreditors: true,
+    minCoveragePercentage: 70,
+    criticalVariables: ['NOMBRE_DEUDOR', 'CEDULA_DEUDOR', 'TOTAL_ACREENCIAS'],
+  },
+  'check-list': {
+    minCoveragePercentage: 50,
+  },
+  // Edicto
+  'edicto-emplazatorio': {
+    requiresCreditors: true,
+    criticalVariables: ['NOMBRE_DEUDOR', 'LISTA_ACREEDORES'],
+  },
+  // Acuerdo documents
+  'acuerdo-pago': {
+    requiresCreditors: true,
+    requiresPaymentProposal: true,
+    minCoveragePercentage: 80,
+    criticalVariables: ['NOMBRE_DEUDOR', 'CUADRO_CALIFICACION_GRADUACION', 'PROYECCION_PAGOS'],
+  },
+  'acuerdo-bilateral': {
+    requiresCreditors: true,
+    criticalVariables: ['NOMBRE_DEUDOR', 'NOMBRE_ACREEDOR_BILATERAL'],
+  },
+  // Fracaso documents
+  'fracaso-tramite': {
+    requiresCreditors: true,
+    criticalVariables: ['NOMBRE_DEUDOR', 'ACREEDOR_MAYORITARIO', 'TOTAL_CAPITAL_ADEUDADO'],
+  },
+  // Suspensión documents
+  'suspension-juzgados': {
+    requiresLegalProcesses: true,
+    criticalVariables: ['NOMBRE_DEUDOR', 'TIPO_PROCESO', 'NOMBRE_DEMANDANTE'],
+  },
+  'suspension-garantia': {
+    requiresLegalProcesses: true,
+    criticalVariables: ['NOMBRE_DEUDOR', 'NOMBRE_DEMANDANTE'],
+  },
+  // Remisión
+  'remision-juzgado': {
+    criticalVariables: ['NOMBRE_DEUDOR', 'CEDULA_DEUDOR'],
+  },
+  'remision-resultado': {
+    requiresLegalProcesses: true,
+  },
+};
+
+/**
+ * Validates if a document can be generated based on case data
+ */
+function validateDocumentRequirements(
+  template: DocumentTemplate,
+  caseData: CaseWithRelations,
+  placeholders: Record<string, string>
+): { canGenerate: boolean; reason?: string; missingVariables?: string[] } {
+  // Get template ID without extension for matching
+  const templateKey = template.id.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+  // Find matching requirement
+  const requirements = Object.entries(DOCUMENT_REQUIREMENTS).find(([key]) =>
+    templateKey.includes(key) || template.name.toLowerCase().includes(key.replace(/-/g, ' '))
+  )?.[1];
+
+  if (!requirements) {
+    // No specific requirements, allow generation
+    return { canGenerate: true };
+  }
+
+  const missingVariables: string[] = [];
+
+  // Check creditor requirement
+  if (requirements.requiresCreditors && caseData.debts.length === 0) {
+    return {
+      canGenerate: false,
+      reason: 'Este documento requiere al menos un acreedor registrado',
+      missingVariables: ['ACREEDORES'],
+    };
+  }
+
+  // Check assets requirement
+  if (requirements.requiresAssets && caseData.assets.length === 0) {
+    return {
+      canGenerate: false,
+      reason: 'Este documento requiere al menos un bien registrado',
+      missingVariables: ['BIENES'],
+    };
+  }
+
+  // Check legal processes requirement
+  if (requirements.requiresLegalProcesses && (!caseData.legalProcesses || caseData.legalProcesses.length === 0)) {
+    return {
+      canGenerate: false,
+      reason: 'Este documento requiere al menos un proceso judicial registrado',
+      missingVariables: ['PROCESOS_JUDICIALES'],
+    };
+  }
+
+  // Check payment proposal requirement
+  if (requirements.requiresPaymentProposal) {
+    if (!caseData.paymentTermMonths || !caseData.monthlyPaymentAmount) {
+      return {
+        canGenerate: false,
+        reason: 'Este documento requiere una propuesta de pago definida (plazo y cuota mensual)',
+        missingVariables: ['PROPUESTA_PAGO'],
+      };
+    }
+  }
+
+  // Check critical variables
+  if (requirements.criticalVariables) {
+    for (const variable of requirements.criticalVariables) {
+      const value = placeholders[variable];
+      if (!value || value.trim() === '' || value.includes('____') || value === 'N/A') {
+        missingVariables.push(variable);
+      }
+    }
+
+    if (missingVariables.length > 0) {
+      return {
+        canGenerate: false,
+        reason: `Faltan variables críticas: ${missingVariables.join(', ')}`,
+        missingVariables,
+      };
+    }
+  }
+
+  return { canGenerate: true };
 }
 
 /**
@@ -118,15 +265,43 @@ async function generateDocument(
   caseData: CaseWithRelations,
   placeholders: Record<string, string>,
   caseFolderId: string,
-  options: GenerationOptions
+  options: GenerationOptions & { skipValidation?: boolean }
 ): Promise<GeneratedDocument> {
   try {
+    // Validate document requirements before generation
+    if (!options.skipValidation) {
+      const validation = validateDocumentRequirements(template, caseData, placeholders);
+      if (!validation.canGenerate) {
+        return {
+          templateId: template.id,
+          templateName: template.name,
+          fileName: '',
+          googleDriveId: '',
+          googleDriveUrl: '',
+          status: 'skipped',
+          error: validation.reason,
+          missingVariables: validation.missingVariables,
+        };
+      }
+    }
+
     // Read template HTML
     const templatePath = getTemplatePath(template);
     const htmlContent = await readTemplate(templatePath);
 
+    // Validate placeholder coverage
+    const coverage = validatePlaceholderCoverage(htmlContent, placeholders);
+
     // Replace placeholders
     const filledHtml = replacePlaceholders(htmlContent, placeholders);
+
+    // Log coverage for debugging (in development)
+    if (process.env.NODE_ENV === 'development' && coverage.coveragePercentage < 80) {
+      console.warn(`[${template.name}] Low coverage: ${coverage.coveragePercentage}%`);
+      if (coverage.missing.length > 0) {
+        console.warn(`  Missing variables: ${coverage.missing.join(', ')}`);
+      }
+    }
 
     // Generate file name
     const baseFileName = `${caseData.caseNumber}_${template.name.replace(/\s+/g, '_')}`;
@@ -173,6 +348,8 @@ async function generateDocument(
       googleDriveId,
       googleDriveUrl,
       status: 'success',
+      coveragePercentage: coverage.coveragePercentage,
+      missingVariables: coverage.missing.length > 0 ? coverage.missing : undefined,
     };
   } catch (error) {
     console.error(`Error generating document ${template.name}:`, error);
@@ -276,6 +453,40 @@ export async function generateDocumentsForAgreement(
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
   const templates = getTemplatesForAgreement();
   const documents: GeneratedDocument[] = [];
+
+  const placeholders = mapCaseToPlaceholders(caseData);
+
+  for (const template of templates) {
+    const result = await generateDocument(
+      template,
+      caseData,
+      placeholders,
+      caseFolderId,
+      mergedOptions
+    );
+    documents.push(result);
+  }
+
+  return documents;
+}
+
+/**
+ * Generate failure (fracaso) documents based on failure type
+ */
+export async function generateDocumentsForFailure(
+  caseData: CaseWithRelations,
+  caseFolderId: string,
+  failureType: string,
+  options: GenerationOptions = {}
+): Promise<GeneratedDocument[]> {
+  const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
+  const templates = getTemplatesForFailure(failureType);
+  const documents: GeneratedDocument[] = [];
+
+  if (templates.length === 0) {
+    console.warn(`No templates found for failure type: ${failureType}`);
+    return documents;
+  }
 
   const placeholders = mapCaseToPlaceholders(caseData);
 
