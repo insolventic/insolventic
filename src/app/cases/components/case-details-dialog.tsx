@@ -20,6 +20,7 @@ import { IncomeSection } from './case-details-dialog/income-section';
 import { PaymentSection } from './case-details-dialog/payment-section';
 import { LegalFoundationsSection } from './case-details-dialog/legal-foundations-section';
 import { DocumentsSection } from './case-details-dialog/documents-section';
+import { DefinitivoSection } from './case-details-dialog/definitivo-section';
 
 interface CaseDetailsDialogProps {
   open: boolean;
@@ -62,7 +63,7 @@ export function CaseDetailsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="debtor" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
+          <TabsList className="flex w-full flex-wrap gap-1">
             <TabsTrigger value="debtor">1. Solicitante</TabsTrigger>
             <TabsTrigger value="case-details">2. Detalles</TabsTrigger>
             <TabsTrigger value="legal-process">3. Proceso</TabsTrigger>
@@ -72,6 +73,7 @@ export function CaseDetailsDialog({
             <TabsTrigger value="payment">7. Propuesta</TabsTrigger>
             <TabsTrigger value="legal">8. Legal</TabsTrigger>
             <TabsTrigger value="documents">9. Documentos</TabsTrigger>
+            <TabsTrigger value="definitivo" className="text-xs">10. Definitivo</TabsTrigger>
           </TabsList>
 
           <TabsContent value="debtor" className="space-y-4">
@@ -108,6 +110,10 @@ export function CaseDetailsDialog({
 
           <TabsContent value="documents" className="space-y-4">
             <DocumentsSection caseData={caseData} />
+          </TabsContent>
+
+          <TabsContent value="definitivo" className="space-y-4">
+            <DefinitivoSection caseData={caseData} />
           </TabsContent>
         </Tabs>
       </DialogContent>

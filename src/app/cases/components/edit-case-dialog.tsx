@@ -46,6 +46,17 @@ import { SpouseSection } from './create-case-dialog/spouse-section';
 import { LegalFoundationsSection } from './create-case-dialog/legal-foundations-section';
 import { NotificationsSection } from './create-case-dialog/notifications-section';
 import { SignatureSection } from './create-case-dialog/signature-section';
+import { ConyugeDefinitivoSection } from './create-case-dialog/conyuge-definitivo-section';
+import { InfoLaboralSection } from './create-case-dialog/info-laboral-section';
+import { CesacionPagosSection } from './create-case-dialog/cesacion-pagos-section';
+import { AcreedoresSection } from './create-case-dialog/acreedores-section';
+import { BienesSection } from './create-case-dialog/bienes-section';
+import { ProcesosJudicialesSection } from './create-case-dialog/procesos-judiciales-section';
+import { DeclaracionesSection } from './create-case-dialog/declaraciones-section';
+import { PropuestaInicialSection } from './create-case-dialog/propuesta-inicial-section';
+import { DocumentosAnexosSection } from './create-case-dialog/documentos-anexos-section';
+import { ApoderadoSection } from './create-case-dialog/apoderado-section';
+import { RadicacionInternaSection } from './create-case-dialog/radicacion-interna-section';
 
 interface EditCaseDialogProps {
   open: boolean;
@@ -689,7 +700,7 @@ export function EditCaseDialog({
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)}>
               <Tabs defaultValue="debtor" className="space-y-4">
-                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+                <TabsList className="flex w-full flex-wrap gap-1">
                   <TabsTrigger value="debtor">1. Solicitante</TabsTrigger>
                   <TabsTrigger value="case-details">2. Detalles</TabsTrigger>
                   <TabsTrigger value="legal-process">3. Proceso</TabsTrigger>
@@ -698,6 +709,10 @@ export function EditCaseDialog({
                   <TabsTrigger value="income">6. Ingresos</TabsTrigger>
                   <TabsTrigger value="payment">7. Propuesta</TabsTrigger>
                   <TabsTrigger value="legal">8. Legal</TabsTrigger>
+                  <TabsTrigger value="definitivo-acreedores" className="text-xs">9. Acr. Def.</TabsTrigger>
+                  <TabsTrigger value="definitivo-bienes" className="text-xs">10. Bienes Def.</TabsTrigger>
+                  <TabsTrigger value="definitivo-extra" className="text-xs">11. Declaraciones</TabsTrigger>
+                  <TabsTrigger value="definitivo-final" className="text-xs">12. Final</TabsTrigger>
                 </TabsList>
 
                 {/* Tab 1: Deudor + Ámbito de Aplicación */}
@@ -774,6 +789,47 @@ export function EditCaseDialog({
                   </div>
                   <div className="border-t pt-6">
                     <SignatureSection />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 9: Cónyuge Definitivo + Info Laboral + Cesación de Pagos + Acreedores Definitivo */}
+                <TabsContent value="definitivo-acreedores" className="space-y-6">
+                  <ConyugeDefinitivoSection />
+                  <div className="border-t pt-6">
+                    <InfoLaboralSection />
+                  </div>
+                  <div className="border-t pt-6">
+                    <CesacionPagosSection />
+                  </div>
+                  <div className="border-t pt-6">
+                    <AcreedoresSection />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 10: Bienes Definitivo + Procesos Judiciales Definitivo */}
+                <TabsContent value="definitivo-bienes" className="space-y-6">
+                  <BienesSection />
+                  <div className="border-t pt-6">
+                    <ProcesosJudicialesSection />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 11: Declaraciones + Propuesta Inicial */}
+                <TabsContent value="definitivo-extra" className="space-y-6">
+                  <DeclaracionesSection />
+                  <div className="border-t pt-6">
+                    <PropuestaInicialSection />
+                  </div>
+                </TabsContent>
+
+                {/* Tab 12: Documentos Anexos + Apoderado + Radicación */}
+                <TabsContent value="definitivo-final" className="space-y-6">
+                  <DocumentosAnexosSection />
+                  <div className="border-t pt-6">
+                    <ApoderadoSection />
+                  </div>
+                  <div className="border-t pt-6">
+                    <RadicacionInternaSection />
                   </div>
                 </TabsContent>
               </Tabs>

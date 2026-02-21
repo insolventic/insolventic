@@ -39,6 +39,9 @@ import {
   type SuspendedServiceData,
   type DependentData,
   type LegalProcessData,
+  type AcreedorFormData,
+  type BienFormData,
+  type ProcesoJudicialFormData,
 } from './schemas';
 
 export async function getAllCases(): Promise<{
@@ -182,6 +185,9 @@ export async function getCaseById(id: string): Promise<{
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
         _count: {
           select: {
             documents: true,
@@ -283,6 +289,14 @@ export async function createCase(
       suspendedServices,
       dependents,
       legalProcesses,
+      // Formulario definitivo relations
+      acreedores,
+      bienes,
+      procesosJudiciales,
+      // Formulario definitivo date fields (strings -> Date)
+      fechaCesacionPagos,
+      propuestaFechaInicioPago,
+      fechaRadicacion,
       ...rest
     } = validatedInput;
 
@@ -384,6 +398,19 @@ export async function createCase(
         monthlyPaymentAmount: monthlyPaymentAmount ?? null,
         variablePayment: variablePayment ?? null,
         capitalReductionPercent: capitalReductionPercent ?? null,
+        // Formulario definitivo date conversions
+        fechaCesacionPagos:
+          fechaCesacionPagos && fechaCesacionPagos.trim()
+            ? new Date(fechaCesacionPagos)
+            : null,
+        propuestaFechaInicioPago:
+          propuestaFechaInicioPago && propuestaFechaInicioPago.trim()
+            ? new Date(propuestaFechaInicioPago)
+            : null,
+        fechaRadicacion:
+          fechaRadicacion && fechaRadicacion.trim()
+            ? new Date(fechaRadicacion)
+            : null,
         // Note: debts, assets, and other relations are created separately after case creation
         assets:
           assets && assets.length > 0
@@ -469,6 +496,85 @@ export async function createCase(
                   court: process.court,
                   fileNumber: process.fileNumber,
                   precautionaryMeasure: process.precautionaryMeasure,
+                  tenantId,
+                })),
+              }
+            : undefined,
+        // Formulario definitivo - nested relations
+        acreedores:
+          acreedores && acreedores.length > 0
+            ? {
+                create: acreedores.map((a: AcreedorFormData) => ({
+                  acreedorTipo: a.acreedorTipo,
+                  acreedorNombreRazonSocial: a.acreedorNombreRazonSocial,
+                  acreedorTipoIdentificacion: a.acreedorTipoIdentificacion,
+                  acreedorIdentificacion: a.acreedorIdentificacion,
+                  acreedorDireccion: a.acreedorDireccion,
+                  acreedorCiudad: a.acreedorCiudad,
+                  acreedorCorreo: a.acreedorCorreo,
+                  acreedorTelefono: a.acreedorTelefono,
+                  tipoObligacion: a.tipoObligacion,
+                  numeroObligacion: a.numeroObligacion,
+                  fechaOtorgamiento: a.fechaOtorgamiento ? new Date(a.fechaOtorgamiento) : null,
+                  fechaVencimiento: a.fechaVencimiento ? new Date(a.fechaVencimiento) : null,
+                  fechaMora: a.fechaMora ? new Date(a.fechaMora) : null,
+                  diasMora: a.diasMora,
+                  valorCapital: a.valorCapital ? parseFloat(a.valorCapital) : null,
+                  valorInteresesCorrientes: a.valorInteresesCorrientes ? parseFloat(a.valorInteresesCorrientes) : null,
+                  valorInteresesMora: a.valorInteresesMora ? parseFloat(a.valorInteresesMora) : null,
+                  valorGastosCobranza: a.valorGastosCobranza ? parseFloat(a.valorGastosCobranza) : null,
+                  valorTotalObligacion: a.valorTotalObligacion ? parseFloat(a.valorTotalObligacion) : null,
+                  naturalezaCredito: a.naturalezaCredito,
+                  obligacionCodeudores: a.obligacionCodeudores ?? false,
+                  nombreCodeudores: a.nombreCodeudores,
+                  garantiaAsociada: a.garantiaAsociada ?? false,
+                  tipoGarantia: a.tipoGarantia,
+                  descripcionGarantia: a.descripcionGarantia,
+                  procesoJudicialEnCurso: a.procesoJudicialEnCurso ?? false,
+                  tipoProcesoJudicial: a.tipoProcesoJudicial,
+                  juzgadoNombre: a.juzgadoNombre,
+                  juzgadoCiudad: a.juzgadoCiudad,
+                  procesoJudicialRadicado: a.procesoJudicialRadicado,
+                  demandanteNombre: a.demandanteNombre,
+                  etapaProcesal: a.etapaProcesal,
+                  tenantId,
+                })),
+              }
+            : undefined,
+        bienes:
+          bienes && bienes.length > 0
+            ? {
+                create: bienes.map((b: BienFormData) => ({
+                  bienTipo: b.bienTipo,
+                  bienDescripcion: b.bienDescripcion,
+                  bienUbicacion: b.bienUbicacion,
+                  bienMatriculaInmobiliaria: b.bienMatriculaInmobiliaria,
+                  bienPlaca: b.bienPlaca,
+                  bienEntidadFinanciera: b.bienEntidadFinanciera,
+                  bienValorComercial: b.bienValorComercial ? parseFloat(b.bienValorComercial) : null,
+                  bienValorCatastral: b.bienValorCatastral ? parseFloat(b.bienValorCatastral) : null,
+                  bienValorLibros: b.bienValorLibros ? parseFloat(b.bienValorLibros) : null,
+                  bienGravamenes: b.bienGravamenes ?? false,
+                  descripcionGravamen: b.descripcionGravamen,
+                  bienEmbargado: b.bienEmbargado ?? false,
+                  bienAfectadoViviendaFamiliar: b.bienAfectadoViviendaFamiliar ?? false,
+                  bienEnLeasing: b.bienEnLeasing ?? false,
+                  tenantId,
+                })),
+              }
+            : undefined,
+        procesosJudiciales:
+          procesosJudiciales && procesosJudiciales.length > 0
+            ? {
+                create: procesosJudiciales.map((p: ProcesoJudicialFormData) => ({
+                  tipoProceso: p.tipoProceso,
+                  juzgadoNombre: p.juzgadoNombre,
+                  juzgadoCiudad: p.juzgadoCiudad,
+                  procesoJudicialRadicado: p.procesoJudicialRadicado,
+                  demandanteNombre: p.demandanteNombre,
+                  demandadoNombre: p.demandadoNombre,
+                  cuantiaProceso: p.cuantiaProceso ? parseFloat(p.cuantiaProceso) : null,
+                  estadoProceso: p.estadoProceso,
                   tenantId,
                 })),
               }
@@ -578,6 +684,9 @@ export async function createCase(
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
         _count: { select: { documents: true } },
       },
     });

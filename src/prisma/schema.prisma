@@ -16,7 +16,7 @@ model Tenant {
   logoUrl         String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  
+
   // Relations
   cases               Case[]
   debtors             Debtor[]
@@ -37,11 +37,15 @@ model Tenant {
   libranzas           Libranza[]
   suspendedServices   SuspendedService[]
   dependents          Dependent[]
+  // Nuevos modelos del formulario definitivo
+  acreedores          Acreedor[]
+  bienes              Bien[]
+  procesosJudiciales  ProcesoJudicial[]
 }
 
 model Case {
   id                      String         @id @default(cuid())
-  caseNumber              String         
+  caseNumber              String
   debtorName              String
   type                    String
   totalDebt               Decimal
@@ -80,11 +84,11 @@ model Case {
   resultDate              DateTime?
   siccacNumber            String?
   riskCenterCommunication Boolean        @default(false)
-  
-  // Ámbito de Aplicación
+
+  // Ámbito de Aplicación (legacy)
   applicantScope          String[]       @default([])
-  
-  // Propuesta de Pago
+
+  // Propuesta de Pago (legacy - campos existentes conservados)
   gracePeriodRequested    Boolean        @default(false)
   gracePeriodMonths       Int?
   paymentInKind           Boolean        @default(false)
@@ -107,29 +111,29 @@ model Case {
   classPrivilegesDescription String?
   thirdPartyPaymentAuth   Boolean        @default(false)
   guaranteeSubstitution   Boolean        @default(false)
-  
-  // Sociedad Conyugal
+
+  // Sociedad Conyugal (legacy)
   spouseName              String?
   spouseIdNumber          String?
   spouseAddress           String?
   spousePhone             String?
   spouseEmail             String?
-  
-  // Tarifa y Fundamentos
+
+  // Tarifa y Fundamentos (legacy)
   requestedFee            String?
   legalFoundations        String?
-  
-  // Notificaciones
+
+  // Notificaciones (legacy)
   notificationAddress     String?
   notificationPhone       String?
   notificationEmail       String?
-  
-  // Firma
+
+  // Firma (legacy)
   applicantSignatureName  String?
   applicantSignatureId    String?
   applicantSignature      String?
 
-  // Zoom Meeting Info
+  // Zoom Meeting Info (legacy)
   zoomMeetingId           String?
   zoomPassword            String?
   zoomLink                String?
@@ -137,7 +141,7 @@ model Case {
   // Google Drive folder for case documents
   driveFolderId           String?
 
-  // Campos de ingresos/gastos del caso (pueden diferir del deudor)
+  // Campos de ingresos/gastos del caso legacy
   monthlyIncome           Decimal?
   monthlyExpenses         Decimal?
   otherIncomeDescription  String?
@@ -158,6 +162,115 @@ model Case {
   bilateralAgreementNumber String?
   bilateralCreditorId     String?
 
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección II: Cónyuge
+  // ============================================================
+  conyugeTipoIdentificacion    String?   @map("conyuge_tipo_identificacion")
+  conyugeIdentificacion        String?   @map("conyuge_identificacion")
+  conyugePrimerNombre          String?   @map("conyuge_primer_nombre")
+  conyugeSegundoNombre         String?   @map("conyuge_segundo_nombre")
+  conyugePrimerApellido        String?   @map("conyuge_primer_apellido")
+  conyugeSegundoApellido       String?   @map("conyuge_segundo_apellido")
+  conyugeNombreCompleto        String?   @map("conyuge_nombre_completo")
+  conyugeTelefono              String?   @map("conyuge_telefono")
+  conyugeCorreo                String?   @map("conyuge_correo")
+  sociedadConyugalDisuelta     Boolean   @default(false) @map("sociedad_conyugal_disuelta")
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección III: Información Laboral y Económica
+  // ============================================================
+  deudorOcupacion              String?   @map("deudor_ocupacion")
+  deudorProfesion              String?   @map("deudor_profesion")
+  deudorActividadEconomica     String?   @map("deudor_actividad_economica")
+  deudorTipoVinculacion        String?   @map("deudor_tipo_vinculacion")
+  deudorNombreEmpleador        String?   @map("deudor_nombre_empleador")
+  deudorNitEmpleador           String?   @map("deudor_nit_empleador")
+  // Ingresos
+  ingresoPrincipalMensual      Decimal?  @map("ingreso_principal_mensual")
+  otrosIngresosMensuales       Decimal?  @map("otros_ingresos_mensuales")
+  totalIngresosMensuales       Decimal?  @map("total_ingresos_mensuales")
+  ingresosVariablesPromedio    Decimal?  @map("ingresos_variables_promedio")
+  ingresosNoOperacionales      Decimal?  @map("ingresos_no_operacionales")
+  // Gastos
+  gastosVivienda               Decimal?  @map("gastos_vivienda")
+  gastosAlimentacion           Decimal?  @map("gastos_alimentacion")
+  gastosServiciosPublicos      Decimal?  @map("gastos_servicios_publicos")
+  gastosTransporte             Decimal?  @map("gastos_transporte")
+  gastosEducacion              Decimal?  @map("gastos_educacion")
+  gastosSalud                  Decimal?  @map("gastos_salud")
+  otrosGastos                  Decimal?  @map("otros_gastos")
+  totalGastosMensuales         Decimal?  @map("total_gastos_mensuales")
+  // Capacidad económica
+  capacidadPagoEstimada        Decimal?  @map("capacidad_pago_estimada")
+  patrimonioTotalEstimado      Decimal?  @map("patrimonio_total_estimado")
+  pasivoTotalEstimado          Decimal?  @map("pasivo_total_estimado")
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección IV: Declaración de Cesación de Pagos
+  // ============================================================
+  cesacionPagos                Boolean   @default(false) @map("cesacion_pagos")
+  fechaCesacionPagos           DateTime? @map("fecha_cesacion_pagos")
+  numeroAcreedoresActual       Int?      @map("numero_acreedores_actual")
+  porcentajePasivoEnMora       Decimal?  @map("porcentaje_pasivo_en_mora")
+  obligacionesEnMora90Dias     Boolean   @default(false) @map("obligaciones_en_mora_90_dias")
+  procesosEjecutivosVigentes   Boolean   @default(false) @map("procesos_ejecutivos_vigentes")
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección VIII: Declaraciones del Deudor
+  // ============================================================
+  declaracionVeracidadInformacion      Boolean @default(false) @map("declaracion_veracidad_informacion")
+  manifestacionBuenaFe                 Boolean @default(false) @map("manifestacion_buena_fe")
+  manifestacionNoOcultamientoBienes    Boolean @default(false) @map("manifestacion_no_ocultamiento_bienes")
+  autorizacionNotificacionesCorreo     Boolean @default(false) @map("autorizacion_notificaciones_correo")
+  autorizacionConsultaCentralesRiesgo  Boolean @default(false) @map("autorizacion_consulta_centrales_riesgo")
+  autorizacionTratamientoDatos         Boolean @default(false) @map("autorizacion_tratamiento_datos")
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
+  // ============================================================
+  propuestaPlazoMeses          Int?      @map("propuesta_plazo_meses")
+  propuestaPeriodicidadPago    String?   @map("propuesta_periodicidad_pago")
+  propuestaTasaInteres         Decimal?  @map("propuesta_tasa_interes")
+  propuestaQuitaPromedio       Decimal?  @map("propuesta_quita_promedio")
+  propuestaFechaInicioPago     DateTime? @map("propuesta_fecha_inicio_pago")
+  propuestaObservaciones       String?   @map("propuesta_observaciones")
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección X: Documentos Anexos
+  // ============================================================
+  anexaSoporteIngresos         Boolean   @default(false) @map("anexa_soporte_ingresos")
+  anexaExtractosBancarios      Boolean   @default(false) @map("anexa_extractos_bancarios")
+  anexaCertificadosDeuda       Boolean   @default(false) @map("anexa_certificados_deuda")
+  anexaCertificadoTradicion    Boolean   @default(false) @map("anexa_certificado_tradicion")
+  anexaRelacionProcesos        Boolean   @default(false) @map("anexa_relacion_procesos")
+  anexaDeclaracionRenta        Boolean   @default(false) @map("anexa_declaracion_renta")
+  anexaDocumentoIdentidad      Boolean   @default(false) @map("anexa_documento_identidad")
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección XI: Información del Apoderado
+  // ============================================================
+  apoderadoNombreCompleto      String?   @map("apoderado_nombre_completo")
+  apoderadoTipoIdentificacion  String?   @map("apoderado_tipo_identificacion")
+  apoderadoIdentificacion      String?   @map("apoderado_identificacion")
+  apoderadoTarjetaProfesional  String?   @map("apoderado_tarjeta_profesional")
+  apoderadoDireccion           String?   @map("apoderado_direccion")
+  apoderadoTelefono            String?   @map("apoderado_telefono")
+  apoderadoCorreo              String?   @map("apoderado_correo")
+  existePoderOtorgado          Boolean   @default(false) @map("existe_poder_otorgado")
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección XII: Datos Radicación Interna (sistema)
+  // ============================================================
+  expedienteNumero             String?   @map("expediente_numero")
+  expedienteAnio               Int?      @map("expediente_anio")
+  fechaRadicacion              DateTime? @map("fecha_radicacion_interna")
+  centroConciliacionNombre     String?   @map("centro_conciliacion_nombre")
+  conciliadorAsignado          String?   @map("conciliador_asignado")
+  ciudadRadicacion             String?   @map("ciudad_radicacion")
+
+  // ============================================================
+  // Relations
+  // ============================================================
   assets                  Asset[]
   debtor                  Debtor         @relation(fields: [debtorId], references: [id])
   operator                User           @relation(fields: [operatorId], references: [id])
@@ -169,7 +282,11 @@ model Case {
   libranzas               Libranza[]
   suspendedServices       SuspendedService[]
   dependents              Dependent[]
-  
+  // Nuevos modelos del formulario definitivo
+  acreedores              Acreedor[]
+  bienes                  Bien[]
+  procesosJudiciales      ProcesoJudicial[]
+
   @@unique([caseNumber, tenantId])
 }
 
@@ -211,7 +328,7 @@ model DocumentTemplate {
 
 model DocumentFromDrive {
   id             String   @id @default(cuid())
-  googleDriveId  String   
+  googleDriveId  String
   fileName       String
   mimeType       String
   size           String?
@@ -222,16 +339,16 @@ model DocumentFromDrive {
   isFolder       Boolean  @default(false)
   tenantId       String
   tenant         Tenant   @relation(fields: [tenantId], references: [id])
-  
+
   @@unique([googleDriveId, tenantId])
 }
 
 model Debtor {
   id               String    @id @default(cuid())
   name             String
-  idNumber         String    
+  idNumber         String
   idType           String
-  email            String    
+  email            String
   phone            String
   address          String
   city             String
@@ -254,17 +371,45 @@ model Debtor {
   createdDate      DateTime  @default(now())
   lastUpdate       DateTime  @updatedAt
   tenantId         String
-  
-  // Additional income details
+
+  // Additional income details (legacy)
   otherIncomeDescription String?
   otherIncomeAmount      Decimal?
   hasEmployerCertification Boolean @default(false)
-  
+
+  // ============================================================
+  // FORMULARIO DEFINITIVO - Sección I: Identificación del Deudor
+  // ============================================================
+  // 1.1 Datos personales
+  deudorTipoIdentificacion     String?   @map("deudor_tipo_identificacion")
+  deudorIdentificacion         String?   @map("deudor_identificacion")
+  deudorPrimerNombre           String?   @map("deudor_primer_nombre")
+  deudorSegundoNombre          String?   @map("deudor_segundo_nombre")
+  deudorPrimerApellido         String?   @map("deudor_primer_apellido")
+  deudorSegundoApellido        String?   @map("deudor_segundo_apellido")
+  deudorNombreCompleto         String?   @map("deudor_nombre_completo")
+  deudorFechaNacimiento        DateTime? @map("deudor_fecha_nacimiento")
+  deudorLugarNacimiento        String?   @map("deudor_lugar_nacimiento")
+  deudorNacionalidad           String?   @map("deudor_nacionalidad")
+  // 1.2 Información civil
+  deudorEstadoCivil            String?   @map("deudor_estado_civil")
+  deudorRegimenMatrimonial     String?   @map("deudor_regimen_matrimonial")
+  sociedadConyugalVigente      Boolean   @default(false) @map("sociedad_conyugal_vigente")
+  existeCapitulaciones         Boolean   @default(false) @map("existe_capitulaciones")
+  // 1.3 Información de contacto
+  deudorDireccionResidencia    String?   @map("deudor_direccion_residencia")
+  deudorCiudad                 String?   @map("deudor_ciudad_form")
+  deudorDepartamento           String?   @map("deudor_departamento_form")
+  deudorCodigoPostal           String?   @map("deudor_codigo_postal")
+  deudorTelefonoFijo           String?   @map("deudor_telefono_fijo")
+  deudorTelefonoCelular        String?   @map("deudor_telefono_celular")
+  deudorCorreoElectronico      String?   @map("deudor_correo_electronico")
+
   tenant           Tenant    @relation(fields: [tenantId], references: [id])
   assets           Asset[]
   cases            Case[]
   debts            Debt[]
-  
+
   @@unique([idNumber, tenantId])
   @@unique([email, tenantId])
 }
@@ -278,7 +423,7 @@ model Debt {
   creditorId   String
   debtorId     String?
   tenantId     String
-  
+
   // Detailed creditor information
   creditorAddress      String?
   creditorCity         String?
@@ -294,12 +439,12 @@ model Debt {
   creditorClass        String?
   percentageOfTotal    Decimal?
   daysOverdue          Int?
-  
+
   // Co-debtor/Guarantor info
   coDebtorName         String?
   coDebtorCity         String?
   coDebtorAddress      String?
-  
+
   case         Case     @relation(fields: [caseId], references: [id])
   creditor     Creditor @relation(fields: [creditorId], references: [id])
   debtor       Debtor?  @relation(fields: [debtorId], references: [id])
@@ -314,7 +459,7 @@ model Asset {
   caseId   String
   debtorId String?
   tenantId String
-  
+
   // Real Estate specific fields
   propertyType          String?
   address               String?
@@ -325,8 +470,8 @@ model Asset {
   proofDocument         String?
   isFamilyHome          Boolean @default(false)
   isInalienablePatrimony Boolean @default(false)
-  
-  // Personal Property specific fields  
+
+  // Personal Property specific fields
   brand                 String?
   model                 String?
   condition             String?
@@ -336,7 +481,7 @@ model Asset {
   guaranteeAmount       Decimal?
   material              String?
   description           String?
-  
+
   case     Case    @relation(fields: [caseId], references: [id])
   debtor   Debtor? @relation(fields: [debtorId], references: [id])
   tenant   Tenant  @relation(fields: [tenantId], references: [id])
@@ -346,11 +491,11 @@ model Creditor {
   id                  String    @id @default(cuid())
   name                String
   type                String
-  email               String    
+  email               String
   phone               String
   address             String
   representative      String
-  nit                 String    
+  nit                 String
   website             String?
   city                String?
   department          String?
@@ -365,7 +510,7 @@ model Creditor {
   tenant              Tenant    @relation(fields: [tenantId], references: [id])
   contacts            Contact[]
   debts               Debt[]
-  
+
   @@unique([email, tenantId])
   @@unique([nit, tenantId])
 }
@@ -396,10 +541,119 @@ model LegalProcess {
   tenant                Tenant   @relation(fields: [tenantId], references: [id])
 }
 
+// ============================================================
+// FORMULARIO DEFINITIVO - Sección V: Relación Completa de Acreedores
+// ============================================================
+model Acreedor {
+  id                         String    @id @default(cuid())
+  caseId                     String
+  tenantId                   String
+
+  // 5.1 Identificación del acreedor
+  acreedorTipo               String?   @map("acreedor_tipo")
+  acreedorNombreRazonSocial  String    @map("acreedor_nombre_razon_social")
+  acreedorTipoIdentificacion String?   @map("acreedor_tipo_identificacion")
+  acreedorIdentificacion     String?   @map("acreedor_identificacion")
+  acreedorDireccion          String?   @map("acreedor_direccion")
+  acreedorCiudad             String?   @map("acreedor_ciudad")
+  acreedorCorreo             String?   @map("acreedor_correo")
+  acreedorTelefono           String?   @map("acreedor_telefono")
+
+  // 5.2 Información de la obligación
+  tipoObligacion             String?   @map("tipo_obligacion")
+  numeroObligacion           String?   @map("numero_obligacion")
+  fechaOtorgamiento          DateTime? @map("fecha_otorgamiento")
+  fechaVencimiento           DateTime? @map("fecha_vencimiento")
+  fechaMora                  DateTime? @map("fecha_mora")
+  diasMora                   Int?      @map("dias_mora")
+  valorCapital               Decimal?  @map("valor_capital")
+  valorInteresesCorrientes   Decimal?  @map("valor_intereses_corrientes")
+  valorInteresesMora         Decimal?  @map("valor_intereses_mora")
+  valorGastosCobranza        Decimal?  @map("valor_gastos_cobranza")
+  valorTotalObligacion       Decimal?  @map("valor_total_obligacion")
+  naturalezaCredito          String?   @map("naturaleza_credito")
+  obligacionCodeudores       Boolean   @default(false) @map("obligacion_codeudores")
+  nombreCodeudores           String?   @map("nombre_codeudores")
+  garantiaAsociada           Boolean   @default(false) @map("garantia_asociada")
+  tipoGarantia               String?   @map("tipo_garantia")
+  descripcionGarantia        String?   @map("descripcion_garantia")
+
+  // 5.3 Información judicial
+  procesoJudicialEnCurso     Boolean   @default(false) @map("proceso_judicial_en_curso")
+  tipoProcesoJudicial        String?   @map("tipo_proceso_judicial")
+  juzgadoNombre              String?   @map("juzgado_nombre")
+  juzgadoCiudad              String?   @map("juzgado_ciudad")
+  procesoJudicialRadicado    String?   @map("proceso_judicial_radicado")
+  demandanteNombre           String?   @map("demandante_nombre")
+  etapaProcesal              String?   @map("etapa_procesal")
+
+  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("acreedores")
+}
+
+// ============================================================
+// FORMULARIO DEFINITIVO - Sección VI: Inventario Detallado de Bienes
+// ============================================================
+model Bien {
+  id                          String    @id @default(cuid())
+  caseId                      String
+  tenantId                    String
+
+  // 6.1 Identificación del bien
+  bienTipo                    String    @map("bien_tipo")
+  bienDescripcion             String?   @map("bien_descripcion")
+  bienUbicacion               String?   @map("bien_ubicacion")
+  bienMatriculaInmobiliaria   String?   @map("bien_matricula_inmobiliaria")
+  bienPlaca                   String?   @map("bien_placa")
+  bienEntidadFinanciera       String?   @map("bien_entidad_financiera")
+
+  // 6.2 Valoración
+  bienValorComercial          Decimal?  @map("bien_valor_comercial")
+  bienValorCatastral          Decimal?  @map("bien_valor_catastral")
+  bienValorLibros             Decimal?  @map("bien_valor_libros")
+
+  // 6.3 Situación jurídica
+  bienGravamenes              Boolean   @default(false) @map("bien_gravamenes")
+  descripcionGravamen         String?   @map("descripcion_gravamen")
+  bienEmbargado               Boolean   @default(false) @map("bien_embargado")
+  bienAfectadoViviendaFamiliar Boolean  @default(false) @map("bien_afectado_vivienda_familiar")
+  bienEnLeasing               Boolean   @default(false) @map("bien_en_leasing")
+
+  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("bienes")
+}
+
+// ============================================================
+// FORMULARIO DEFINITIVO - Sección VII: Relación de Procesos Judiciales
+// ============================================================
+model ProcesoJudicial {
+  id                        String    @id @default(cuid())
+  caseId                    String
+  tenantId                  String
+
+  tipoProceso               String?   @map("tipo_proceso")
+  juzgadoNombre             String?   @map("juzgado_nombre")
+  juzgadoCiudad             String?   @map("juzgado_ciudad")
+  procesoJudicialRadicado   String?   @map("proceso_judicial_radicado")
+  demandanteNombre          String?   @map("demandante_nombre")
+  demandadoNombre           String?   @map("demandado_nombre")
+  cuantiaProceso            Decimal?  @map("cuantia_proceso")
+  estadoProceso             String?   @map("estado_proceso")
+
+  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("procesos_judiciales")
+}
+
 model User {
   id               String         @id @default(cuid())
   name             String
-  email            String         
+  email            String
   lastLogin        DateTime?
   professionalCard String
   phone            String
@@ -412,33 +666,33 @@ model User {
   role             Role           @relation(fields: [roleId], references: [id])
   tenant           Tenant         @relation(fields: [tenantId], references: [id])
   Notification     Notification[]
-  
+
   @@unique([email, tenantId])
 }
 
 model Role {
   id          String           @id @default(cuid())
-  name        String           
+  name        String
   description String
   color       String           @default("bg-gray-100 text-gray-800")
   tenantId    String
   tenant      Tenant           @relation(fields: [tenantId], references: [id])
   users       User[]
   permissions RolePermission[]
-  
+
   @@unique([name, tenantId])
 }
 
 model Permission {
   id        String           @id @default(cuid())
-  name      String           
+  name      String
   category  String
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   tenantId  String
   tenant    Tenant           @relation(fields: [tenantId], references: [id])
   roles     RolePermission[]
-  
+
   @@unique([name, tenantId])
 }
 
