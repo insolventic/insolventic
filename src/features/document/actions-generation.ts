@@ -1,6 +1,5 @@
 'use server';
 
-import { z } from 'zod';
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import {
@@ -82,6 +81,9 @@ export async function regenerateCaseDocument(input: {
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
         _count: { select: { documents: true } },
       },
     });
@@ -185,6 +187,9 @@ export async function generateInitialDocuments(caseId: string): Promise<{
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
         _count: { select: { documents: true } },
       },
     });
@@ -264,6 +269,9 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
         _count: { select: { documents: true } },
       },
     });
@@ -346,6 +354,9 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
         _count: { select: { documents: true } },
       },
     });
@@ -431,6 +442,9 @@ export async function generateFailureDocuments(
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
         _count: { select: { documents: true } },
       },
     });

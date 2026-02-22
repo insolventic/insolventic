@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { Wand2, Check, FileDown, Loader2, ChevronsUpDown } from 'lucide-react';
+import { Wand2, Check, FileDown, Loader2, ChevronsUpDown, Package } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -30,8 +30,24 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { getAllCases } from '@/features/case/actions';
 import { batchGenerateDocuments } from '@/features/document/actions';
+
+const PACKAGES = [
+  { value: 'all', label: 'Todos los paquetes (49 documentos)' },
+  { value: '1', label: 'Paquete 1 - Solicitud (6 documentos)' },
+  { value: '2', label: 'Paquete 2 - Admisión y Apertura (7 documentos)' },
+  { value: '3', label: 'Paquete 3 - Negociación y Acuerdo (6 documentos)' },
+  { value: '4', label: 'Paquete 4 - Terminación Normal (3 documentos)' },
+  { value: '5', label: 'Paquete 5 - Fracaso (27 documentos)' },
+];
 
 interface DocumentGenerationProps {
   onDocumentsGenerated: () => void;
@@ -44,6 +60,7 @@ export function DocumentGeneration({
   const canGenerateDocuments = checkPermission('Generar documentos');
   const [selectedCaseForGeneration, setSelectedCaseForGeneration] =
     useState('');
+  const [selectedPackage, setSelectedPackage] = useState('all');
   const [open, setOpen] = useState(false);
   const [generationResult, setGenerationResult] = useState<{
     caseId: string;
@@ -81,9 +98,13 @@ export function DocumentGeneration({
     setGenerationResult(null);
 
     startTransition(async () => {
+      const packageNumber = selectedPackage !== 'all'
+        ? (Number(selectedPackage) as 1 | 2 | 3 | 4 | 5)
+        : undefined;
+
       const { success, data, message } = await batchGenerateDocuments({
         caseId: selectedCaseForGeneration,
-        outputFormat: 'docx',
+        packageNumber,
       });
 
       if (success && data) {
@@ -125,11 +146,11 @@ export function DocumentGeneration({
           Generación de Documentos
         </CardTitle>
         <CardDescription>
-          Genera todos los documentos de plantilla para un caso específico
+          Genera documentos PDF a partir de plantillas HTML para un caso específico
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
           <div className="space-y-2">
             <Label htmlFor="case-select">Buscar y Seleccionar Caso</Label>
             <Popover open={open} onOpenChange={setOpen}>
@@ -201,6 +222,24 @@ export function DocumentGeneration({
               </PopoverContent>
             </Popover>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="package-select">Paquete de Documentos</Label>
+            <Select value={selectedPackage} onValueChange={setSelectedPackage} disabled={isPending}>
+              <SelectTrigger>
+                <Package className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Selecciona un paquete" />
+              </SelectTrigger>
+              <SelectContent>
+                {PACKAGES.map((pkg) => (
+                  <SelectItem key={pkg.value} value={pkg.value}>
+                    {pkg.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Button
             onClick={handleBatchGeneration}
             disabled={
@@ -233,6 +272,11 @@ export function DocumentGeneration({
                 Se generaron {generationResult.successfulDocuments} de{' '}
                 {generationResult.totalDocuments} documentos para el caso{' '}
                 <strong>{generationResult.caseNumber}</strong>
+                {generationResult.failedDocuments > 0 && (
+                  <span className="text-red-600">
+                    {' '}({generationResult.failedDocuments} fallidos)
+                  </span>
+                )}
               </p>
               <div className="flex flex-wrap gap-2">
                 {generationResult.documents.map((doc, index) => (
@@ -241,6 +285,7 @@ export function DocumentGeneration({
                     variant={
                       doc.status === 'success' ? 'default' : 'destructive'
                     }
+                    title={doc.error || doc.documentName}
                   >
                     {doc.templateName}
                   </Badge>

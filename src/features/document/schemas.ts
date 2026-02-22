@@ -247,7 +247,8 @@ export const getDocumentsFromDriveOutputSchema = z.array(
 export const batchGenerateDocumentsInputSchema = z.object({
   caseId: z.string().min(1, 'El ID del caso es requerido'),
   templateIds: z.array(z.string()).optional(),
-  outputFormat: z.enum(['docx', 'pdf']).default('docx'),
+  packageNumber: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+  outputFormat: z.enum(['docx', 'pdf']).default('pdf'),
 });
 
 export const batchGenerateDocumentsOutputSchema = z.object({

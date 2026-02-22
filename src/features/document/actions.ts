@@ -1,29 +1,22 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import Docxtemplater from 'docxtemplater';
-import PizZip from 'pizzip';
-import libre from 'libreoffice-convert';
-import { promisify } from 'util';
-import ExcelJS from 'exceljs';
 import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
-
-const libreConvert = promisify(libre.convert);
+import type { DocumentTemplate } from './templates-config';
 
 import {
   getTemplatesFromDatabaseOutputSchema,
   syncTemplatesWithGoogleDriveOutputSchema,
   batchGenerateDocumentsInputSchema,
-  caseWithRelationsSchema,
   getDocumentsFromDriveOutputSchema,
   syncDocumentsWithGoogleDriveOutputSchema,
-  type CaseWithRelations,
   uploadCaseDocumentsInputSchema,
   uploadCaseDocumentsOutputSchema,
 } from './schemas';
+import type { CaseWithRelations } from '../case/schemas';
 
 export async function getTemplatesFromDatabase() {
   try {
@@ -724,7 +717,8 @@ export async function syncDocumentsWithGoogleDrive() {
 export async function batchGenerateDocuments(input: {
   caseId: string;
   templateIds?: string[];
-  outputFormat: 'docx' | 'pdf';
+  packageNumber?: 1 | 2 | 3 | 4 | 5;
+  outputFormat?: 'docx' | 'pdf';
 }) {
   try {
     const { user, tenantId } = await authenticateUser();
@@ -738,14 +732,32 @@ export async function batchGenerateDocuments(input: {
     }
 
     const validatedInput = batchGenerateDocumentsInputSchema.parse(input);
-    const { caseId, templateIds, outputFormat } = validatedInput;
+    const { caseId, templateIds, packageNumber } = validatedInput;
 
-    const caseData = await getCaseWithRelationsForGeneration(caseId, prisma);
+    // Load case with ALL relations needed for placeholder mapping
+    const caseData = await prisma.case.findUnique({
+      where: { id: caseId, tenantId },
+      include: {
+        debtor: true,
+        operator: true,
+        debts: { include: { creditor: true } },
+        assets: true,
+        documents: true,
+        libranzas: true,
+        suspendedServices: true,
+        dependents: true,
+        legalProcesses: true,
+        acreedores: true,
+        bienes: true,
+        procesosJudiciales: true,
+      },
+    });
+
     if (!caseData) {
       throw new Error('Caso no encontrado');
     }
 
-    // Check user permissions to determine if they can generate documents for this case
+    // Check user permissions
     const canViewAllCases = user.permissions.includes('Ver todos los casos');
     const canViewOwnCases = user.permissions.includes('Ver casos propios');
     const canViewAsClient = user.permissions.includes('Ver casos como cliente');
@@ -755,18 +767,12 @@ export async function batchGenerateDocuments(input: {
     if (canViewAllCases) {
       hasAccessToCase = true;
     } else if (canViewOwnCases) {
-      // Can only generate documents for cases they are working on
       hasAccessToCase = caseData.operatorId === user.id;
     } else if (canViewAsClient) {
-      // Can only generate documents for cases where they are the debtor
       const userDebtor = await prisma.debtor.findFirst({
-        where: {
-          email: user.email,
-          tenantId,
-        },
+        where: { email: user.email, tenantId },
         select: { id: true },
       });
-
       if (userDebtor) {
         hasAccessToCase = caseData.debtorId === userDebtor.id;
       }
@@ -778,246 +784,170 @@ export async function batchGenerateDocuments(input: {
       );
     }
 
-    const templates = await getTemplatesToProcess(templateIds, prisma);
-    if (templates.length === 0) {
+    // Get HTML templates to process
+    const {
+      ALL_TEMPLATES,
+      getTemplatesByPackage,
+      getTemplatePath,
+    } = await import('./templates-config');
+
+    let templatesToProcess: DocumentTemplate[];
+
+    if (templateIds && templateIds.length > 0) {
+      templatesToProcess = ALL_TEMPLATES.filter(t => templateIds.includes(t.id));
+    } else if (packageNumber) {
+      templatesToProcess = getTemplatesByPackage(packageNumber);
+    } else {
+      templatesToProcess = ALL_TEMPLATES;
+    }
+
+    if (templatesToProcess.length === 0) {
       throw new Error('No se encontraron plantillas para procesar');
     }
 
-    const caseFolder = await createCaseFolderInGoogleDrive(
-      caseData.caseNumber,
-      prisma,
-      tenantId,
-    );
+    // Map case data to placeholders
+    const { mapCaseToPlaceholders, replacePlaceholders } = await import('./placeholder-mapper');
 
+    // Transform Decimal fields to numbers for the mapper
     const transformedCaseData = {
       ...caseData,
-      debts:
-        caseData.debts?.map((debt) => ({
-          id: debt.id,
-          amount: Number(debt.amount),
-          interestRate: debt.interestRate
-            ? Number(debt.interestRate)
-            : undefined,
-          type: debt.type,
-          caseId: debt.caseId,
-          creditorId: debt.creditorId,
-          debtorId: debt.debtorId,
-          creditor: debt.creditor
-            ? {
-                ...debt.creditor,
-              }
-            : null,
-        })) || [],
-      assets:
-        caseData.assets?.map((asset) => ({
-          id: asset.id,
-          name: asset.name,
-          type: asset.type,
-          value: asset.value ? Number(asset.value) : null,
-          estimatedValue: asset.value ? Number(asset.value) : null,
-          caseId: asset.caseId,
-          debtorId: asset.debtorId,
-        })) || [],
-      debtor: caseData.debtor
-        ? {
-            ...caseData.debtor,
-            monthlyIncome: caseData.debtor.monthlyIncome
-              ? Number(caseData.debtor.monthlyIncome)
-              : null,
-          }
-        : null,
+      debts: caseData.debts?.map((debt) => ({
+        ...debt,
+        amount: Number(debt.amount),
+        interestRate: debt.interestRate ? Number(debt.interestRate) : undefined,
+      })) || [],
+      assets: caseData.assets?.map((asset) => ({
+        ...asset,
+        value: asset.value ? Number(asset.value) : null,
+        estimatedValue: asset.value ? Number(asset.value) : null,
+      })) || [],
+      debtor: caseData.debtor ? {
+        ...caseData.debtor,
+        monthlyIncome: caseData.debtor.monthlyIncome
+          ? Number(caseData.debtor.monthlyIncome)
+          : null,
+      } : null,
     };
 
-    const validatedCaseData =
-      caseWithRelationsSchema.parse(transformedCaseData);
+    const placeholders = mapCaseToPlaceholders(transformedCaseData as unknown as CaseWithRelations);
 
-    const results = await Promise.allSettled(
-      templates.map((template) =>
-        processTemplateForCase(
-          template,
-          validatedCaseData,
-          caseFolder,
-          outputFormat,
-          prisma,
-          tenantId,
-        ),
-      ),
-    );
+    // Read HTML templates, replace placeholders, generate PDFs
+    const { promises: fs } = await import('fs');
+    const path = await import('path');
+    const { htmlToPdf } = await import('@/lib/html-to-pdf');
 
-    const documents = results.map((result, index) => {
-      const template = templates[index];
-      if (result.status === 'fulfilled') {
-        return {
+    // Create case folder in Google Drive for storage
+    let caseFolderId = '';
+    let caseFolderUrl = '';
+
+    try {
+      const caseFolder = await createCaseFolderInGoogleDrive(
+        caseData.caseNumber,
+        prisma,
+        tenantId,
+      );
+      caseFolderId = caseFolder.id;
+      caseFolderUrl = caseFolder.webViewLink;
+    } catch (driveError) {
+      console.warn('Google Drive folder creation failed, continuing without upload:', driveError);
+    }
+
+    const documents: Array<{
+      templateId: string;
+      templateName: string;
+      documentId: string;
+      documentName: string;
+      documentUrl: string;
+      status: 'success' | 'error';
+      error?: string;
+    }> = [];
+
+    for (const template of templatesToProcess) {
+      try {
+        // Read HTML template from local filesystem
+        const templatePath = getTemplatePath(template);
+        const projectRoot = process.cwd();
+        const fullPath = path.join(projectRoot, templatePath);
+        const htmlContent = await fs.readFile(fullPath, 'utf-8');
+
+        // Replace placeholders
+        const filledHtml = replacePlaceholders(htmlContent, placeholders);
+
+        // Generate PDF
+        const pdfBuffer = await htmlToPdf(filledHtml);
+
+        // Generate file name
+        const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}.pdf`;
+
+        // Upload to Google Drive if folder available
+        let fileId = '';
+        let fileUrl = '';
+
+        if (caseFolderId) {
+          try {
+            const { googleDriveService } = await import('@/lib/google-drive');
+
+            let targetFolderId = caseFolderId;
+            if (template.folderPath.length > 0) {
+              targetFolderId = await googleDriveService.createFolderHierarchy(
+                template.folderPath,
+                caseFolderId,
+              );
+            }
+
+            const uploadResult = await googleDriveService.uploadDocumentToCase(
+              documentName,
+              pdfBuffer,
+              targetFolderId,
+            );
+            fileId = uploadResult.fileId;
+            fileUrl = uploadResult.fileUrl;
+          } catch (uploadError) {
+            console.warn(`Drive upload failed for ${template.name}:`, uploadError);
+          }
+        }
+
+        // Save document record in database
+        const document = await prisma.document.create({
+          data: {
+            name: documentName,
+            type: 'generated',
+            status: 'Generado',
+            uploadDate: new Date(),
+            url: fileUrl || '',
+            googleDriveId: fileId || undefined,
+            caseId: caseData.id,
+            tenantId,
+            fileName: documentName,
+            mimeType: 'application/pdf',
+            isGenerated: true,
+          },
+        });
+
+        documents.push({
           templateId: template.id,
-          templateName: template.fileName,
-          documentId: result.value.documentId,
-          documentName: result.value.documentName,
-          documentUrl: result.value.documentUrl,
-          status: 'success' as const,
-        };
-      } else {
-        return {
+          templateName: template.name,
+          documentId: document.id,
+          documentName,
+          documentUrl: fileUrl,
+          status: 'success',
+        });
+      } catch (templateError) {
+        console.error(`Error processing template ${template.name}:`, templateError);
+        documents.push({
           templateId: template.id,
-          templateName: template.fileName,
+          templateName: template.name,
           documentId: '',
           documentName: '',
           documentUrl: '',
-          status: 'error' as const,
-          error: result.reason?.message || 'Error desconocido',
-        };
-      }
-    });
-
-    const successfulDocuments = documents.filter(
-      (doc) => doc.status === 'success',
-    ).length;
-    const failedDocuments = documents.length - successfulDocuments;
-
-    try {
-      console.log('Starting Google Drive documents sync process...');
-      const { googleDriveService } = await import('@/lib/google-drive');
-
-      // Buscar la carpeta "documentos-generados"
-      const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-      const rootContents =
-        await googleDriveService.listFoldersAndFiles(rootFolderId);
-      const documentsFolder = rootContents.folders.find(
-        (folder) => folder.name?.toLowerCase() === 'documentos-generados',
-      );
-
-      if (!documentsFolder || !documentsFolder.id) {
-        console.error(
-          'No se encontró la carpeta "documentos-generados" en Google Drive',
-        );
-        throw new Error(
-          'No se encontró la carpeta "documentos-generados" en Google Drive',
-        );
-      }
-
-      const casesFolderId = documentsFolder.id;
-
-      console.log(
-        'Fetching folders and files from documentos-generados folder in Google Drive...',
-      );
-      const driveData =
-        await googleDriveService.listAllFoldersAndFilesRecursively(
-          casesFolderId,
-        );
-      console.log(
-        `Found ${driveData.folders.length} folders and ${driveData.files.length} files in Cases folder`,
-      );
-
-      let created = 0;
-      let updated = 0;
-      let folders = 0;
-
-      for (const folder of driveData.folders) {
-        const existingFolder = await prisma.documentFromDrive.findUnique({
-          where: {
-            googleDriveId_tenantId: {
-              googleDriveId: folder.id,
-              tenantId,
-            },
-          },
+          status: 'error',
+          error: templateError instanceof Error ? templateError.message : 'Error desconocido',
         });
-
-        if (existingFolder) {
-          const shouldUpdateFolderPath =
-            JSON.stringify(existingFolder.folderPath) !==
-            JSON.stringify(folder.path);
-
-          if (shouldUpdateFolderPath) {
-            await prisma.documentFromDrive.update({
-              where: { id: existingFolder.id },
-              data: {
-                folderPath: folder.path,
-              },
-            });
-            updated++;
-          }
-        } else {
-          await prisma.documentFromDrive.create({
-            data: {
-              googleDriveId: folder.id,
-              fileName: folder.name,
-              mimeType: 'application/vnd.google-apps.folder',
-              folderPath: folder.path,
-              parentFolderId: folder.parentId,
-              isFolder: true,
-              size: null,
-              tenantId,
-              createdAt: folder.createdTime
-                ? new Date(folder.createdTime)
-                : new Date(),
-              updatedAt: folder.modifiedTime
-                ? new Date(folder.modifiedTime)
-                : new Date(),
-            },
-          });
-          created++;
-        }
-        folders++;
       }
-
-      const documentFiles = driveData.files;
-      for (const file of documentFiles) {
-        const existingDocument = await prisma.documentFromDrive.findUnique({
-          where: {
-            googleDriveId_tenantId: {
-              googleDriveId: file.id,
-              tenantId,
-            },
-          },
-        });
-
-        if (existingDocument) {
-          const shouldUpdateFolderPath =
-            JSON.stringify(existingDocument.folderPath) !==
-            JSON.stringify(file.path);
-
-          if (shouldUpdateFolderPath) {
-            await prisma.documentFromDrive.update({
-              where: { id: existingDocument.id },
-              data: {
-                folderPath: shouldUpdateFolderPath
-                  ? file.path
-                  : existingDocument.folderPath,
-              },
-            });
-            updated++;
-          }
-        } else {
-          await prisma.documentFromDrive.create({
-            data: {
-              googleDriveId: file.id,
-              fileName: file.name,
-              mimeType: file.mimeType || 'application/octet-stream',
-              folderPath: file.path,
-              parentFolderId: file.parentId,
-              isFolder: false,
-              size: file.size,
-              tenantId,
-              createdAt: file.createdTime
-                ? new Date(file.createdTime)
-                : new Date(),
-              updatedAt: file.modifiedTime
-                ? new Date(file.modifiedTime)
-                : new Date(),
-            },
-          });
-          created++;
-        }
-      }
-
-      console.log('Documents synced with Google Drive after generation:', {
-        synced: documentFiles.length + folders,
-        created,
-        updated,
-        folders,
-      });
-    } catch (syncError) {
-      console.error('Error syncing documents after generation:', syncError);
     }
+
+    const successfulDocuments = documents.filter(d => d.status === 'success').length;
+    const failedDocuments = documents.length - successfulDocuments;
 
     revalidatePath('/documents');
 
@@ -1027,8 +957,8 @@ export async function batchGenerateDocuments(input: {
       data: {
         caseId: caseData.id,
         caseNumber: caseData.caseNumber,
-        folderId: caseFolder.id,
-        folderUrl: caseFolder.webViewLink,
+        folderId: caseFolderId,
+        folderUrl: caseFolderUrl,
         documents,
         generatedAt: new Date(),
         totalDocuments: documents.length,
@@ -1182,109 +1112,6 @@ export async function uploadCaseDocuments(input: {
   }
 }
 
-async function getCaseWithRelationsForGeneration(
-  caseId: string,
-  prisma: PrismaClient,
-) {
-  return await prisma.case.findUnique({
-    where: { id: caseId },
-    include: {
-      debtor: true,
-      operator: true,
-      debts: {
-        include: {
-          creditor: true,
-        },
-      },
-      assets: true,
-      documents: true,
-    },
-  });
-}
-
-async function getTemplatesToProcess(
-  templateIds: string[] | undefined,
-  prisma: PrismaClient,
-) {
-  if (templateIds && templateIds.length > 0) {
-    return await prisma.documentTemplate.findMany({
-      where: {
-        id: { in: templateIds },
-        isFolder: false,
-      },
-      select: {
-        id: true,
-        googleDriveId: true,
-        fileName: true,
-        folderPath: true,
-      },
-    });
-  } else {
-    return await prisma.documentTemplate.findMany({
-      where: {
-        isFolder: false,
-      },
-      select: {
-        id: true,
-        googleDriveId: true,
-        fileName: true,
-        folderPath: true,
-      },
-    });
-  }
-}
-
-async function ensureFolderHierarchyInDatabase(
-  folderPath: string[],
-  caseNumber: string,
-  caseFolderId: string,
-  prisma: PrismaClient,
-  tenantId: string,
-) {
-  const { googleDriveService } = await import('@/lib/google-drive');
-
-  let currentParentId = caseFolderId;
-  const currentPath: string[] = [caseNumber];
-
-  for (const folderName of folderPath) {
-    currentPath.push(folderName);
-
-    const existingFolders =
-      await googleDriveService.listFoldersAndFiles(currentParentId);
-    const folder = existingFolders.folders.find((f) => f.name === folderName);
-
-    if (folder && folder.id) {
-      await prisma.documentFromDrive.upsert({
-        where: {
-          googleDriveId_tenantId: {
-            googleDriveId: folder.id,
-            tenantId,
-          },
-        },
-        update: {
-          fileName: folderName,
-          folderPath: [...currentPath.slice(0, -1)],
-          parentFolderId: currentParentId,
-          updatedAt: new Date(),
-        },
-        create: {
-          googleDriveId: folder.id,
-          fileName: folderName,
-          mimeType: 'application/vnd.google-apps.folder',
-          folderPath: [...currentPath.slice(0, -1)],
-          parentFolderId: currentParentId,
-          isFolder: true,
-          tenantId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      });
-
-      currentParentId = folder.id;
-    }
-  }
-}
-
 async function createCaseFolderInGoogleDrive(
   caseNumber: string,
   prisma: PrismaClient,
@@ -1350,337 +1177,6 @@ async function createCaseFolderInGoogleDrive(
   };
 }
 
-async function processTemplateForCase(
-  template: {
-    id: string;
-    googleDriveId: string;
-    fileName: string;
-    folderPath?: string[];
-  },
-  caseData: CaseWithRelations,
-  caseFolder: { id: string; name: string; webViewLink: string },
-  outputFormat: 'docx' | 'pdf',
-  prisma: PrismaClient,
-  tenantId: string,
-) {
-  try {
-    const { googleDriveService } = await import('@/lib/google-drive');
-
-    const templateBuffer = await googleDriveService.downloadFile(
-      template.googleDriveId,
-    );
-
-    const generatedBuffer = await generateDocumentWithPlaceholdersInternal(
-      templateBuffer,
-      caseData,
-      outputFormat,
-      template.fileName,
-    );
-
-    const isExcelTemplate =
-      template.fileName.toLowerCase().endsWith('.xlsx') ||
-      template.fileName.toLowerCase().endsWith('.xls');
-    const fileExtension = isExcelTemplate ? 'xlsx' : outputFormat;
-    const documentName = `${template.fileName.replace(/\.[^/.]+$/, '')}_${caseData.caseNumber}.${fileExtension}`;
-
-    let targetFolderId = caseFolder.id;
-
-    if (!caseFolder.id) {
-      throw new Error(
-        `No se pudo obtener el ID de la carpeta del caso ${caseData.caseNumber}`,
-      );
-    }
-
-    if (template.folderPath && template.folderPath.length > 0) {
-      targetFolderId = await googleDriveService.createFolderHierarchy(
-        template.folderPath,
-        caseFolder.id,
-      );
-
-      await ensureFolderHierarchyInDatabase(
-        template.folderPath,
-        caseData.caseNumber,
-        caseFolder.id,
-        prisma,
-        tenantId,
-      );
-    }
-
-    if (!targetFolderId) {
-      throw new Error(
-        `No se pudo determinar la carpeta de destino para ${template.fileName}`,
-      );
-    }
-    const { fileId, fileUrl } = await googleDriveService.uploadDocumentToCase(
-      documentName,
-      generatedBuffer,
-      targetFolderId,
-    );
-
-    const document = await prisma.document.create({
-      data: {
-        name: documentName,
-        type: getDocumentTypeFromTemplate(template.fileName),
-        status: 'Generado',
-        uploadDate: new Date(),
-        url: fileUrl,
-        googleDriveId: fileId,
-        caseId: caseData.id,
-        templateId: template.id,
-        templateFolderPath: template.folderPath || [],
-        tenantId,
-      },
-    });
-
-    const isExcelFile =
-      template.fileName.toLowerCase().endsWith('.xlsx') ||
-      template.fileName.toLowerCase().endsWith('.xls');
-    const mimeType = isExcelFile
-      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-    const folderPath = [caseData.caseNumber, ...(template.folderPath || [])];
-    await prisma.documentFromDrive.upsert({
-      where: {
-        googleDriveId_tenantId: {
-          googleDriveId: fileId,
-          tenantId,
-        },
-      },
-      update: {
-        fileName: documentName,
-        folderPath: folderPath,
-        parentFolderId: targetFolderId,
-        updatedAt: new Date(),
-      },
-      create: {
-        googleDriveId: fileId,
-        fileName: documentName,
-        mimeType: mimeType,
-        folderPath: folderPath,
-        parentFolderId: targetFolderId,
-        isFolder: false,
-        tenantId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-
-    return {
-      documentId: document.id,
-      documentName,
-      documentUrl: fileUrl,
-    };
-  } catch (error) {
-    console.error(`Error processing template ${template.fileName}:`, error);
-    throw error;
-  }
-}
-
-async function generateDocumentWithPlaceholdersInternal(
-  templateBuffer: Buffer,
-  caseData: CaseWithRelations,
-  outputFormat: 'docx' | 'pdf',
-  templateFileName?: string,
-): Promise<Buffer> {
-  try {
-    const isExcelFile =
-      templateFileName?.toLowerCase().endsWith('.xlsx') ||
-      templateFileName?.toLowerCase().endsWith('.xls');
-
-    if (isExcelFile) {
-      return await generateExcelDocument(templateBuffer, caseData);
-    } else {
-      return await generateWordDocument(templateBuffer, caseData, outputFormat);
-    }
-  } catch (error) {
-    console.error('Error generating document with placeholders:', error);
-    throw new Error('Error al generar documento con placeholders');
-  }
-}
-
-async function generateWordDocument(
-  templateBuffer: Buffer,
-  caseData: CaseWithRelations,
-  outputFormat: 'docx' | 'pdf',
-): Promise<Buffer> {
-  const zip = new PizZip(templateBuffer);
-  const doc = new Docxtemplater(zip, {
-    paragraphLoop: true,
-    linebreaks: true,
-  });
-
-  const placeholderData = createPlaceholderData(caseData);
-  doc.render(placeholderData);
-
-  const generatedBuffer = doc.getZip().generate({ type: 'nodebuffer' });
-
-  if (outputFormat === 'pdf') {
-    return await libreConvert(generatedBuffer, '.pdf', undefined);
-  }
-
-  return generatedBuffer;
-}
-
-async function generateExcelDocument(
-  templateBuffer: Buffer,
-  caseData: CaseWithRelations,
-): Promise<Buffer> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(templateBuffer as unknown as ExcelJS.Buffer);
-
-  const placeholderData = createPlaceholderData(caseData);
-
-  workbook.eachSheet((worksheet) => {
-    worksheet.eachRow((row) => {
-      row.eachCell((cell) => {
-        if (cell.value && typeof cell.value === 'string') {
-          let cellValue = cell.value;
-
-          Object.entries(placeholderData).forEach(([key, value]) => {
-            if (typeof value === 'object' && value !== null) {
-              Object.entries(value).forEach(([subKey, subValue]) => {
-                const placeholder = `{{${key}.${subKey}}}`;
-                const stringValue = subValue?.toString() || '';
-                cellValue = cellValue.replace(
-                  new RegExp(placeholder, 'g'),
-                  stringValue,
-                );
-              });
-            } else {
-              const placeholder = `{{${key}}}`;
-              const stringValue = value?.toString() || '';
-              cellValue = cellValue.replace(
-                new RegExp(placeholder, 'g'),
-                stringValue,
-              );
-            }
-          });
-
-          cell.value = cellValue;
-        }
-      });
-    });
-  });
-
-  const buffer = await workbook.xlsx.writeBuffer();
-  return Buffer.from(buffer);
-}
-
-function createPlaceholderData(caseData: CaseWithRelations) {
-  return {
-    case: {
-      id: caseData.id,
-      caseNumber: caseData.caseNumber,
-      type: caseData.type,
-      status: caseData.status,
-      createdAt: caseData.createdAt,
-      updatedAt: caseData.updatedAt,
-    },
-
-    debtor: caseData.debtor
-      ? {
-          id: caseData.debtor.id,
-          name: caseData.debtor.name,
-          documentType: caseData.debtor.documentType,
-          documentNumber: caseData.debtor.documentNumber,
-          email: caseData.debtor.email,
-          phone: caseData.debtor.phone,
-          address: caseData.debtor.address,
-          city: caseData.debtor.city,
-          department: caseData.debtor.department,
-          country: caseData.debtor.country,
-          birthDate: caseData.debtor.birthDate,
-          maritalStatus: caseData.debtor.maritalStatus,
-          occupation: caseData.debtor.occupation,
-          monthlyIncome: caseData.debtor.monthlyIncome,
-          createdAt: caseData.debtor.createdAt,
-          updatedAt: caseData.debtor.updatedAt,
-        }
-      : null,
-
-    operator: caseData.operator
-      ? {
-          id: caseData.operator.id,
-          name: caseData.operator.name,
-          email: caseData.operator.email,
-          role: caseData.operator.role,
-        }
-      : null,
-
-    debts: caseData.debts
-      ? caseData.debts.map((debt) => ({
-          id: debt.id,
-          amount: debt.amount,
-          interestRate: debt.interestRate,
-          type: debt.type,
-          caseId: debt.caseId,
-          creditorId: debt.creditorId,
-          debtorId: debt.debtorId,
-          creditor: debt.creditor
-            ? {
-                id: debt.creditor.id,
-                name: debt.creditor.name,
-                documentType: debt.creditor.documentType,
-                documentNumber: debt.creditor.documentNumber,
-                email: debt.creditor.email,
-                phone: debt.creditor.phone,
-                address: debt.creditor.address,
-              }
-            : null,
-        }))
-      : [],
-
-    assets: caseData.assets
-      ? caseData.assets.map((asset) => ({
-          id: asset.id,
-          name: asset.name,
-          type: asset.type,
-          value: asset.value,
-          estimatedValue: asset.estimatedValue || asset.value,
-          caseId: asset.caseId,
-          debtorId: asset.debtorId,
-        }))
-      : [],
-
-    currentDate: new Date().toLocaleDateString('es-CO'),
-    currentDateTime: new Date().toLocaleString('es-CO'),
-
-    totalDebts: caseData.debts
-      ? caseData.debts.reduce(
-          (sum: number, debt) => sum + (Number(debt.amount) || 0),
-          0,
-        )
-      : 0,
-    totalAssets: caseData.assets
-      ? caseData.assets.reduce(
-          (sum: number, asset) => sum + (Number(asset.value) || 0),
-          0,
-        )
-      : 0,
-    debtCount: caseData.debts ? caseData.debts.length : 0,
-    assetCount: caseData.assets ? caseData.assets.length : 0,
-  };
-}
-
-function getDocumentTypeFromTemplate(fileName: string): string {
-  const lowerFileName = fileName.toLowerCase();
-
-  if (lowerFileName.includes('solicitud')) return 'Solicitud';
-  if (lowerFileName.includes('declaracion')) return 'Declaración';
-  if (lowerFileName.includes('certificado')) return 'Certificado';
-  if (lowerFileName.includes('check') || lowerFileName.includes('lista'))
-    return 'Lista de Verificación';
-  if (lowerFileName.includes('designacion')) return 'Designación';
-  if (lowerFileName.includes('auto')) return 'Auto';
-  if (lowerFileName.includes('inadmision')) return 'Inadmisión';
-  if (lowerFileName.includes('notificacion')) return 'Notificación';
-  if (lowerFileName.includes('edicto')) return 'Edicto';
-  if (lowerFileName.includes('suspension')) return 'Suspensión';
-  if (lowerFileName.includes('formato')) return 'Formato';
-  if (lowerFileName.includes('remision')) return 'Remisión';
-  if (lowerFileName.includes('guia')) return 'Guía';
-  if (lowerFileName.includes('hoja')) return 'Hoja de Trabajo';
-
-  return 'Documento';
-}
+// Old DOCX/Google Drive pipeline functions removed (processTemplateForCase,
+// generateWordDocument, generateExcelDocument, createPlaceholderData).
+// Now using the HTML local pipeline via placeholder-mapper + html-to-pdf.
