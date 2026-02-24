@@ -151,16 +151,6 @@ export function CreateCaseDialog({
         rejection: false,
         withdrawal: false,
         hasLegalProcesses: false,
-        courtNumber: '',
-        city: '',
-        processType: '',
-        plaintiff: '',
-        judicialFileNumber: '',
-        suspensionDate: '',
-        resultDeliveryDate: '',
-        resultType: '',
-        resultDate: '',
-        siccacNumber: '',
         riskCenterCommunication: false,
         // New fields from comprehensive form
         applicantScope: [],
@@ -377,16 +367,6 @@ export function CreateCaseDialog({
       rejection: data.rejection,
       withdrawal: data.withdrawal,
       hasLegalProcesses: data.hasLegalProcesses,
-      courtNumber: data.courtNumber,
-      city: data.city,
-      processType: data.processType,
-      plaintiff: data.plaintiff,
-      judicialFileNumber: data.judicialFileNumber,
-      suspensionDate: data.suspensionDate,
-      resultDeliveryDate: data.resultDeliveryDate,
-      resultType: data.resultType,
-      resultDate: data.resultDate,
-      siccacNumber: data.siccacNumber,
       riskCenterCommunication: data.riskCenterCommunication,
       // New comprehensive fields
       applicantScope: data.applicantScope,
@@ -474,8 +454,12 @@ export function CreateCaseDialog({
                 ),
               ),
             } as const;
-            // Note: uploadCaseDocuments still uses the old zsa pattern
-            await uploadCaseDocuments(payload);
+            const uploadResult = await uploadCaseDocuments(payload);
+            if (uploadResult.success) {
+              toast.success(`${payload.documents.length} documento(s) subido(s) exitosamente`);
+            } else {
+              toast.error(uploadResult.error ?? 'Error al subir documentos');
+            }
           } catch {
             toast.error('Error al subir documentos');
           }
@@ -648,9 +632,6 @@ export function CreateCaseDialog({
     form.setValue('firstHearingTime', '10:00');
 
     form.setValue('hasLegalProcesses', true);
-    form.setValue('courtNumber', 'Juzgado 15 Civil del Circuito');
-    form.setValue('city', 'Bogotá');
-    form.setValue('siccacNumber', 'SICCAC-2025-001');
 
     // Zoom info
     form.setValue('zoomMeetingId', '123 456 7890');
@@ -836,7 +817,223 @@ export function CreateCaseDialog({
     form.setValue('applicantSignatureName', 'Juan Carlos Rodríguez');
     form.setValue('applicantSignatureId', '1234567890');
 
-    toast.success('Datos de prueba cargados correctamente');
+    // =======================================
+    // SECCIONES 9-12: Formulario Definitivo
+    // =======================================
+
+    // Tab 9: Cónyuge Definitivo
+    form.setValue('conyugeTipoIdentificacion', 'CC');
+    form.setValue('conyugeIdentificacion', '52987654');
+    form.setValue('conyugePrimerNombre', 'Ana');
+    form.setValue('conyugeSegundoNombre', 'María');
+    form.setValue('conyugePrimerApellido', 'López');
+    form.setValue('conyugeSegundoApellido', 'Martínez');
+    form.setValue('conyugeTelefono', '3109876543');
+    form.setValue('conyugeCorreo', 'analopez@email.com');
+    form.setValue('sociedadConyugalDisuelta', false);
+
+    // Tab 9: Información Laboral y Económica
+    form.setValue('deudorOcupacion', 'Empleado');
+    form.setValue('deudorProfesion', 'Administrador de Empresas');
+    form.setValue('deudorActividadEconomica', 'Servicios administrativos');
+    form.setValue('deudorTipoVinculacion', 'Contrato a término indefinido');
+    form.setValue('deudorNombreEmpleador', 'Empresa ABC S.A.S');
+    form.setValue('deudorNitEmpleador', '900123456-1');
+    form.setValue('ingresoPrincipalMensual', 3500000);
+    form.setValue('otrosIngresosMensuales', 500000);
+    form.setValue('totalIngresosMensuales', 4000000);
+    form.setValue('ingresosVariablesPromedio', 200000);
+    form.setValue('ingresosNoOperacionales', 0);
+    form.setValue('gastosVivienda', 800000);
+    form.setValue('gastosAlimentacion', 600000);
+    form.setValue('gastosServiciosPublicos', 250000);
+    form.setValue('gastosTransporte', 300000);
+    form.setValue('gastosEducacion', 400000);
+    form.setValue('gastosSalud', 150000);
+    form.setValue('otrosGastos', 300000);
+    form.setValue('totalGastosMensuales', 2800000);
+    form.setValue('capacidadPagoEstimada', 1200000);
+    form.setValue('patrimonioTotalEstimado', 215000000);
+    form.setValue('pasivoTotalEstimado', 50000000);
+
+    // Tab 9: Cesación de Pagos
+    form.setValue('cesacionPagos', true);
+    form.setValue('fechaCesacionPagos', '2024-06-15');
+    form.setValue('numeroAcreedoresActual', 3);
+    form.setValue('porcentajePasivoEnMora', 85);
+    form.setValue('obligacionesEnMora90Dias', true);
+    form.setValue('procesosEjecutivosVigentes', true);
+
+    // Tab 9: Acreedores Definitivo
+    form.setValue('acreedores', [
+      {
+        acreedorTipo: 'Persona jurídica',
+        acreedorNombreRazonSocial: 'Banco ABC S.A.',
+        acreedorTipoIdentificacion: 'NIT',
+        acreedorIdentificacion: '860000001-5',
+        acreedorDireccion: 'Calle 100 #15-20, Bogotá',
+        acreedorCiudad: 'Bogotá',
+        acreedorCorreo: 'cobranzas@bancoabc.com',
+        acreedorTelefono: '6013001234',
+        tipoObligacion: 'Tarjeta de crédito',
+        numeroObligacion: 'TC-2022-001234',
+        naturalezaCredito: 'Quirografario',
+        fechaOtorgamiento: '2022-01-15',
+        fechaVencimiento: '2024-01-15',
+        fechaMora: '2024-02-15',
+        diasMora: 180,
+        valorCapital: '15000000',
+        valorInteresesCorrientes: '2500000',
+        valorInteresesMora: '1000000',
+        valorGastosCobranza: '500000',
+        valorTotalObligacion: '19000000',
+        obligacionCodeudores: false,
+        nombreCodeudores: '',
+        garantiaAsociada: false,
+        tipoGarantia: '',
+        descripcionGarantia: '',
+        procesoJudicialEnCurso: true,
+        tipoProcesoJudicial: 'Ejecutivo singular',
+        juzgadoNombre: 'Juzgado 15 Civil del Circuito',
+        juzgadoCiudad: 'Bogotá',
+        procesoJudicialRadicado: '2024-00123-00',
+        demandanteNombre: 'Banco ABC S.A.',
+        etapaProcesal: 'Mandamiento de pago',
+      },
+      {
+        acreedorTipo: 'Persona jurídica',
+        acreedorNombreRazonSocial: 'Financiera XYZ S.A.',
+        acreedorTipoIdentificacion: 'NIT',
+        acreedorIdentificacion: '900456789-3',
+        acreedorDireccion: 'Av. El Dorado #68-51, Bogotá',
+        acreedorCiudad: 'Bogotá',
+        acreedorCorreo: 'cartera@financieraxyz.com',
+        acreedorTelefono: '6014567890',
+        tipoObligacion: 'Crédito de libre inversión',
+        numeroObligacion: 'CLI-2021-005678',
+        naturalezaCredito: 'Quirografario',
+        fechaOtorgamiento: '2021-06-01',
+        fechaVencimiento: '2023-06-01',
+        fechaMora: '2023-07-01',
+        diasMora: 240,
+        valorCapital: '20000000',
+        valorInteresesCorrientes: '3500000',
+        valorInteresesMora: '1500000',
+        valorGastosCobranza: '800000',
+        valorTotalObligacion: '25800000',
+        obligacionCodeudores: true,
+        nombreCodeudores: 'Pedro López Gómez - CC 79456123',
+        garantiaAsociada: false,
+        tipoGarantia: '',
+        descripcionGarantia: '',
+        procesoJudicialEnCurso: false,
+        tipoProcesoJudicial: '',
+        juzgadoNombre: '',
+        juzgadoCiudad: '',
+        procesoJudicialRadicado: '',
+        demandanteNombre: '',
+        etapaProcesal: '',
+      },
+    ]);
+
+    // Tab 10: Bienes Definitivo
+    form.setValue('bienes', [
+      {
+        bienTipo: 'Inmueble',
+        bienDescripcion: 'Apartamento en conjunto residencial Torres del Parque',
+        bienUbicacion: 'Calle 127 #20-45 Apto 302, Bogotá',
+        bienMatriculaInmobiliaria: '50N-12345678',
+        bienPlaca: '',
+        bienEntidadFinanciera: '',
+        bienValorComercial: '180000000',
+        bienValorCatastral: '120000000',
+        bienValorLibros: '150000000',
+        bienGravamenes: true,
+        descripcionGravamen: 'Hipoteca a favor de Banco Popular por $90.000.000',
+        bienEmbargado: false,
+        bienAfectadoViviendaFamiliar: true,
+        bienEnLeasing: false,
+      },
+      {
+        bienTipo: 'Vehiculo',
+        bienDescripcion: 'Automóvil Mazda CX-5 modelo 2020',
+        bienUbicacion: 'Bogotá D.C.',
+        bienMatriculaInmobiliaria: '',
+        bienPlaca: 'ABC123',
+        bienEntidadFinanciera: '',
+        bienValorComercial: '35000000',
+        bienValorCatastral: '',
+        bienValorLibros: '30000000',
+        bienGravamenes: true,
+        descripcionGravamen: 'Prenda a favor de Banco de Occidente por $25.000.000',
+        bienEmbargado: false,
+        bienAfectadoViviendaFamiliar: false,
+        bienEnLeasing: false,
+      },
+    ]);
+
+    // Tab 10: Procesos Judiciales Definitivo
+    form.setValue('procesosJudiciales', [
+      {
+        tipoProceso: 'Ejecutivo singular',
+        juzgadoNombre: 'Juzgado 15 Civil del Circuito',
+        juzgadoCiudad: 'Bogotá',
+        procesoJudicialRadicado: '2024-00123-00',
+        demandanteNombre: 'Banco ABC S.A.',
+        demandadoNombre: 'Juan Carlos Rodríguez',
+        cuantiaProceso: '19000000',
+        estadoProceso: 'Admitido',
+      },
+    ]);
+
+    // Tab 11: Declaraciones
+    form.setValue('declaracionVeracidadInformacion', true);
+    form.setValue('manifestacionBuenaFe', true);
+    form.setValue('manifestacionNoOcultamientoBienes', true);
+    form.setValue('autorizacionNotificacionesCorreo', true);
+    form.setValue('autorizacionConsultaCentralesRiesgo', true);
+    form.setValue('autorizacionTratamientoDatos', true);
+
+    // Tab 11: Propuesta Inicial de Pago
+    form.setValue('propuestaPlazoMeses', 60);
+    form.setValue('propuestaPeriodicidadPago', 'Mensual');
+    form.setValue('propuestaTasaInteres', 0);
+    form.setValue('propuestaQuitaPromedio', 15);
+    form.setValue('propuestaFechaInicioPago', (() => {
+      const d = new Date();
+      d.setMonth(d.getMonth() + 2);
+      return d.toISOString().split('T')[0];
+    })());
+    form.setValue('propuestaObservaciones', 'Se solicita condonación total de intereses causados y futuros. Pago mensual con recursos provenientes de salario y arriendos.');
+
+    // Tab 12: Documentos Anexos
+    form.setValue('anexaSoporteIngresos', true);
+    form.setValue('anexaExtractosBancarios', true);
+    form.setValue('anexaCertificadosDeuda', true);
+    form.setValue('anexaCertificadoTradicion', true);
+    form.setValue('anexaRelacionProcesos', true);
+    form.setValue('anexaDeclaracionRenta', false);
+    form.setValue('anexaDocumentoIdentidad', true);
+
+    // Tab 12: Apoderado
+    form.setValue('apoderadoNombreCompleto', 'Dr. María Fernanda Torres Ruiz');
+    form.setValue('apoderadoTipoIdentificacion', 'CC');
+    form.setValue('apoderadoIdentificacion', '51876543');
+    form.setValue('apoderadoTarjetaProfesional', 'TP-123456');
+    form.setValue('apoderadoDireccion', 'Carrera 7 #45-67 Oficina 301, Bogotá');
+    form.setValue('apoderadoTelefono', '3115678901');
+    form.setValue('apoderadoCorreo', 'mftorres@abogados.com');
+    form.setValue('existePoderOtorgado', true);
+
+    // Tab 12: Radicación Interna
+    form.setValue('expedienteNumero', 'EXP-2025-0042');
+    form.setValue('expedienteAnio', new Date().getFullYear());
+    form.setValue('fechaRadicacion', new Date().toISOString().split('T')[0]);
+    form.setValue('centroConciliacionNombre', 'Centro de Conciliación Constructores de Paz');
+    form.setValue('conciliadorAsignado', 'María García');
+    form.setValue('ciudadRadicacion', 'Bogotá D.C.');
+
+    toast.success('Datos de prueba cargados (Tabs 1-12)');
   };
 
   const isDevelopment = process.env.NODE_ENV === 'development';

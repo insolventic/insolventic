@@ -249,22 +249,6 @@ export function EditCaseDialog({
               rejection: fullCase.rejection ?? false,
               withdrawal: fullCase.withdrawal ?? false,
               hasLegalProcesses: fullCase.hasLegalProcesses ?? false,
-              courtNumber: fullCase.courtNumber ?? '',
-              city: fullCase.city ?? '',
-              processType: fullCase.processType ?? '',
-              plaintiff: fullCase.plaintiff ?? '',
-              judicialFileNumber: fullCase.judicialFileNumber ?? '',
-              suspensionDate: fullCase.suspensionDate
-                ? fullCase.suspensionDate.toISOString().split('T')[0]
-                : '',
-              resultDeliveryDate: fullCase.resultDeliveryDate
-                ? fullCase.resultDeliveryDate.toISOString().split('T')[0]
-                : '',
-              resultType: fullCase.resultType ?? '',
-              resultDate: fullCase.resultDate
-                ? fullCase.resultDate.toISOString().split('T')[0]
-                : '',
-              siccacNumber: fullCase.siccacNumber ?? '',
               riskCenterCommunication:
                 fullCase.riskCenterCommunication ?? false,
 
@@ -463,16 +447,6 @@ export function EditCaseDialog({
         rejection: data.rejection,
         withdrawal: data.withdrawal,
         hasLegalProcesses: data.hasLegalProcesses,
-        courtNumber: data.courtNumber,
-        city: data.city,
-        processType: data.processType,
-        plaintiff: data.plaintiff,
-        judicialFileNumber: data.judicialFileNumber,
-        suspensionDate: data.suspensionDate,
-        resultDeliveryDate: data.resultDeliveryDate,
-        resultType: data.resultType,
-        resultDate: data.resultDate,
-        siccacNumber: data.siccacNumber,
         riskCenterCommunication: data.riskCenterCommunication,
 
         // Ámbito de Aplicación
