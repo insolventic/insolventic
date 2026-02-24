@@ -832,9 +832,12 @@ export async function batchGenerateDocuments(input: {
     const placeholders = mapCaseToPlaceholders(transformedCaseData as unknown as CaseWithRelations);
 
     // Read HTML templates, replace placeholders, generate PDFs
-    const { promises: fs } = await import('fs');
+    const { promises: fsPromises } = await import('fs');
     const path = await import('path');
-    const { htmlToPdf } = await import('@/lib/html-to-pdf');
+    const { batchHtmlToPdf } = await import('@/lib/html-to-pdf');
+
+    const projectRoot = process.cwd();
+    const assetsBaseDir = path.join(projectRoot, 'Documentos HTML');
 
     // Create case folder in Google Drive for storage
     let caseFolderId = '';
@@ -862,24 +865,67 @@ export async function batchGenerateDocuments(input: {
       error?: string;
     }> = [];
 
+    // Phase 1: Read all templates and replace placeholders
+    const htmlDocuments: Array<{
+      html: string;
+      filename: string;
+      template: typeof templatesToProcess[number];
+      documentName: string;
+    }> = [];
+
     for (const template of templatesToProcess) {
       try {
-        // Read HTML template from local filesystem
         const templatePath = getTemplatePath(template);
-        const projectRoot = process.cwd();
         const fullPath = path.join(projectRoot, templatePath);
-        const htmlContent = await fs.readFile(fullPath, 'utf-8');
-
-        // Replace placeholders
+        const htmlContent = await fsPromises.readFile(fullPath, 'utf-8');
         const filledHtml = replacePlaceholders(htmlContent, placeholders);
-
-        // Generate PDF
-        const pdfBuffer = await htmlToPdf(filledHtml);
-
-        // Generate file name
         const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}.pdf`;
 
-        // Upload to Google Drive if folder available
+        htmlDocuments.push({
+          html: filledHtml,
+          filename: template.fileName,
+          template,
+          documentName,
+        });
+      } catch (readError) {
+        console.error(`Error reading template ${template.name}:`, readError);
+        documents.push({
+          templateId: template.id,
+          templateName: template.name,
+          documentId: '',
+          documentName: '',
+          documentUrl: '',
+          status: 'error',
+          error: readError instanceof Error ? readError.message : 'Error leyendo plantilla',
+        });
+      }
+    }
+
+    // Phase 2: Generate all PDFs in a single Chromium instance (FIX 3)
+    const pdfResults = await batchHtmlToPdf(
+      htmlDocuments.map(d => ({ html: d.html, filename: d.filename })),
+      {},
+      assetsBaseDir,
+    );
+
+    // Phase 3: Upload to Google Drive and save to DB
+    for (const htmlDoc of htmlDocuments) {
+      const pdfResult = pdfResults.find(r => r.filename === htmlDoc.filename.replace(/\.html$/, '.pdf'));
+
+      if (!pdfResult) {
+        documents.push({
+          templateId: htmlDoc.template.id,
+          templateName: htmlDoc.template.name,
+          documentId: '',
+          documentName: htmlDoc.documentName,
+          documentUrl: '',
+          status: 'error',
+          error: 'Error generando PDF',
+        });
+        continue;
+      }
+
+      try {
         let fileId = '';
         let fileUrl = '';
 
@@ -888,29 +934,28 @@ export async function batchGenerateDocuments(input: {
             const { googleDriveService } = await import('@/lib/google-drive');
 
             let targetFolderId = caseFolderId;
-            if (template.folderPath.length > 0) {
+            if (htmlDoc.template.folderPath.length > 0) {
               targetFolderId = await googleDriveService.createFolderHierarchy(
-                template.folderPath,
+                htmlDoc.template.folderPath,
                 caseFolderId,
               );
             }
 
             const uploadResult = await googleDriveService.uploadDocumentToCase(
-              documentName,
-              pdfBuffer,
+              htmlDoc.documentName,
+              pdfResult.buffer,
               targetFolderId,
             );
             fileId = uploadResult.fileId;
             fileUrl = uploadResult.fileUrl;
           } catch (uploadError) {
-            console.warn(`Drive upload failed for ${template.name}:`, uploadError);
+            console.warn(`Drive upload failed for ${htmlDoc.template.name}:`, uploadError);
           }
         }
 
-        // Save document record in database
         const document = await prisma.document.create({
           data: {
-            name: documentName,
+            name: htmlDoc.documentName,
             type: 'generated',
             status: 'Generado',
             uploadDate: new Date(),
@@ -918,30 +963,30 @@ export async function batchGenerateDocuments(input: {
             googleDriveId: fileId || undefined,
             caseId: caseData.id,
             tenantId,
-            fileName: documentName,
+            fileName: htmlDoc.documentName,
             mimeType: 'application/pdf',
             isGenerated: true,
           },
         });
 
         documents.push({
-          templateId: template.id,
-          templateName: template.name,
+          templateId: htmlDoc.template.id,
+          templateName: htmlDoc.template.name,
           documentId: document.id,
-          documentName,
+          documentName: htmlDoc.documentName,
           documentUrl: fileUrl,
           status: 'success',
         });
-      } catch (templateError) {
-        console.error(`Error processing template ${template.name}:`, templateError);
+      } catch (saveError) {
+        console.error(`Error saving document ${htmlDoc.template.name}:`, saveError);
         documents.push({
-          templateId: template.id,
-          templateName: template.name,
+          templateId: htmlDoc.template.id,
+          templateName: htmlDoc.template.name,
           documentId: '',
-          documentName: '',
+          documentName: htmlDoc.documentName,
           documentUrl: '',
           status: 'error',
-          error: templateError instanceof Error ? templateError.message : 'Error desconocido',
+          error: saveError instanceof Error ? saveError.message : 'Error guardando documento',
         });
       }
     }

@@ -1323,11 +1323,16 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
   const basePlaceholders: PlaceholderMap = {
     // Debtor basic info
     NOMBRE_DEUDOR: debtor.name,
+    NOMBRE_COMPLETO: debtor.name,
+    NOMBRE_DEUDOR_COMPLETO: debtor.name,
     CEDULA_DEUDOR: debtor.idNumber,
+    NUMERO_CEDULA: debtor.idNumber,
     DIRECCION_DEUDOR: debtor.address,
     CIUDAD_DEUDOR: debtor.city || '',
     EMAIL_DEUDOR: debtor.email,
+    CORREO_ELECTRONICO: debtor.email,
     TELEFONO_DEUDOR: debtor.phone,
+    NUMERO_TELEFONO: debtor.phone,
     GENERO_DEUDOR: genderPrefix,
     GENERO_APODERADO: 'del apoderado',
 
@@ -1346,6 +1351,11 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     FECHA_ADMISION: caseData.admissionDate ? formatDate(caseData.admissionDate) : '________________',
     FECHA_AUDIENCIA: (caseData.firstHearingDate || caseData.hearingDate) ? formatDate(caseData.firstHearingDate || caseData.hearingDate) : '________________',
     HORA_AUDIENCIA: caseData.firstHearingTime || '____:____',
+
+    // Auto de admision (para Edicto Emplazatorio)
+    DIA_AUTO: caseData.admissionDate ? getDayNumber(caseData.admissionDate) : '____',
+    MES_AUTO: caseData.admissionDate ? getMonthName(caseData.admissionDate) : '____________',
+    ANO_AUTO: caseData.admissionDate ? getYear(caseData.admissionDate) : '______',
 
     // Date components for current date
     NUMERO_DIA: getDayNumber(new Date()),
@@ -1427,6 +1437,14 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     FECHA_VIGENCIA: caseData.agreementValidityDate ? formatDate(caseData.agreementValidityDate) : '________________',
     PORCENTAJE_APROBACION: caseData.approvalPercentage?.toString() || '____',
 
+    // Aliases for Reforma Acuerdo and Acuerdo Bilateral templates
+    NOMBRE_ACREEDOR: caseData.debts?.[0]?.creditor?.name || '________________________________',
+    NUMERO_CUOTAS: caseData.paymentTermMonths?.toString() || '____',
+    PORCENTAJE_RECONOCIMIENTO: caseData.approvalPercentage?.toString() || '____',
+    DIA_INICIO: caseData.paymentStartDate ? getDayNumber(caseData.paymentStartDate) : '____',
+    MES_INICIO: caseData.paymentStartDate ? getMonthName(caseData.paymentStartDate) : '____________',
+    ANO_INICIO: caseData.paymentStartDate ? getYear(caseData.paymentStartDate) : '______',
+
     // Control de Legalidad - MANUAL
     FECHA_CONTROL_LEGALIDAD: '________________', // MANUAL
     LUGAR_CONTROL_LEGALIDAD: '________________________________', // MANUAL
@@ -1462,9 +1480,11 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     FORMA_PAGO_ACREEDORES: '',
     PROYECCION_PAGOS: '',
 
-    // Signature
+    // Signature and current year
     DIA_FIRMA: getDayNumber(new Date()),
     MES_FIRMA: getMonthName(new Date()),
+    ANO_FIRMA: new Date().getFullYear().toString(),
+    ANO_ACTUAL: new Date().getFullYear().toString(),
   };
 
   // Merge all mappings

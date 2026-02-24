@@ -1,6 +1,10 @@
 /**
  * HTML to PDF conversion utility
  * Uses Puppeteer with Chromium for server-side PDF generation
+ *
+ * FIX 2: Detects full HTML documents and skips double wrapping
+ * FIX 3: batchHtmlToPdf reuses a single browser for all documents
+ * FIX 4: inlineAssets resolves CSS/images from local filesystem
  */
 
 import puppeteer from 'puppeteer-core';
@@ -65,11 +69,11 @@ async function getExecutablePath(): Promise<string> {
     '/usr/bin/chromium',
   ];
 
-  for (const path of possiblePaths) {
+  for (const chromePath of possiblePaths) {
     try {
       const fs = await import('fs');
-      if (fs.existsSync(path)) {
-        return path;
+      if (fs.existsSync(chromePath)) {
+        return chromePath;
       }
     } catch {
       continue;
@@ -97,20 +101,192 @@ async function getBrowserArgs(): Promise<string[]> {
 }
 
 /**
- * Convert HTML string to PDF buffer
+ * Detect MIME type from file extension
+ */
+function getMimeType(filePath: string): string {
+  const ext = filePath.toLowerCase().split('.').pop();
+  const mimeTypes: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    webp: 'image/webp',
+    ico: 'image/x-icon',
+  };
+  return mimeTypes[ext || ''] || 'image/png';
+}
+
+/**
+ * Check if HTML string already has a full document structure
+ */
+function isFullHtmlDocument(html: string): boolean {
+  const trimmed = html.trim().toLowerCase();
+  return trimmed.startsWith('<!doctype') || trimmed.startsWith('<html');
+}
+
+/**
+ * Inline external CSS files and images into the HTML.
+ * Replaces <link rel="stylesheet" href="..."> with <style> blocks
+ * and <img src="..."> with base64 data URIs.
+ *
+ * @param html - The HTML content
+ * @param assetsBaseDir - Absolute path to the directory containing CSS/ and img/ folders
+ */
+export async function inlineAssets(html: string, assetsBaseDir: string): Promise<string> {
+  const fs = await import('fs');
+  const pathModule = await import('path');
+
+  let result = html;
+
+  // 1. Inline CSS: Replace <link rel="stylesheet" href="..."> with <style>...</style>
+  const linkRegex = /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*\/?>/gi;
+  const linkMatches = [...result.matchAll(linkRegex)];
+
+  // Also match href before rel
+  const linkRegex2 = /<link\s+[^>]*href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*\/?>/gi;
+  const linkMatches2 = [...result.matchAll(linkRegex2)];
+
+  const allLinkMatches = [...linkMatches, ...linkMatches2];
+
+  for (const match of allLinkMatches) {
+    const fullTag = match[0];
+    const href = match[1];
+
+    // Resolve the CSS file path - handle root-relative paths like /CSS/file.css
+    let cssPath: string;
+    if (href.startsWith('/')) {
+      cssPath = pathModule.join(assetsBaseDir, href);
+    } else {
+      cssPath = pathModule.join(assetsBaseDir, href);
+    }
+
+    try {
+      if (fs.existsSync(cssPath)) {
+        const cssContent = fs.readFileSync(cssPath, 'utf-8');
+        result = result.replace(fullTag, `<style>\n${cssContent}\n</style>`);
+      } else {
+        console.warn(`CSS file not found: ${cssPath} (from href="${href}")`);
+      }
+    } catch (err) {
+      console.warn(`Error reading CSS file ${cssPath}:`, err);
+    }
+  }
+
+  // 2. Inline images: Replace <img src="..."> with base64 data URIs
+  const imgRegex = /<img\s+[^>]*src=["']([^"']+)["'][^>]*\/?>/gi;
+  const imgMatches = [...result.matchAll(imgRegex)];
+
+  for (const match of imgMatches) {
+    const fullTag = match[0];
+    const src = match[1];
+
+    // Skip already-inlined data URIs
+    if (src.startsWith('data:')) continue;
+
+    // Resolve the image file path
+    let imgPath: string;
+    if (src.startsWith('/')) {
+      imgPath = pathModule.join(assetsBaseDir, src);
+    } else {
+      imgPath = pathModule.join(assetsBaseDir, src);
+    }
+
+    try {
+      if (fs.existsSync(imgPath)) {
+        const imgBuffer = fs.readFileSync(imgPath);
+        const base64 = imgBuffer.toString('base64');
+        const mimeType = getMimeType(imgPath);
+        const dataUri = `data:${mimeType};base64,${base64}`;
+
+        // Replace only the src attribute value in the tag
+        const newTag = fullTag.replace(src, dataUri);
+        result = result.replace(fullTag, newTag);
+      } else {
+        console.warn(`Image file not found: ${imgPath} (from src="${src}")`);
+      }
+    } catch (err) {
+      console.warn(`Error reading image file ${imgPath}:`, err);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Fallback styles applied when HTML is a fragment (no full document structure)
+ */
+const fallbackStyles = `
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Arial', 'Helvetica', sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #000;
+    margin: 0;
+    padding: 0;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+  th, td { border: 1px solid #000; padding: 5px 8px; text-align: left; font-size: 10pt; }
+  th { background-color: #f0f0f0; font-weight: bold; }
+  .text-center { text-align: center; }
+  .bold { font-weight: bold; }
+  .justified { text-align: justify; }
+  h2, h3 { margin-top: 15px; margin-bottom: 10px; }
+  .section-title { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-top: 20px; }
+  .logo-section { text-align: center; margin-bottom: 20px; }
+  .logo-section img { max-width: 200px; height: auto; }
+  .firma-section { margin-top: 40px; text-align: center; }
+  .footer { margin-top: 30px; text-align: center; font-size: 9pt; color: #666; }
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+`;
+
+/**
+ * Prepare HTML for rendering: if it's a full document, use as-is;
+ * if it's a fragment, wrap it in a basic document structure.
+ */
+function prepareHtml(html: string): string {
+  if (isFullHtmlDocument(html)) {
+    // FIX 2: Template already has full structure - use it directly
+    return html;
+  }
+
+  // Fragment: wrap with fallback styles
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <style>${fallbackStyles}</style>
+  </head>
+  <body>${html}</body>
+</html>`;
+}
+
+/**
+ * Convert HTML string to PDF buffer (single document).
+ * If assetsBaseDir is provided, CSS and images are inlined before rendering.
  */
 export async function htmlToPdf(
   html: string,
-  options: PDFOptions = {}
+  options: PDFOptions = {},
+  assetsBaseDir?: string,
 ): Promise<Buffer> {
   const mergedOptions = { ...defaultOptions, ...options };
   let browser = null;
 
   try {
+    // Inline assets if base directory provided
+    let processedHtml = assetsBaseDir
+      ? await inlineAssets(html, assetsBaseDir)
+      : html;
+
+    // Smart wrapping: only wrap if HTML is a fragment
+    processedHtml = prepareHtml(processedHtml);
+
     const executablePath = await getExecutablePath();
     const args = await getBrowserArgs();
-
-    // Check if we're in serverless environment
     const isServerless = process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL;
 
     browser = await puppeteer.launch({
@@ -122,96 +298,11 @@ export async function htmlToPdf(
 
     const page = await browser.newPage();
 
-    // Set content with base styles
-    const styledHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * {
-              box-sizing: border-box;
-            }
-            body {
-              font-family: 'Arial', 'Helvetica', sans-serif;
-              font-size: 11pt;
-              line-height: 1.5;
-              color: #000;
-              margin: 0;
-              padding: 0;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 10px 0;
-            }
-            th, td {
-              border: 1px solid #000;
-              padding: 5px 8px;
-              text-align: left;
-              font-size: 10pt;
-            }
-            th {
-              background-color: #f0f0f0;
-              font-weight: bold;
-            }
-            .text-center {
-              text-align: center;
-            }
-            .bold {
-              font-weight: bold;
-            }
-            .justified {
-              text-align: justify;
-            }
-            h2, h3 {
-              margin-top: 15px;
-              margin-bottom: 10px;
-            }
-            .section-title {
-              font-size: 12pt;
-              font-weight: bold;
-              text-decoration: underline;
-              margin-top: 20px;
-            }
-            .logo-section {
-              text-align: center;
-              margin-bottom: 20px;
-            }
-            .logo-section img {
-              max-width: 200px;
-              height: auto;
-            }
-            .firma-section {
-              margin-top: 40px;
-              text-align: center;
-            }
-            .footer {
-              margin-top: 30px;
-              text-align: center;
-              font-size: 9pt;
-              color: #666;
-            }
-            @media print {
-              body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          ${html}
-        </body>
-      </html>
-    `;
-
-    await page.setContent(styledHtml, {
+    await page.setContent(processedHtml, {
       waitUntil: 'networkidle0',
       timeout: 30000,
     });
 
-    // Generate PDF
     const pdfBuffer = await page.pdf({
       format: mergedOptions.format,
       margin: mergedOptions.margin,
@@ -233,11 +324,14 @@ export async function htmlToPdf(
 }
 
 /**
- * Convert multiple HTML documents to PDFs
+ * Convert multiple HTML documents to PDFs using a SINGLE browser instance.
+ * FIX 3: Reuses one Chromium process for all documents instead of N launches.
+ * If assetsBaseDir is provided, CSS and images are inlined before rendering.
  */
 export async function batchHtmlToPdf(
   documents: Array<{ html: string; filename: string }>,
-  options: PDFOptions = {}
+  options: PDFOptions = {},
+  assetsBaseDir?: string,
 ): Promise<Array<{ filename: string; buffer: Buffer }>> {
   const mergedOptions = { ...defaultOptions, ...options };
   let browser = null;
@@ -258,42 +352,17 @@ export async function batchHtmlToPdf(
 
     for (const doc of documents) {
       try {
+        // Inline assets if base directory provided
+        let processedHtml = assetsBaseDir
+          ? await inlineAssets(doc.html, assetsBaseDir)
+          : doc.html;
+
+        // Smart wrapping
+        processedHtml = prepareHtml(processedHtml);
+
         const page = await browser.newPage();
 
-        const styledHtml = `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="UTF-8">
-              <style>
-                * { box-sizing: border-box; }
-                body {
-                  font-family: 'Arial', 'Helvetica', sans-serif;
-                  font-size: 11pt;
-                  line-height: 1.5;
-                  color: #000;
-                  margin: 0;
-                  padding: 0;
-                }
-                table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-                th, td { border: 1px solid #000; padding: 5px 8px; text-align: left; font-size: 10pt; }
-                th { background-color: #f0f0f0; font-weight: bold; }
-                .text-center { text-align: center; }
-                .bold { font-weight: bold; }
-                .justified { text-align: justify; }
-                h2, h3 { margin-top: 15px; margin-bottom: 10px; }
-                .section-title { font-size: 12pt; font-weight: bold; text-decoration: underline; margin-top: 20px; }
-                .logo-section { text-align: center; margin-bottom: 20px; }
-                .logo-section img { max-width: 200px; height: auto; }
-                .firma-section { margin-top: 40px; text-align: center; }
-                .footer { margin-top: 30px; text-align: center; font-size: 9pt; color: #666; }
-              </style>
-            </head>
-            <body>${doc.html}</body>
-          </html>
-        `;
-
-        await page.setContent(styledHtml, {
+        await page.setContent(processedHtml, {
           waitUntil: 'networkidle0',
           timeout: 30000,
         });
@@ -302,6 +371,9 @@ export async function batchHtmlToPdf(
           format: mergedOptions.format,
           margin: mergedOptions.margin,
           printBackground: mergedOptions.printBackground,
+          displayHeaderFooter: mergedOptions.displayHeaderFooter,
+          headerTemplate: mergedOptions.headerTemplate,
+          footerTemplate: mergedOptions.footerTemplate,
         });
 
         results.push({
@@ -312,7 +384,7 @@ export async function batchHtmlToPdf(
         await page.close();
       } catch (error) {
         console.error(`Error generating PDF for ${doc.filename}:`, error);
-        // Continue with other documents
+        // Continue with other documents - don't break the batch
       }
     }
 
