@@ -868,7 +868,7 @@ export async function batchGenerateDocuments(input: {
     // Phase 1: Read all templates and replace placeholders
     const htmlDocuments: Array<{
       html: string;
-      filename: string;
+      uniqueKey: string;
       template: typeof templatesToProcess[number];
       documentName: string;
     }> = [];
@@ -883,12 +883,12 @@ export async function batchGenerateDocuments(input: {
 
         htmlDocuments.push({
           html: filledHtml,
-          filename: template.fileName,
+          uniqueKey: template.id,
           template,
           documentName,
         });
       } catch (readError) {
-        console.error(`Error reading template ${template.name}:`, readError);
+        console.error(`Error reading template ${template.name} from ${getTemplatePath(template)}:`, readError);
         documents.push({
           templateId: template.id,
           templateName: template.name,
@@ -901,16 +901,18 @@ export async function batchGenerateDocuments(input: {
       }
     }
 
-    // Phase 2: Generate all PDFs in a single Chromium instance (FIX 3)
+    // Phase 2: Generate all PDFs in a single Chromium instance
+    // Use template.id as unique filename key to avoid collisions
+    // (multiple templates share the same fileName, e.g. "Remision Juzgado F.html" x12)
     const pdfResults = await batchHtmlToPdf(
-      htmlDocuments.map(d => ({ html: d.html, filename: d.filename })),
+      htmlDocuments.map(d => ({ html: d.html, filename: `${d.uniqueKey}.html` })),
       {},
       assetsBaseDir,
     );
 
     // Phase 3: Upload to Google Drive and save to DB
     for (const htmlDoc of htmlDocuments) {
-      const pdfResult = pdfResults.find(r => r.filename === htmlDoc.filename.replace(/\.html$/, '.pdf'));
+      const pdfResult = pdfResults.find(r => r.filename === `${htmlDoc.uniqueKey}.pdf`);
 
       if (!pdfResult) {
         documents.push({

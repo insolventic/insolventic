@@ -314,7 +314,9 @@ async function generateDocument(
     let mimeType: string;
 
     if (options.generatePdf) {
-      fileBuffer = await htmlToPdf(filledHtml);
+      const projectRoot = process.cwd();
+      const assetsBaseDir = path.join(projectRoot, 'Documentos HTML');
+      fileBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir);
       mimeType = 'application/pdf';
     } else {
       fileBuffer = Buffer.from(filledHtml, 'utf-8');
@@ -605,7 +607,9 @@ export async function previewDocument(
   const filledHtml = replacePlaceholders(htmlContent, placeholders);
 
   if (format === 'pdf') {
-    const pdfBuffer = await htmlToPdf(filledHtml);
+    const projectRoot = process.cwd();
+    const assetsBaseDir = path.join(projectRoot, 'Documentos HTML');
+    const pdfBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir);
     return { content: pdfBuffer, mimeType: 'application/pdf' };
   }
 

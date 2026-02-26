@@ -1333,6 +1333,7 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     CORREO_ELECTRONICO: debtor.email,
     TELEFONO_DEUDOR: debtor.phone,
     NUMERO_TELEFONO: debtor.phone,
+    MUNICIPIO_RESIDENCIA: debtor.city || caseData.city || 'Bogotá',
     GENERO_DEUDOR: genderPrefix,
     GENERO_APODERADO: 'del apoderado',
 

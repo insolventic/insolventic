@@ -298,8 +298,9 @@ export async function htmlToPdf(
 
     const page = await browser.newPage();
 
+    // Use domcontentloaded since all CSS/images are inlined by inlineAssets
     await page.setContent(processedHtml, {
-      waitUntil: 'networkidle0',
+      waitUntil: 'domcontentloaded',
       timeout: 30000,
     });
 
@@ -362,8 +363,9 @@ export async function batchHtmlToPdf(
 
         const page = await browser.newPage();
 
+        // Use domcontentloaded since all CSS/images are inlined by inlineAssets
         await page.setContent(processedHtml, {
-          waitUntil: 'networkidle0',
+          waitUntil: 'domcontentloaded',
           timeout: 30000,
         });
 
