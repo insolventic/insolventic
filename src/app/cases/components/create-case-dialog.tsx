@@ -72,12 +72,30 @@ interface CreateCaseDialogProps {
   onCaseCreated?: () => void;
 }
 
+const TAB_ORDER = [
+  'debtor',
+  'case-details',
+  'legal-process',
+  'creditors',
+  'assets',
+  'income',
+  'payment',
+  'legal',
+  'definitivo-acreedores',
+  'definitivo-bienes',
+  'definitivo-extra',
+  'definitivo-final',
+] as const;
+
+const LAST_TAB = TAB_ORDER[TAB_ORDER.length - 1];
+
 export function CreateCaseDialog({
   open,
   onOpenChange,
   onCaseCreated,
 }: Readonly<CreateCaseDialogProps>) {
   const [dataLoading, setDataLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>(TAB_ORDER[0]);
   const [debtors, setDebtors] = useState<DebtorOption[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState<string>('');
   const [selectedDebtor, setSelectedDebtor] = useState<DebtorOption | null>(
@@ -121,8 +139,16 @@ export function CreateCaseDialog({
 
   const [isPending, startTransition] = useTransition();
 
+  const goToNextTab = () => {
+    const currentIndex = TAB_ORDER.indexOf(activeTab as typeof TAB_ORDER[number]);
+    if (currentIndex < TAB_ORDER.length - 1) {
+      setActiveTab(TAB_ORDER[currentIndex + 1]);
+    }
+  };
+
   useEffect(() => {
     if (open) {
+      setActiveTab(TAB_ORDER[0]);
       form.reset({
         debtorId: '',
         type: 'INSOLVENCY' as const,
@@ -1051,7 +1077,7 @@ export function CreateCaseDialog({
 
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)}>
-              <Tabs defaultValue="debtor" className="space-y-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList className="flex w-full flex-wrap gap-1">
                   <TabsTrigger value="debtor" className="text-xs">1. Solicitante</TabsTrigger>
                   <TabsTrigger value="case-details" className="text-xs">2. Detalles</TabsTrigger>
@@ -1217,16 +1243,22 @@ export function CreateCaseDialog({
                   <DialogClose asChild>
                     <Button variant="outline">Cancelar</Button>
                   </DialogClose>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creando...
-                      </>
-                    ) : (
-                      'Crear Caso'
-                    )}
-                  </Button>
+                  {activeTab === LAST_TAB ? (
+                    <Button type="submit" disabled={isPending}>
+                      {isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creando...
+                        </>
+                      ) : (
+                        'Crear Caso'
+                      )}
+                    </Button>
+                  ) : (
+                    <Button type="button" onClick={goToNextTab}>
+                      Siguiente
+                    </Button>
+                  )}
                 </div>
               </DialogFooter>
             </form>

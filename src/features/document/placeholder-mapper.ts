@@ -1343,6 +1343,10 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     NUMERO_TRAMITE: caseData.caseNumber,
     NUMERO_ACUERDO: caseData.caseNumber.replace(/[^0-9]/g, ''),
     ANO_ACUERDO: new Date().getFullYear().toString(),
+    DIA_ACUERDO: '____', // MANUAL - día del acuerdo
+    MES_ACUERDO: '____________', // MANUAL - mes del acuerdo
+    CIUDAD: debtor.city || caseData.city || 'Bogotá',
+    NOMBRE_CONVOCANTE: debtor.name,
 
     // Dates - MANUAL: Estas fechas las ingresa el operador manualmente, no se auto-generan
     // Solo se muestran si ya fueron ingresadas por el operador

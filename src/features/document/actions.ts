@@ -873,10 +873,13 @@ export async function batchGenerateDocuments(input: {
       documentName: string;
     }> = [];
 
+    console.log(`[batchGenerateDocuments] Processing ${templatesToProcess.length} templates for package ${packageNumber || 'all'}`);
+
     for (const template of templatesToProcess) {
       try {
         const templatePath = getTemplatePath(template);
         const fullPath = path.join(projectRoot, templatePath);
+        console.log(`[batchGenerateDocuments] Reading template: ${template.name} from ${fullPath}`);
         const htmlContent = await fsPromises.readFile(fullPath, 'utf-8');
         const filledHtml = replacePlaceholders(htmlContent, placeholders);
         const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}.pdf`;
@@ -888,7 +891,7 @@ export async function batchGenerateDocuments(input: {
           documentName,
         });
       } catch (readError) {
-        console.error(`Error reading template ${template.name} from ${getTemplatePath(template)}:`, readError);
+        console.error(`[batchGenerateDocuments] FAILED to read template ${template.name} from ${getTemplatePath(template)}:`, readError);
         documents.push({
           templateId: template.id,
           templateName: template.name,
@@ -901,14 +904,27 @@ export async function batchGenerateDocuments(input: {
       }
     }
 
+    console.log(`[batchGenerateDocuments] Phase 1 complete: ${htmlDocuments.length} templates read successfully, ${documents.length} failed`);
+
     // Phase 2: Generate all PDFs in a single Chromium instance
     // Use template.id as unique filename key to avoid collisions
     // (multiple templates share the same fileName, e.g. "Remision Juzgado F.html" x12)
+    console.log(`[batchGenerateDocuments] Phase 2: Generating ${htmlDocuments.length} PDFs via batchHtmlToPdf...`);
     const pdfResults = await batchHtmlToPdf(
       htmlDocuments.map(d => ({ html: d.html, filename: `${d.uniqueKey}.html` })),
       {},
       assetsBaseDir,
     );
+    console.log(`[batchGenerateDocuments] Phase 2 complete: ${pdfResults.length} PDFs generated out of ${htmlDocuments.length} templates`);
+
+    // Log which PDFs were generated vs missing
+    const generatedKeys = new Set(pdfResults.map(r => r.filename));
+    for (const htmlDoc of htmlDocuments) {
+      const expectedFilename = `${htmlDoc.uniqueKey}.pdf`;
+      if (!generatedKeys.has(expectedFilename)) {
+        console.error(`[batchGenerateDocuments] PDF MISSING for template: ${htmlDoc.template.name} (key: ${htmlDoc.uniqueKey})`);
+      }
+    }
 
     // Phase 3: Upload to Google Drive and save to DB
     for (const htmlDoc of htmlDocuments) {

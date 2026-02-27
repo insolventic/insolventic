@@ -351,8 +351,12 @@ export async function batchHtmlToPdf(
 
     const results: Array<{ filename: string; buffer: Buffer }> = [];
 
-    for (const doc of documents) {
+    for (let i = 0; i < documents.length; i++) {
+      const doc = documents[i];
+      let page = null;
       try {
+        console.log(`[batchHtmlToPdf] Processing ${i + 1}/${documents.length}: ${doc.filename}`);
+
         // Inline assets if base directory provided
         let processedHtml = assetsBaseDir
           ? await inlineAssets(doc.html, assetsBaseDir)
@@ -361,7 +365,7 @@ export async function batchHtmlToPdf(
         // Smart wrapping
         processedHtml = prepareHtml(processedHtml);
 
-        const page = await browser.newPage();
+        page = await browser.newPage();
 
         // Use domcontentloaded since all CSS/images are inlined by inlineAssets
         await page.setContent(processedHtml, {
@@ -384,9 +388,13 @@ export async function batchHtmlToPdf(
         });
 
         await page.close();
+        page = null;
       } catch (error) {
-        console.error(`Error generating PDF for ${doc.filename}:`, error);
+        console.error(`[batchHtmlToPdf] FAILED for ${doc.filename} (${i + 1}/${documents.length}):`, error instanceof Error ? error.message : error);
         // Continue with other documents - don't break the batch
+        if (page) {
+          try { await page.close(); } catch { /* ignore close error */ }
+        }
       }
     }
 
