@@ -91,7 +91,7 @@ export function DeleteDebtorDialog({
           <Button
             variant="destructive"
             onClick={() => handleDelete(debtor.id)}
-            disabled={isPending || debtor._count.cases > 0}
+            disabled={isPending}
           >
             {isPending ? (
               <>

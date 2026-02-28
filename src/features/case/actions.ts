@@ -1539,12 +1539,25 @@ export async function deleteCase(
       return { success: false, error: 'Caso no encontrado' };
     }
 
-    // Delete the case (cascade will delete related notifications)
-    const deletedCase = await prisma.case.delete({
-      where: {
-        id,
-        tenantId,
-      },
+    // Delete the case and all related records in a transaction
+    // Models without onDelete:Cascade must be deleted manually first
+    const deletedCase = await prisma.$transaction(async (tx) => {
+      // 1. Delete related records that don't have onDelete: Cascade
+      await tx.document.deleteMany({ where: { caseId: id } });
+      await tx.debt.deleteMany({ where: { caseId: id } });
+      await tx.asset.deleteMany({ where: { caseId: id } });
+      await tx.legalProcess.deleteMany({ where: { caseId: id } });
+      await tx.libranza.deleteMany({ where: { caseId: id } });
+      await tx.suspendedService.deleteMany({ where: { caseId: id } });
+      await tx.dependent.deleteMany({ where: { caseId: id } });
+
+      // 2. Delete the case (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)
+      return tx.case.delete({
+        where: {
+          id,
+          tenantId,
+        },
+      });
     });
 
     revalidateTag('cases');

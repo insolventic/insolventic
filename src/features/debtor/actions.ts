@@ -368,11 +368,41 @@ export async function deleteDebtor(id: string): Promise<{
     // Validate input
     const validatedId = deleteDebtorSchema.parse(id);
 
-    const deletedDebtor = await prisma.debtor.delete({
-      where: {
-        id: validatedId,
-        tenantId,
-      },
+    // Delete debtor and all related records in a transaction
+    // Chain: Debtor → Cases → (Documents, Debts, Assets, etc.)
+    const deletedDebtor = await prisma.$transaction(async (tx) => {
+      // 1. Get all case IDs for this debtor
+      const cases = await tx.case.findMany({
+        where: { debtorId: validatedId, tenantId },
+        select: { id: true },
+      });
+      const caseIds = cases.map((c) => c.id);
+
+      if (caseIds.length > 0) {
+        // 2. Delete all case-related records without onDelete: Cascade
+        await tx.document.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.debt.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.asset.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.legalProcess.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.libranza.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.suspendedService.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.dependent.deleteMany({ where: { caseId: { in: caseIds } } });
+
+        // 3. Delete all cases (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)
+        await tx.case.deleteMany({ where: { id: { in: caseIds } } });
+      }
+
+      // 4. Delete orphaned debts/assets linked directly to debtor (not via case)
+      await tx.debt.deleteMany({ where: { debtorId: validatedId } });
+      await tx.asset.deleteMany({ where: { debtorId: validatedId } });
+
+      // 5. Delete the debtor
+      return tx.debtor.delete({
+        where: {
+          id: validatedId,
+          tenantId,
+        },
+      });
     });
 
     revalidatePath('/debtors');

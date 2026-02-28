@@ -11,12 +11,15 @@ export type PlaceholderMap = Record<string, string>;
 // Helper to format currency
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '$0';
+  // Ensure Prisma Decimal objects are converted to number
+  const num = Number(value);
+  if (isNaN(num)) return '$0';
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(num);
 }
 
 // Helper to format date
@@ -142,17 +145,25 @@ function mapApplicantScope(scope: string[]): PlaceholderMap {
 function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
   const result: PlaceholderMap = {};
 
-  // Summary table (up to 10 creditors)
-  for (let i = 0; i < 10; i++) {
+  // Calculate total for percentages
+  const totalDebt = debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const totalCapitalAll = debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
+
+  // Summary table (up to 11 creditors - CYG template has 11 rows)
+  for (let i = 0; i < 11; i++) {
     const debt = debts[i];
     const idx = i + 1;
 
     if (debt) {
+      const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
+      const interest = Number(debt.interestAmount) || 0;
+      const percentage = totalCapitalAll > 0 ? ((capital / totalCapitalAll) * 100).toFixed(2) : '0.00';
+
       result[`ACREEDOR_${idx}`] = debt.creditor.name;
-      result[`VALOR_${idx}`] = formatCurrency(debt.amount);
+      result[`VALOR_${idx}`] = formatCurrency(Number(debt.amount));
       result[`LIBRANZA_${idx}`] = boolToSiNo(debt.hasActiveLibranza);
       result[`CLASE_${idx}`] = debt.creditorClass || '';
-      result[`PORCENTAJE_${idx}`] = debt.percentageOfTotal?.toString() || '';
+      result[`PORCENTAJE_${idx}`] = debt.percentageOfTotal?.toString() || `${percentage}%`;
       result[`DIAS_${idx}`] = debt.daysOverdue?.toString() || '';
     } else {
       result[`ACREEDOR_${idx}`] = '';
@@ -164,30 +175,45 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
     }
   }
 
-  // Detailed creditor info (AC1, AC2, AC3, etc.)
-  for (let i = 0; i < Math.min(debts.length, 10); i++) {
+  // Detailed creditor info (AC1..AC11) + RAW numeric values for CYG table
+  for (let i = 0; i < 11; i++) {
     const debt = debts[i];
     const idx = i + 1;
 
-    result[`AC${idx}_NOMBRE`] = debt.creditor.name;
-    result[`AC${idx}_DOMICILIO`] = debt.creditorCity || '';
-    result[`AC${idx}_DIRECCION`] = debt.creditorAddress || '';
-    result[`AC${idx}_EMAIL`] = debt.creditorEmail || '';
-    result[`AC${idx}_CAPITAL`] = formatCurrency(debt.capitalAmount);
-    result[`AC${idx}_INTERESES`] = formatCurrency(debt.interestAmount);
-    result[`AC${idx}_POSTERGADO`] = boolToSiNo(debt.isDeferred);
-    result[`AC${idx}_TASA`] = `${debt.interestRate}%`;
-    result[`AC${idx}_DOCUMENTO`] = debt.documentType || '';
-    result[`AC${idx}_FECHA_OTORGAMIENTO`] = formatShortDate(debt.grantDate);
-    result[`AC${idx}_FECHA_VENCIMIENTO`] = formatShortDate(debt.dueDate);
-    result[`AC${idx}_CLASIFICACION`] = debt.creditClassification || '';
-    result[`AC${idx}_CODEUDOR_NOMBRE`] = debt.coDebtorName || '';
-    result[`AC${idx}_CODEUDOR_DOMICILIO`] = debt.coDebtorCity || '';
-    result[`AC${idx}_CODEUDOR_DIRECCION`] = debt.coDebtorAddress || '';
+    if (debt) {
+      const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
+      const interest = Number(debt.interestAmount) || 0;
+
+      result[`AC${idx}_NOMBRE`] = debt.creditor.name;
+      result[`AC${idx}_DOMICILIO`] = debt.creditorCity || '';
+      result[`AC${idx}_DIRECCION`] = debt.creditorAddress || '';
+      result[`AC${idx}_EMAIL`] = debt.creditorEmail || '';
+      result[`AC${idx}_CAPITAL`] = formatCurrency(capital);
+      result[`AC${idx}_INTERESES`] = formatCurrency(interest);
+      result[`AC${idx}_POSTERGADO`] = boolToSiNo(debt.isDeferred);
+      result[`AC${idx}_TASA`] = `${Number(debt.interestRate) || 0}%`;
+      result[`AC${idx}_DOCUMENTO`] = debt.documentType || '';
+      result[`AC${idx}_FECHA_OTORGAMIENTO`] = formatShortDate(debt.grantDate);
+      result[`AC${idx}_FECHA_VENCIMIENTO`] = formatShortDate(debt.dueDate);
+      result[`AC${idx}_CLASIFICACION`] = debt.creditClassification || '';
+      result[`AC${idx}_CODEUDOR_NOMBRE`] = debt.coDebtorName || '';
+      result[`AC${idx}_CODEUDOR_DOMICILIO`] = debt.coDebtorCity || '';
+      result[`AC${idx}_CODEUDOR_DIRECCION`] = debt.coDebtorAddress || '';
+      // RAW numeric values for CYG table JavaScript calculation
+      result[`AC${idx}_CAPITAL_RAW`] = capital.toString();
+      result[`AC${idx}_INTERESES_RAW`] = interest.toString();
+    } else {
+      result[`AC${idx}_NOMBRE`] = '';
+      result[`AC${idx}_CAPITAL`] = '';
+      result[`AC${idx}_INTERESES`] = '';
+      result[`AC${idx}_CLASIFICACION`] = '';
+      result[`AC${idx}_DOCUMENTO`] = '';
+      result[`AC${idx}_CAPITAL_RAW`] = '';
+      result[`AC${idx}_INTERESES_RAW`] = '';
+    }
   }
 
   // Total
-  const totalDebt = debts.reduce((sum, d) => sum + (d.amount || 0), 0);
   result['TOTAL_ACREENCIAS'] = formatCurrency(totalDebt);
 
   return result;
@@ -376,15 +402,15 @@ function mapDependents(dependents: CaseWithRelations['dependents']): Placeholder
 // Map check list variables (SI/NO validations)
 function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
   const debtor = caseData.debtor;
-  const totalDebt = caseData.debts.reduce((sum, d) => sum + (d.amount || 0), 0);
+  const totalDebt = caseData.debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
   const SMMLV = 1300000; // Salario mínimo 2025 Colombia
 
   // Calculate total assets value
-  const totalAssets = caseData.assets.reduce((sum, a) => sum + (a.value || 0), 0);
+  const totalAssets = caseData.assets.reduce((sum, a) => sum + (Number(a.value) || 0), 0);
 
   const hasCreditors = caseData.debts.length > 0;
   const hasAssets = caseData.assets.length > 0;
-  const hasIncome = (caseData.monthlyIncome || debtor.monthlyIncome || 0) > 0;
+  const hasIncome = (Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0) > 0;
   const hasCauses = (caseData.causes || []).length > 0;
   const hasProposal = caseData.paymentTermMonths != null && caseData.paymentTermMonths > 0;
   const hasAlimentaryObligations = (caseData.dependents || []).length > 0;
@@ -440,7 +466,7 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
 // Map certificate of income variables (Certificado de Ingresos)
 function mapIncomeDeclaration(caseData: CaseWithRelations): PlaceholderMap {
   const debtor = caseData.debtor;
-  const monthlyIncome = caseData.monthlyIncome || debtor.monthlyIncome || 0;
+  const monthlyIncome = Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
 
   return {
     NOMBRE_DECLARANTE: debtor.name,
@@ -515,14 +541,14 @@ function mapExternalEntities(caseData: CaseWithRelations): PlaceholderMap {
 function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
   // Calculate voting results
   const totalCreditors = caseData.debts.length;
-  const totalDebt = caseData.debts.reduce((sum, d) => sum + (d.amount || 0), 0);
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (d.capitalAmount || d.amount || 0), 0);
+  const totalDebt = caseData.debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
 
   // Find majority creditor (largest debt)
-  const sortedDebts = [...caseData.debts].sort((a, b) => (b.amount || 0) - (a.amount || 0));
+  const sortedDebts = [...caseData.debts].sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
   const majorityCreditor = sortedDebts[0];
   const majorityCreditorName = majorityCreditor?.creditor?.name || '';
-  const majorityCreditorAmount = majorityCreditor?.amount || 0;
+  const majorityCreditorAmount = Number(majorityCreditor?.amount) || 0;
   const majorityPercentage = totalDebt > 0 ? (majorityCreditorAmount / totalDebt) * 100 : 0;
 
   // Approval percentage from database or calculate
@@ -549,7 +575,7 @@ function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
     TOTAL_CAPITAL_FRACASO: formatCurrency(totalCapital),
 
     // Payment value
-    VALOR_PAGO: formatCurrency(caseData.monthlyPaymentAmount),
+    VALOR_PAGO: formatCurrency(Number(caseData.monthlyPaymentAmount) || 0),
 
     // Applicant type
     TIPO_SOLICITANTE: (caseData.applicantScope || []).includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE')
@@ -682,8 +708,8 @@ function mapAcreedoresDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
   }
 
   // Totals
-  const totalCapitalAcr = acreedores.reduce((sum, a) => sum + (a.valorCapital || 0), 0);
-  const totalObligaciones = acreedores.reduce((sum, a) => sum + (a.valorTotalObligacion || 0), 0);
+  const totalCapitalAcr = acreedores.reduce((sum, a) => sum + (Number(a.valorCapital) || 0), 0);
+  const totalObligaciones = acreedores.reduce((sum, a) => sum + (Number(a.valorTotalObligacion) || 0), 0);
   result['total_capital_acreedores'] = formatCurrency(totalCapitalAcr);
   result['total_obligaciones_acreedores'] = formatCurrency(totalObligaciones);
   result['numero_acreedores_definitivo'] = acreedores.length.toString();
@@ -719,7 +745,7 @@ function mapBienesDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
     }
   }
 
-  const totalBienes = bienes.reduce((sum, b) => sum + (b.bienValorComercial || 0), 0);
+  const totalBienes = bienes.reduce((sum, b) => sum + (Number(b.bienValorComercial) || 0), 0);
   result['total_bienes_definitivo'] = formatCurrency(totalBienes);
   result['numero_bienes_definitivo'] = bienes.length.toString();
 
@@ -887,7 +913,7 @@ function mapSentidoVotoVariables(caseData: CaseWithRelations): PlaceholderMap {
     telefono_contacto: '', // MANUAL
     fecha_inicio_pago: '________________', // MANUAL - fecha de inicio de pagos post-acuerdo
     numero_cuotas: caseData.paymentTermMonths?.toString() || '____',
-    valor_cuota: formatCurrency(caseData.monthlyPaymentAmount),
+    valor_cuota: formatCurrency(Number(caseData.monthlyPaymentAmount) || 0),
     forma_pago: '', // MANUAL
     observaciones: '', // MANUAL
     votacion: '', // MANUAL - SI/NO
@@ -934,7 +960,7 @@ function generateDetallePagoCapital(debts: CaseWithRelations['debts'], monthlyAm
   html += '<tr style="background-color:#f0f0f0;"><th>Acreedor</th><th>Capital</th><th>% Participación</th><th>Cuota Mensual</th></tr>';
 
   debts.forEach(debt => {
-    const capital = debt.capitalAmount || debt.amount || 0;
+    const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
     const percentage = totalCapital > 0 ? (capital / totalCapital) * 100 : 0;
     const monthlyPayment = (percentage / 100) * monthlyAmount;
 
@@ -1016,7 +1042,7 @@ function generateInventarioBienes(assets: CaseWithRelations['assets']): string {
     return 'El deudor manifiesta no poseer bienes a su nombre.';
   }
 
-  const totalValue = assets.reduce((sum, a) => sum + (a.value || 0), 0);
+  const totalValue = assets.reduce((sum, a) => sum + (Number(a.value) || 0), 0);
 
   let html = '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:11px;">';
   html += '<tr style="background-color:#f0f0f0;"><th>Tipo</th><th>Descripción</th><th>Valor</th></tr>';
@@ -1025,7 +1051,7 @@ function generateInventarioBienes(assets: CaseWithRelations['assets']): string {
     html += `<tr>
       <td style="padding:5px;">${asset.type || 'N/A'}</td>
       <td style="padding:5px;">${asset.name || asset.description || asset.address || 'Sin descripción'}</td>
-      <td style="padding:5px; text-align:right;">${formatCurrency(asset.value)}</td>
+      <td style="padding:5px; text-align:right;">${formatCurrency(Number(asset.value) || 0)}</td>
     </tr>`;
   });
 
@@ -1042,14 +1068,14 @@ function generateInventarioBienes(assets: CaseWithRelations['assets']): string {
 function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
   // Build creditors list for edicto
   const creditorsList = caseData.debts.map((d, i) =>
-    `${i + 1}. ${d.creditor.name} - ${formatCurrency(d.amount)}`
+    `${i + 1}. ${d.creditor.name} - ${formatCurrency(Number(d.amount) || 0)}`
   ).join('<br>');
 
   // Build total creditors table
   const totalCreditors = caseData.debts.length;
-  const totalDebt = caseData.debts.reduce((sum, d) => sum + (d.amount || 0), 0);
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (d.capitalAmount || d.amount || 0), 0);
-  const monthlyAmount = caseData.monthlyPaymentAmount || 0;
+  const totalDebt = caseData.debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
+  const monthlyAmount = Number(caseData.monthlyPaymentAmount) || 0;
 
   // Build Calificación y Graduación table
   const calificacionTable = generateCalificacionGraduacionTable(caseData.debts, totalCapital);
@@ -1130,8 +1156,8 @@ function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], 
   }
 
   const tableRows = debts.map((debt, index) => {
-    const capital = debt.capitalAmount || debt.amount || 0;
-    const interest = debt.interestAmount || 0;
+    const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
+    const interest = Number(debt.interestAmount) || 0;
     const percentage = totalCapital > 0 ? ((capital / totalCapital) * 100).toFixed(2) : '0.00';
     const prelacion = debt.creditorClass || 'Quirografario';
 
@@ -1147,7 +1173,7 @@ function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], 
     `;
   }).join('');
 
-  const totalInterest = debts.reduce((sum, d) => sum + (d.interestAmount || 0), 0);
+  const totalInterest = debts.reduce((sum, d) => sum + (Number(d.interestAmount) || 0), 0);
 
   return `
     <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:12px;">
@@ -1178,10 +1204,10 @@ function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], 
 
 // Generate Propuesta de Pago HTML
 function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
-  const monthlyIncome = caseData.monthlyIncome || caseData.debtor.monthlyIncome || 0;
-  const monthlyExpenses = caseData.monthlyExpenses || caseData.debtor.monthlyExpenses || 0;
+  const monthlyIncome = Number(caseData.monthlyIncome) || Number(caseData.debtor.monthlyIncome) || 0;
+  const monthlyExpenses = Number(caseData.monthlyExpenses) || Number(caseData.debtor.monthlyExpenses) || 0;
   const available = monthlyIncome - monthlyExpenses;
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (d.capitalAmount || d.amount || 0), 0);
+  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
 
   return `
     <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:12px;">
@@ -1207,7 +1233,7 @@ function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
       </tr>
       <tr>
         <td style="padding:8px; border:1px solid #000;"><strong>Cuota Mensual Propuesta:</strong></td>
-        <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(caseData.monthlyPaymentAmount)}</td>
+        <td style="padding:8px; border:1px solid #000; text-align:right;">${formatCurrency(Number(caseData.monthlyPaymentAmount) || 0)}</td>
       </tr>
       <tr>
         <td style="padding:8px; border:1px solid #000;"><strong>Periodo de Gracia:</strong></td>
@@ -1223,12 +1249,12 @@ function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
 
 // Map payment proposal
 function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
-  const monthlyIncome = caseData.monthlyIncome || caseData.debtor.monthlyIncome || 0;
-  const monthlyExpenses = caseData.monthlyExpenses || caseData.debtor.monthlyExpenses || 0;
+  const monthlyIncome = Number(caseData.monthlyIncome) || Number(caseData.debtor.monthlyIncome) || 0;
+  const monthlyExpenses = Number(caseData.monthlyExpenses) || Number(caseData.debtor.monthlyExpenses) || 0;
   const available = monthlyIncome - monthlyExpenses;
 
-  // Calculate total capital from debts
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (d.capitalAmount || d.amount || 0), 0);
+  // Calculate total capital from debts (Number() prevents Decimal string concatenation)
+  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
 
   // Parse payment order
   const paymentOrder = (caseData.paymentOrder as Record<string, string | null>) || {};
@@ -1261,8 +1287,8 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
 
     // Term
     PROP_PLAZO: caseData.paymentTermMonths?.toString() || '',
-    PROP_CUOTA_MENSUAL: formatCurrency(caseData.monthlyPaymentAmount),
-    PROP_CUOTA_VARIABLE: formatCurrency(caseData.variablePayment),
+    PROP_CUOTA_MENSUAL: formatCurrency(Number(caseData.monthlyPaymentAmount) || 0),
+    PROP_CUOTA_VARIABLE: formatCurrency(Number(caseData.variablePayment) || 0),
 
     // Extraordinary payment
     PROP_EXTRAORDINARIA_SI: caseData.extraordinaryPayment ? 'X' : '',
@@ -1315,8 +1341,9 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
  */
 export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderMap {
   const debtor = caseData.debtor;
-  const monthlyIncome = caseData.monthlyIncome || debtor.monthlyIncome || 0;
-  const monthlyExpenses = caseData.monthlyExpenses || debtor.monthlyExpenses || 0;
+  // Ensure all Decimal fields are converted to Number to prevent string concatenation in reduce()
+  const monthlyIncome = Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
+  const monthlyExpenses = Number(caseData.monthlyExpenses) || Number(debtor.monthlyExpenses) || 0;
   const available = monthlyIncome - monthlyExpenses;
   const genderPrefix = getGenderPrefix(debtor.name);
 
@@ -1386,8 +1413,8 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     // Income/Expenses
     INGRESO_PRINCIPAL: formatCurrency(monthlyIncome),
     OTROS_INGRESOS_DETALLE: caseData.otherIncomeDescription || debtor.otherIncomeDescription || '',
-    OTROS_INGRESOS_VALOR: formatCurrency(caseData.otherIncomeAmount || debtor.otherIncomeAmount),
-    TOTAL_INGRESOS: formatCurrency(monthlyIncome + (caseData.otherIncomeAmount || debtor.otherIncomeAmount || 0)),
+    OTROS_INGRESOS_VALOR: formatCurrency(Number(caseData.otherIncomeAmount) || Number(debtor.otherIncomeAmount) || 0),
+    TOTAL_INGRESOS: formatCurrency(monthlyIncome + (Number(caseData.otherIncomeAmount) || Number(debtor.otherIncomeAmount) || 0)),
     CERTIFICACION_EMPLEADOR: boolToSiNo(caseData.hasEmployerCertification || debtor.hasEmployerCertification),
     GASTOS_MENSUALES: formatCurrency(monthlyExpenses),
 
@@ -1409,9 +1436,9 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     NOTIF_EMAIL: caseData.notificationEmail || debtor.email,
     EMAIL_NOTIFICACIONES: caseData.notificationEmail || debtor.email,
 
-    // Operator
-    NOMBRE_OPERADOR: caseData.operator.name,
-    EMAIL_OPERADOR: caseData.operator.email,
+    // Operator (null-safe)
+    NOMBRE_OPERADOR: caseData.operator?.name || '',
+    EMAIL_OPERADOR: caseData.operator?.email || '',
 
     // Legal attorney placeholders (to be filled if applicable)
     NOMBRE_ABOGADO: '',

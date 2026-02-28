@@ -808,24 +808,55 @@ export async function batchGenerateDocuments(input: {
     // Map case data to placeholders
     const { mapCaseToPlaceholders, replacePlaceholders } = await import('./placeholder-mapper');
 
-    // Transform Decimal fields to numbers for the mapper
+    // Transform ALL Decimal fields to numbers for the mapper
+    // Prisma Decimal.valueOf() returns a string, causing reduce() string concatenation bugs
+    const toNum = (v: unknown): number | null => v != null ? Number(v) || 0 : null;
     const transformedCaseData = {
       ...caseData,
+      // Case-level Decimal fields
+      monthlyIncome: toNum(caseData.monthlyIncome),
+      monthlyExpenses: toNum(caseData.monthlyExpenses),
+      monthlyPaymentAmount: toNum(caseData.monthlyPaymentAmount),
+      variablePayment: toNum(caseData.variablePayment),
+      otherIncomeAmount: toNum(caseData.otherIncomeAmount),
+      approvalPercentage: toNum(caseData.approvalPercentage),
+      capitalReductionPercent: toNum(caseData.capitalReductionPercent),
+      ingresoPrincipalMensual: toNum(caseData.ingresoPrincipalMensual),
+      otrosIngresosMensuales: toNum(caseData.otrosIngresosMensuales),
+      totalIngresosMensuales: toNum(caseData.totalIngresosMensuales),
+      ingresosVariablesPromedio: toNum(caseData.ingresosVariablesPromedio),
+      ingresosNoOperacionales: toNum(caseData.ingresosNoOperacionales),
+      gastosVivienda: toNum(caseData.gastosVivienda),
+      gastosAlimentacion: toNum(caseData.gastosAlimentacion),
+      gastosServiciosPublicos: toNum(caseData.gastosServiciosPublicos),
+      gastosTransporte: toNum(caseData.gastosTransporte),
+      gastosEducacion: toNum(caseData.gastosEducacion),
+      gastosSalud: toNum(caseData.gastosSalud),
+      otrosGastos: toNum(caseData.otrosGastos),
+      totalGastosMensuales: toNum(caseData.totalGastosMensuales),
+      capacidadPagoEstimada: toNum(caseData.capacidadPagoEstimada),
+      patrimonioTotalEstimado: toNum(caseData.patrimonioTotalEstimado),
+      pasivoTotalEstimado: toNum(caseData.pasivoTotalEstimado),
+      // Debt Decimal fields
       debts: caseData.debts?.map((debt) => ({
         ...debt,
-        amount: Number(debt.amount),
+        amount: Number(debt.amount) || 0,
+        capitalAmount: toNum(debt.capitalAmount),
+        interestAmount: toNum(debt.interestAmount),
         interestRate: debt.interestRate ? Number(debt.interestRate) : undefined,
       })) || [],
+      // Asset Decimal fields
       assets: caseData.assets?.map((asset) => ({
         ...asset,
         value: asset.value ? Number(asset.value) : null,
         estimatedValue: asset.value ? Number(asset.value) : null,
       })) || [],
+      // Debtor Decimal fields
       debtor: caseData.debtor ? {
         ...caseData.debtor,
-        monthlyIncome: caseData.debtor.monthlyIncome
-          ? Number(caseData.debtor.monthlyIncome)
-          : null,
+        monthlyIncome: toNum(caseData.debtor.monthlyIncome),
+        monthlyExpenses: toNum(caseData.debtor.monthlyExpenses),
+        otherIncomeAmount: toNum(caseData.debtor.otherIncomeAmount),
       } : null,
     };
 

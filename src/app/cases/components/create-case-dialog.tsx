@@ -258,11 +258,12 @@ export function CreateCaseDialog({
             })) || [],
           );
 
+          // Auto-populate operatorId: prefer specific roles, fallback to first available user
           const operatorUser = usersResult.data?.find(
             (user) =>
               user.role?.name === 'Operadora de Insolvencia' ||
               user.role?.name === 'Abogado',
-          );
+          ) || usersResult.data?.[0]; // Fallback to first user if no specific role found
           if (operatorUser) {
             form.setValue('operatorId', operatorUser.id);
           }
@@ -363,95 +364,39 @@ export function CreateCaseDialog({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Handler called when react-hook-form validation FAILS (zodResolver errors)
+  const onInvalid = (errors: Record<string, unknown>) => {
+    console.error('[CreateCase] Validation errors:', errors);
+
+    // Collect first-level error messages
+    const errorMessages: string[] = [];
+    for (const [key, value] of Object.entries(errors)) {
+      const err = value as { message?: string };
+      if (err?.message) {
+        errorMessages.push(`${key}: ${err.message}`);
+      }
+    }
+
+    if (errorMessages.length > 0) {
+      toast.error('Error de validación', {
+        description: errorMessages.slice(0, 3).join(', '),
+        duration: 6000,
+      });
+    } else {
+      toast.error('Por favor complete todos los campos requeridos antes de crear el caso.');
+    }
+  };
+
   const handleSubmit = async (data: CreateCaseFormData) => {
     // Count creditors from debts array
     const creditorsCount = data.debts?.length ?? 0;
 
+    // Send ALL form data to the server action, including arrays and formulario definitivo fields.
+    // Spread validated data first, then override computed fields.
     const submitData = {
-      debtorId: data.debtorId,
-      type: data.type,
-      totalDebt: data.totalDebt,
+      ...data,
       creditors: creditorsCount,
-      operatorId: data.operatorId,
-      hearingDate: data.hearingDate,
       phase: data.phase ?? undefined,
-      caseNumber: data.caseNumber,
-      causes: data.causes,
-      tramite: data.tramite,
-      filingDate: data.filingDate,
-      debtorIdNumber: data.debtorIdNumber,
-      convened: data.convened,
-      attorney: data.attorney,
-      owedCapital: data.owedCapital,
-      designatedOperator: data.designatedOperator,
-      designationDate: data.designationDate,
-      positionAcceptanceDate: data.positionAcceptanceDate,
-      inadmissionDate: data.inadmissionDate,
-      admissionDate: data.admissionDate,
-      firstHearingDate: data.firstHearingDate,
-      firstHearingTime: data.firstHearingTime,
-      rejection: data.rejection,
-      withdrawal: data.withdrawal,
-      hasLegalProcesses: data.hasLegalProcesses,
-      riskCenterCommunication: data.riskCenterCommunication,
-      // New comprehensive fields
-      applicantScope: data.applicantScope,
-      monthlyIncome: data.monthlyIncome,
-      monthlyExpenses: data.monthlyExpenses,
-      otherIncomeDescription: data.otherIncomeDescription,
-      otherIncomeAmount: data.otherIncomeAmount,
-      hasEmployerCertification: data.hasEmployerCertification,
-      libranzas: data.libranzas,
-      suspendedServices: data.suspendedServices,
-      dependents: data.dependents,
-      gracePeriodRequested: data.gracePeriodRequested,
-      gracePeriodMonths: data.gracePeriodMonths,
-      paymentInKind: data.paymentInKind,
-      paymentInKindDescription: data.paymentInKindDescription,
-      assetSaleAuthorized: data.assetSaleAuthorized,
-      assetSaleDescription: data.assetSaleDescription,
-      cashFlowPayment: data.cashFlowPayment,
-      paymentTermMonths: data.paymentTermMonths,
-      monthlyPaymentAmount: data.monthlyPaymentAmount,
-      variablePayment: data.variablePayment,
-      extraordinaryPayment: data.extraordinaryPayment,
-      extraordinaryPaymentDate: data.extraordinaryPaymentDate,
-      capitalReduction: data.capitalReduction,
-      capitalReductionPercent: data.capitalReductionPercent,
-      insuranceOffering: data.insuranceOffering,
-      forgiveAccruedInterest: data.forgiveAccruedInterest,
-      forgiveFutureInterest: data.forgiveFutureInterest,
-      paymentOrder: data.paymentOrder,
-      hasClassPrivileges: data.hasClassPrivileges,
-      classPrivilegesDescription: data.classPrivilegesDescription,
-      thirdPartyPaymentAuth: data.thirdPartyPaymentAuth,
-      guaranteeSubstitution: data.guaranteeSubstitution,
-      spouseName: data.spouseName,
-      spouseIdNumber: data.spouseIdNumber,
-      spouseAddress: data.spouseAddress,
-      spousePhone: data.spousePhone,
-      spouseEmail: data.spouseEmail,
-      requestedFee: data.requestedFee,
-      legalFoundations: data.legalFoundations,
-      notificationAddress: data.notificationAddress,
-      notificationPhone: data.notificationPhone,
-      notificationEmail: data.notificationEmail,
-      applicantSignatureName: data.applicantSignatureName,
-      applicantSignatureId: data.applicantSignatureId,
-      applicantSignature: data.applicantSignature,
-      // Zoom meeting info
-      zoomMeetingId: data.zoomMeetingId,
-      zoomPassword: data.zoomPassword,
-      zoomLink: data.zoomLink,
-      // Post-Acuerdo fields
-      paymentStartDate: data.paymentStartDate,
-      agreementValidityDate: data.agreementValidityDate,
-      approvalPercentage: data.approvalPercentage,
-      failureDate: data.failureDate,
-      failureType: data.failureType,
-      isBilateral: data.isBilateral,
-      bilateralAgreementNumber: data.bilateralAgreementNumber,
-      bilateralCreditorId: data.bilateralCreditorId,
     };
 
     startTransition(async () => {
@@ -1076,7 +1021,7 @@ export function CreateCaseDialog({
           </DialogHeader>
 
           <FormProvider {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)}>
+            <form onSubmit={form.handleSubmit(handleSubmit, onInvalid)}>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList className="flex w-full flex-wrap gap-1">
                   <TabsTrigger value="debtor" className="text-xs">1. Solicitante</TabsTrigger>
