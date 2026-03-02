@@ -20,6 +20,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set git author for Vercel team access
+        run: |
+          git config user.email "insolvenic@gmail.com"
+          git config user.name "Insolventic"
+          git commit --amend --reset-author --no-edit
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
