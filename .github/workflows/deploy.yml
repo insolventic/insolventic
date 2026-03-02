@@ -44,6 +44,8 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Build Vercel project (prebuilt output)
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
         run: |
           if [ "$DEPLOY_ENV" = "production" ]; then
             npx vercel build --prod --token $VERCEL_TOKEN
