@@ -37,6 +37,9 @@ jobs:
       - name: Generate Prisma client
         run: npm run postinstall --if-present
 
+      - name: Baseline initial migration (if needed)
+        run: npx prisma migrate resolve --applied 20260205212559_init 2>/dev/null || true
+
       - name: Apply database migrations
         run: npx prisma migrate deploy
 
