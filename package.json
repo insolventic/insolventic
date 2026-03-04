@@ -15,7 +15,13 @@
     "db:reset": "tsx src/prisma/reset.ts",
     "db:reset:seed": "tsx src/prisma/reset.ts --seed",
     "db:migrate": "npx prisma migrate dev",
-    "db:generate": "npx prisma generate"
+    "db:generate": "npx prisma generate",
+    "test": "jest --verbose",
+    "test:unit": "jest --verbose tests/unit",
+    "test:integration": "jest --verbose tests/integration",
+    "test:coverage": "jest --coverage",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -67,8 +73,12 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.14",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/bcrypt": "^6.0.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24",
     "@types/nodemailer": "^7.0.2",
     "@types/react": "^19",
@@ -77,11 +87,13 @@
     "eslint": "^9.37.0",
     "eslint-config-next": "^15.5.5",
     "husky": "^9.1.7",
+    "jest": "^30.2.0",
     "lint-staged": "^16.2.4",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "prisma": "^6.19.2",
     "tailwindcss": "^4.1.14",
+    "ts-jest": "^29.4.6",
     "tsx": "^4.20.6",
     "typescript": "^5"
   }
