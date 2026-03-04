@@ -2,9 +2,28 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is not set. Application cannot start without it.',
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
+
+const JWT_SECRET = getJwtSecret();
+
+/**
+ * Validates that a redirect path is a safe, relative internal path.
+ * Prevents open redirect attacks.
+ */
+export function isValidRedirectPath(path: string): boolean {
+  if (!path.startsWith('/') || path.startsWith('//')) return false;
+  if (path.includes('://')) return false;
+  if (path.includes('\\')) return false;
+  return /^\/[\w\-./]*(\?[\w\-=&%.]*)?$/.test(path);
+}
 
 async function verifyToken(token: string) {
   try {
@@ -21,8 +40,7 @@ async function verifyToken(token: string) {
       iat: payload.iat as number,
       exp: payload.exp as number,
     };
-  } catch (error) {
-    console.error('Token verification failed:', error);
+  } catch {
     return null;
   }
 }
@@ -57,7 +75,9 @@ export async function middleware(request: NextRequest) {
 
   if (!accessToken) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    if (isValidRedirectPath(pathname)) {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 
@@ -65,7 +85,9 @@ export async function middleware(request: NextRequest) {
 
   if (!user) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
+    if (isValidRedirectPath(pathname)) {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
     return NextResponse.redirect(loginUrl);
   }
 

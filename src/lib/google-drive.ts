@@ -1,6 +1,14 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
+/**
+ * Sanitizes a value for use in Google Drive API query strings.
+ * Escapes backslashes and single quotes to prevent query injection.
+ */
+function sanitizeDriveQueryValue(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 class GoogleDriveService {
   private drive;
   private auth;
@@ -363,7 +371,7 @@ class GoogleDriveService {
   ): Promise<string> {
     try {
       const existingFolders = await this.drive.files.list({
-        q: `'${casesFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${caseNumber}' and trashed=false`,
+        q: `'${sanitizeDriveQueryValue(casesFolderId)}' in parents and mimeType='application/vnd.google-apps.folder' and name='${sanitizeDriveQueryValue(caseNumber)}' and trashed=false`,
         fields: 'files(id,name)',
       });
 
@@ -387,7 +395,7 @@ class GoogleDriveService {
 
       for (const folderName of folderPath) {
         const existingFolders = await this.drive.files.list({
-          q: `'${currentParentId}' in parents and mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
+          q: `'${sanitizeDriveQueryValue(currentParentId)}' in parents and mimeType='application/vnd.google-apps.folder' and name='${sanitizeDriveQueryValue(folderName)}' and trashed=false`,
           fields: 'files(id,name)',
         });
 

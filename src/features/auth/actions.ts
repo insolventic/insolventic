@@ -7,6 +7,12 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
+import { headers } from 'next/headers';
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limit';
 
 import prisma from '@/lib/prisma';
 import type { TenantId } from '@/lib/prisma';
@@ -93,8 +99,35 @@ export async function authenticateUser() {
   };
 }
 
+async function getClientIp(): Promise<string> {
+  try {
+    const headersList = await headers();
+    return (
+      headersList.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      headersList.get('x-real-ip') ||
+      'unknown'
+    );
+  } catch {
+    return 'unknown';
+  }
+}
+
 export async function loginUser(input: unknown): Promise<AuthResult> {
   try {
+    // Rate limiting
+    const ip = await getClientIp();
+    const rateLimitResult = checkRateLimit(
+      getRateLimitKey('login', ip),
+      RATE_LIMIT_CONFIGS.login,
+    );
+    if (!rateLimitResult.allowed) {
+      const minutesRemaining = Math.ceil(rateLimitResult.resetInMs / 60000);
+      return {
+        success: false,
+        message: `Demasiados intentos de inicio de sesión. Intente nuevamente en ${minutesRemaining} minutos.`,
+      };
+    }
+
     const validatedInput = loginSchema.parse(input);
     const { email, password, tenantId } = validatedInput;
     const tenantIdValue = tenantId as TenantId;
@@ -182,7 +215,7 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
       refreshToken,
     };
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Login error:', error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -195,7 +228,7 @@ export async function logoutUser(): Promise<void> {
     await clearAuthCookies();
     revalidateTag('auth');
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error('Logout error:', error instanceof Error ? error.message : 'Unknown error');
   }
 
   // Always redirect to home page after logout, even on error
@@ -279,7 +312,7 @@ export async function validateSession(): Promise<ValidateSessionResult> {
 
     return validatedResult;
   } catch (error) {
-    console.error('Session validation error:', error);
+    console.error('Session validation error:', error instanceof Error ? error.message : 'Unknown error');
     return {
       valid: false,
       error: 'Error al validar sesión',
@@ -319,7 +352,7 @@ export async function checkUserPermission(
       requiredPermission: permission,
     };
   } catch (error) {
-    console.error('Permission check error:', error);
+    console.error('Permission check error:', error instanceof Error ? error.message : 'Unknown error');
     return {
       hasPermission: false,
       userPermissions: [],
@@ -414,7 +447,7 @@ export async function refreshAccessToken(): Promise<AuthResult> {
       refreshToken: newRefreshToken,
     };
   } catch (error) {
-    console.error('Token refresh error:', error);
+    console.error('Token refresh error:', error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
       message: 'Error al actualizar token',
@@ -430,7 +463,7 @@ export async function switchDatabase(): Promise<void> {
     // Redirect immediately on server side to prevent race condition
     redirect('/');
   } catch (error) {
-    console.error('Tenant switch error:', error);
+    console.error('Tenant switch error:', error instanceof Error ? error.message : 'Unknown error');
     // Even on error, redirect to prevent staying on authenticated page
     redirect('/');
   }
@@ -438,6 +471,18 @@ export async function switchDatabase(): Promise<void> {
 
 export async function registerUser(input: unknown): Promise<RegisterResult> {
   try {
+    const ip = await getClientIp();
+    const rateLimitResult = checkRateLimit(
+      getRateLimitKey('register', ip),
+      RATE_LIMIT_CONFIGS.register,
+    );
+    if (!rateLimitResult.allowed) {
+      const minutesRemaining = Math.ceil(rateLimitResult.resetInMs / 60000);
+      return {
+        success: false,
+        message: `Demasiados intentos de registro. Intente nuevamente en ${minutesRemaining} minutos.`,
+      };
+    }
     const validatedInput = registerSchema.parse(input);
     const {
       name,
@@ -520,7 +565,7 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
         tenantIdValue,
       );
     } catch (error) {
-      console.error('Failed to send welcome email:', error);
+      console.error('Failed to send welcome email:', error instanceof Error ? error.message : 'Unknown error');
       // Don't fail registration if email fails
     }
 
@@ -534,7 +579,7 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
       },
     };
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Registration error:', error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -546,6 +591,18 @@ export async function forgotPassword(
   input: unknown,
 ): Promise<PasswordResetResult> {
   try {
+    const ip = await getClientIp();
+    const rateLimitResult = checkRateLimit(
+      getRateLimitKey('forgotPassword', ip),
+      RATE_LIMIT_CONFIGS.forgotPassword,
+    );
+    if (!rateLimitResult.allowed) {
+      const minutesRemaining = Math.ceil(rateLimitResult.resetInMs / 60000);
+      return {
+        success: false,
+        message: `Demasiados intentos. Intente nuevamente en ${minutesRemaining} minutos.`,
+      };
+    }
     const validatedInput = forgotPasswordSchema.parse(input);
     const { email, tenantId } = validatedInput;
     const tenantIdValue = tenantId as TenantId;
@@ -621,7 +678,7 @@ export async function forgotPassword(
         'Correo de recuperación enviado exitosamente. Revise su bandeja de entrada y siga las instrucciones.',
     };
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('Forgot password error:', error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -633,6 +690,18 @@ export async function resetPassword(
   input: unknown,
 ): Promise<PasswordResetResult> {
   try {
+    const ip = await getClientIp();
+    const rateLimitResult = checkRateLimit(
+      getRateLimitKey('resetPassword', ip),
+      RATE_LIMIT_CONFIGS.resetPassword,
+    );
+    if (!rateLimitResult.allowed) {
+      const minutesRemaining = Math.ceil(rateLimitResult.resetInMs / 60000);
+      return {
+        success: false,
+        message: `Demasiados intentos. Intente nuevamente en ${minutesRemaining} minutos.`,
+      };
+    }
     const validatedInput = resetPasswordSchema.parse(input);
     const { token, password, tenantId } = validatedInput;
     const tenantIdValue = tenantId as TenantId;
@@ -710,7 +779,7 @@ export async function resetPassword(
         'Contraseña actualizada exitosamente. Puede iniciar sesión con su nueva contraseña.',
     };
   } catch (error) {
-    console.error('Reset password error:', error);
+    console.error('Reset password error:', error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -723,6 +792,18 @@ export async function changePassword(input: unknown): Promise<{
   message?: string;
 }> {
   try {
+    const ip = await getClientIp();
+    const rateLimitResult = checkRateLimit(
+      getRateLimitKey('changePassword', ip),
+      RATE_LIMIT_CONFIGS.changePassword,
+    );
+    if (!rateLimitResult.allowed) {
+      const minutesRemaining = Math.ceil(rateLimitResult.resetInMs / 60000);
+      return {
+        success: false,
+        message: `Demasiados intentos. Intente nuevamente en ${minutesRemaining} minutos.`,
+      };
+    }
     const validatedInput = changePasswordSchema.parse(input);
     const { currentPassword, newPassword } = validatedInput;
 
@@ -779,33 +860,19 @@ export async function changePassword(input: unknown): Promise<{
     }
 
     // Verify current password
-    console.log(
-      '🔍 Debug changePassword - currentPassword provided:',
-      !!currentPassword,
-    );
-    console.log(
-      '🔍 Debug changePassword - user has password:',
-      !!user.password,
-    );
 
     const isCurrentPasswordValid = await bcrypt.compare(
       currentPassword,
       user.password,
     );
-    console.log(
-      '🔍 Debug changePassword - password validation result:',
-      isCurrentPasswordValid,
-    );
 
     if (!isCurrentPasswordValid) {
-      console.log('❌ Password validation failed - throwing error');
       return {
         success: false,
         message: 'La contraseña actual es incorrecta.',
       };
     }
 
-    console.log('✅ Password validation passed');
 
     // Check if new password is different from current
     const isSamePassword = await bcrypt.compare(newPassword, user.password);
@@ -830,14 +897,13 @@ export async function changePassword(input: unknown): Promise<{
 
     revalidateTag('auth');
 
-    console.log('✅ Password changed successfully');
 
     return {
       success: true,
       message: 'Contraseña cambiada exitosamente',
     };
   } catch (error) {
-    console.error('Error in changePassword:', error);
+    console.error('Error in changePassword:', error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
       message:

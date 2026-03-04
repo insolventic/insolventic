@@ -40,11 +40,16 @@ import {
   changePassword,
 } from '@/features/auth/actions';
 import { createAccessToken } from '@/lib/auth';
+import { _resetRateLimitStore } from '@/lib/rate-limit';
+
+// Strong password meeting policy requirements
+const STRONG_PASSWORD = 'SecurePass123!';
 
 describe('Auth Actions — src/features/auth/actions.ts', () => {
   beforeEach(() => {
     resetAllMocks();
     mockCookies.clear();
+    _resetRateLimitStore();
     jest.clearAllMocks();
   });
 
@@ -203,8 +208,8 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
     const validRegisterInput = {
       name: 'New User',
       email: 'newuser@test.com',
-      password: 'password123',
-      confirmPassword: 'password123',
+      password: STRONG_PASSWORD,
+      confirmPassword: STRONG_PASSWORD,
       phone: '3001234567',
       address: 'Test Address',
       professionalCard: 'TP-999',
@@ -256,7 +261,7 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
       // Verify password is hashed (bcrypt hashes start with $2b$)
       expect(storedPassword).toMatch(/^\$2[ab]\$/);
       // Verify it matches the original password
-      const matches = await bcrypt.compare('password123', storedPassword);
+      const matches = await bcrypt.compare(STRONG_PASSWORD, storedPassword);
       expect(matches).toBe(true);
     });
 
@@ -438,8 +443,8 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
 
       const result = await resetPassword({
         token: 'valid-uuid-token',
-        password: 'newpassword123',
-        confirmPassword: 'newpassword123',
+        password: STRONG_PASSWORD,
+        confirmPassword: STRONG_PASSWORD,
         tenantId: 'test-tenant',
       });
 
@@ -464,8 +469,8 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
 
       const result = await resetPassword({
         token: 'expired-token',
-        password: 'newpassword123',
-        confirmPassword: 'newpassword123',
+        password: STRONG_PASSWORD,
+        confirmPassword: STRONG_PASSWORD,
         tenantId: 'test-tenant',
       });
 
@@ -487,8 +492,8 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
 
       const result = await resetPassword({
         token: 'used-token',
-        password: 'newpassword123',
-        confirmPassword: 'newpassword123',
+        password: STRONG_PASSWORD,
+        confirmPassword: STRONG_PASSWORD,
         tenantId: 'test-tenant',
       });
 

@@ -1,6 +1,7 @@
 /**
  * Unit Tests: Auth Validation Schemas (src/features/auth/schemas.ts)
  * Tests Zod schemas for login, register, password reset, etc.
+ * Updated for strengthened password policy (min 8 chars + uppercase + lowercase + number + special)
  */
 
 import {
@@ -10,7 +11,11 @@ import {
   resetPasswordSchema,
   changePasswordSchema,
   sessionSchema,
+  passwordSchema,
 } from '@/features/auth/schemas';
+
+// Strong password that meets all policy requirements
+const STRONG_PASSWORD = 'SecurePass123!';
 
 describe('Auth Schemas — src/features/auth/schemas.ts', () => {
   describe('loginSchema', () => {
@@ -60,8 +65,8 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
     const validInput = {
       name: 'Test User',
       email: 'test@example.com',
-      password: 'password123',
-      confirmPassword: 'password123',
+      password: STRONG_PASSWORD,
+      confirmPassword: STRONG_PASSWORD,
       phone: '3001234567',
       address: 'Calle 123',
       professionalCard: 'TP-001',
@@ -76,16 +81,16 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
     it('should reject mismatched passwords', () => {
       const result = registerSchema.safeParse({
         ...validInput,
-        confirmPassword: 'different-password',
+        confirmPassword: 'DifferentPass1!',
       });
       expect(result.success).toBe(false);
     });
 
-    it('should reject password shorter than 6 characters', () => {
+    it('should reject password shorter than 8 characters', () => {
       const result = registerSchema.safeParse({
         ...validInput,
-        password: '12345',
-        confirmPassword: '12345',
+        password: 'Ab1!xyz',
+        confirmPassword: 'Ab1!xyz',
       });
       expect(result.success).toBe(false);
     });
@@ -137,8 +142,8 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
     it('should validate correct input', () => {
       const result = resetPasswordSchema.safeParse({
         token: 'valid-token-uuid',
-        password: 'newpassword123',
-        confirmPassword: 'newpassword123',
+        password: STRONG_PASSWORD,
+        confirmPassword: STRONG_PASSWORD,
         tenantId: 'test-tenant',
       });
       expect(result.success).toBe(true);
@@ -147,8 +152,8 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
     it('should reject mismatched passwords', () => {
       const result = resetPasswordSchema.safeParse({
         token: 'valid-token-uuid',
-        password: 'newpassword123',
-        confirmPassword: 'different',
+        password: STRONG_PASSWORD,
+        confirmPassword: 'DifferentPass1!',
         tenantId: 'test-tenant',
       });
       expect(result.success).toBe(false);
@@ -157,8 +162,8 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
     it('should reject short password', () => {
       const result = resetPasswordSchema.safeParse({
         token: 'valid-token-uuid',
-        password: '12345',
-        confirmPassword: '12345',
+        password: 'Ab1!',
+        confirmPassword: 'Ab1!',
         tenantId: 'test-tenant',
       });
       expect(result.success).toBe(false);
@@ -168,18 +173,18 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
   describe('changePasswordSchema', () => {
     it('should validate correct input', () => {
       const result = changePasswordSchema.safeParse({
-        currentPassword: 'oldpassword123',
-        newPassword: 'newpassword123',
-        confirmPassword: 'newpassword123',
+        currentPassword: 'OldPassword123!',
+        newPassword: STRONG_PASSWORD,
+        confirmPassword: STRONG_PASSWORD,
       });
       expect(result.success).toBe(true);
     });
 
     it('should reject mismatched new passwords', () => {
       const result = changePasswordSchema.safeParse({
-        currentPassword: 'oldpassword123',
-        newPassword: 'newpassword123',
-        confirmPassword: 'mismatch',
+        currentPassword: 'OldPassword123!',
+        newPassword: STRONG_PASSWORD,
+        confirmPassword: 'MismatchPass1!',
       });
       expect(result.success).toBe(false);
     });
@@ -187,10 +192,42 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
     it('should reject empty current password', () => {
       const result = changePasswordSchema.safeParse({
         currentPassword: '',
-        newPassword: 'newpassword123',
-        confirmPassword: 'newpassword123',
+        newPassword: STRONG_PASSWORD,
+        confirmPassword: STRONG_PASSWORD,
       });
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('passwordSchema — security policy', () => {
+    it('should reject password without uppercase letter', () => {
+      const result = passwordSchema.safeParse('password123!');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject password without lowercase letter', () => {
+      const result = passwordSchema.safeParse('PASSWORD123!');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject password without number', () => {
+      const result = passwordSchema.safeParse('SecurePass!');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject password without special character', () => {
+      const result = passwordSchema.safeParse('SecurePass123');
+      expect(result.success).toBe(false);
+    });
+
+    it('should reject password shorter than 8 characters', () => {
+      const result = passwordSchema.safeParse('Ab1!xyz');
+      expect(result.success).toBe(false);
+    });
+
+    it('should accept password meeting all criteria', () => {
+      const result = passwordSchema.safeParse(STRONG_PASSWORD);
+      expect(result.success).toBe(true);
     });
   });
 

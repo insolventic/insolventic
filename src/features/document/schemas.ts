@@ -132,7 +132,7 @@ export const debtorSchema = z
     createdDate: z.coerce.date().optional(),
     lastUpdate: z.coerce.date().optional(),
   })
-  .catchall(z.unknown());
+  .passthrough();
 
 export const operatorSchema = z
   .object({
@@ -141,7 +141,7 @@ export const operatorSchema = z
     email: z.string(),
     role: z.string().optional(),
   })
-  .catchall(z.unknown());
+  .passthrough();
 
 export const creditorSchema = z
   .object({
@@ -153,7 +153,7 @@ export const creditorSchema = z
     phone: z.string().optional().nullable(),
     address: z.string().optional().nullable(),
   })
-  .catchall(z.unknown());
+  .passthrough();
 
 export const debtSchema = z
   .object({
@@ -166,7 +166,7 @@ export const debtSchema = z
     debtorId: z.string().optional().nullable(),
     creditor: creditorSchema.optional().nullable(),
   })
-  .catchall(z.unknown());
+  .passthrough();
 
 export const assetSchema = z
   .object({
@@ -178,7 +178,7 @@ export const assetSchema = z
     caseId: z.string().optional(),
     debtorId: z.string().optional().nullable(),
   })
-  .catchall(z.unknown());
+  .passthrough();
 
 export const caseWithRelationsSchema = z
   .object({
@@ -195,7 +195,7 @@ export const caseWithRelationsSchema = z
     debts: z.array(debtSchema).optional(),
     assets: z.array(assetSchema).optional(),
   })
-  .catchall(z.unknown());
+  .passthrough();
 
 export type CaseWithRelations = z.infer<typeof caseWithRelationsSchema>;
 
@@ -289,7 +289,10 @@ export const uploadCaseDocumentsInputSchema = z.object({
         docName: z.string().min(1),
         fileName: z.string().min(1),
         mimeType: z.string().min(1),
-        dataBase64: z.string().min(1),
+        dataBase64: z
+          .string()
+          .min(1)
+          .max(13_700_000, 'El archivo excede el tamaño máximo permitido de 10MB'),
       }),
     )
     .min(1, 'Debe adjuntar al menos un archivo'),
