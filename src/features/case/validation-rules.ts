@@ -372,13 +372,22 @@ export function validateAttorneyData(
 export const REQUIRED_DOCUMENTS = [
   { id: 'cedula', name: 'Cédula de ciudadanía', always: true },
   { id: 'redam', name: 'Certificado REDAM', always: true },
-  { id: 'ingresos', name: 'Certificado de ingresos', always: true },
+  { id: 'cert_ingresos', name: 'Certificado de ingresos', always: true },
+  { id: 'tradicion_libertad', name: 'Certificado de tradición y libertad de inmuebles', always: true },
+  { id: 'poder', name: 'Poder (notariado o prueba de envío desde correo del deudor)', always: true },
 ];
 
 export const CONDITIONAL_DOCUMENTS = [
-  { id: 'matricula', name: 'Matrícula mercantil', condition: 'isSmallMerchant' },
-  { id: 'tradicion', name: 'Certificado de tradición', condition: 'hasRealEstate' },
-  { id: 'poder', name: 'Poder notariado', condition: 'hasAttorney' },
+  { id: 'matricula', name: 'Registro de matrícula mercantil (Cámara de Comercio)', condition: 'isSmallMerchant' as const },
+];
+
+export const OPTIONAL_DOCUMENTS = [
+  { id: 'extractos', name: 'Extractos bancarios', multiple: true },
+  { id: 'gastos_manutencion', name: 'Copia de gastos de manutención (gas, agua, luz)', multiple: true },
+  { id: 'procesos_judiciales', name: 'Historial de procesos judiciales', multiple: true },
+  { id: 'mandamientos_pago', name: 'Mandamientos de pago', multiple: true },
+  { id: 'certificados_deuda', name: 'Certificados de deuda', multiple: true },
+  { id: 'copias_titulos', name: 'Copias de letras, pagarés, cheques', multiple: true },
 ];
 
 export function getRequiredDocuments(caseData: Partial<CreateCaseFormInput>): string[] {
@@ -386,18 +395,42 @@ export function getRequiredDocuments(caseData: Partial<CreateCaseFormInput>): st
 
   // Check conditional documents
   const isSmallMerchant = caseData.applicantScope?.includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE');
-  const hasRealEstate = caseData.assets?.some(a => a.type === 'INMUEBLE');
-  // const hasAttorney = !!caseData.attorney; // TODO: Add attorney check
 
   if (isSmallMerchant) {
     required.push('matricula');
   }
 
-  if (hasRealEstate) {
-    required.push('tradicion');
-  }
-
   return required;
+}
+
+/**
+ * Validates that all required documents have been uploaded.
+ * Returns list of missing documents for display.
+ */
+export interface DocumentValidationResult {
+  isValid: boolean;
+  missingDocuments: Array<{ id: string; name: string }>;
+}
+
+export function validateDocumentsComplete(
+  uploadedDocKeys: string[],
+  caseData: Partial<CreateCaseFormInput>,
+): DocumentValidationResult {
+  const requiredIds = getRequiredDocuments(caseData);
+
+  const allDocs = [...REQUIRED_DOCUMENTS, ...CONDITIONAL_DOCUMENTS];
+
+  const missingDocuments = requiredIds
+    .filter(id => !uploadedDocKeys.includes(id))
+    .map(id => {
+      const doc = allDocs.find(d => d.id === id);
+      return { id, name: doc?.name ?? id };
+    });
+
+  return {
+    isValid: missingDocuments.length === 0,
+    missingDocuments,
+  };
 }
 
 // ============================================
@@ -406,9 +439,13 @@ export function getRequiredDocuments(caseData: Partial<CreateCaseFormInput>): st
 
 /**
  * Performs complete validation of case data
- * Returns all errors and warnings
+ * Returns all errors and warnings.
+ * @param uploadedDocKeys — array of document keys that have been uploaded (e.g. ['cedula', 'redam'])
  */
-export function validateCaseComplete(data: Partial<CreateCaseFormInput>): ValidationResult {
+export function validateCaseComplete(
+  data: Partial<CreateCaseFormInput>,
+  uploadedDocKeys: string[] = [],
+): ValidationResult {
   const issues: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
 
@@ -497,6 +534,18 @@ export function validateCaseComplete(data: Partial<CreateCaseFormInput>): Valida
 
   if (!data.notificationPhone) {
     issues.push({ field: 'notificationPhone', message: 'Teléfono de notificación es requerido', type: 'error' });
+  }
+
+  // Documents validation
+  if (uploadedDocKeys.length > 0 || Object.keys(data).length > 0) {
+    const docValidation = validateDocumentsComplete(uploadedDocKeys, data);
+    docValidation.missingDocuments.forEach(doc => {
+      issues.push({
+        field: `document_${doc.id}`,
+        message: `Documento obligatorio faltante: ${doc.name}`,
+        type: 'error',
+      });
+    });
   }
 
   return {

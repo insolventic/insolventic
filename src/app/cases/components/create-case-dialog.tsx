@@ -32,6 +32,7 @@ import {
 import {
   validateIncomeExpenses,
   validatePaymentProposal,
+  validateDocumentsComplete,
   type ValidationIssue,
 } from '@/features/case/validation-rules';
 
@@ -115,7 +116,7 @@ export function CreateCaseDialog({
   });
   const [creatingDebtor, setCreatingDebtor] = useState(false);
   const documentsToUploadRef = useRef<
-    Array<{ docName: string; files: File[] }>
+    Array<{ docName: string; docKey: string; files: File[] }>
   >([]);
   const [validationWarnings, setValidationWarnings] = useState<ValidationIssue[]>([]);
 
@@ -388,6 +389,20 @@ export function CreateCaseDialog({
   };
 
   const handleSubmit = async (data: CreateCaseFormData) => {
+    // Validate required documents before proceeding
+    const uploadedDocKeys = documentsToUploadRef.current.map(d => d.docKey);
+    const docValidation = validateDocumentsComplete(uploadedDocKeys, data);
+    if (!docValidation.isValid) {
+      const missing = docValidation.missingDocuments.map(d => d.name).join(', ');
+      toast.error('Documentos obligatorios faltantes', {
+        description: missing,
+        duration: 8000,
+      });
+      // Navigate to documents tab
+      setActiveTab('assets');
+      return;
+    }
+
     // Count creditors from debts array
     const creditorsCount = data.debts?.length ?? 0;
 
@@ -1081,6 +1096,7 @@ export function CreateCaseDialog({
                   <AssetsSection />
                   <div className="border-t pt-6">
                     <DocumentsSection
+                      applicantScope={form.watch('applicantScope') ?? []}
                       onFilesSelected={(sel) => {
                         documentsToUploadRef.current = sel;
                       }}
