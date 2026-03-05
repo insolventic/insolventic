@@ -5,6 +5,10 @@ import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
+import {
+  resolveCenterFolderName,
+  validateCenterBelongsToTenant,
+} from '@/lib/centro-conciliacion';
 import type { DocumentTemplate } from './templates-config';
 
 import {
@@ -353,28 +357,32 @@ export async function getDocumentsFromDrive() {
 
     const caseNumberPattern = /(CON|INS|ACU)-\d{4}-\d{3}/;
 
-    const filteredDocuments = documents.filter((doc) => {
-      if (doc.isFolder) {
-        if (
-          doc.folderPath.length === 0 &&
-          caseNumberPattern.test(doc.fileName)
-        ) {
-          return true;
-        }
-        if (
-          doc.folderPath.length > 0 &&
-          caseNumberPattern.test(doc.folderPath[0])
-        ) {
-          return true;
-        }
-        return false;
-      } else {
-        return (
-          doc.folderPath &&
-          doc.folderPath.length > 0 &&
-          caseNumberPattern.test(doc.folderPath[0])
-        );
+    /**
+     * Extract case number from a document's folderPath.
+     * Handles both new format [centerName, caseNumber, ...] and legacy [caseNumber, ...].
+     */
+    function extractCaseNumber(doc: { folderPath: string[]; fileName: string; isFolder: boolean }): string | undefined {
+      // New format: folderPath[0] = center name, folderPath[1] = case number
+      if (doc.folderPath.length > 1 && caseNumberPattern.test(doc.folderPath[1])) {
+        return doc.folderPath[1];
       }
+      // Legacy format: folderPath[0] = case number
+      if (doc.folderPath.length > 0 && caseNumberPattern.test(doc.folderPath[0])) {
+        return doc.folderPath[0];
+      }
+      // Folder with no path but name is case number
+      if (doc.isFolder && doc.folderPath.length === 0 && caseNumberPattern.test(doc.fileName)) {
+        return doc.fileName;
+      }
+      // Case folder with center prefix
+      if (doc.isFolder && doc.folderPath.length === 1 && caseNumberPattern.test(doc.fileName)) {
+        return doc.fileName;
+      }
+      return undefined;
+    }
+
+    const filteredDocuments = documents.filter((doc) => {
+      return extractCaseNumber(doc) !== undefined;
     });
 
     // Check user permissions to determine case visibility scope
@@ -443,30 +451,7 @@ export async function getDocumentsFromDrive() {
 
       // Filter documents by accessible case numbers
       const userFilteredDocuments = filteredDocuments.filter((doc) => {
-        let caseNumber: string | undefined;
-
-        if (doc.isFolder) {
-          if (
-            doc.folderPath.length === 0 &&
-            caseNumberPattern.test(doc.fileName)
-          ) {
-            caseNumber = doc.fileName;
-          } else if (
-            doc.folderPath.length > 0 &&
-            caseNumberPattern.test(doc.folderPath[0])
-          ) {
-            caseNumber = doc.folderPath[0];
-          }
-        } else {
-          if (
-            doc.folderPath &&
-            doc.folderPath.length > 0 &&
-            caseNumberPattern.test(doc.folderPath[0])
-          ) {
-            caseNumber = doc.folderPath[0];
-          }
-        }
-
+        const caseNumber = extractCaseNumber(doc);
         return caseNumber && accessibleCaseNumbers.includes(caseNumber);
       });
 
@@ -509,71 +494,26 @@ export async function syncDocumentsWithGoogleDrive() {
     console.log('Starting Google Drive documents sync process...');
     const { googleDriveService } = await import('@/lib/google-drive');
 
-    // Primero, buscar la carpeta "archivos" y luego "documentos-generados" dentro de ella
-    const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-    console.log('Searching for archivos folder in root folder:', rootFolderId);
+    // Resolve the center folder for this tenant
+    const centerFolderName = resolveCenterFolderName(tenantId);
 
-    const rootContents =
-      await googleDriveService.listFoldersAndFiles(rootFolderId);
-    console.log('Root folder contents:', {
-      folders: rootContents.folders.map((f) => ({ id: f.id, name: f.name })),
-      files: rootContents.files.map((f) => ({ id: f.id, name: f.name })),
-    });
+    // Find or create the documentos-generados root folder
+    let docGenFolderId: string;
+    try {
+      docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
+    } catch (error) {
+      console.error('Error finding/creating documentos-generados:', error);
+      return { synced: 0, created: 0, updated: 0, folders: 0 };
+    }
 
-    // Buscar carpeta "archivos"
-    const archivosFolder = rootContents.folders.find(
-      (folder) => folder.name?.toLowerCase() === 'archivos',
+    // Find or create the center subfolder: documentos-generados/{centerFolderName}/
+    const centerFolderId = await googleDriveService.createFolderHierarchy(
+      [centerFolderName],
+      docGenFolderId,
     );
 
-    let documentsFolder;
-
-    if (archivosFolder && archivosFolder.id) {
-      console.log(
-        'Found archivos folder, searching for documentos-generados inside it...',
-      );
-      const archivosContents = await googleDriveService.listFoldersAndFiles(
-        archivosFolder.id,
-      );
-      documentsFolder = archivosContents.folders.find(
-        (folder) => folder.name?.toLowerCase() === 'documentos-generados',
-      );
-    } else {
-      console.log(
-        'No archivos folder found, searching for documentos-generados in root...',
-      );
-      documentsFolder = rootContents.folders.find(
-        (folder) => folder.name?.toLowerCase() === 'documentos-generados',
-      );
-    }
-
-    if (!documentsFolder || !documentsFolder.id) {
-      console.log('Carpeta "documentos-generados" no encontrada. Creando...');
-      try {
-        const newFolderId = await googleDriveService.createFolder(
-          'documentos-generados',
-          rootFolderId,
-        );
-        documentsFolder = { id: newFolderId, name: 'documentos-generados' };
-        console.log(
-          'Carpeta "documentos-generados" creada con ID:',
-          newFolderId,
-        );
-      } catch (error) {
-        console.error(
-          'Error al crear la carpeta "documentos-generados":',
-          error,
-        );
-        return {
-          synced: 0,
-          created: 0,
-          updated: 0,
-          folders: 0,
-        };
-      }
-    }
-
-    const casesFolderId = documentsFolder.id!;
-    console.log('Found documentos-generados folder with ID:', casesFolderId);
+    const casesFolderId = centerFolderId;
+    console.log(`Found center folder "${centerFolderName}" with ID:`, casesFolderId);
 
     console.log(
       'Fetching folders and files from documentos-generados folder in Google Drive...',
@@ -589,6 +529,9 @@ export async function syncDocumentsWithGoogleDrive() {
     let folders = 0;
 
     for (const folder of driveData.folders) {
+      // Prefix all paths with the center folder name for consistency
+      const prefixedPath = [centerFolderName, ...folder.path];
+
       const existingDocument = await prisma.documentFromDrive.findUnique({
         where: {
           googleDriveId_tenantId: {
@@ -603,7 +546,7 @@ export async function syncDocumentsWithGoogleDrive() {
           where: { id: existingDocument.id },
           data: {
             fileName: folder.name,
-            folderPath: folder.path,
+            folderPath: prefixedPath,
             parentFolderId: folder.parentId,
             isFolder: true,
             updatedAt: folder.modifiedTime
@@ -618,7 +561,7 @@ export async function syncDocumentsWithGoogleDrive() {
             googleDriveId: folder.id,
             fileName: folder.name,
             mimeType: 'application/vnd.google-apps.folder',
-            folderPath: folder.path,
+            folderPath: prefixedPath,
             parentFolderId: folder.parentId,
             isFolder: true,
             tenantId,
@@ -640,6 +583,9 @@ export async function syncDocumentsWithGoogleDrive() {
     );
 
     for (const file of documentFiles) {
+      // Prefix all paths with the center folder name for consistency
+      const prefixedPath = [centerFolderName, ...file.path];
+
       const existingDocument = await prisma.documentFromDrive.findUnique({
         where: {
           googleDriveId_tenantId: {
@@ -651,9 +597,14 @@ export async function syncDocumentsWithGoogleDrive() {
 
       if (existingDocument) {
         const caseNumberPattern = /(CON|INS|ACU)-\d{4}-\d{3}/;
+        // Check if folderPath[0] is a center name or folderPath[1] is a case number
+        const hasCenterPrefix = existingDocument.folderPath.length > 1 &&
+          caseNumberPattern.test(existingDocument.folderPath[1]);
+        const hasLegacyPath = existingDocument.folderPath.length > 0 &&
+          caseNumberPattern.test(existingDocument.folderPath[0]);
         const shouldUpdateFolderPath =
           existingDocument.folderPath.length === 0 ||
-          !caseNumberPattern.test(existingDocument.folderPath[0]);
+          (!hasCenterPrefix && !hasLegacyPath);
 
         await prisma.documentFromDrive.update({
           where: { id: existingDocument.id },
@@ -661,7 +612,7 @@ export async function syncDocumentsWithGoogleDrive() {
             fileName: file.name,
             mimeType: file.mimeType || 'application/octet-stream',
             folderPath: shouldUpdateFolderPath
-              ? file.path
+              ? prefixedPath
               : existingDocument.folderPath,
             parentFolderId: file.parentId,
             isFolder: false,
@@ -678,7 +629,7 @@ export async function syncDocumentsWithGoogleDrive() {
             googleDriveId: file.id,
             fileName: file.name,
             mimeType: file.mimeType || 'application/octet-stream',
-            folderPath: file.path,
+            folderPath: prefixedPath,
             parentFolderId: file.parentId,
             isFolder: false,
             size: file.size,
@@ -870,6 +821,22 @@ export async function batchGenerateDocuments(input: {
     const projectRoot = process.cwd();
     const assetsBaseDir = path.join(projectRoot, 'Documentos HTML');
 
+    // Resolve center folder name from case data or tenant
+    const centerFolderName = resolveCenterFolderName(
+      tenantId,
+      caseData.centroConciliacionNombre,
+    );
+
+    // Security: validate center matches tenant to prevent cross-center document generation
+    const crossCenterError = validateCenterBelongsToTenant(tenantId, centerFolderName);
+    if (crossCenterError) {
+      console.warn(`[SECURITY] Cross-center violation in batchGenerateDocuments: ${crossCenterError}`);
+      throw new Error(
+        'El centro de conciliación del caso no corresponde al tenant actual. ' +
+          'No se pueden generar documentos en una carpeta de otro centro.',
+      );
+    }
+
     // Create case folder in Google Drive for storage
     let caseFolderId = '';
     let caseFolderUrl = '';
@@ -877,6 +844,7 @@ export async function batchGenerateDocuments(input: {
     try {
       const caseFolder = await createCaseFolderInGoogleDrive(
         caseData.caseNumber,
+        centerFolderName,
         prisma,
         tenantId,
       );
@@ -1101,34 +1069,42 @@ export async function uploadCaseDocuments(input: {
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
-      select: { caseNumber: true, id: true },
+      select: { caseNumber: true, id: true, centroConciliacionNombre: true },
     });
 
     if (!caseData) {
       throw new Error('Caso no encontrado');
     }
 
-    // Ensure case folder exists
-    const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-    const rootContents =
-      await googleDriveService.listFoldersAndFiles(rootFolderId);
-    let documentsFolder = rootContents.folders.find(
-      (f) => f.name?.toLowerCase() === 'documentos-generados',
+    // Resolve center folder name from case data or tenant
+    const centerFolderName = resolveCenterFolderName(
+      tenantId,
+      caseData.centroConciliacionNombre,
     );
-    if (!documentsFolder || !documentsFolder.id) {
-      const newId = await googleDriveService.createFolder(
-        'documentos-generados',
-        rootFolderId,
-      );
-      documentsFolder = { id: newId, name: 'documentos-generados' } as {
-        id: string;
-        name: string;
+
+    // Security: validate center matches tenant to prevent cross-center uploads
+    const crossCenterError = validateCenterBelongsToTenant(tenantId, centerFolderName);
+    if (crossCenterError) {
+      console.warn(`[SECURITY] Cross-center violation in uploadCaseDocuments: ${crossCenterError}`);
+      return {
+        success: false,
+        error: 'El centro de conciliación del caso no corresponde al tenant actual.',
       };
     }
 
+    // Ensure folder hierarchy: documentos-generados/{center}/{caseNumber}/
+    const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
+
+    // Get or create center subfolder
+    const centerFolderId = await googleDriveService.createFolderHierarchy(
+      [centerFolderName],
+      docGenFolderId,
+    );
+
+    // Get or create case folder inside center
     const caseFolderId = await googleDriveService.findOrCreateCaseFolder(
       caseData.caseNumber,
-      documentsFolder.id!,
+      centerFolderId,
     );
 
     // Create subfolder per person inside case folder
@@ -1174,7 +1150,7 @@ export async function uploadCaseDocuments(input: {
         update: {
           fileName: d.fileName,
           mimeType: d.mimeType,
-          folderPath: [caseData.caseNumber, 'Personas', personName],
+          folderPath: [centerFolderName, caseData.caseNumber, 'Personas', personName],
           parentFolderId: personFolderId,
           updatedAt: new Date(),
         },
@@ -1182,7 +1158,7 @@ export async function uploadCaseDocuments(input: {
           googleDriveId: fileId,
           fileName: d.fileName,
           mimeType: d.mimeType,
-          folderPath: [caseData.caseNumber, 'Personas', personName],
+          folderPath: [centerFolderName, caseData.caseNumber, 'Personas', personName],
           parentFolderId: personFolderId,
           isFolder: false,
           tenantId,
@@ -1206,36 +1182,62 @@ export async function uploadCaseDocuments(input: {
   }
 }
 
+/**
+ * Finds or creates the "documentos-generados" root folder in Google Drive.
+ * Reusable helper to avoid duplicating this logic across functions.
+ */
+async function findOrCreateDocumentosGeneradosFolder(): Promise<string> {
+  const { googleDriveService } = await import('@/lib/google-drive');
+  const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
+  const rootContents =
+    await googleDriveService.listFoldersAndFiles(rootFolderId);
+  const documentsFolder = rootContents.folders.find(
+    (folder) => folder.name?.toLowerCase() === 'documentos-generados',
+  );
+
+  if (documentsFolder?.id) {
+    return documentsFolder.id;
+  }
+
+  console.log('Carpeta "documentos-generados" no encontrada. Creando...');
+  const newFolderId = await googleDriveService.createFolder(
+    'documentos-generados',
+    rootFolderId,
+  );
+  console.log('Carpeta "documentos-generados" creada con ID:', newFolderId);
+  return newFolderId;
+}
+
+/**
+ * Creates (or finds) the case folder inside the center's subfolder.
+ * Structure: documentos-generados/{centerFolderName}/{caseNumber}/
+ *
+ * @param caseNumber - The case number (e.g., "CON-2024-001")
+ * @param centerFolderName - The center folder name (e.g., "Armonia", "Construpaz")
+ * @param prisma - Prisma client
+ * @param tenantId - Tenant ID for DB records
+ */
 async function createCaseFolderInGoogleDrive(
   caseNumber: string,
+  centerFolderName: string,
   prisma: PrismaClient,
   tenantId: string,
 ) {
   const { googleDriveService } = await import('@/lib/google-drive');
 
-  // Buscar la carpeta "documentos-generados" primero
-  const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-  const rootContents =
-    await googleDriveService.listFoldersAndFiles(rootFolderId);
-  let documentsFolder = rootContents.folders.find(
-    (folder) => folder.name?.toLowerCase() === 'documentos-generados',
+  // 1. Get or create "documentos-generados"
+  const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
+
+  // 2. Get or create center subfolder: documentos-generados/{centerFolderName}/
+  const centerFolderId = await googleDriveService.createFolderHierarchy(
+    [centerFolderName],
+    docGenFolderId,
   );
 
-  if (!documentsFolder || !documentsFolder.id) {
-    console.log('Carpeta "documentos-generados" no encontrada. Creando...');
-    const newFolderId = await googleDriveService.createFolder(
-      'documentos-generados',
-      rootFolderId,
-    );
-    documentsFolder = { id: newFolderId, name: 'documentos-generados' };
-    console.log('Carpeta "documentos-generados" creada con ID:', newFolderId);
-  }
-
-  const casesFolderId = documentsFolder.id!;
-
+  // 3. Get or create case folder: documentos-generados/{centerFolderName}/{caseNumber}/
   const caseFolderId = await googleDriveService.findOrCreateCaseFolder(
     caseNumber,
-    casesFolderId,
+    centerFolderId,
   );
 
   await prisma.documentFromDrive.upsert({
@@ -1247,16 +1249,16 @@ async function createCaseFolderInGoogleDrive(
     },
     update: {
       fileName: caseNumber,
-      folderPath: [],
-      parentFolderId: casesFolderId,
+      folderPath: [centerFolderName],
+      parentFolderId: centerFolderId,
       updatedAt: new Date(),
     },
     create: {
       googleDriveId: caseFolderId,
       fileName: caseNumber,
       mimeType: 'application/vnd.google-apps.folder',
-      folderPath: [],
-      parentFolderId: casesFolderId,
+      folderPath: [centerFolderName],
+      parentFolderId: centerFolderId,
       isFolder: true,
       tenantId,
       createdAt: new Date(),
