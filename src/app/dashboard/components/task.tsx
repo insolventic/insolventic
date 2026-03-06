@@ -3,6 +3,7 @@
 import { LucideIcon } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { HelpTooltip } from '@/components/ui/help-tooltip';
 import { cn } from '@/lib/utils';
 
 interface TaskProps {
@@ -14,6 +15,7 @@ interface TaskProps {
   iconColor: string;
   selected: boolean;
   disabled?: boolean;
+  helpText?: string;
   onClick: () => void;
 }
 
@@ -25,6 +27,7 @@ export function Task({
   iconColor,
   selected,
   disabled = false,
+  helpText,
   onClick,
 }: Readonly<Omit<TaskProps, 'id'>>) {
   return (
@@ -43,10 +46,19 @@ export function Task({
         <div className={`rounded-lg p-2 ${color} shrink-0`}>
           <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
-        <div className="flex-1">
-          <h3 className="mb-1 text-sm leading-tight font-semibold break-words">
-            {title}
-          </h3>
+        <div className="min-w-0 flex-1">
+          <div className="mb-1 flex items-center gap-1">
+            <h3 className="text-sm leading-tight font-semibold break-words">
+              {title}
+            </h3>
+            {helpText && (
+              <HelpTooltip
+                text={helpText}
+                ariaLabel={`Ayuda: ${title}`}
+                position="top"
+              />
+            )}
+          </div>
           <p className="text-xs leading-tight break-words hyphens-auto text-gray-500">
             {description}
           </p>
