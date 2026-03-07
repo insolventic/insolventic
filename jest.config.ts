@@ -11,14 +11,21 @@ const config: Config = {
     '^.+\\.[tj]sx?$': [
       'ts-jest',
       {
-        tsconfig: 'tsconfig.json',
+        tsconfig: {
+          jsx: 'react-jsx',
+          esModuleInterop: true,
+          allowJs: true,
+          moduleResolution: 'node',
+          resolveJsonModule: true,
+          isolatedModules: true,
+        },
         diagnostics: false,
       },
     ],
   },
   transformIgnorePatterns: ['/node_modules/(?!jose)'],
   setupFiles: ['<rootDir>/tests/setup.ts'],
-  testMatch: ['**/*.test.ts'],
+  testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   testPathIgnorePatterns: ['tests/e2e/'],
   collectCoverageFrom: [
     'src/features/**/actions.ts',

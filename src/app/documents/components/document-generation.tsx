@@ -1,7 +1,20 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
-import { Wand2, Check, FileDown, Loader2, ChevronsUpDown, Package } from 'lucide-react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
+import {
+  Wand2,
+  Check,
+  FileDown,
+  Loader2,
+  ChevronsUpDown,
+  Package,
+  ExternalLink,
+  AlertCircle,
+  FolderOpen,
+  Info,
+  XCircle,
+  FileText,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/use-auth';
@@ -41,13 +54,49 @@ import { getAllCases } from '@/features/case/actions';
 import { batchGenerateDocuments } from '@/features/document/actions';
 
 const PACKAGES = [
-  { value: 'all', label: 'Todos los paquetes (49 documentos)' },
-  { value: '1', label: 'Paquete 1 - Solicitud (6 documentos)' },
-  { value: '2', label: 'Paquete 2 - Admisión y Apertura (7 documentos)' },
-  { value: '3', label: 'Paquete 3 - Negociación y Acuerdo (6 documentos)' },
-  { value: '4', label: 'Paquete 4 - Terminación Normal (3 documentos)' },
-  { value: '5', label: 'Paquete 5 - Fracaso (27 documentos)' },
+  { value: 'all', label: 'Todos los paquetes', count: 49 },
+  { value: '1', label: 'Paquete 1 - Solicitud', count: 6 },
+  { value: '2', label: 'Paquete 2 - Admisión y Apertura', count: 7 },
+  { value: '3', label: 'Paquete 3 - Negociación y Acuerdo', count: 6 },
+  { value: '4', label: 'Paquete 4 - Terminación Normal', count: 3 },
+  { value: '5', label: 'Paquete 5 - Fracaso', count: 27 },
 ];
+
+const TYPE_COLORS: Record<string, string> = {
+  Insolvencia: 'bg-blue-100 text-blue-800',
+  'Conciliación': 'bg-green-100 text-green-800',
+  'Acuerdo de Apoyo': 'bg-purple-100 text-purple-800',
+};
+
+interface CaseOption {
+  id: string;
+  caseNumber: string;
+  debtorName: string;
+  type: string;
+  documentCount: number;
+  driveFolderId?: string | null;
+  phase?: string | null;
+}
+
+interface GenerationResultData {
+  caseId: string;
+  caseNumber: string;
+  folderId: string;
+  folderUrl: string;
+  documents: Array<{
+    templateId: string;
+    templateName: string;
+    documentId: string;
+    documentName: string;
+    documentUrl: string;
+    status: 'success' | 'error';
+    error?: string;
+  }>;
+  generatedAt: Date;
+  totalDocuments: number;
+  successfulDocuments: number;
+  failedDocuments: number;
+}
 
 interface DocumentGenerationProps {
   onDocumentsGenerated: () => void;
@@ -58,61 +107,58 @@ export function DocumentGeneration({
 }: Readonly<DocumentGenerationProps>) {
   const { checkPermission } = useAuth();
   const canGenerateDocuments = checkPermission('Generar documentos');
-  const [selectedCaseForGeneration, setSelectedCaseForGeneration] =
-    useState('');
+  const [selectedCaseId, setSelectedCaseId] = useState('');
   const [selectedPackage, setSelectedPackage] = useState('all');
   const [open, setOpen] = useState(false);
-  const [generationResult, setGenerationResult] = useState<{
-    caseId: string;
-    caseNumber: string;
-    folderId: string;
-    folderUrl: string;
-    documents: Array<{
-      templateId: string;
-      templateName: string;
-      documentId: string;
-      documentName: string;
-      documentUrl: string;
-      status: 'success' | 'error';
-      error?: string;
-    }>;
-    generatedAt: Date;
-    totalDocuments: number;
-    successfulDocuments: number;
-    failedDocuments: number;
-  } | null>(null);
+  const [generationResult, setGenerationResult] =
+    useState<GenerationResultData | null>(null);
+  const [showErrors, setShowErrors] = useState(false);
 
-  const [cases, setCases] = useState<
-    Array<{
-      id: string;
-      caseNumber: string;
-      debtorName: string;
-      type: string;
-    }>
-  >([]);
+  const [cases, setCases] = useState<CaseOption[]>([]);
   const [isPending, startTransition] = useTransition();
 
+  const selectedCase = useMemo(
+    () => cases.find((c) => c.id === selectedCaseId) ?? null,
+    [cases, selectedCaseId],
+  );
+
+  const selectedPkg = useMemo(
+    () => PACKAGES.find((p) => p.value === selectedPackage),
+    [selectedPackage],
+  );
+
+  const handleCaseSelect = (caseId: string) => {
+    const newCaseId = caseId === selectedCaseId ? '' : caseId;
+    setSelectedCaseId(newCaseId);
+    setGenerationResult(null);
+    setShowErrors(false);
+    setOpen(false);
+  };
+
   const handleBatchGeneration = () => {
-    if (!selectedCaseForGeneration) return;
+    if (!selectedCaseId) return;
 
     setGenerationResult(null);
+    setShowErrors(false);
 
     startTransition(async () => {
-      const packageNumber = selectedPackage !== 'all'
-        ? (Number(selectedPackage) as 1 | 2 | 3 | 4 | 5)
-        : undefined;
+      const packageNumber =
+        selectedPackage !== 'all'
+          ? (Number(selectedPackage) as 1 | 2 | 3 | 4 | 5)
+          : undefined;
 
       const { success, data, message } = await batchGenerateDocuments({
-        caseId: selectedCaseForGeneration,
+        caseId: selectedCaseId,
         packageNumber,
       });
 
       if (success && data) {
         setGenerationResult(data);
         onDocumentsGenerated();
-        toast.success('Documentos generados exitosamente');
+        toast.success(
+          `${data.successfulDocuments} documentos generados exitosamente`,
+        );
       } else {
-        console.error('Error in batch generation');
         toast.error(
           'Error al generar documentos: ' + (message || 'Error desconocido'),
         );
@@ -130,6 +176,9 @@ export function DocumentGeneration({
             caseNumber: c.caseNumber,
             debtorName: c.debtorName,
             type: c.type,
+            documentCount: c._count?.documents ?? 0,
+            driveFolderId: c.driveFolderId,
+            phase: c.phase,
           })),
         );
       }
@@ -137,6 +186,13 @@ export function DocumentGeneration({
 
     loadCases();
   }, []);
+
+  const successDocs = generationResult?.documents.filter(
+    (d) => d.status === 'success',
+  );
+  const failedDocs = generationResult?.documents.filter(
+    (d) => d.status === 'error',
+  );
 
   return (
     <Card className="mb-6">
@@ -146,13 +202,17 @@ export function DocumentGeneration({
           Generación de Documentos
         </CardTitle>
         <CardDescription>
-          Genera documentos PDF a partir de plantillas HTML para un caso específico
+          Selecciona un caso y un paquete para generar documentos PDF a partir de
+          las plantillas HTML. Los documentos se guardan automáticamente en
+          Google Drive.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {/* Case & Package selectors */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+          {/* Case selector */}
           <div className="space-y-2">
-            <Label htmlFor="case-select">Buscar y Seleccionar Caso</Label>
+            <Label htmlFor="case-select">Caso</Label>
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -162,17 +222,9 @@ export function DocumentGeneration({
                   className="w-full justify-between"
                   disabled={isPending}
                 >
-                  {selectedCaseForGeneration
-                    ? (() => {
-                        const selectedCase = cases.find(
-                          (caseItem) =>
-                            caseItem.id === selectedCaseForGeneration,
-                        );
-                        return selectedCase
-                          ? `${selectedCase.caseNumber} - ${selectedCase.debtorName}`
-                          : 'Selecciona un caso...';
-                      })()
-                    : 'Selecciona un caso...'}
+                  {selectedCase
+                    ? `${selectedCase.caseNumber} - ${selectedCase.debtorName}`
+                    : 'Buscar y seleccionar caso...'}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -189,27 +241,31 @@ export function DocumentGeneration({
                         <CommandItem
                           key={caseItem.id}
                           value={`${caseItem.caseNumber} ${caseItem.debtorName} ${caseItem.type}`}
-                          onSelect={() => {
-                            setSelectedCaseForGeneration(
-                              caseItem.id === selectedCaseForGeneration
-                                ? ''
-                                : caseItem.id,
-                            );
-                            setOpen(false);
-                          }}
+                          onSelect={() => handleCaseSelect(caseItem.id)}
                         >
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {caseItem.caseNumber}
-                            </span>
-                            <span className="text-muted-foreground text-sm">
-                              {caseItem.debtorName}
-                            </span>
+                          <div className="flex flex-1 items-center gap-2">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {caseItem.caseNumber}
+                              </span>
+                              <span className="text-muted-foreground text-sm">
+                                {caseItem.debtorName}
+                              </span>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                'ml-auto text-xs',
+                                TYPE_COLORS[caseItem.type] || '',
+                              )}
+                            >
+                              {caseItem.type}
+                            </Badge>
                           </div>
                           <Check
                             className={cn(
-                              'ml-auto h-4 w-4',
-                              selectedCaseForGeneration === caseItem.id
+                              'ml-2 h-4 w-4 shrink-0',
+                              selectedCaseId === caseItem.id
                                 ? 'opacity-100'
                                 : 'opacity-0',
                             )}
@@ -223,9 +279,14 @@ export function DocumentGeneration({
             </Popover>
           </div>
 
+          {/* Package selector */}
           <div className="space-y-2">
             <Label htmlFor="package-select">Paquete de Documentos</Label>
-            <Select value={selectedPackage} onValueChange={setSelectedPackage} disabled={isPending}>
+            <Select
+              value={selectedPackage}
+              onValueChange={setSelectedPackage}
+              disabled={isPending}
+            >
               <SelectTrigger>
                 <Package className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Selecciona un paquete" />
@@ -233,19 +294,21 @@ export function DocumentGeneration({
               <SelectContent>
                 {PACKAGES.map((pkg) => (
                   <SelectItem key={pkg.value} value={pkg.value}>
-                    {pkg.label}
+                    {pkg.label} ({pkg.count} doc.)
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Generate button */}
           <Button
             onClick={handleBatchGeneration}
             disabled={
-              !selectedCaseForGeneration || isPending || !canGenerateDocuments
+              !selectedCaseId || isPending || !canGenerateDocuments
             }
             className="w-full lg:w-auto"
+            size="default"
           >
             {isPending ? (
               <>
@@ -261,37 +324,223 @@ export function DocumentGeneration({
           </Button>
         </div>
 
-        {generationResult && (
-          <div className="mt-6 rounded-lg border bg-green-50 p-4">
-            <div className="flex items-center gap-2 text-green-800">
-              <Check className="h-5 w-5" />
-              <h3 className="font-semibold">Documentos Generados</h3>
+        {/* Selected case info panel */}
+        {selectedCase && !generationResult && (
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">{selectedCase.caseNumber}</span>
+              </div>
+
+              <span className="text-muted-foreground">
+                {selectedCase.debtorName}
+              </span>
+
+              <Badge
+                variant="outline"
+                className={cn(
+                  'text-xs',
+                  TYPE_COLORS[selectedCase.type] || '',
+                )}
+              >
+                {selectedCase.type}
+              </Badge>
+
+              {selectedCase.phase && (
+                <Badge variant="secondary" className="text-xs">
+                  {selectedCase.phase}
+                </Badge>
+              )}
+
+              <span className="text-muted-foreground text-xs">
+                {selectedCase.documentCount} doc. existentes
+              </span>
             </div>
-            <div className="mt-2 space-y-2">
-              <p className="text-sm text-green-700">
-                Se generaron {generationResult.successfulDocuments} de{' '}
-                {generationResult.totalDocuments} documentos para el caso{' '}
-                <strong>{generationResult.caseNumber}</strong>
+
+            {/* Warning: existing documents */}
+            {selectedCase.documentCount > 0 && (
+              <div className="mt-2 flex items-start gap-2 text-xs text-amber-700">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Este caso ya tiene {selectedCase.documentCount} documento(s)
+                  generado(s). Al generar nuevamente se crearán documentos
+                  adicionales sin reemplazar los existentes.
+                </span>
+              </div>
+            )}
+
+            {/* Info: what will be generated */}
+            {selectedPkg && (
+              <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  Se generarán <strong>{selectedPkg.count}</strong> documento(s)
+                  del {selectedPkg.label.toLowerCase()} para este caso.
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Generation results */}
+        {generationResult && (
+          <div className="space-y-3">
+            {/* Summary */}
+            <div
+              className={cn(
+                'rounded-lg border p-4',
+                generationResult.failedDocuments > 0
+                  ? 'bg-amber-50 border-amber-200'
+                  : 'bg-green-50 border-green-200',
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Check
+                    className={cn(
+                      'h-5 w-5',
+                      generationResult.failedDocuments > 0
+                        ? 'text-amber-700'
+                        : 'text-green-700',
+                    )}
+                  />
+                  <h3
+                    className={cn(
+                      'font-semibold',
+                      generationResult.failedDocuments > 0
+                        ? 'text-amber-800'
+                        : 'text-green-800',
+                    )}
+                  >
+                    Generación Completada
+                  </h3>
+                </div>
+
+                {/* Google Drive folder link */}
+                {generationResult.folderUrl && (
+                  <a
+                    href={generationResult.folderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-md border bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    Abrir en Drive
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+              </div>
+
+              <p
+                className={cn(
+                  'mt-2 text-sm',
+                  generationResult.failedDocuments > 0
+                    ? 'text-amber-700'
+                    : 'text-green-700',
+                )}
+              >
+                Se generaron{' '}
+                <strong>{generationResult.successfulDocuments}</strong> de{' '}
+                <strong>{generationResult.totalDocuments}</strong> documentos
+                para el caso{' '}
+                <strong>{generationResult.caseNumber}</strong>.
                 {generationResult.failedDocuments > 0 && (
                   <span className="text-red-600">
-                    {' '}({generationResult.failedDocuments} fallidos)
+                    {' '}
+                    {generationResult.failedDocuments} documento(s) fallaron.
                   </span>
                 )}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {generationResult.documents.map((doc, index) => (
-                  <Badge
-                    key={doc.documentId || `doc-${index}-${doc.templateId}`}
-                    variant={
-                      doc.status === 'success' ? 'default' : 'destructive'
-                    }
-                    title={doc.error || doc.documentName}
-                  >
-                    {doc.templateName}
-                  </Badge>
-                ))}
-              </div>
             </div>
+
+            {/* Successful documents */}
+            {successDocs && successDocs.length > 0 && (
+              <div>
+                <h4 className="mb-2 text-sm font-medium text-gray-700">
+                  Documentos generados ({successDocs.length})
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {successDocs.map((doc, index) =>
+                    doc.documentUrl ? (
+                      <a
+                        key={
+                          doc.documentId || `doc-${index}-${doc.templateId}`
+                        }
+                        href={doc.documentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1"
+                        title={doc.documentName}
+                      >
+                        <Badge
+                          variant="default"
+                          className="cursor-pointer transition-opacity hover:opacity-80"
+                        >
+                          {doc.templateName}
+                          <ExternalLink className="ml-1 h-3 w-3" />
+                        </Badge>
+                      </a>
+                    ) : (
+                      <Badge
+                        key={
+                          doc.documentId || `doc-${index}-${doc.templateId}`
+                        }
+                        variant="default"
+                        title={doc.documentName}
+                      >
+                        {doc.templateName}
+                      </Badge>
+                    ),
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Failed documents */}
+            {failedDocs && failedDocs.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowErrors(!showErrors)}
+                  className="mb-2 flex items-center gap-1 text-sm font-medium text-red-700 hover:underline"
+                >
+                  <XCircle className="h-4 w-4" />
+                  {failedDocs.length} documento(s) con error
+                  <span className="text-xs">
+                    {showErrors ? '(ocultar)' : '(ver detalles)'}
+                  </span>
+                </button>
+                {showErrors && (
+                  <div className="space-y-1">
+                    {failedDocs.map((doc, index) => (
+                      <div
+                        key={`err-${index}-${doc.templateId}`}
+                        className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm"
+                      >
+                        <span className="font-medium text-red-800">
+                          {doc.templateName}
+                        </span>
+                        {doc.error && (
+                          <p className="mt-0.5 text-xs text-red-600">
+                            {doc.error}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Permission notice */}
+        {!canGenerateDocuments && (
+          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            No tienes permisos para generar documentos. Contacta al
+            administrador.
           </div>
         )}
       </CardContent>
