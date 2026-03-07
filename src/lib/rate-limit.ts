@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * In-memory rate limiting for serverless environments.
  * Provides per-instance sliding window rate limiting.

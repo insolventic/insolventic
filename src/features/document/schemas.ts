@@ -247,7 +247,15 @@ export const getDocumentsFromDriveOutputSchema = z.array(
 export const batchGenerateDocumentsInputSchema = z.object({
   caseId: z.string().min(1, 'El ID del caso es requerido'),
   templateIds: z.array(z.string()).optional(),
-  packageNumber: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+  packageNumber: z
+    .union([
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+      z.literal(4),
+      z.literal(5),
+    ])
+    .optional(),
   outputFormat: z.enum(['docx', 'pdf']).default('pdf'),
 });
 
@@ -294,14 +302,21 @@ export const uploadCaseDocumentsInputSchema = z.object({
     .array(
       z.object({
         docName: z.string().min(1),
-        fileName: z.string().min(1).max(255, 'Nombre de archivo demasiado largo'),
+        fileName: z
+          .string()
+          .min(1)
+          .max(255, 'Nombre de archivo demasiado largo'),
         mimeType: z.enum(ALLOWED_UPLOAD_MIME_TYPES, {
-          errorMap: () => ({ message: 'Tipo de archivo no permitido. Solo se aceptan PDF, JPG y PNG.' }),
+          error:
+            'Tipo de archivo no permitido. Solo se aceptan PDF, JPG y PNG.',
         }),
         dataBase64: z
           .string()
           .min(1)
-          .max(13_700_000, 'El archivo excede el tamaño máximo permitido de 10MB'),
+          .max(
+            13_700_000,
+            'El archivo excede el tamaño máximo permitido de 10MB',
+          ),
       }),
     )
     .min(1, 'Debe adjuntar al menos un archivo'),
