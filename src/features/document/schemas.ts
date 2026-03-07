@@ -279,6 +279,13 @@ export const batchGenerateDocumentsOutputSchema = z.object({
     .nullable(),
 });
 
+// Allowed MIME types for document uploads
+export const ALLOWED_UPLOAD_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+] as const;
+
 // Upload user-provided documents for a case
 export const uploadCaseDocumentsInputSchema = z.object({
   caseId: z.string().min(1, 'El ID del caso es requerido'),
@@ -287,9 +294,14 @@ export const uploadCaseDocumentsInputSchema = z.object({
     .array(
       z.object({
         docName: z.string().min(1),
-        fileName: z.string().min(1),
-        mimeType: z.string().min(1),
-        dataBase64: z.string().min(1),
+        fileName: z.string().min(1).max(255, 'Nombre de archivo demasiado largo'),
+        mimeType: z.enum(ALLOWED_UPLOAD_MIME_TYPES, {
+          errorMap: () => ({ message: 'Tipo de archivo no permitido. Solo se aceptan PDF, JPG y PNG.' }),
+        }),
+        dataBase64: z
+          .string()
+          .min(1)
+          .max(13_700_000, 'El archivo excede el tamaño máximo permitido de 10MB'),
       }),
     )
     .min(1, 'Debe adjuntar al menos un archivo'),

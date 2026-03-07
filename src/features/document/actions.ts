@@ -1073,6 +1073,75 @@ export async function batchGenerateDocuments(input: {
   }
 }
 
+// ============================================
+// FILE UPLOAD SECURITY
+// ============================================
+
+const ALLOWED_UPLOAD_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+] as const;
+
+const MIME_TO_EXTENSIONS: Record<string, string[]> = {
+  'application/pdf': ['.pdf'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+};
+
+/**
+ * Sanitizes a filename to prevent path traversal and script execution.
+ * Removes special characters, limits length, preserves extension.
+ */
+function sanitizeFileName(fileName: string): string {
+  // Remove path separators and null bytes
+  let sanitized = fileName.replace(/[\\/\0]/g, '');
+  // Remove leading dots (hidden files)
+  sanitized = sanitized.replace(/^\.+/, '');
+  // Only allow alphanumeric, hyphens, underscores, dots, spaces
+  sanitized = sanitized.replace(/[^a-zA-Z0-9\-_.\sáéíóúñÁÉÍÓÚÑ()]/g, '_');
+  // Collapse multiple underscores/spaces
+  sanitized = sanitized.replace(/[_\s]+/g, '_');
+  // Limit length (keep extension)
+  const ext = sanitized.lastIndexOf('.') > 0
+    ? sanitized.substring(sanitized.lastIndexOf('.'))
+    : '';
+  const name = sanitized.substring(0, sanitized.lastIndexOf('.') > 0 ? sanitized.lastIndexOf('.') : sanitized.length);
+  const maxNameLen = 200 - ext.length;
+  sanitized = name.substring(0, maxNameLen) + ext;
+  // Fallback
+  if (!sanitized || sanitized === ext) {
+    sanitized = `documento_${Date.now()}${ext || '.pdf'}`;
+  }
+  return sanitized;
+}
+
+/**
+ * Validates that a MIME type is in the allowed list and matches the file extension.
+ */
+function validateFileType(
+  fileName: string,
+  mimeType: string,
+): { valid: boolean; error?: string } {
+  if (!ALLOWED_UPLOAD_MIME_TYPES.includes(mimeType as typeof ALLOWED_UPLOAD_MIME_TYPES[number])) {
+    return {
+      valid: false,
+      error: `Tipo de archivo no permitido: ${mimeType}. Solo se aceptan PDF, JPG y PNG.`,
+    };
+  }
+
+  const ext = '.' + fileName.split('.').pop()?.toLowerCase();
+  const allowedExtensions = MIME_TO_EXTENSIONS[mimeType];
+  if (allowedExtensions && !allowedExtensions.includes(ext)) {
+    return {
+      valid: false,
+      error: `La extensión ${ext} no coincide con el tipo ${mimeType}.`,
+    };
+  }
+
+  return { valid: true };
+}
+
 // Upload user-provided documents (e.g., cédula, REDAM) to the case folder in Drive
 export async function uploadCaseDocuments(input: {
   caseId: string;
@@ -1095,7 +1164,15 @@ export async function uploadCaseDocuments(input: {
     }
 
     const validatedInput = uploadCaseDocumentsInputSchema.parse(input);
-    const { caseId, personName, documents } = validatedInput;
+    const { caseId, documents } = validatedInput;
+
+    // Validate each file type before any upload
+    for (const d of documents) {
+      const typeCheck = validateFileType(d.fileName, d.mimeType);
+      if (!typeCheck.valid) {
+        return { success: false, error: typeCheck.error };
+      }
+    }
 
     const { googleDriveService } = await import('@/lib/google-drive');
 
@@ -1131,21 +1208,22 @@ export async function uploadCaseDocuments(input: {
       documentsFolder.id!,
     );
 
-    // Create subfolder per person inside case folder
-    const personFolderId = await googleDriveService.createFolderHierarchy(
-      ['Personas', personName],
+    // Create Adjuntos subfolder inside case folder (not Personas/{name})
+    const adjuntosFolderId = await googleDriveService.createFolderHierarchy(
+      ['Adjuntos'],
       caseFolderId,
     );
 
     let uploaded = 0;
 
     for (const d of documents) {
+      const safeFileName = sanitizeFileName(d.fileName);
       const buffer = Buffer.from(d.dataBase64, 'base64');
       const fileId = await googleDriveService.uploadFile(
-        d.fileName,
+        safeFileName,
         buffer,
         d.mimeType,
-        personFolderId,
+        adjuntosFolderId,
       );
 
       const fileUrl = googleDriveService.getFileUrl(fileId);
@@ -1158,10 +1236,10 @@ export async function uploadCaseDocuments(input: {
           uploadDate: new Date(),
           url: fileUrl,
           googleDriveId: fileId,
-          fileName: d.fileName,
+          fileName: safeFileName,
           mimeType: d.mimeType,
           isGenerated: false,
-          templateFolderPath: ['Personas', personName],
+          templateFolderPath: ['Adjuntos'],
           caseId: caseId,
           tenantId,
         },
@@ -1172,18 +1250,18 @@ export async function uploadCaseDocuments(input: {
           googleDriveId_tenantId: { googleDriveId: fileId, tenantId },
         },
         update: {
-          fileName: d.fileName,
+          fileName: safeFileName,
           mimeType: d.mimeType,
-          folderPath: [caseData.caseNumber, 'Personas', personName],
-          parentFolderId: personFolderId,
+          folderPath: [caseData.caseNumber, 'Adjuntos'],
+          parentFolderId: adjuntosFolderId,
           updatedAt: new Date(),
         },
         create: {
           googleDriveId: fileId,
-          fileName: d.fileName,
+          fileName: safeFileName,
           mimeType: d.mimeType,
-          folderPath: [caseData.caseNumber, 'Personas', personName],
-          parentFolderId: personFolderId,
+          folderPath: [caseData.caseNumber, 'Adjuntos'],
+          parentFolderId: adjuntosFolderId,
           isFolder: false,
           tenantId,
         },
@@ -1195,7 +1273,8 @@ export async function uploadCaseDocuments(input: {
     const result = uploadCaseDocumentsOutputSchema.parse({ uploaded });
     return { success: true, data: result };
   } catch (error) {
-    console.error('Error uploading case documents:', error);
+    console.error('Error uploading case documents:',
+      error instanceof Error ? error.message : 'Unknown error');
     return {
       success: false,
       error:
