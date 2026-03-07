@@ -1,7 +1,22 @@
 import { z } from 'zod';
 
+/**
+ * Reusable password schema with strong security requirements.
+ * Min 8 chars, uppercase, lowercase, number, and special character.
+ */
+export const passwordSchema = z
+  .string()
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .regex(/[A-Z]/, 'La contraseña debe incluir al menos una letra mayúscula')
+  .regex(/[a-z]/, 'La contraseña debe incluir al menos una letra minúscula')
+  .regex(/[0-9]/, 'La contraseña debe incluir al menos un número')
+  .regex(
+    /[^A-Za-z0-9]/,
+    'La contraseña debe incluir al menos un carácter especial (!@#$%^&*)',
+  );
+
 export const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().max(254, 'Email demasiado largo').email('Email inválido'),
   password: z.string().min(1, 'La contraseña es requerida'),
   tenantId: z.string().min(1, 'El tenant es requerido'),
 });
@@ -60,10 +75,8 @@ export const permissionGuardPropsSchema = z.object({
 export const registerSchema = z
   .object({
     name: z.string().min(1, 'El nombre es requerido'),
-    email: z.string().email('Email inválido'),
-    password: z
-      .string()
-      .min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    email: z.string().max(254, 'Email demasiado largo').email('Email inválido'),
+    password: passwordSchema,
     confirmPassword: z.string(),
     phone: z.string().min(1, 'El teléfono es requerido'),
     address: z.string().min(1, 'La dirección es requerida'),
@@ -89,16 +102,14 @@ export const registerResultSchema = z.object({
 
 // Password reset schemas
 export const forgotPasswordSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().max(254, 'Email demasiado largo').email('Email inválido'),
   tenantId: z.string().min(1, 'El tenant es requerido'),
 });
 
 export const resetPasswordSchema = z
   .object({
     token: z.string().min(1, 'Token es requerido'),
-    password: z
-      .string()
-      .min(6, 'La contraseña debe tener al menos 6 caracteres'),
+    password: passwordSchema,
     confirmPassword: z.string(),
     tenantId: z.string().min(1, 'El tenant es requerido'),
   })
@@ -116,9 +127,7 @@ export const passwordResetResultSchema = z.object({
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'La contraseña actual es requerida'),
-    newPassword: z
-      .string()
-      .min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
+    newPassword: passwordSchema,
     confirmPassword: z.string().min(1, 'Confirma la nueva contraseña'),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {

@@ -37,7 +37,7 @@ class EmailService {
         pass: process.env.SMTP_PASSWORD, // App password from Google
       },
       tls: {
-        rejectUnauthorized: false,
+        rejectUnauthorized: process.env.NODE_ENV === 'production',
       },
     });
   }

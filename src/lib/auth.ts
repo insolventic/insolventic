@@ -3,9 +3,17 @@ import { cookies } from 'next/headers';
 
 import type { SessionData, RefreshTokenData } from '@/features/auth/schemas';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-);
+function getJwtSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error(
+      'JWT_SECRET environment variable is not set. Application cannot start without it.',
+    );
+  }
+  return new TextEncoder().encode(secret);
+}
+
+const JWT_SECRET = getJwtSecret();
 
 export async function createAccessToken(
   payload: Omit<SessionData, 'iat' | 'exp'>,
@@ -163,7 +171,7 @@ export async function setAuthCookies(
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 24 * 60 * 60,
+    maxAge: 30 * 24 * 60 * 60, // 30 days — matches refresh token JWT expiration
     path: '/',
   });
 }
