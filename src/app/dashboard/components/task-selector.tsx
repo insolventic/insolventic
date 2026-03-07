@@ -36,6 +36,8 @@ export function TaskSelector() {
       iconColor: 'text-blue-600',
       stats: { active: 41, pending: 5, total: 46 },
       permission: 'Ver casos',
+      helpText:
+        'Administra los procesos de insolvencia, crea nuevos casos, consulta su estado y realiza el seguimiento completo de cada expediente.',
     },
     {
       id: 2,
@@ -47,6 +49,8 @@ export function TaskSelector() {
       iconColor: 'text-purple-600',
       stats: { total: 4, active: 3 },
       permission: 'Ver usuarios',
+      helpText:
+        'Crea usuarios, asigna roles y controla los permisos de acceso dentro del sistema según su función.',
     },
     {
       id: 3,
@@ -58,6 +62,8 @@ export function TaskSelector() {
       iconColor: 'text-green-600',
       stats: { total: 4, active: 3 },
       permission: 'Ver acreedores',
+      helpText:
+        'Registra y administra la información de los acreedores asociados a cada caso de insolvencia.',
     },
     {
       id: 4,
@@ -69,6 +75,8 @@ export function TaskSelector() {
       iconColor: 'text-orange-600',
       stats: { total: 3, active: 3 },
       permission: 'Ver deudores',
+      helpText:
+        'Gestiona los datos de los deudores, su información personal y su relación con los casos activos.',
     },
     {
       id: 5,
@@ -80,6 +88,8 @@ export function TaskSelector() {
       iconColor: 'text-red-600',
       stats: { total: 156, recent: 12 },
       permission: 'Ver documentos',
+      helpText:
+        'Genera, consulta y administra los documentos legales asociados a cada proceso de insolvencia.',
     },
     {
       id: 8,
@@ -91,6 +101,8 @@ export function TaskSelector() {
       iconColor: 'text-yellow-600',
       stats: { unread: 7, total: 45 },
       permission: 'Ver notificaciones',
+      helpText:
+        'Recibe alertas y notificaciones importantes sobre cambios, eventos y estados de los casos.',
     },
   ];
 
@@ -116,6 +128,7 @@ export function TaskSelector() {
                 iconColor={task.iconColor}
                 selected={selectedTask === task.id.toString()}
                 disabled={!hasPermission}
+                helpText={task.helpText}
                 onClick={() => handleTaskClick(task.id.toString(), task.href)}
               />
             );

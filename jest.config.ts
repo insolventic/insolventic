@@ -15,6 +15,7 @@ const config: Config = {
           jsx: 'react-jsx',
           esModuleInterop: true,
           allowJs: true,
+          module: 'commonjs',
           moduleResolution: 'node',
           resolveJsonModule: true,
           isolatedModules: true,
