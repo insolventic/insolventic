@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/components/theme-provider';
 import { SessionTimeoutProvider } from '@/components/auth/session-timeout-provider';
 import { Toaster } from '@/components/ui/sonner';
+import { VersionBadge } from '@/components/ui/version-badge';
 
 import type { Metadata } from 'next';
 import type React from 'react';
@@ -34,6 +35,7 @@ export default function RootLayout({
             {children}
           </SessionTimeoutProvider>
           <Toaster closeButton richColors />
+          <VersionBadge />
         </ThemeProvider>
       </body>
     </html>

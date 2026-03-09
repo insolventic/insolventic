@@ -142,6 +142,41 @@ Complete user management system with:
 - **Notifications:** Sonner
 - **Authentication:** Custom JWT authentication
 
+## 🏷️ Versioning Strategy
+
+This project uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`):
+
+| Increment | When                             |
+| --------- | -------------------------------- |
+| **MAJOR** | Breaking changes                 |
+| **MINOR** | New backward-compatible features |
+| **PATCH** | Bug fixes                        |
+
+### How it works
+
+- **Source of truth**: `package.json → version`
+- **Centralized config**: `src/config/version.ts` reads from `package.json` and exposes helpers
+- **UI indicator**: A subtle version badge is displayed in the bottom-left corner of the app (`INSOLVENTIC v0.1.0`)
+- **Environment labels**: The badge appends `-dev` or `-staging` based on `NEXT_PUBLIC_APP_ENV` / `NODE_ENV`
+
+### Creating a release
+
+```bash
+# 1. Update version in package.json
+npm version patch   # 0.1.0 → 0.1.1
+npm version minor   # 0.1.0 → 0.2.0
+npm version major   # 0.1.0 → 1.0.0
+
+# 2. Push with tag
+git push origin dev --tags
+```
+
+When a `v*` tag is pushed, the GitHub Actions workflow (`.github/workflows/release.yml`) automatically creates a GitHub Release with changelog notes.
+
+### Changelog
+
+All notable changes are documented in [CHANGELOG.md](./CHANGELOG.md) following the [Keep a Changelog](https://keepachangelog.com/) format.
+
 ## 📄 License
 
 This project is proprietary and confidential. Unauthorized copying, transfer, or reproduction of the contents is strictly prohibited.
