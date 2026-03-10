@@ -45,10 +45,12 @@ export function RoleCard({ role, users }: Readonly<RoleCardProps>) {
     <>
       <Card className="border transition-shadow hover:shadow-lg">
         <CardContent>
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">{role.name}</h3>
-              <p className="text-sm text-gray-600">{role.description}</p>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-lg font-semibold">{role.name}</h3>
+              <p className="line-clamp-2 text-sm text-gray-600">
+                {role.description}
+              </p>
             </div>
             <div className="text-center">
               <Badge className={role.color}>{role.users.length}</Badge>
@@ -73,37 +75,37 @@ export function RoleCard({ role, users }: Readonly<RoleCardProps>) {
             </ul>
           </div>
 
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowEditDialog(true)}
-              className="w-full"
+              className="min-w-0 flex-1"
               disabled={!canEditRoles}
             >
-              <Edit className="mr-2 h-4 w-4" />
-              Editar
+              <Edit className="mr-1.5 h-4 w-4 shrink-0" />
+              <span className="truncate">Editar</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowRoleUsersDialog(true)}
-              className="w-full"
+              className="min-w-0 flex-1"
               disabled={!canViewUsers}
             >
-              <Users className="mr-2 h-4 w-4" />
-              Ver Usuarios
+              <Users className="mr-1.5 h-4 w-4 shrink-0" />
+              <span className="truncate">Usuarios</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowDeleteDialog(true)}
               disabled={!canDeleteRoles || role.users.length > 0}
-              className="w-full hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+              className="min-w-0 flex-1 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
               title={getDeleteButtonTitle()}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
+              <Trash2 className="mr-1.5 h-4 w-4 shrink-0" />
+              <span className="truncate">Eliminar</span>
             </Button>
           </div>
         </CardContent>

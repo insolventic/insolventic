@@ -118,7 +118,9 @@ export function CreateCaseDialog({
   const documentsToUploadRef = useRef<
     Array<{ docName: string; docKey: string; files: File[] }>
   >([]);
-  const [validationWarnings, setValidationWarnings] = useState<ValidationIssue[]>([]);
+  const [validationWarnings, setValidationWarnings] = useState<
+    ValidationIssue[]
+  >([]);
 
   const form = useForm({
     resolver: zodResolver(createCaseFormSchema),
@@ -141,7 +143,9 @@ export function CreateCaseDialog({
   const [isPending, startTransition] = useTransition();
 
   const goToNextTab = () => {
-    const currentIndex = TAB_ORDER.indexOf(activeTab as typeof TAB_ORDER[number]);
+    const currentIndex = TAB_ORDER.indexOf(
+      activeTab as (typeof TAB_ORDER)[number],
+    );
     if (currentIndex < TAB_ORDER.length - 1) {
       setActiveTab(TAB_ORDER[currentIndex + 1]);
     }
@@ -260,11 +264,12 @@ export function CreateCaseDialog({
           );
 
           // Auto-populate operatorId: prefer specific roles, fallback to first available user
-          const operatorUser = usersResult.data?.find(
-            (user) =>
-              user.role?.name === 'Operadora de Insolvencia' ||
-              user.role?.name === 'Abogado',
-          ) || usersResult.data?.[0]; // Fallback to first user if no specific role found
+          const operatorUser =
+            usersResult.data?.find(
+              (user) =>
+                user.role?.name === 'Operadora de Insolvencia' ||
+                user.role?.name === 'Abogado',
+            ) || usersResult.data?.[0]; // Fallback to first user if no specific role found
           if (operatorUser) {
             form.setValue('operatorId', operatorUser.id);
           }
@@ -342,14 +347,18 @@ export function CreateCaseDialog({
 
     // Validate income vs expenses
     const incomeWarnings = validateIncomeExpenses(
-      typeof formData.monthlyIncome === 'number' ? formData.monthlyIncome : undefined,
-      typeof formData.monthlyExpenses === 'number' ? formData.monthlyExpenses : undefined
+      typeof formData.monthlyIncome === 'number'
+        ? formData.monthlyIncome
+        : undefined,
+      typeof formData.monthlyExpenses === 'number'
+        ? formData.monthlyExpenses
+        : undefined,
     );
-    warnings.push(...incomeWarnings.filter(w => w.type === 'warning'));
+    warnings.push(...incomeWarnings.filter((w) => w.type === 'warning'));
 
     // Validate payment proposal
     const proposalWarnings = validatePaymentProposal(formData);
-    warnings.push(...proposalWarnings.filter(w => w.type === 'warning'));
+    warnings.push(...proposalWarnings.filter((w) => w.type === 'warning'));
 
     setValidationWarnings(warnings);
   };
@@ -362,7 +371,7 @@ export function CreateCaseDialog({
       validateCoherence();
     });
     return () => subscription.unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handler called when react-hook-form validation FAILS (zodResolver errors)
@@ -384,16 +393,20 @@ export function CreateCaseDialog({
         duration: 6000,
       });
     } else {
-      toast.error('Por favor complete todos los campos requeridos antes de crear el caso.');
+      toast.error(
+        'Por favor complete todos los campos requeridos antes de crear el caso.',
+      );
     }
   };
 
   const handleSubmit = async (data: CreateCaseFormData) => {
     // Validate required documents before proceeding
-    const uploadedDocKeys = documentsToUploadRef.current.map(d => d.docKey);
+    const uploadedDocKeys = documentsToUploadRef.current.map((d) => d.docKey);
     const docValidation = validateDocumentsComplete(uploadedDocKeys, data);
     if (!docValidation.isValid) {
-      const missing = docValidation.missingDocuments.map(d => d.name).join(', ');
+      const missing = docValidation.missingDocuments
+        .map((d) => d.name)
+        .join(', ');
       toast.error('Documentos obligatorios faltantes', {
         description: missing,
         duration: 8000,
@@ -418,12 +431,7 @@ export function CreateCaseDialog({
       const { success, data: result, error } = await createCase(submitData);
 
       if (success && result) {
-        toast.success('Caso creado exitosamente');
-        form.reset();
-        onOpenChange(false);
-        onCaseCreated?.();
-
-        // If case creation succeeded and there are selected files, upload them
+        // Upload files BEFORE closing dialog so File objects remain valid
         if (result.id && documentsToUploadRef.current.length > 0) {
           try {
             const payload = {
@@ -442,14 +450,29 @@ export function CreateCaseDialog({
             } as const;
             const uploadResult = await uploadCaseDocuments(payload);
             if (uploadResult.success) {
-              toast.success(`${payload.documents.length} documento(s) subido(s) exitosamente`);
+              toast.success(
+                `Caso creado y ${payload.documents.length} documento(s) subido(s) exitosamente`,
+              );
             } else {
-              toast.error(uploadResult.error ?? 'Error al subir documentos');
+              toast.warning(
+                'Caso creado, pero hubo un error al subir documentos: ' +
+                  (uploadResult.error ?? 'Error desconocido'),
+              );
             }
           } catch {
-            toast.error('Error al subir documentos');
+            toast.warning(
+              'Caso creado, pero hubo un error al subir documentos',
+            );
           }
+        } else {
+          toast.success('Caso creado exitosamente');
         }
+
+        // Clear ref, reset form, and close dialog AFTER upload completes
+        documentsToUploadRef.current = [];
+        form.reset();
+        onOpenChange(false);
+        onCaseCreated?.();
       } else {
         // Show specific error message from server or generic error
         const errorMessage = error ?? 'Error al crear el caso';
@@ -608,7 +631,10 @@ export function CreateCaseDialog({
     form.setValue('owedCapital', '45000000');
     form.setValue('designatedOperator', 'María García');
     form.setValue('designationDate', new Date().toISOString().split('T')[0]);
-    form.setValue('positionAcceptanceDate', new Date().toISOString().split('T')[0]);
+    form.setValue(
+      'positionAcceptanceDate',
+      new Date().toISOString().split('T')[0],
+    );
     form.setValue('admissionDate', new Date().toISOString().split('T')[0]);
 
     // Hearing date 30 days from now
@@ -926,7 +952,8 @@ export function CreateCaseDialog({
     form.setValue('bienes', [
       {
         bienTipo: 'Inmueble',
-        bienDescripcion: 'Apartamento en conjunto residencial Torres del Parque',
+        bienDescripcion:
+          'Apartamento en conjunto residencial Torres del Parque',
         bienUbicacion: 'Calle 127 #20-45 Apto 302, Bogotá',
         bienMatriculaInmobiliaria: '50N-12345678',
         bienPlaca: '',
@@ -935,7 +962,8 @@ export function CreateCaseDialog({
         bienValorCatastral: '120000000',
         bienValorLibros: '150000000',
         bienGravamenes: true,
-        descripcionGravamen: 'Hipoteca a favor de Banco Popular por $90.000.000',
+        descripcionGravamen:
+          'Hipoteca a favor de Banco Popular por $90.000.000',
         bienEmbargado: false,
         bienAfectadoViviendaFamiliar: true,
         bienEnLeasing: false,
@@ -951,7 +979,8 @@ export function CreateCaseDialog({
         bienValorCatastral: '',
         bienValorLibros: '30000000',
         bienGravamenes: true,
-        descripcionGravamen: 'Prenda a favor de Banco de Occidente por $25.000.000',
+        descripcionGravamen:
+          'Prenda a favor de Banco de Occidente por $25.000.000',
         bienEmbargado: false,
         bienAfectadoViviendaFamiliar: false,
         bienEnLeasing: false,
@@ -985,12 +1014,18 @@ export function CreateCaseDialog({
     form.setValue('propuestaPeriodicidadPago', 'Mensual');
     form.setValue('propuestaTasaInteres', 0);
     form.setValue('propuestaQuitaPromedio', 15);
-    form.setValue('propuestaFechaInicioPago', (() => {
-      const d = new Date();
-      d.setMonth(d.getMonth() + 2);
-      return d.toISOString().split('T')[0];
-    })());
-    form.setValue('propuestaObservaciones', 'Se solicita condonación total de intereses causados y futuros. Pago mensual con recursos provenientes de salario y arriendos.');
+    form.setValue(
+      'propuestaFechaInicioPago',
+      (() => {
+        const d = new Date();
+        d.setMonth(d.getMonth() + 2);
+        return d.toISOString().split('T')[0];
+      })(),
+    );
+    form.setValue(
+      'propuestaObservaciones',
+      'Se solicita condonación total de intereses causados y futuros. Pago mensual con recursos provenientes de salario y arriendos.',
+    );
 
     // Tab 12: Documentos Anexos
     form.setValue('anexaSoporteIngresos', true);
@@ -1015,7 +1050,10 @@ export function CreateCaseDialog({
     form.setValue('expedienteNumero', 'EXP-2025-0042');
     form.setValue('expedienteAnio', new Date().getFullYear());
     form.setValue('fechaRadicacion', new Date().toISOString().split('T')[0]);
-    form.setValue('centroConciliacionNombre', 'Centro de Conciliación Constructores de Paz');
+    form.setValue(
+      'centroConciliacionNombre',
+      'Centro de Conciliación Constructores de Paz',
+    );
     form.setValue('conciliadorAsignado', 'María García');
     form.setValue('ciudadRadicacion', 'Bogotá D.C.');
 
@@ -1037,20 +1075,51 @@ export function CreateCaseDialog({
 
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit, onInvalid)}>
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <Tabs
+                value={activeTab}
+                onValueChange={setActiveTab}
+                className="space-y-4"
+              >
                 <TabsList className="flex w-full flex-wrap gap-1">
-                  <TabsTrigger value="debtor" className="text-xs">1. Solicitante</TabsTrigger>
-                  <TabsTrigger value="case-details" className="text-xs">2. Detalles</TabsTrigger>
-                  <TabsTrigger value="legal-process" className="text-xs">3. Proceso</TabsTrigger>
-                  <TabsTrigger value="creditors" className="text-xs">4. Acreedores</TabsTrigger>
-                  <TabsTrigger value="assets" className="text-xs">5. Bienes</TabsTrigger>
-                  <TabsTrigger value="income" className="text-xs">6. Ingresos</TabsTrigger>
-                  <TabsTrigger value="payment" className="text-xs">7. Propuesta</TabsTrigger>
-                  <TabsTrigger value="legal" className="text-xs">8. Legal</TabsTrigger>
-                  <TabsTrigger value="definitivo-acreedores" className="text-xs">9. Acr. Def.</TabsTrigger>
-                  <TabsTrigger value="definitivo-bienes" className="text-xs">10. Bienes Def.</TabsTrigger>
-                  <TabsTrigger value="definitivo-extra" className="text-xs">11. Declaraciones</TabsTrigger>
-                  <TabsTrigger value="definitivo-final" className="text-xs">12. Final</TabsTrigger>
+                  <TabsTrigger value="debtor" className="text-xs">
+                    1. Solicitante
+                  </TabsTrigger>
+                  <TabsTrigger value="case-details" className="text-xs">
+                    2. Detalles
+                  </TabsTrigger>
+                  <TabsTrigger value="legal-process" className="text-xs">
+                    3. Proceso
+                  </TabsTrigger>
+                  <TabsTrigger value="creditors" className="text-xs">
+                    4. Acreedores
+                  </TabsTrigger>
+                  <TabsTrigger value="assets" className="text-xs">
+                    5. Bienes
+                  </TabsTrigger>
+                  <TabsTrigger value="income" className="text-xs">
+                    6. Ingresos
+                  </TabsTrigger>
+                  <TabsTrigger value="payment" className="text-xs">
+                    7. Propuesta
+                  </TabsTrigger>
+                  <TabsTrigger value="legal" className="text-xs">
+                    8. Legal
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="definitivo-acreedores"
+                    className="text-xs"
+                  >
+                    9. Acr. Def.
+                  </TabsTrigger>
+                  <TabsTrigger value="definitivo-bienes" className="text-xs">
+                    10. Bienes Def.
+                  </TabsTrigger>
+                  <TabsTrigger value="definitivo-extra" className="text-xs">
+                    11. Declaraciones
+                  </TabsTrigger>
+                  <TabsTrigger value="definitivo-final" className="text-xs">
+                    12. Final
+                  </TabsTrigger>
                 </TabsList>
 
                 {/* Tab 1: Deudor + Ámbito de Aplicación */}
@@ -1132,7 +1201,10 @@ export function CreateCaseDialog({
                 </TabsContent>
 
                 {/* Tab 9: Formulario Definitivo - Acreedores + Cónyuge + Info Laboral */}
-                <TabsContent value="definitivo-acreedores" className="space-y-6">
+                <TabsContent
+                  value="definitivo-acreedores"
+                  className="space-y-6"
+                >
                   <ConyugeDefinitivoSection />
                   <div className="border-t pt-6">
                     <InfoLaboralSection />
@@ -1175,11 +1247,16 @@ export function CreateCaseDialog({
 
               {/* Validation Warnings */}
               {validationWarnings.length > 0 && (
-                <Alert variant="default" className="border-amber-200 bg-amber-50">
+                <Alert
+                  variant="default"
+                  className="border-amber-200 bg-amber-50"
+                >
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertTitle className="text-amber-800">Advertencias de coherencia</AlertTitle>
+                  <AlertTitle className="text-amber-800">
+                    Advertencias de coherencia
+                  </AlertTitle>
                   <AlertDescription className="text-amber-700">
-                    <ul className="list-disc pl-4 mt-2">
+                    <ul className="mt-2 list-disc pl-4">
                       {validationWarnings.map((warning, index) => (
                         <li key={index}>{warning.message}</li>
                       ))}

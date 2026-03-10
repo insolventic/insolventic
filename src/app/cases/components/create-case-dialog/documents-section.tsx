@@ -21,13 +21,10 @@ import {
 } from '@/features/case/validation-rules';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
 
-const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-];
+const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
-const ACCEPT_STRING = ALLOWED_MIME_TYPES.join(',') + ',' + ALLOWED_EXTENSIONS.join(',');
+const ACCEPT_STRING =
+  ALLOWED_MIME_TYPES.join(',') + ',' + ALLOWED_EXTENSIONS.join(',');
 
 interface DocumentsSectionProps {
   onFilesSelected?: (
@@ -41,8 +38,7 @@ type DocConfig = { key: string; label: string; multiple?: boolean };
 function isAllowedFile(file: File): boolean {
   const ext = '.' + file.name.split('.').pop()?.toLowerCase();
   return (
-    ALLOWED_MIME_TYPES.includes(file.type) ||
-    ALLOWED_EXTENSIONS.includes(ext)
+    ALLOWED_MIME_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.includes(ext)
   );
 }
 
@@ -60,15 +56,15 @@ export function DocumentsSection({
 
   const mandatoryDocs: DocConfig[] = useMemo(() => {
     const allRequiredDocs = [...REQUIRED_DOCUMENTS, ...CONDITIONAL_DOCUMENTS];
-    return requiredIds.map(id => {
-      const doc = allRequiredDocs.find(d => d.id === id);
+    return requiredIds.map((id) => {
+      const doc = allRequiredDocs.find((d) => d.id === id);
       return { key: id, label: doc?.name ?? id };
     });
   }, [requiredIds]);
 
   const optionalDocs: DocConfig[] = useMemo(
     () =>
-      OPTIONAL_DOCUMENTS.map(d => ({
+      OPTIONAL_DOCUMENTS.map((d) => ({
         key: d.id,
         label: d.name,
         multiple: d.multiple,
@@ -148,13 +144,12 @@ export function DocumentsSection({
           onChange={(e) => handleChange(doc.key, e.target.files)}
         />
         <div className="flex items-center gap-2">
-          {isRequired && (
-            hasFile ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
+          {isRequired &&
+            (hasFile ? (
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
             ) : (
-              <AlertCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-            )
-          )}
+              <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
+            ))}
           <span className="text-sm">
             {doc.label}
             {selectedMap[doc.key]?.length
@@ -163,6 +158,7 @@ export function DocumentsSection({
           </span>
         </div>
         <Button
+          type="button"
           variant="outline"
           size="sm"
           onClick={() => handleChoose(doc.key)}
@@ -184,7 +180,7 @@ export function DocumentsSection({
       <CardContent>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-red-700 font-semibold">
+            <Label className="font-semibold text-red-700">
               Documentos Obligatorios
             </Label>
             <div className="space-y-2">
