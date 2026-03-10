@@ -5,10 +5,7 @@ import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
-import {
-  resolveCenterFolderName,
-  validateCenterBelongsToTenant,
-} from '@/lib/centro-conciliacion';
+import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import type { DocumentTemplate } from './templates-config';
 
 import {
@@ -361,21 +358,39 @@ export async function getDocumentsFromDrive() {
      * Extract case number from a document's folderPath.
      * Handles both new format [centerName, caseNumber, ...] and legacy [caseNumber, ...].
      */
-    function extractCaseNumber(doc: { folderPath: string[]; fileName: string; isFolder: boolean }): string | undefined {
+    function extractCaseNumber(doc: {
+      folderPath: string[];
+      fileName: string;
+      isFolder: boolean;
+    }): string | undefined {
       // New format: folderPath[0] = center name, folderPath[1] = case number
-      if (doc.folderPath.length > 1 && caseNumberPattern.test(doc.folderPath[1])) {
+      if (
+        doc.folderPath.length > 1 &&
+        caseNumberPattern.test(doc.folderPath[1])
+      ) {
         return doc.folderPath[1];
       }
       // Legacy format: folderPath[0] = case number
-      if (doc.folderPath.length > 0 && caseNumberPattern.test(doc.folderPath[0])) {
+      if (
+        doc.folderPath.length > 0 &&
+        caseNumberPattern.test(doc.folderPath[0])
+      ) {
         return doc.folderPath[0];
       }
       // Folder with no path but name is case number
-      if (doc.isFolder && doc.folderPath.length === 0 && caseNumberPattern.test(doc.fileName)) {
+      if (
+        doc.isFolder &&
+        doc.folderPath.length === 0 &&
+        caseNumberPattern.test(doc.fileName)
+      ) {
         return doc.fileName;
       }
       // Case folder with center prefix
-      if (doc.isFolder && doc.folderPath.length === 1 && caseNumberPattern.test(doc.fileName)) {
+      if (
+        doc.isFolder &&
+        doc.folderPath.length === 1 &&
+        caseNumberPattern.test(doc.fileName)
+      ) {
         return doc.fileName;
       }
       return undefined;
@@ -513,7 +528,10 @@ export async function syncDocumentsWithGoogleDrive() {
     );
 
     const casesFolderId = centerFolderId;
-    console.log(`Found center folder "${centerFolderName}" with ID:`, casesFolderId);
+    console.log(
+      `Found center folder "${centerFolderName}" with ID:`,
+      casesFolderId,
+    );
 
     console.log(
       'Fetching folders and files from documentos-generados folder in Google Drive...',
@@ -598,9 +616,11 @@ export async function syncDocumentsWithGoogleDrive() {
       if (existingDocument) {
         const caseNumberPattern = /(CON|INS|ACU)-\d{4}-\d{3}/;
         // Check if folderPath[0] is a center name or folderPath[1] is a case number
-        const hasCenterPrefix = existingDocument.folderPath.length > 1 &&
+        const hasCenterPrefix =
+          existingDocument.folderPath.length > 1 &&
           caseNumberPattern.test(existingDocument.folderPath[1]);
-        const hasLegacyPath = existingDocument.folderPath.length > 0 &&
+        const hasLegacyPath =
+          existingDocument.folderPath.length > 0 &&
           caseNumberPattern.test(existingDocument.folderPath[0]);
         const shouldUpdateFolderPath =
           existingDocument.folderPath.length === 0 ||
@@ -736,16 +756,15 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Get HTML templates to process
-    const {
-      ALL_TEMPLATES,
-      getTemplatesByPackage,
-      getTemplatePath,
-    } = await import('./templates-config');
+    const { ALL_TEMPLATES, getTemplatesByPackage, getTemplatePath } =
+      await import('./templates-config');
 
     let templatesToProcess: DocumentTemplate[];
 
     if (templateIds && templateIds.length > 0) {
-      templatesToProcess = ALL_TEMPLATES.filter(t => templateIds.includes(t.id));
+      templatesToProcess = ALL_TEMPLATES.filter((t) =>
+        templateIds.includes(t.id),
+      );
     } else if (packageNumber) {
       templatesToProcess = getTemplatesByPackage(packageNumber);
     } else {
@@ -757,11 +776,14 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Map case data to placeholders
-    const { mapCaseToPlaceholders, replacePlaceholders } = await import('./placeholder-mapper');
+    const { mapCaseToPlaceholders, replacePlaceholders } = await import(
+      './placeholder-mapper'
+    );
 
     // Transform ALL Decimal fields to numbers for the mapper
     // Prisma Decimal.valueOf() returns a string, causing reduce() string concatenation bugs
-    const toNum = (v: unknown): number | null => v != null ? Number(v) || 0 : null;
+    const toNum = (v: unknown): number | null =>
+      v != null ? Number(v) || 0 : null;
     const transformedCaseData = {
       ...caseData,
       // Case-level Decimal fields
@@ -789,29 +811,37 @@ export async function batchGenerateDocuments(input: {
       patrimonioTotalEstimado: toNum(caseData.patrimonioTotalEstimado),
       pasivoTotalEstimado: toNum(caseData.pasivoTotalEstimado),
       // Debt Decimal fields
-      debts: caseData.debts?.map((debt) => ({
-        ...debt,
-        amount: Number(debt.amount) || 0,
-        capitalAmount: toNum(debt.capitalAmount),
-        interestAmount: toNum(debt.interestAmount),
-        interestRate: debt.interestRate ? Number(debt.interestRate) : undefined,
-      })) || [],
+      debts:
+        caseData.debts?.map((debt) => ({
+          ...debt,
+          amount: Number(debt.amount) || 0,
+          capitalAmount: toNum(debt.capitalAmount),
+          interestAmount: toNum(debt.interestAmount),
+          interestRate: debt.interestRate
+            ? Number(debt.interestRate)
+            : undefined,
+        })) || [],
       // Asset Decimal fields
-      assets: caseData.assets?.map((asset) => ({
-        ...asset,
-        value: asset.value ? Number(asset.value) : null,
-        estimatedValue: asset.value ? Number(asset.value) : null,
-      })) || [],
+      assets:
+        caseData.assets?.map((asset) => ({
+          ...asset,
+          value: asset.value ? Number(asset.value) : null,
+          estimatedValue: asset.value ? Number(asset.value) : null,
+        })) || [],
       // Debtor Decimal fields
-      debtor: caseData.debtor ? {
-        ...caseData.debtor,
-        monthlyIncome: toNum(caseData.debtor.monthlyIncome),
-        monthlyExpenses: toNum(caseData.debtor.monthlyExpenses),
-        otherIncomeAmount: toNum(caseData.debtor.otherIncomeAmount),
-      } : null,
+      debtor: caseData.debtor
+        ? {
+            ...caseData.debtor,
+            monthlyIncome: toNum(caseData.debtor.monthlyIncome),
+            monthlyExpenses: toNum(caseData.debtor.monthlyExpenses),
+            otherIncomeAmount: toNum(caseData.debtor.otherIncomeAmount),
+          }
+        : null,
     };
 
-    const placeholders = mapCaseToPlaceholders(transformedCaseData as unknown as CaseWithRelations);
+    const placeholders = mapCaseToPlaceholders(
+      transformedCaseData as unknown as CaseWithRelations,
+    );
 
     // Read HTML templates, replace placeholders, generate PDFs
     const { promises: fsPromises } = await import('fs');
@@ -827,15 +857,9 @@ export async function batchGenerateDocuments(input: {
       caseData.centroConciliacionNombre,
     );
 
-    // Security: validate center matches tenant to prevent cross-center document generation
-    const crossCenterError = validateCenterBelongsToTenant(tenantId, centerFolderName);
-    if (crossCenterError) {
-      console.warn(`[SECURITY] Cross-center violation in batchGenerateDocuments: ${crossCenterError}`);
-      throw new Error(
-        'El centro de conciliación del caso no corresponde al tenant actual. ' +
-          'No se pueden generar documentos en una carpeta de otro centro.',
-      );
-    }
+    // Note: Cross-center security is enforced by Prisma's tenantId filter
+    // on the case query above. The resolveCenterFolderName function uses the
+    // authoritative tenant→center mapping, so the folder is always correct.
 
     // Create case folder in Google Drive for storage
     let caseFolderId = '';
@@ -851,7 +875,10 @@ export async function batchGenerateDocuments(input: {
       caseFolderId = caseFolder.id;
       caseFolderUrl = caseFolder.webViewLink;
     } catch (driveError) {
-      console.warn('Google Drive folder creation failed, continuing without upload:', driveError);
+      console.warn(
+        'Google Drive folder creation failed, continuing without upload:',
+        driveError,
+      );
     }
 
     const documents: Array<{
@@ -868,17 +895,21 @@ export async function batchGenerateDocuments(input: {
     const htmlDocuments: Array<{
       html: string;
       uniqueKey: string;
-      template: typeof templatesToProcess[number];
+      template: (typeof templatesToProcess)[number];
       documentName: string;
     }> = [];
 
-    console.log(`[batchGenerateDocuments] Processing ${templatesToProcess.length} templates for package ${packageNumber || 'all'}`);
+    console.log(
+      `[batchGenerateDocuments] Processing ${templatesToProcess.length} templates for package ${packageNumber || 'all'}`,
+    );
 
     for (const template of templatesToProcess) {
       try {
         const templatePath = getTemplatePath(template);
         const fullPath = path.join(projectRoot, templatePath);
-        console.log(`[batchGenerateDocuments] Reading template: ${template.name} from ${fullPath}`);
+        console.log(
+          `[batchGenerateDocuments] Reading template: ${template.name} from ${fullPath}`,
+        );
         const htmlContent = await fsPromises.readFile(fullPath, 'utf-8');
         const filledHtml = replacePlaceholders(htmlContent, placeholders);
         const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}.pdf`;
@@ -890,7 +921,10 @@ export async function batchGenerateDocuments(input: {
           documentName,
         });
       } catch (readError) {
-        console.error(`[batchGenerateDocuments] FAILED to read template ${template.name} from ${getTemplatePath(template)}:`, readError);
+        console.error(
+          `[batchGenerateDocuments] FAILED to read template ${template.name} from ${getTemplatePath(template)}:`,
+          readError,
+        );
         documents.push({
           templateId: template.id,
           templateName: template.name,
@@ -898,36 +932,52 @@ export async function batchGenerateDocuments(input: {
           documentName: '',
           documentUrl: '',
           status: 'error',
-          error: readError instanceof Error ? readError.message : 'Error leyendo plantilla',
+          error:
+            readError instanceof Error
+              ? readError.message
+              : 'Error leyendo plantilla',
         });
       }
     }
 
-    console.log(`[batchGenerateDocuments] Phase 1 complete: ${htmlDocuments.length} templates read successfully, ${documents.length} failed`);
+    console.log(
+      `[batchGenerateDocuments] Phase 1 complete: ${htmlDocuments.length} templates read successfully, ${documents.length} failed`,
+    );
 
     // Phase 2: Generate all PDFs in a single Chromium instance
     // Use template.id as unique filename key to avoid collisions
     // (multiple templates share the same fileName, e.g. "Remision Juzgado F.html" x12)
-    console.log(`[batchGenerateDocuments] Phase 2: Generating ${htmlDocuments.length} PDFs via batchHtmlToPdf...`);
+    console.log(
+      `[batchGenerateDocuments] Phase 2: Generating ${htmlDocuments.length} PDFs via batchHtmlToPdf...`,
+    );
     const pdfResults = await batchHtmlToPdf(
-      htmlDocuments.map(d => ({ html: d.html, filename: `${d.uniqueKey}.html` })),
+      htmlDocuments.map((d) => ({
+        html: d.html,
+        filename: `${d.uniqueKey}.html`,
+      })),
       {},
       assetsBaseDir,
     );
-    console.log(`[batchGenerateDocuments] Phase 2 complete: ${pdfResults.length} PDFs generated out of ${htmlDocuments.length} templates`);
+    console.log(
+      `[batchGenerateDocuments] Phase 2 complete: ${pdfResults.length} PDFs generated out of ${htmlDocuments.length} templates`,
+    );
 
     // Log which PDFs were generated vs missing
-    const generatedKeys = new Set(pdfResults.map(r => r.filename));
+    const generatedKeys = new Set(pdfResults.map((r) => r.filename));
     for (const htmlDoc of htmlDocuments) {
       const expectedFilename = `${htmlDoc.uniqueKey}.pdf`;
       if (!generatedKeys.has(expectedFilename)) {
-        console.error(`[batchGenerateDocuments] PDF MISSING for template: ${htmlDoc.template.name} (key: ${htmlDoc.uniqueKey})`);
+        console.error(
+          `[batchGenerateDocuments] PDF MISSING for template: ${htmlDoc.template.name} (key: ${htmlDoc.uniqueKey})`,
+        );
       }
     }
 
     // Phase 3: Upload to Google Drive and save to DB
     for (const htmlDoc of htmlDocuments) {
-      const pdfResult = pdfResults.find(r => r.filename === `${htmlDoc.uniqueKey}.pdf`);
+      const pdfResult = pdfResults.find(
+        (r) => r.filename === `${htmlDoc.uniqueKey}.pdf`,
+      );
 
       if (!pdfResult) {
         documents.push({
@@ -966,7 +1016,10 @@ export async function batchGenerateDocuments(input: {
             fileId = uploadResult.fileId;
             fileUrl = uploadResult.fileUrl;
           } catch (uploadError) {
-            console.warn(`Drive upload failed for ${htmlDoc.template.name}:`, uploadError);
+            console.warn(
+              `Drive upload failed for ${htmlDoc.template.name}:`,
+              uploadError,
+            );
           }
         }
 
@@ -995,7 +1048,10 @@ export async function batchGenerateDocuments(input: {
           status: 'success',
         });
       } catch (saveError) {
-        console.error(`Error saving document ${htmlDoc.template.name}:`, saveError);
+        console.error(
+          `Error saving document ${htmlDoc.template.name}:`,
+          saveError,
+        );
         documents.push({
           templateId: htmlDoc.template.id,
           templateName: htmlDoc.template.name,
@@ -1003,12 +1059,17 @@ export async function batchGenerateDocuments(input: {
           documentName: htmlDoc.documentName,
           documentUrl: '',
           status: 'error',
-          error: saveError instanceof Error ? saveError.message : 'Error guardando documento',
+          error:
+            saveError instanceof Error
+              ? saveError.message
+              : 'Error guardando documento',
         });
       }
     }
 
-    const successfulDocuments = documents.filter(d => d.status === 'success').length;
+    const successfulDocuments = documents.filter(
+      (d) => d.status === 'success',
+    ).length;
     const failedDocuments = documents.length - successfulDocuments;
 
     revalidatePath('/documents');
@@ -1071,10 +1132,16 @@ function sanitizeFileName(fileName: string): string {
   // Collapse multiple underscores/spaces
   sanitized = sanitized.replace(/[_\s]+/g, '_');
   // Limit length (keep extension)
-  const ext = sanitized.lastIndexOf('.') > 0
-    ? sanitized.substring(sanitized.lastIndexOf('.'))
-    : '';
-  const name = sanitized.substring(0, sanitized.lastIndexOf('.') > 0 ? sanitized.lastIndexOf('.') : sanitized.length);
+  const ext =
+    sanitized.lastIndexOf('.') > 0
+      ? sanitized.substring(sanitized.lastIndexOf('.'))
+      : '';
+  const name = sanitized.substring(
+    0,
+    sanitized.lastIndexOf('.') > 0
+      ? sanitized.lastIndexOf('.')
+      : sanitized.length,
+  );
   const maxNameLen = 200 - ext.length;
   sanitized = name.substring(0, maxNameLen) + ext;
   // Fallback
@@ -1091,7 +1158,11 @@ function validateFileType(
   fileName: string,
   mimeType: string,
 ): { valid: boolean; error?: string } {
-  if (!ALLOWED_UPLOAD_MIME_TYPES.includes(mimeType as typeof ALLOWED_UPLOAD_MIME_TYPES[number])) {
+  if (
+    !ALLOWED_UPLOAD_MIME_TYPES.includes(
+      mimeType as (typeof ALLOWED_UPLOAD_MIME_TYPES)[number],
+    )
+  ) {
     return {
       valid: false,
       error: `Tipo de archivo no permitido: ${mimeType}. Solo se aceptan PDF, JPG y PNG.`,
@@ -1159,15 +1230,9 @@ export async function uploadCaseDocuments(input: {
       caseData.centroConciliacionNombre,
     );
 
-    // Security: validate center matches tenant to prevent cross-center uploads
-    const crossCenterError = validateCenterBelongsToTenant(tenantId, centerFolderName);
-    if (crossCenterError) {
-      console.warn(`[SECURITY] Cross-center violation in uploadCaseDocuments: ${crossCenterError}`);
-      return {
-        success: false,
-        error: 'El centro de conciliación del caso no corresponde al tenant actual.',
-      };
-    }
+    // Note: Cross-center security is enforced by Prisma's tenantId filter
+    // on the case query above. The resolveCenterFolderName function uses the
+    // authoritative tenant→center mapping, so the folder is always correct.
 
     // Ensure folder hierarchy: documentos-generados/{center}/{caseNumber}/
     const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
@@ -1249,8 +1314,10 @@ export async function uploadCaseDocuments(input: {
     const result = uploadCaseDocumentsOutputSchema.parse({ uploaded });
     return { success: true, data: result };
   } catch (error) {
-    console.error('Error uploading case documents:',
-      error instanceof Error ? error.message : 'Unknown error');
+    console.error(
+      'Error uploading case documents:',
+      error instanceof Error ? error.message : 'Unknown error',
+    );
     return {
       success: false,
       error:

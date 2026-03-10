@@ -5,6 +5,14 @@
  * validation to enforce Drive folder isolation per center.
  *
  * Folder structure: documentos-generados/{CenterName}/{caseNumber}/
+ *
+ * IMPORTANT: The tenant→center mapping (CENTRO_BY_TENANT) is the single
+ * source of truth for Drive folder routing. The Case field
+ * `centroConciliacionNombre` is a display/legal field and must NOT be
+ * used to determine storage paths — users enter free-text values like
+ * "Centro de Conciliación Constructores de Paz" which don't match folder
+ * names. Security is enforced by Prisma's `tenantId` filter on every
+ * query, not by string comparison.
  */
 
 import type { TenantId } from './prisma';
@@ -48,20 +56,33 @@ export const VALID_CENTER_FOLDER_NAMES = Object.values(CENTRO_BY_TENANT).map(
 
 /**
  * Resolves the Drive folder name for a center.
+ *
  * Priority:
- *   1. Explicit `centroConciliacionNombre` from the Case record
- *   2. Fallback: mapped from the tenantId
+ *   1. Tenant mapping (authoritative — always correct)
+ *   2. Fallback to case field only when tenant is unknown
+ *
+ * The tenant-to-center mapping is the authoritative source because:
+ * - Cases are always loaded with `where: { tenantId }`, so they belong
+ *   to the correct center by definition.
+ * - The `centroConciliacionNombre` field is free-text input from users
+ *   and may contain values like "Centro de Conciliación X" that don't
+ *   match expected Drive folder names.
  *
  * @throws Error if neither source provides a valid center name
  */
 export function resolveCenterFolderName(
   tenantId: string,
-  caseCentroConciliacion?: string | null,
+  _caseCentroConciliacion?: string | null,
 ): string {
-  // 1. Try the explicit case-level field
-  if (caseCentroConciliacion && caseCentroConciliacion.trim().length > 0) {
-    const trimmed = caseCentroConciliacion.trim();
-    // Check if it's a known center name
+  // 1. Tenant mapping is authoritative
+  const config = CENTRO_BY_TENANT[tenantId as TenantId];
+  if (config) {
+    return config.driveFolderName;
+  }
+
+  // 2. Fallback: try the case-level field (only for unknown tenants)
+  if (_caseCentroConciliacion && _caseCentroConciliacion.trim().length > 0) {
+    const trimmed = _caseCentroConciliacion.trim();
     const match = Object.values(CENTRO_BY_TENANT).find(
       (c) =>
         c.driveFolderName.toLowerCase() === trimmed.toLowerCase() ||
@@ -70,22 +91,15 @@ export function resolveCenterFolderName(
     if (match) {
       return match.driveFolderName;
     }
-    // Accept the value as-is if it passes sanitization
     const sanitized = sanitizeCenterName(trimmed);
     if (sanitized.length > 0) {
       return sanitized;
     }
   }
 
-  // 2. Fallback to tenant mapping
-  const config = CENTRO_BY_TENANT[tenantId as TenantId];
-  if (config) {
-    return config.driveFolderName;
-  }
-
   throw new Error(
     `No se pudo determinar el centro de conciliación para el tenant "${tenantId}". ` +
-      'Asegúrese de que el caso tenga un centroConciliacionNombre o que el tenant esté configurado.',
+      'Asegúrese de que el tenant esté configurado en CENTRO_BY_TENANT.',
   );
 }
 
@@ -135,6 +149,11 @@ export function isKnownCenter(centerName: string): boolean {
 /**
  * Validates that a case's center matches the expected center for the tenant.
  * Returns an error message if they don't match, or null if valid.
+ *
+ * NOTE: This check is informational only. Real security is enforced by
+ * Prisma's tenantId filter on every query. Do NOT use this to block
+ * operations — the case field is free-text and may legitimately differ
+ * from the Drive folder name.
  */
 export function validateCenterBelongsToTenant(
   tenantId: string,

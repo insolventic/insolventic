@@ -39,21 +39,21 @@ describe('Centro de Conciliación — Resolución por Tenant', () => {
     );
   });
 
-  it('debe priorizar centroConciliacionNombre del caso sobre el tenant', () => {
-    // Si el caso dice "Construpaz" pero el tenant es "armonia",
-    // debe usar el valor del caso (cuando es un centro conocido)
+  it('debe usar el tenant mapping como autoritativo (ignora caso con centro diferente)', () => {
+    // El tenant mapping es autoritativo — el campo del caso es solo para
+    // tenants desconocidos. Para tenants conocidos, siempre se usa el mapping.
     const result = resolveCenterFolderName('armonia', 'Construpaz');
-    expect(result).toBe('Construpaz');
-  });
-
-  it('debe normalizar "Armonía" (con tilde) a "Armonia" (folder name)', () => {
-    const result = resolveCenterFolderName('constructores-paz', 'Armonía');
     expect(result).toBe('Armonia');
   });
 
-  it('debe normalizar "Constructores de Paz" al folder "Construpaz"', () => {
-    const result = resolveCenterFolderName('armonia', 'Constructores de Paz');
+  it('debe usar tenant mapping incluso si caso dice "Armonía" (con tilde) y tenant es otro', () => {
+    const result = resolveCenterFolderName('constructores-paz', 'Armonía');
     expect(result).toBe('Construpaz');
+  });
+
+  it('debe usar tenant mapping incluso si caso dice "Constructores de Paz"', () => {
+    const result = resolveCenterFolderName('armonia', 'Constructores de Paz');
+    expect(result).toBe('Armonia');
   });
 
   it('debe usar fallback del tenant cuando centroConciliacion es null', () => {
@@ -71,8 +71,17 @@ describe('Centro de Conciliación — Resolución por Tenant', () => {
     expect(result).toBe('Armonia');
   });
 
-  it('debe aceptar un centro personalizado válido (no conocido) con sanitización', () => {
+  it('debe usar tenant mapping incluso si caso tiene centro personalizado (tenant conocido)', () => {
+    // Para tenants conocidos, el campo del caso nunca se usa
     const result = resolveCenterFolderName('armonia', 'Centro Nuevo Legal');
+    expect(result).toBe('Armonia');
+  });
+
+  it('debe usar caso como fallback solo para tenants desconocidos', () => {
+    const result = resolveCenterFolderName(
+      'tenant-nuevo',
+      'Centro Nuevo Legal',
+    );
     expect(result).toBe('Centro Nuevo Legal');
   });
 });
@@ -122,7 +131,9 @@ describe('Centro de Conciliación — Sanitización de Nombres', () => {
   });
 
   it('debe mantener caracteres acentuados', () => {
-    expect(sanitizeCenterName('Armonía Conciliación')).toBe('Armonía Conciliación');
+    expect(sanitizeCenterName('Armonía Conciliación')).toBe(
+      'Armonía Conciliación',
+    );
   });
 
   it('debe eliminar path separators (forward slash)', () => {
@@ -146,7 +157,9 @@ describe('Centro de Conciliación — Sanitización de Nombres', () => {
   });
 
   it('debe eliminar caracteres especiales peligrosos', () => {
-    expect(sanitizeCenterName('Centro<script>alert(1)</script>')).toBe('Centroscriptalert1script');
+    expect(sanitizeCenterName('Centro<script>alert(1)</script>')).toBe(
+      'Centroscriptalert1script',
+    );
   });
 
   it('debe colapsar espacios múltiples', () => {
@@ -217,7 +230,10 @@ describe('Centro de Conciliación — Validación Cross-Center', () => {
   });
 
   it('debe aceptar Construpaz para tenant constructores-paz', () => {
-    const result = validateCenterBelongsToTenant('constructores-paz', 'Construpaz');
+    const result = validateCenterBelongsToTenant(
+      'constructores-paz',
+      'Construpaz',
+    );
     expect(result).toBeNull();
   });
 
@@ -228,13 +244,19 @@ describe('Centro de Conciliación — Validación Cross-Center', () => {
   });
 
   it('debe rechazar Armonia para tenant constructores-paz', () => {
-    const result = validateCenterBelongsToTenant('constructores-paz', 'Armonia');
+    const result = validateCenterBelongsToTenant(
+      'constructores-paz',
+      'Armonia',
+    );
     expect(result).not.toBeNull();
     expect(result).toContain('no pertenece al tenant');
   });
 
   it('debe rechazar tenant desconocido', () => {
-    const result = validateCenterBelongsToTenant('tenant-desconocido', 'Armonia');
+    const result = validateCenterBelongsToTenant(
+      'tenant-desconocido',
+      'Armonia',
+    );
     expect(result).not.toBeNull();
     expect(result).toContain('no tiene un centro de conciliación configurado');
   });
@@ -449,33 +471,33 @@ describe('Centro de Conciliación — Escenarios de Integración', () => {
     ]);
   });
 
-  it('caso con centro explícito override del tenant', () => {
-    // Caso raro pero posible: caso creado en tenant armonia
-    // pero con centroConciliacionNombre = 'Armonia'
+  it('tenant mapping siempre gana — caso con centroConciliacion diferente', () => {
+    // Caso con centroConciliacionNombre = 'Armonía' pero tenant = 'armonia'
+    // Tenant mapping es autoritativo, ignora el campo del caso
     const tenantId = 'armonia';
-    const caseCentro = 'Armonía'; // con tilde
+    const caseCentro = 'Armonía'; // con tilde — sería "Armonia" como display
     const caseNumber = 'ACU-2025-010';
 
     const centerFolder = resolveCenterFolderName(tenantId, caseCentro);
-    expect(centerFolder).toBe('Armonia'); // normalizado sin tilde
+    expect(centerFolder).toBe('Armonia'); // tenant mapping wins
 
-    // Validar que sí pertenece al tenant
     const error = validateCenterBelongsToTenant(tenantId, centerFolder);
     expect(error).toBeNull();
   });
 
-  it('debe bloquear caso de otro centro en batch generation', () => {
-    // Simula un caso que tiene centroConciliacionNombre de otro tenant
+  it('tenant mapping previene cross-center — caso con centro de otro tenant', () => {
+    // Caso con centroConciliacionNombre = 'Construpaz' pero tenant es 'armonia'
+    // Tenant mapping es autoritativo, siempre resuelve al centro correcto
     const tenantId = 'armonia';
     const caseCentro = 'Construpaz'; // centro de constructores-paz
 
     const centerFolder = resolveCenterFolderName(tenantId, caseCentro);
-    expect(centerFolder).toBe('Construpaz');
+    // Tenant mapping wins — devuelve Armonia, no Construpaz
+    expect(centerFolder).toBe('Armonia');
 
-    // Validación cross-center debe fallar
+    // Validación cross-center pasa porque tenant mapping es correcto
     const error = validateCenterBelongsToTenant(tenantId, centerFolder);
-    expect(error).not.toBeNull();
-    expect(error).toContain('no pertenece al tenant');
+    expect(error).toBeNull();
   });
 
   it('debe mantener aislamiento total entre tenants', () => {
