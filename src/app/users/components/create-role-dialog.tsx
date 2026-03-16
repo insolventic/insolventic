@@ -50,7 +50,7 @@ export function CreateRoleDialog({
       name: '',
       description: '',
       permissions: [],
-      color: 'bg-gray-100 text-gray-800',
+      color: 'bg-muted text-foreground',
     },
   });
 
@@ -96,31 +96,38 @@ export function CreateRoleDialog({
   }, [open]);
 
   const colorOptions = [
-    { value: 'bg-red-100 text-red-800', label: 'Rojo', preview: 'bg-red-100' },
     {
-      value: 'bg-blue-100 text-blue-800',
+      value: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+      label: 'Rojo',
+      preview: 'bg-red-100',
+    },
+    {
+      value: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
       label: 'Azul',
       preview: 'bg-blue-100',
     },
     {
-      value: 'bg-green-100 text-green-800',
+      value:
+        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
       label: 'Verde',
       preview: 'bg-green-100',
     },
     {
-      value: 'bg-yellow-100 text-yellow-800',
+      value:
+        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
       label: 'Amarillo',
       preview: 'bg-yellow-100',
     },
     {
-      value: 'bg-purple-100 text-purple-800',
+      value:
+        'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
       label: 'Morado',
       preview: 'bg-purple-100',
     },
     {
-      value: 'bg-gray-100 text-gray-800',
+      value: 'bg-muted text-foreground',
       label: 'Gris',
-      preview: 'bg-gray-100',
+      preview: 'bg-muted',
     },
   ];
 
@@ -162,8 +169,8 @@ export function CreateRoleDialog({
                       color.preview
                     } ${
                       watch('color') === color.value
-                        ? 'border-gray-800'
-                        : 'border-gray-300'
+                        ? 'border-foreground'
+                        : 'border-border'
                     }`}
                     onClick={() => setValue('color', color.value)}
                     title={color.label}
@@ -220,7 +227,7 @@ export function CreateRoleDialog({
                       {loadingPermissions ? (
                         <div className="flex items-center justify-center py-4">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          <span className="ml-2 text-sm text-gray-500">
+                          <span className="text-muted-foreground ml-2 text-sm">
                             Cargando permisos...
                           </span>
                         </div>
@@ -229,7 +236,7 @@ export function CreateRoleDialog({
                           {Object.entries(groupedPermissions).map(
                             ([category, permissions]) => (
                               <div key={category} className="space-y-3">
-                                <h4 className="border-b border-gray-200 pb-1 text-sm font-medium text-gray-900">
+                                <h4 className="border-border text-foreground border-b pb-1 text-sm font-medium">
                                   {category}
                                 </h4>
                                 <div className="space-y-2">
@@ -274,7 +281,7 @@ export function CreateRoleDialog({
                 {errors.permissions.message}
               </p>
             )}
-            <p className="text-sm text-gray-500">
+            <p className="text-muted-foreground text-sm">
               Seleccionados: {watch('permissions')?.length || 0} permisos
             </p>
           </div>

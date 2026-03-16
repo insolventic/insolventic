@@ -2,6 +2,7 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 
 import { ThemeProvider } from '@/components/theme-provider';
+import { TenantProvider } from '@/components/tenant-provider';
 import { SessionTimeoutProvider } from '@/components/auth/session-timeout-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/ui/version-badge';
@@ -32,7 +33,7 @@ export default function RootLayout({
             Para testing, cambiar a: timeoutMinutes={0.5} warningMinutes={0.17}
           */}
           <SessionTimeoutProvider timeoutMinutes={15} warningMinutes={2}>
-            {children}
+            <TenantProvider>{children}</TenantProvider>
           </SessionTimeoutProvider>
           <Toaster closeButton richColors />
           <VersionBadge />

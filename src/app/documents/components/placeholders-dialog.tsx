@@ -139,11 +139,11 @@ export function PlaceholdersDialog({
               <div className="flex w-full items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">{item.label}</p>
-                  <p className="font-mono text-xs text-gray-500">
+                  <p className="text-muted-foreground font-mono text-xs">
                     {item.placeholder}
                   </p>
                 </div>
-                <Copy className="ml-2 h-4 w-4 text-gray-400" />
+                <Copy className="text-muted-foreground ml-2 h-4 w-4" />
               </div>
             </Button>
           ))}

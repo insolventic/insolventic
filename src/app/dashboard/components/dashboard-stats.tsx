@@ -16,7 +16,7 @@ export function DashboardStats() {
       value: '24',
       change: '+3 nuevos este mes',
       icon: FileText,
-      color: 'text-blue-600',
+      color: 'text-primary',
     },
     {
       title: 'Acreedores Registrados',
@@ -60,14 +60,14 @@ export function DashboardStats() {
       {stats.map((stat, index) => (
         <Card key={index} className="border">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium text-gray-600">
+            <CardTitle className="text-muted-foreground text-sm font-medium">
               {stat.title}
             </CardTitle>
             <stat.icon className={`h-4 w-4 ${stat.color}`} />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="mt-1 text-xs text-gray-500">{stat.change}</p>
+            <p className="text-muted-foreground mt-1 text-xs">{stat.change}</p>
           </CardContent>
         </Card>
       ))}

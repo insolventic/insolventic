@@ -30,14 +30,14 @@ export function AssetsSection({ caseData }: Readonly<AssetsSectionProps>) {
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-xs font-medium text-gray-600">
+                    <p className="text-muted-foreground text-xs font-medium">
                       Nombre/Descripción
                     </p>
                     <p>{asset.name}</p>
                   </div>
                   {asset.propertyType && (
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Tipo de Propiedad
                       </p>
                       <p>{asset.propertyType}</p>
@@ -45,7 +45,7 @@ export function AssetsSection({ caseData }: Readonly<AssetsSectionProps>) {
                   )}
                   {asset.address && (
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Dirección
                       </p>
                       <p>{asset.address}</p>
@@ -53,19 +53,23 @@ export function AssetsSection({ caseData }: Readonly<AssetsSectionProps>) {
                   )}
                   {asset.brand && (
                     <div>
-                      <p className="text-xs font-medium text-gray-600">Marca</p>
+                      <p className="text-muted-foreground text-xs font-medium">
+                        Marca
+                      </p>
                       <p>{asset.brand}</p>
                     </div>
                   )}
                   {asset.licensePlate && (
                     <div>
-                      <p className="text-xs font-medium text-gray-600">Placa</p>
+                      <p className="text-muted-foreground text-xs font-medium">
+                        Placa
+                      </p>
                       <p>{asset.licensePlate}</p>
                     </div>
                   )}
                   {asset.description && (
                     <div className="col-span-2">
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Descripción
                       </p>
                       <p>{asset.description}</p>
@@ -75,7 +79,7 @@ export function AssetsSection({ caseData }: Readonly<AssetsSectionProps>) {
               </div>
             ))
           ) : (
-            <p className="py-8 text-center text-gray-500">
+            <p className="text-muted-foreground py-8 text-center">
               No hay bienes registrados
             </p>
           )}

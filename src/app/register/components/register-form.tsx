@@ -32,6 +32,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { registerUser } from '@/features/auth/actions';
+import { registerSchema } from '@/features/auth/schemas';
 import type { RegisterInput } from '@/features/auth/schemas';
 
 import type React from 'react';
@@ -54,7 +55,7 @@ const databaseInfo: Record<string, DatabaseInfo> = {
     id: 'constructores-paz',
     name: 'Constructores de Paz',
     icon: '/images/dove-of-peace.png',
-    color: 'text-blue-600',
+    color: 'text-primary',
   },
 };
 
@@ -71,6 +72,7 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [selectedDb, setSelectedDb] = useState<string | null>(null);
 
   const router = useRouter();
@@ -100,24 +102,35 @@ export function RegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     if (!selectedDb) {
       setError('Debe seleccionar un tenant');
       return;
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
-      return;
-    }
-
-    const registerData: RegisterInput = {
+    const registerData = {
       ...formData,
       tenantId: selectedDb,
     };
 
+    // Client-side Zod validation with specific field errors
+    const result = registerSchema.safeParse(registerData);
+    if (!result.success) {
+      const errors: Record<string, string[]> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path.join('.');
+        if (!errors[field]) errors[field] = [];
+        errors[field].push(issue.message);
+      }
+      setFieldErrors(errors);
+      return;
+    }
+
     startTransition(async () => {
-      const { success, message } = await registerUser(registerData);
+      const { success, message } = await registerUser(
+        result.data as RegisterInput,
+      );
 
       if (success) {
         toast.success(message);
@@ -149,7 +162,7 @@ export function RegisterForm() {
             className="mr-3"
           />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">INSOLVENTIC</h1>
+            <h1 className="text-foreground text-3xl font-bold">INSOLVENTIC</h1>
             <Badge
               variant="outline"
               className={`${currentDb.color} mt-1 border-current`}
@@ -158,7 +171,7 @@ export function RegisterForm() {
             </Badge>
           </div>
         </div>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Sistema de Gestión de Procesos de Insolvencia
         </p>
       </div>
@@ -176,7 +189,7 @@ export function RegisterForm() {
               variant="ghost"
               size="sm"
               onClick={handleBackToSelector}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
               Cambiar
@@ -194,39 +207,45 @@ export function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="name">Nombre Completo</Label>
               <div className="relative">
-                <User className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <User className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="name"
                   type="text"
                   placeholder="Ingrese su nombre completo"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="pl-10"
+                  className={`pl-10 ${fieldErrors.name ? 'border-red-500' : ''}`}
                   required
                 />
               </div>
+              {fieldErrors.name && (
+                <p className="text-sm text-red-500">{fieldErrors.name[0]}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico</Label>
               <div className="relative">
-                <Mail className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Mail className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="email"
                   type="email"
                   placeholder="Ingrese su correo electrónico"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="pl-10"
+                  className={`pl-10 ${fieldErrors.email ? 'border-red-500' : ''}`}
                   required
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="text-sm text-red-500">{fieldErrors.email[0]}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="phone">Teléfono</Label>
               <div className="relative">
-                <Phone className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Phone className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="phone"
                   type="tel"
@@ -242,7 +261,7 @@ export function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="address">Dirección</Label>
               <div className="relative">
-                <MapPin className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <MapPin className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="address"
                   type="text"
@@ -258,7 +277,7 @@ export function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="professionalCard">Tarjeta Profesional</Label>
               <div className="relative">
-                <CreditCard className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <CreditCard className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="professionalCard"
                   type="text"
@@ -276,18 +295,17 @@ export function RegisterForm() {
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <div className="relative">
-                <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Lock className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                   value={formData.password}
                   onChange={(e) =>
                     handleInputChange('password', e.target.value)
                   }
-                  className="pr-10 pl-10"
+                  className={`pr-10 pl-10 ${fieldErrors.password ? 'border-red-500' : ''}`}
                   required
-                  minLength={6}
                 />
                 <Button
                   type="button"
@@ -297,18 +315,27 @@ export function RegisterForm() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="text-muted-foreground h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="text-muted-foreground h-4 w-4" />
                   )}
                 </Button>
               </div>
+              {fieldErrors.password && (
+                <ul className="space-y-1">
+                  {fieldErrors.password.map((msg) => (
+                    <li key={msg} className="text-sm text-red-500">
+                      {msg}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
               <div className="relative">
-                <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Lock className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -317,7 +344,7 @@ export function RegisterForm() {
                   onChange={(e) =>
                     handleInputChange('confirmPassword', e.target.value)
                   }
-                  className="pr-10 pl-10"
+                  className={`pr-10 pl-10 ${fieldErrors.confirmPassword ? 'border-red-500' : ''}`}
                   required
                 />
                 <Button
@@ -328,12 +355,21 @@ export function RegisterForm() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="text-muted-foreground h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="text-muted-foreground h-4 w-4" />
                   )}
                 </Button>
               </div>
+              {fieldErrors.confirmPassword && (
+                <ul className="space-y-1">
+                  {fieldErrors.confirmPassword.map((msg) => (
+                    <li key={msg} className="text-sm text-red-500">
+                      {msg}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
@@ -341,10 +377,12 @@ export function RegisterForm() {
             </Button>
 
             <div className="text-center">
-              <span className="text-sm text-gray-600">¿Ya tienes cuenta? </span>
+              <span className="text-muted-foreground text-sm">
+                ¿Ya tienes cuenta?{' '}
+              </span>
               <Link
                 href={`/login?db=${selectedDb}`}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-primary text-sm hover:underline"
               >
                 Iniciar sesión
               </Link>

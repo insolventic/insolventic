@@ -31,18 +31,20 @@ export function DebtorInfoSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="flex items-start space-x-3">
-              <User className="mt-0.5 h-5 w-5 text-gray-500" />
+              <User className="text-muted-foreground mt-0.5 h-5 w-5" />
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Nombre Completo
                 </p>
                 <p className="text-sm">{caseData?.debtor?.name || 'N/A'}</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <CreditCard className="mt-0.5 h-5 w-5 text-gray-500" />
+              <CreditCard className="text-muted-foreground mt-0.5 h-5 w-5" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Documento</p>
+                <p className="text-muted-foreground text-sm font-medium">
+                  Documento
+                </p>
                 <p className="text-sm">
                   {caseData?.debtor?.idType || 'N/A'}:{' '}
                   {caseData?.debtor?.idNumber || 'N/A'}
@@ -50,25 +52,31 @@ export function DebtorInfoSection({
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <Phone className="mt-0.5 h-5 w-5 text-gray-500" />
+              <Phone className="text-muted-foreground mt-0.5 h-5 w-5" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Teléfono</p>
+                <p className="text-muted-foreground text-sm font-medium">
+                  Teléfono
+                </p>
                 <p className="text-sm">{caseData?.debtor?.phone || 'N/A'}</p>
               </div>
             </div>
             <div className="flex items-start space-x-3">
-              <Mail className="mt-0.5 h-5 w-5 text-gray-500" />
+              <Mail className="text-muted-foreground mt-0.5 h-5 w-5" />
               <div>
-                <p className="text-sm font-medium text-gray-600">Email</p>
+                <p className="text-muted-foreground text-sm font-medium">
+                  Email
+                </p>
                 <p className="text-sm">{caseData?.debtor?.email || 'N/A'}</p>
               </div>
             </div>
           </div>
           <Separator />
           <div className="flex items-start space-x-3">
-            <MapPin className="mt-0.5 h-5 w-5 text-gray-500" />
+            <MapPin className="text-muted-foreground mt-0.5 h-5 w-5" />
             <div>
-              <p className="text-sm font-medium text-gray-600">Dirección</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Dirección
+              </p>
               <p className="text-sm">
                 {caseData?.debtor?.address || 'N/A'},{' '}
                 {caseData?.debtor?.city || 'N/A'}
@@ -79,7 +87,7 @@ export function DebtorInfoSection({
             <div className="flex items-start space-x-3">
               <DollarSign className="mt-0.5 h-5 w-5 text-green-600" />
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Ingresos Mensuales
                 </p>
                 <p className="text-sm font-semibold text-green-600">
@@ -90,7 +98,7 @@ export function DebtorInfoSection({
             <div className="flex items-start space-x-3">
               <DollarSign className="mt-0.5 h-5 w-5 text-red-600" />
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Gastos Mensuales
                 </p>
                 <p className="text-sm font-semibold text-red-600">

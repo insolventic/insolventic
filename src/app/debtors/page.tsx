@@ -41,14 +41,14 @@ export default async function DebtorsPage() {
       permission="Ver deudores"
       redirectTo="/dashboard"
       fallback={
-        <div className="min-h-screen bg-gray-50">
+        <div className="bg-background min-h-screen">
           <DashboardHeader />
           <main className="container mx-auto px-4 py-6">
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-foreground text-2xl font-bold">
                 Acceso Denegado
               </h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 No tienes permisos para ver deudores.
               </p>
             </div>
@@ -56,7 +56,7 @@ export default async function DebtorsPage() {
         </div>
       }
     >
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-background min-h-screen">
         <DashboardHeader />
 
         <main className="container mx-auto px-4 py-6">
@@ -66,12 +66,12 @@ export default async function DebtorsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Total Deudores
                       </p>
                       <p className="text-2xl font-bold">{totalDebtors}</p>
                     </div>
-                    <Users className="h-8 w-8 text-blue-600" />
+                    <Users className="text-primary h-8 w-8" />
                   </div>
                 </CardContent>
               </Card>
@@ -79,7 +79,7 @@ export default async function DebtorsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Total Ingresos
                       </p>
                       <p className="text-2xl font-bold">
@@ -94,7 +94,7 @@ export default async function DebtorsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Deuda Total
                       </p>
                       <p className="text-2xl font-bold">

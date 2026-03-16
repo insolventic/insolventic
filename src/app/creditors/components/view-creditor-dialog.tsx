@@ -115,7 +115,7 @@ export function ViewCreditorDialog({
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium text-blue-600 hover:underline"
+                        className="text-primary font-medium hover:underline"
                       >
                         {creditor.website}
                       </a>
@@ -139,7 +139,7 @@ export function ViewCreditorDialog({
                     <p className="text-muted-foreground text-sm">Email</p>
                     <a
                       href={`mailto:${creditor.email}`}
-                      className="font-medium text-blue-600 hover:underline"
+                      className="text-primary font-medium hover:underline"
                     >
                       {creditor.email}
                     </a>
@@ -193,7 +193,7 @@ export function ViewCreditorDialog({
                       <p className="text-muted-foreground text-sm">Email</p>
                       <a
                         href={`mailto:${creditor.representativeEmail}`}
-                        className="font-medium text-blue-600 hover:underline"
+                        className="text-primary font-medium hover:underline"
                       >
                         {creditor.representativeEmail}
                       </a>
@@ -318,7 +318,7 @@ export function ViewCreditorDialog({
                               </p>
                               <a
                                 href={`mailto:${contact.email}`}
-                                className="text-sm font-medium text-blue-600 hover:underline"
+                                className="text-primary text-sm font-medium hover:underline"
                               >
                                 {contact.email}
                               </a>

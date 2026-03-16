@@ -45,7 +45,7 @@ export function CaseDetailsDialog({
             <DialogTitle>Cargando detalles del caso...</DialogTitle>
           </DialogHeader>
           <div className="flex items-center justify-center py-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900"></div>
+            <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
           </div>
         </DialogContent>
       </Dialog>
@@ -73,7 +73,9 @@ export function CaseDetailsDialog({
             <TabsTrigger value="payment">7. Propuesta</TabsTrigger>
             <TabsTrigger value="legal">8. Legal</TabsTrigger>
             <TabsTrigger value="documents">9. Documentos</TabsTrigger>
-            <TabsTrigger value="definitivo" className="text-xs">10. Definitivo</TabsTrigger>
+            <TabsTrigger value="definitivo" className="text-xs">
+              10. Definitivo
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="debtor" className="space-y-4">

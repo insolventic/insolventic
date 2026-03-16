@@ -59,7 +59,7 @@ export function Task({
               />
             )}
           </div>
-          <p className="text-xs leading-tight break-words hyphens-auto text-gray-500">
+          <p className="text-muted-foreground text-xs leading-tight break-words hyphens-auto">
             {description}
           </p>
         </div>

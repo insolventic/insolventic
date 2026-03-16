@@ -200,7 +200,7 @@ export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
           </div>
           <div className="mt-4 flex items-center space-x-2">
             <div className="relative">
-              <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+              <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
               <Input
                 placeholder="Buscar deudores..."
                 value={searchTerm}
@@ -247,7 +247,7 @@ export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
                     <TableCell>
                       <div>
                         <p className="font-medium">{debtor.name}</p>
-                        <p className="flex items-center text-sm text-gray-600">
+                        <p className="text-muted-foreground flex items-center text-sm">
                           <MapPin className="mr-1 h-3 w-3" />
                           {debtor.address}
                         </p>

@@ -56,11 +56,11 @@ export function NotificationPanel() {
       <CardContent className="space-y-4">
         {notifications.length === 0 ? (
           <div className="py-8 text-center">
-            <Bell className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="text-lg font-medium text-gray-900">
+            <Bell className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+            <h3 className="text-foreground text-lg font-medium">
               No hay notificaciones
             </h3>
-            <p className="text-sm text-gray-500">
+            <p className="text-muted-foreground text-sm">
               Cuando tengas nuevas alertas aparecerán aquí
             </p>
           </div>

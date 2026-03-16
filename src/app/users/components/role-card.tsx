@@ -48,19 +48,19 @@ export function RoleCard({ role, users }: Readonly<RoleCardProps>) {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-lg font-semibold">{role.name}</h3>
-              <p className="line-clamp-2 text-sm text-gray-600">
+              <p className="text-muted-foreground line-clamp-2 text-sm">
                 {role.description}
               </p>
             </div>
             <div className="text-center">
               <Badge className={role.color}>{role.users.length}</Badge>
-              <p className="mt-1 text-xs text-gray-500">usuarios</p>
+              <p className="text-muted-foreground mt-1 text-xs">usuarios</p>
             </div>
           </div>
 
           <div className="mb-4">
             <p className="mb-2 text-sm font-medium">Permisos:</p>
-            <ul className="space-y-1 text-sm text-gray-600">
+            <ul className="text-muted-foreground space-y-1 text-sm">
               {role.permissions.slice(0, 5).map((permission: string) => (
                 <li key={permission} className="flex items-center">
                   <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
@@ -68,7 +68,7 @@ export function RoleCard({ role, users }: Readonly<RoleCardProps>) {
                 </li>
               ))}
               {role.permissions.length > 5 && (
-                <li className="pl-4 text-xs text-gray-500">
+                <li className="text-muted-foreground pl-4 text-xs">
                   +{role.permissions.length - 5} permisos más...
                 </li>
               )}

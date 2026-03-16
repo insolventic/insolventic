@@ -74,14 +74,11 @@ const AcreedorItem = memo(function AcreedorItem({
       <div className="space-y-4 rounded-lg border bg-slate-50 p-6">
         <div className="flex items-center justify-between">
           <CollapsibleTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-2 text-left"
-            >
+            <button type="button" className="flex items-center gap-2 text-left">
               {isOpen ? (
-                <ChevronDown className="h-4 w-4 text-gray-500" />
+                <ChevronDown className="text-muted-foreground h-4 w-4" />
               ) : (
-                <ChevronRight className="h-4 w-4 text-gray-500" />
+                <ChevronRight className="text-muted-foreground h-4 w-4" />
               )}
               <h3 className="text-lg font-semibold text-purple-700">
                 Acreedor #{index + 1}
@@ -105,7 +102,7 @@ const AcreedorItem = memo(function AcreedorItem({
           {/* 5.1 Identificación del Acreedor */}
           {/* ============================================================ */}
           <div className="space-y-4">
-            <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+            <h4 className="text-foreground border-b pb-2 text-sm font-medium">
               5.1 Identificación del Acreedor
             </h4>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -135,7 +132,9 @@ const AcreedorItem = memo(function AcreedorItem({
                         <SelectItem value="PERSONA_JURIDICA">
                           Persona Jurídica
                         </SelectItem>
-                        <SelectItem value="ESTADO">Estado / Entidad Pública</SelectItem>
+                        <SelectItem value="ESTADO">
+                          Estado / Entidad Pública
+                        </SelectItem>
                         <SelectItem value="OTRO">Otro</SelectItem>
                       </SelectContent>
                     </Select>
@@ -267,7 +266,10 @@ const AcreedorItem = memo(function AcreedorItem({
                   <FormItem>
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
-                      <Input {...formField} placeholder="Teléfono de contacto" />
+                      <Input
+                        {...formField}
+                        placeholder="Teléfono de contacto"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -280,7 +282,7 @@ const AcreedorItem = memo(function AcreedorItem({
           {/* 5.2 Información de la Obligación */}
           {/* ============================================================ */}
           <div className="space-y-4">
-            <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+            <h4 className="text-foreground border-b pb-2 text-sm font-medium">
               5.2 Información de la Obligación
             </h4>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -651,7 +653,7 @@ const AcreedorItem = memo(function AcreedorItem({
           {/* 5.3 Información Judicial */}
           {/* ============================================================ */}
           <div className="space-y-4">
-            <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+            <h4 className="text-foreground border-b pb-2 text-sm font-medium">
               5.3 Información Judicial
             </h4>
             <div className="space-y-3 rounded-md border p-4">
@@ -888,7 +890,7 @@ export function AcreedoresSection() {
         </Button>
 
         {fields.length === 0 && (
-          <div className="py-8 text-center text-gray-500">
+          <div className="text-muted-foreground py-8 text-center">
             <p className="mb-4">No hay acreedores registrados</p>
             <p className="text-sm">
               Use el botón para agregar la relación completa de acreedores del

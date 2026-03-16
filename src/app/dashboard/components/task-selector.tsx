@@ -33,7 +33,7 @@ export function TaskSelector() {
       icon: FileText,
       href: '/cases',
       color: 'bg-blue-100',
-      iconColor: 'text-blue-600',
+      iconColor: 'text-primary',
       stats: { active: 41, pending: 5, total: 46 },
       permission: 'Ver casos',
       helpText:
@@ -116,9 +116,9 @@ export function TaskSelector() {
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-          {tasks.map((task) => {
-            const hasPermission = checkPermission(task.permission);
-            return (
+          {tasks
+            .filter((task) => checkPermission(task.permission))
+            .map((task) => (
               <Task
                 key={task.id}
                 title={task.title}
@@ -127,12 +127,10 @@ export function TaskSelector() {
                 color={task.color}
                 iconColor={task.iconColor}
                 selected={selectedTask === task.id.toString()}
-                disabled={!hasPermission}
                 helpText={task.helpText}
                 onClick={() => handleTaskClick(task.id.toString(), task.href)}
               />
-            );
-          })}
+            ))}
         </div>
       </CardContent>
     </Card>

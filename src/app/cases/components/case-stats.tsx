@@ -16,10 +16,12 @@ export function CaseStats({ stats }: Readonly<CaseStatsProps>) {
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Casos</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Total Casos
+              </p>
               <p className="text-2xl font-bold">{stats.total}</p>
             </div>
-            <FileText className="h-8 w-8 text-blue-600" />
+            <FileText className="text-primary h-8 w-8" />
           </div>
         </CardContent>
       </Card>
@@ -27,7 +29,7 @@ export function CaseStats({ stats }: Readonly<CaseStatsProps>) {
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Promedio por Caso
               </p>
               <p className="text-2xl font-bold">
@@ -42,7 +44,7 @@ export function CaseStats({ stats }: Readonly<CaseStatsProps>) {
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Total Acreedores
               </p>
               <p className="text-2xl font-bold">{stats.totalCreditors ?? 0}</p>
@@ -55,7 +57,9 @@ export function CaseStats({ stats }: Readonly<CaseStatsProps>) {
         <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Monto Total</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Monto Total
+              </p>
               <p className="text-2xl font-bold">
                 {formatCurrency(stats.totalDebt)}
               </p>

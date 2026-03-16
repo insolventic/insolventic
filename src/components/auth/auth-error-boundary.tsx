@@ -30,15 +30,15 @@ export function AuthErrorBoundary({ error, reset }: AuthErrorBoundaryProps) {
 
   if (isAuthError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-md rounded-lg bg-white p-6 text-center shadow-lg">
+      <div className="bg-background flex min-h-screen items-center justify-center px-4">
+        <div className="bg-card w-full max-w-md rounded-lg p-6 text-center shadow-lg">
           <div className="mb-4 flex justify-center">
             <AlertCircle className="h-12 w-12 text-orange-500" />
           </div>
-          <h1 className="mb-2 text-xl font-semibold text-gray-900">
+          <h1 className="text-foreground mb-2 text-xl font-semibold">
             Sesión Requerida
           </h1>
-          <p className="mb-6 text-gray-600">
+          <p className="text-muted-foreground mb-6">
             Tu sesión ha expirado o estás cambiando de tenant. Por favor, inicia
             sesión nuevamente.
           </p>
@@ -57,15 +57,15 @@ export function AuthErrorBoundary({ error, reset }: AuthErrorBoundaryProps) {
 
   // For non-auth errors, show generic error
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 text-center shadow-lg">
+    <div className="bg-background flex min-h-screen items-center justify-center px-4">
+      <div className="bg-card w-full max-w-md rounded-lg p-6 text-center shadow-lg">
         <div className="mb-4 flex justify-center">
           <AlertCircle className="h-12 w-12 text-red-500" />
         </div>
-        <h1 className="mb-2 text-xl font-semibold text-gray-900">
+        <h1 className="text-foreground mb-2 text-xl font-semibold">
           Ha ocurrido un error
         </h1>
-        <p className="mb-6 text-gray-600">
+        <p className="text-muted-foreground mb-6">
           {error.message || 'Error inesperado del sistema'}
         </p>
         <div className="space-y-3">

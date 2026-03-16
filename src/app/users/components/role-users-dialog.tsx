@@ -82,34 +82,36 @@ export function RoleUsersDialog({
             <CardContent>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Nombre del Rol
                   </p>
                   <p className="text-lg font-semibold">{role?.name ?? 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Descripción
                   </p>
-                  <p className="text-sm text-gray-800">
+                  <p className="text-foreground text-sm">
                     {role?.description ?? 'N/A'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Usuarios Asignados
                   </p>
                   <div className="flex items-center gap-2">
                     <Badge className={role?.color ?? ''}>
                       {roleUsers.length}
                     </Badge>
-                    <span className="text-sm text-gray-600">usuarios</span>
+                    <span className="text-muted-foreground text-sm">
+                      usuarios
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4">
-                <p className="mb-2 text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground mb-2 text-sm font-medium">
                   Permisos del Rol
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -154,7 +156,7 @@ export function RoleUsersDialog({
                           <TableCell>
                             <div className="space-y-1">
                               <p className="font-medium">{user.name}</p>
-                              <div className="flex items-center text-sm text-gray-600">
+                              <div className="text-muted-foreground flex items-center text-sm">
                                 <Mail className="mr-1 h-3 w-3" />
                                 {user.email}
                               </div>
@@ -162,13 +164,13 @@ export function RoleUsersDialog({
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center">
-                              <UserCheck className="mr-2 h-4 w-4 text-blue-600" />
+                              <UserCheck className="text-primary mr-2 h-4 w-4" />
                               {user?.assignedCases.length ?? 0}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center text-sm">
-                              <Clock className="mr-1 h-3 w-3 text-gray-400" />
+                              <Clock className="text-muted-foreground mr-1 h-3 w-3" />
                               {formatLastLogin(
                                 user?.lastLogin
                                   ? user.lastLogin.toISOString()
@@ -184,11 +186,11 @@ export function RoleUsersDialog({
                           <TableCell>
                             <div className="space-y-1 text-sm">
                               <div className="flex items-center">
-                                <Phone className="mr-1 h-3 w-3 text-gray-400" />
+                                <Phone className="text-muted-foreground mr-1 h-3 w-3" />
                                 {user.phone}
                               </div>
                               <div className="flex items-center">
-                                <Calendar className="mr-1 h-3 w-3 text-gray-400" />
+                                <Calendar className="text-muted-foreground mr-1 h-3 w-3" />
                                 Desde{' '}
                                 {new Date(user.createdDate).toLocaleDateString(
                                   'es-CO',
@@ -206,11 +208,11 @@ export function RoleUsersDialog({
           ) : (
             <Card className="shadow-sm">
               <CardContent className="py-8 text-center">
-                <Users className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-                <h3 className="mb-2 text-lg font-medium text-gray-900">
+                <Users className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+                <h3 className="text-foreground mb-2 text-lg font-medium">
                   No hay usuarios asignados
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   Actualmente no hay usuarios con el rol &quot;{role.name}&quot;
                 </p>
               </CardContent>
@@ -223,7 +225,7 @@ export function RoleUsersDialog({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Total de Usuarios
                       </p>
                       <p className="text-2xl font-bold text-green-600">
@@ -239,17 +241,17 @@ export function RoleUsersDialog({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Total Casos
                       </p>
-                      <p className="text-2xl font-bold text-blue-600">
+                      <p className="text-primary text-2xl font-bold">
                         {roleUsers.reduce(
                           (sum, u) => sum + (u?.assignedCases.length ?? 0),
                           0,
                         )}
                       </p>
                     </div>
-                    <Users className="h-8 w-8 text-blue-600" />
+                    <Users className="text-primary h-8 w-8" />
                   </div>
                 </CardContent>
               </Card>
@@ -258,7 +260,7 @@ export function RoleUsersDialog({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Promedio Casos
                       </p>
                       <p className="text-2xl font-bold text-purple-600">
@@ -279,7 +281,7 @@ export function RoleUsersDialog({
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Con Tarjeta Prof.
                       </p>
                       <p className="text-2xl font-bold text-orange-600">

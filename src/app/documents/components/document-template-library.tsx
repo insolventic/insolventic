@@ -189,21 +189,21 @@ export function DocumentTemplateLibrary({
           onOpenChange={() => toggleFolder(folderPath)}
         >
           <CollapsibleTrigger
-            className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-left hover:bg-gray-50"
+            className="hover:bg-muted flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-left"
             style={indentStyle}
           >
             {isExpanded ? (
-              <ChevronDown className="mr-2 h-4 w-4 text-gray-500" />
+              <ChevronDown className="text-muted-foreground mr-2 h-4 w-4" />
             ) : (
-              <ChevronRight className="mr-2 h-4 w-4 text-gray-500" />
+              <ChevronRight className="text-muted-foreground mr-2 h-4 w-4" />
             )}
             {isExpanded ? (
-              <FolderOpen className="mr-2 h-5 w-5 text-blue-600" />
+              <FolderOpen className="text-primary mr-2 h-5 w-5" />
             ) : (
-              <Folder className="mr-2 h-5 w-5 text-blue-600" />
+              <Folder className="text-primary mr-2 h-5 w-5" />
             )}
-            <span className="font-medium text-gray-700">{node.name}</span>
-            <span className="ml-auto text-xs text-gray-500">
+            <span className="text-foreground font-medium">{node.name}</span>
+            <span className="text-muted-foreground ml-auto text-xs">
               {node.children.length} elementos
             </span>
           </CollapsibleTrigger>
@@ -220,12 +220,12 @@ export function DocumentTemplateLibrary({
       return (
         <div
           key={node.id}
-          className={`flex items-center justify-between rounded-md px-3 py-2 hover:bg-gray-50 ${depth > 0 ? 'bg-gray-50/50' : ''}`}
+          className={`hover:bg-muted flex items-center justify-between rounded-md px-3 py-2 ${depth > 0 ? 'bg-muted/50' : ''}`}
           style={indentStyle}
         >
           <div className="flex flex-1 items-center">
-            <FileText className="mr-2 h-4 w-4 text-gray-500" />
-            <span className="truncate text-gray-700">{node.name}</span>
+            <FileText className="text-muted-foreground mr-2 h-4 w-4" />
+            <span className="text-foreground truncate">{node.name}</span>
             <Badge variant="outline" className="ml-2 text-xs">
               {node.template.mimeType.includes('word') ? 'Word' : 'Doc'}
             </Badge>
@@ -273,7 +273,7 @@ export function DocumentTemplateLibrary({
             </div>
             <div className="flex items-center space-x-2">
               <div className="relative">
-                <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   placeholder="Buscar plantillas..."
                   value={searchTerm}
@@ -291,8 +291,8 @@ export function DocumentTemplateLibrary({
                 <div key={node.id}>{renderTreeNode(node)}</div>
               ))
             ) : (
-              <div className="py-8 text-center text-gray-500">
-                <FileText className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+              <div className="text-muted-foreground py-8 text-center">
+                <FileText className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
                 <p>No se encontraron plantillas</p>
                 <p className="text-sm">
                   Sincroniza con Google Drive para cargar plantillas

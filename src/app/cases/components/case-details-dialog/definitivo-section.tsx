@@ -57,7 +57,7 @@ export function DefinitivoSection({
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Nombre Completo
                 </p>
                 <p className="text-sm">
@@ -65,7 +65,7 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Tipo Documento
                 </p>
                 <p className="text-sm">
@@ -73,7 +73,7 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Número Documento
                 </p>
                 <p className="text-sm">
@@ -81,19 +81,19 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Teléfono</p>
-                <p className="text-sm">
-                  {caseData.conyugeTelefono || 'N/A'}
+                <p className="text-muted-foreground text-sm font-medium">
+                  Teléfono
                 </p>
+                <p className="text-sm">{caseData.conyugeTelefono || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Email</p>
-                <p className="text-sm">
-                  {caseData.conyugeCorreo || 'N/A'}
+                <p className="text-muted-foreground text-sm font-medium">
+                  Email
                 </p>
+                <p className="text-sm">{caseData.conyugeCorreo || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Sociedad Conyugal Disuelta
                 </p>
                 <p className="text-sm">
@@ -113,7 +113,7 @@ export function DefinitivoSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Actividad Económica
               </p>
               <p className="text-sm">
@@ -121,19 +121,19 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Ocupación</p>
-              <p className="text-sm">
-                {caseData.deudorOcupacion || 'N/A'}
+              <p className="text-muted-foreground text-sm font-medium">
+                Ocupación
               </p>
+              <p className="text-sm">{caseData.deudorOcupacion || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Profesión</p>
-              <p className="text-sm">
-                {caseData.deudorProfesion || 'N/A'}
+              <p className="text-muted-foreground text-sm font-medium">
+                Profesión
               </p>
+              <p className="text-sm">{caseData.deudorProfesion || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Tipo Vinculación
               </p>
               <p className="text-sm">
@@ -141,7 +141,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Nombre Empleador
               </p>
               <p className="text-sm">
@@ -149,22 +149,20 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 NIT Empleador
               </p>
-              <p className="text-sm">
-                {caseData.deudorNitEmpleador || 'N/A'}
-              </p>
+              <p className="text-sm">{caseData.deudorNitEmpleador || 'N/A'}</p>
             </div>
           </div>
 
           <Separator />
 
           {/* Ingresos */}
-          <p className="text-sm font-semibold text-gray-700">Ingresos</p>
+          <p className="text-foreground text-sm font-semibold">Ingresos</p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Ingreso Principal Mensual
               </p>
               <p className="text-sm">
@@ -172,7 +170,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Otros Ingresos Mensuales
               </p>
               <p className="text-sm">
@@ -180,7 +178,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Ingresos Variables Promedio
               </p>
               <p className="text-sm">
@@ -188,7 +186,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Ingresos No Operacionales
               </p>
               <p className="text-sm">
@@ -196,7 +194,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Total Ingresos Mensuales
               </p>
               <p className="text-sm font-semibold text-green-600">
@@ -208,28 +206,34 @@ export function DefinitivoSection({
           <Separator />
 
           {/* Gastos */}
-          <p className="text-sm font-semibold text-gray-700">Gastos</p>
+          <p className="text-foreground text-sm font-semibold">Gastos</p>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">Vivienda</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Vivienda
+              </p>
               <p className="text-sm">
                 {formatCurrency(caseData.gastosVivienda)}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Alimentación</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Alimentación
+              </p>
               <p className="text-sm">
                 {formatCurrency(caseData.gastosAlimentacion)}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Transporte</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Transporte
+              </p>
               <p className="text-sm">
                 {formatCurrency(caseData.gastosTransporte)}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Servicios Públicos
               </p>
               <p className="text-sm">
@@ -237,25 +241,25 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Educación</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Educación
+              </p>
               <p className="text-sm">
                 {formatCurrency(caseData.gastosEducacion)}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Salud</p>
-              <p className="text-sm">
-                {formatCurrency(caseData.gastosSalud)}
-              </p>
+              <p className="text-muted-foreground text-sm font-medium">Salud</p>
+              <p className="text-sm">{formatCurrency(caseData.gastosSalud)}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Otros Gastos</p>
-              <p className="text-sm">
-                {formatCurrency(caseData.otrosGastos)}
+              <p className="text-muted-foreground text-sm font-medium">
+                Otros Gastos
               </p>
+              <p className="text-sm">{formatCurrency(caseData.otrosGastos)}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Total Gastos Mensuales
               </p>
               <p className="text-sm font-semibold text-red-600">
@@ -269,7 +273,7 @@ export function DefinitivoSection({
           {/* Capacidad de Pago y Patrimonio */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Capacidad de Pago Estimada
               </p>
               <p
@@ -281,7 +285,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Patrimonio Total Estimado
               </p>
               <p className="text-sm">
@@ -289,7 +293,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Pasivo Total Estimado
               </p>
               <p className="text-sm">
@@ -308,21 +312,19 @@ export function DefinitivoSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 ¿Cesó pagos?
               </p>
-              <p className="text-sm">
-                {formatBoolean(caseData.cesacionPagos)}
-              </p>
+              <p className="text-sm">{formatBoolean(caseData.cesacionPagos)}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Fecha</p>
+              <p className="text-muted-foreground text-sm font-medium">Fecha</p>
               <p className="text-sm">
                 {formatDate(caseData.fechaCesacionPagos)}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Número Acreedores Actual
               </p>
               <p className="text-sm">
@@ -330,7 +332,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Porcentaje Pasivo en Mora
               </p>
               <p className="text-sm">
@@ -340,7 +342,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Obligaciones en Mora +90 Días
               </p>
               <p className="text-sm">
@@ -348,7 +350,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Procesos Ejecutivos Vigentes
               </p>
               <p className="text-sm">
@@ -445,9 +447,7 @@ export function DefinitivoSection({
                       <TableCell>
                         {formatBoolean(bien.bienGravamenes)}
                       </TableCell>
-                      <TableCell>
-                        {formatBoolean(bien.bienEmbargado)}
-                      </TableCell>
+                      <TableCell>{formatBoolean(bien.bienEmbargado)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -458,50 +458,49 @@ export function DefinitivoSection({
       )}
 
       {/* Card 6: Procesos Judiciales Definitivo */}
-      {caseData.procesosJudiciales && caseData.procesosJudiciales.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Procesos Judiciales Definitivo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tipo Proceso</TableHead>
-                    <TableHead>Juzgado</TableHead>
-                    <TableHead>Radicado</TableHead>
-                    <TableHead>Demandante</TableHead>
-                    <TableHead>Estado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {caseData.procesosJudiciales.map((proceso) => (
-                    <TableRow key={proceso.id}>
-                      <TableCell>{proceso.tipoProceso || 'N/A'}</TableCell>
-                      <TableCell>
-                        {proceso.juzgadoNombre || 'N/A'}
-                        {proceso.juzgadoCiudad
-                          ? ` - ${proceso.juzgadoCiudad}`
-                          : ''}
-                      </TableCell>
-                      <TableCell>
-                        {proceso.procesoJudicialRadicado || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {proceso.demandanteNombre || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {proceso.estadoProceso || 'N/A'}
-                      </TableCell>
+      {caseData.procesosJudiciales &&
+        caseData.procesosJudiciales.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Procesos Judiciales Definitivo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo Proceso</TableHead>
+                      <TableHead>Juzgado</TableHead>
+                      <TableHead>Radicado</TableHead>
+                      <TableHead>Demandante</TableHead>
+                      <TableHead>Estado</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  </TableHeader>
+                  <TableBody>
+                    {caseData.procesosJudiciales.map((proceso) => (
+                      <TableRow key={proceso.id}>
+                        <TableCell>{proceso.tipoProceso || 'N/A'}</TableCell>
+                        <TableCell>
+                          {proceso.juzgadoNombre || 'N/A'}
+                          {proceso.juzgadoCiudad
+                            ? ` - ${proceso.juzgadoCiudad}`
+                            : ''}
+                        </TableCell>
+                        <TableCell>
+                          {proceso.procesoJudicialRadicado || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {proceso.demandanteNombre || 'N/A'}
+                        </TableCell>
+                        <TableCell>{proceso.estadoProceso || 'N/A'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
       {/* Card 7: Declaraciones */}
       <Card>
@@ -511,13 +510,15 @@ export function DefinitivoSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">Buena Fe</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Buena Fe
+              </p>
               <p className="text-sm">
                 {formatBoolean(caseData.manifestacionBuenaFe)}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Veracidad de Información
               </p>
               <p className="text-sm">
@@ -525,7 +526,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 No Ocultamiento de Bienes
               </p>
               <p className="text-sm">
@@ -533,7 +534,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Autorización de Notificación Electrónica
               </p>
               <p className="text-sm">
@@ -541,7 +542,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Autorización Consulta Centrales de Riesgo
               </p>
               <p className="text-sm">
@@ -549,7 +550,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Autorización Tratamiento de Datos
               </p>
               <p className="text-sm">
@@ -568,21 +569,21 @@ export function DefinitivoSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Plazo en Meses
               </p>
-              <p className="text-sm">
-                {caseData.propuestaPlazoMeses ?? 'N/A'}
-              </p>
+              <p className="text-sm">{caseData.propuestaPlazoMeses ?? 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Periodicidad</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Periodicidad
+              </p>
               <p className="text-sm">
                 {caseData.propuestaPeriodicidadPago || 'N/A'}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Tasa de Interés
               </p>
               <p className="text-sm">
@@ -592,7 +593,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Quita Promedio
               </p>
               <p className="text-sm">
@@ -602,7 +603,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Fecha Inicio Pago
               </p>
               <p className="text-sm">
@@ -610,7 +611,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Observaciones
               </p>
               <p className="text-sm">
@@ -629,7 +630,7 @@ export function DefinitivoSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Documento de Identidad
               </p>
               <p className="text-sm">
@@ -637,7 +638,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Soporte de Ingresos
               </p>
               <p className="text-sm">
@@ -645,7 +646,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Extractos Bancarios
               </p>
               <p className="text-sm">
@@ -653,7 +654,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Certificados de Deuda
               </p>
               <p className="text-sm">
@@ -661,7 +662,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Certificado de Tradición
               </p>
               <p className="text-sm">
@@ -669,7 +670,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Relación de Procesos
               </p>
               <p className="text-sm">
@@ -677,7 +678,7 @@ export function DefinitivoSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Declaración de Renta
               </p>
               <p className="text-sm">
@@ -697,13 +698,15 @@ export function DefinitivoSection({
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <p className="text-sm font-medium text-gray-600">Nombre</p>
+                <p className="text-muted-foreground text-sm font-medium">
+                  Nombre
+                </p>
                 <p className="text-sm">
                   {caseData.apoderadoNombreCompleto || 'N/A'}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Tipo Documento
                 </p>
                 <p className="text-sm">
@@ -711,7 +714,7 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Número Documento
                 </p>
                 <p className="text-sm">
@@ -719,7 +722,7 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Tarjeta Profesional
                 </p>
                 <p className="text-sm">
@@ -727,25 +730,27 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Dirección</p>
+                <p className="text-muted-foreground text-sm font-medium">
+                  Dirección
+                </p>
                 <p className="text-sm">
                   {caseData.apoderadoDireccion || 'N/A'}
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Teléfono</p>
-                <p className="text-sm">
-                  {caseData.apoderadoTelefono || 'N/A'}
+                <p className="text-muted-foreground text-sm font-medium">
+                  Teléfono
                 </p>
+                <p className="text-sm">{caseData.apoderadoTelefono || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">Email</p>
-                <p className="text-sm">
-                  {caseData.apoderadoCorreo || 'N/A'}
+                <p className="text-muted-foreground text-sm font-medium">
+                  Email
                 </p>
+                <p className="text-sm">{caseData.apoderadoCorreo || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Poder Otorgado
                 </p>
                 <p className="text-sm">
@@ -766,23 +771,19 @@ export function DefinitivoSection({
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Expediente Número
                 </p>
-                <p className="text-sm">
-                  {caseData.expedienteNumero || 'N/A'}
-                </p>
+                <p className="text-sm">{caseData.expedienteNumero || 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Año Expediente
                 </p>
-                <p className="text-sm">
-                  {caseData.expedienteAnio ?? 'N/A'}
-                </p>
+                <p className="text-sm">{caseData.expedienteAnio ?? 'N/A'}</p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Fecha Radicación
                 </p>
                 <p className="text-sm">
@@ -790,7 +791,7 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Centro de Conciliación
                 </p>
                 <p className="text-sm">
@@ -798,7 +799,7 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Conciliador Asignado
                 </p>
                 <p className="text-sm">
@@ -806,12 +807,10 @@ export function DefinitivoSection({
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Ciudad Radicación
                 </p>
-                <p className="text-sm">
-                  {caseData.ciudadRadicacion || 'N/A'}
-                </p>
+                <p className="text-sm">{caseData.ciudadRadicacion || 'N/A'}</p>
               </div>
             </div>
           </CardContent>

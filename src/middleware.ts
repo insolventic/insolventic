@@ -97,6 +97,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Route-level permission checks
+  const routePermissions: Record<string, string> = {
+    '/cases': 'Ver casos',
+    '/users': 'Ver usuarios',
+    '/creditors': 'Ver acreedores',
+    '/debtors': 'Ver deudores',
+    '/documents': 'Ver documentos',
+    '/notifications': 'Ver notificaciones',
+  };
+
+  for (const [route, permission] of Object.entries(routePermissions)) {
+    if (pathname.startsWith(route) && !user.permissions.includes(permission)) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-user-id', user.id);
   requestHeaders.set('x-user-email', user.email);

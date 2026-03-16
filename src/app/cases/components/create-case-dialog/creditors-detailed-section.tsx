@@ -96,7 +96,7 @@ export function CreditorsDetailedSection() {
 
               {/* Información Básica del Acreedor */}
               <div className="space-y-4">
-                <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+                <h4 className="text-foreground border-b pb-2 text-sm font-medium">
                   Datos del Acreedor
                 </h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -173,7 +173,7 @@ export function CreditorsDetailedSection() {
 
               {/* Información de la Deuda */}
               <div className="space-y-4">
-                <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+                <h4 className="text-foreground border-b pb-2 text-sm font-medium">
                   Cuantía y Detalles de la Deuda
                 </h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -419,7 +419,7 @@ export function CreditorsDetailedSection() {
 
               {/* Información Codeudor/Avalista */}
               <div className="space-y-4">
-                <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+                <h4 className="text-foreground border-b pb-2 text-sm font-medium">
                   Información Codeudor/Avalista
                 </h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -488,7 +488,7 @@ export function CreditorsDetailedSection() {
         </Button>
 
         {fields.length === 0 && (
-          <div className="py-8 text-center text-gray-500">
+          <div className="text-muted-foreground py-8 text-center">
             <p className="mb-4">No hay acreedores registrados</p>
             <p className="text-sm">
               Use el botón para agregar la información detallada de cada

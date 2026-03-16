@@ -63,9 +63,12 @@ const PACKAGES = [
 ];
 
 const TYPE_COLORS: Record<string, string> = {
-  Insolvencia: 'bg-blue-100 text-blue-800',
-  'Conciliación': 'bg-green-100 text-green-800',
-  'Acuerdo de Apoyo': 'bg-purple-100 text-purple-800',
+  Insolvencia:
+    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  Conciliación:
+    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  'Acuerdo de Apoyo':
+    'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
 };
 
 interface CaseOption {
@@ -202,8 +205,8 @@ export function DocumentGeneration({
           Generación de Documentos
         </CardTitle>
         <CardDescription>
-          Selecciona un caso y un paquete para generar documentos PDF a partir de
-          las plantillas HTML. Los documentos se guardan automáticamente en
+          Selecciona un caso y un paquete para generar documentos PDF a partir
+          de las plantillas HTML. Los documentos se guardan automáticamente en
           Google Drive.
         </CardDescription>
       </CardHeader>
@@ -304,9 +307,7 @@ export function DocumentGeneration({
           {/* Generate button */}
           <Button
             onClick={handleBatchGeneration}
-            disabled={
-              !selectedCaseId || isPending || !canGenerateDocuments
-            }
+            disabled={!selectedCaseId || isPending || !canGenerateDocuments}
             className="w-full lg:w-auto"
             size="default"
           >
@@ -326,10 +327,10 @@ export function DocumentGeneration({
 
         {/* Selected case info panel */}
         {selectedCase && !generationResult && (
-          <div className="rounded-lg border bg-muted/40 p-3">
+          <div className="bg-muted/40 rounded-lg border p-3">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <div className="flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                <FileText className="text-muted-foreground h-4 w-4" />
                 <span className="font-medium">{selectedCase.caseNumber}</span>
               </div>
 
@@ -339,10 +340,7 @@ export function DocumentGeneration({
 
               <Badge
                 variant="outline"
-                className={cn(
-                  'text-xs',
-                  TYPE_COLORS[selectedCase.type] || '',
-                )}
+                className={cn('text-xs', TYPE_COLORS[selectedCase.type] || '')}
               >
                 {selectedCase.type}
               </Badge>
@@ -372,7 +370,7 @@ export function DocumentGeneration({
 
             {/* Info: what will be generated */}
             {selectedPkg && (
-              <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+              <div className="text-muted-foreground mt-2 flex items-start gap-2 text-xs">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>
                   Se generarán <strong>{selectedPkg.count}</strong> documento(s)
@@ -391,8 +389,8 @@ export function DocumentGeneration({
               className={cn(
                 'rounded-lg border p-4',
                 generationResult.failedDocuments > 0
-                  ? 'bg-amber-50 border-amber-200'
-                  : 'bg-green-50 border-green-200',
+                  ? 'border-amber-200 bg-amber-50'
+                  : 'border-green-200 bg-green-50',
               )}
             >
               <div className="flex items-center justify-between">
@@ -423,7 +421,7 @@ export function DocumentGeneration({
                     href={generationResult.folderUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-md border bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
+                    className="bg-card text-foreground hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
                   >
                     <FolderOpen className="h-4 w-4" />
                     Abrir en Drive
@@ -443,8 +441,7 @@ export function DocumentGeneration({
                 Se generaron{' '}
                 <strong>{generationResult.successfulDocuments}</strong> de{' '}
                 <strong>{generationResult.totalDocuments}</strong> documentos
-                para el caso{' '}
-                <strong>{generationResult.caseNumber}</strong>.
+                para el caso <strong>{generationResult.caseNumber}</strong>.
                 {generationResult.failedDocuments > 0 && (
                   <span className="text-red-600">
                     {' '}
@@ -457,16 +454,14 @@ export function DocumentGeneration({
             {/* Successful documents */}
             {successDocs && successDocs.length > 0 && (
               <div>
-                <h4 className="mb-2 text-sm font-medium text-gray-700">
+                <h4 className="text-foreground mb-2 text-sm font-medium">
                   Documentos generados ({successDocs.length})
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {successDocs.map((doc, index) =>
                     doc.documentUrl ? (
                       <a
-                        key={
-                          doc.documentId || `doc-${index}-${doc.templateId}`
-                        }
+                        key={doc.documentId || `doc-${index}-${doc.templateId}`}
                         href={doc.documentUrl}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -483,9 +478,7 @@ export function DocumentGeneration({
                       </a>
                     ) : (
                       <Badge
-                        key={
-                          doc.documentId || `doc-${index}-${doc.templateId}`
-                        }
+                        key={doc.documentId || `doc-${index}-${doc.templateId}`}
                         variant="default"
                         title={doc.documentName}
                       >

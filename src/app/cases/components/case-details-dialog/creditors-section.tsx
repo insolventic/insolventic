@@ -36,7 +36,9 @@ export function CreditorsSection({
                 >
                   <div>
                     <p className="font-medium">{creditor.name}</p>
-                    <p className="text-sm text-gray-600">{creditor.type}</p>
+                    <p className="text-muted-foreground text-sm">
+                      {creditor.type}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="font-medium">
@@ -47,7 +49,7 @@ export function CreditorsSection({
                 </div>
               ))
             ) : (
-              <p className="py-8 text-center text-gray-500">
+              <p className="text-muted-foreground py-8 text-center">
                 No hay acreedores registrados
               </p>
             )}
@@ -67,13 +69,13 @@ export function CreditorsSection({
                 <div key={index} className="rounded-lg border p-3">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Pagador
                       </p>
                       <p>{libranza.payerName}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Suma Descontada
                       </p>
                       <p className="font-medium">
@@ -82,7 +84,7 @@ export function CreditorsSection({
                     </div>
                     {libranza.payerAddress && (
                       <div>
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Dirección
                         </p>
                         <p>{libranza.payerAddress}</p>
@@ -90,7 +92,7 @@ export function CreditorsSection({
                     )}
                     {libranza.productAndCreditor && (
                       <div>
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Producto/Acreedor
                         </p>
                         <p>{libranza.productAndCreditor}</p>
@@ -116,13 +118,13 @@ export function CreditorsSection({
                 <div key={index} className="rounded-lg border p-3">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Acreedor/Entidad
                       </p>
                       <p>{service.creditorName}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Suma Adeudada
                       </p>
                       <p className="font-medium">
@@ -131,7 +133,7 @@ export function CreditorsSection({
                     </div>
                     {service.suspendedProduct && (
                       <div>
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Servicio
                         </p>
                         <p>{service.suspendedProduct}</p>

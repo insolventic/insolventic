@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex flex-col items-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
         <p className="text-muted-foreground text-sm">Cargando INSOLVENTIC...</p>
       </div>
     </div>

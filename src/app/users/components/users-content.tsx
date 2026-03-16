@@ -22,10 +22,10 @@ export function UsersContent({
   return (
     <>
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-foreground text-3xl font-bold">
           Gestión de usuarios y permisos
         </h1>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Administre usuarios y permisos del sistema
         </p>
       </div>

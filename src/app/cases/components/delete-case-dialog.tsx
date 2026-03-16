@@ -103,8 +103,8 @@ export function DeleteCaseDialog({
             </div>
           )}
 
-          <div className="rounded-lg bg-gray-50 p-4">
-            <p className="text-sm text-gray-600">
+          <div className="bg-muted rounded-lg p-4">
+            <p className="text-muted-foreground text-sm">
               <strong>Nota:</strong> Esta acción no se puede deshacer. Una vez
               eliminado, toda la información del caso se perderá
               permanentemente.

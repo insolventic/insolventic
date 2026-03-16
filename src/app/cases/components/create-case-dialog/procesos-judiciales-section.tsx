@@ -141,9 +141,7 @@ export function ProcesosJudicialesSection() {
             <div className="space-y-2">
               <Label>Estado del Proceso</Label>
               <Select
-                value={
-                  watch(`procesosJudiciales.${index}.estadoProceso`) || ''
-                }
+                value={watch(`procesosJudiciales.${index}.estadoProceso`) || ''}
                 onValueChange={(value) =>
                   setValue(`procesosJudiciales.${index}.estadoProceso`, value)
                 }
@@ -176,7 +174,7 @@ export function ProcesosJudicialesSection() {
       </Button>
 
       {fields.length === 0 && (
-        <div className="py-8 text-center text-gray-500">
+        <div className="text-muted-foreground py-8 text-center">
           <p className="mb-4">No hay procesos judiciales registrados</p>
           <p className="text-sm">
             Use el bot&oacute;n para agregar procesos judiciales relacionados

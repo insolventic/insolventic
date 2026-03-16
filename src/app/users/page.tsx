@@ -47,14 +47,14 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
         permission="Ver usuarios"
         redirectTo="/dashboard"
         fallback={
-          <div className="min-h-screen bg-gray-50">
+          <div className="bg-background min-h-screen">
             <DashboardHeader />
             <main className="container mx-auto px-4 py-6">
               <div className="text-center">
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-foreground text-2xl font-bold">
                   Acceso Denegado
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   No tienes permisos para ver usuarios.
                 </p>
               </div>
@@ -62,15 +62,15 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
           </div>
         }
       >
-        <div className="min-h-screen bg-gray-50">
+        <div className="bg-background min-h-screen">
           <DashboardHeader />
           <main className="container mx-auto px-4 py-6">
             <div className="flex flex-col items-center justify-center space-y-4 py-12">
               <AlertCircle className="h-12 w-12 text-red-500" />
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-foreground text-2xl font-bold">
                 Error al cargar datos
               </h1>
-              <p className="text-center text-gray-600">
+              <p className="text-muted-foreground text-center">
                 {!usersResult.success && 'No se pudieron cargar los usuarios. '}
                 {!rolesResult.success && 'No se pudieron cargar los roles. '}
                 Por favor, verifica tu conexión e intenta nuevamente.
@@ -96,14 +96,14 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
       permission="Ver usuarios"
       redirectTo="/dashboard"
       fallback={
-        <div className="min-h-screen bg-gray-50">
+        <div className="bg-background min-h-screen">
           <DashboardHeader />
           <main className="container mx-auto px-4 py-6">
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-foreground text-2xl font-bold">
                 Acceso Denegado
               </h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 No tienes permisos para ver usuarios.
               </p>
             </div>
@@ -111,7 +111,7 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
         </div>
       }
     >
-      <div className="min-h-screen bg-gray-50">
+      <div className="bg-background min-h-screen">
         <DashboardHeader />
 
         <main className="container mx-auto px-4 py-6">
@@ -121,12 +121,12 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Total Usuarios
                       </p>
                       <p className="text-2xl font-bold">{users.length}</p>
                     </div>
-                    <Users className="h-8 w-8 text-blue-600" />
+                    <Users className="text-primary h-8 w-8" />
                   </div>
                 </CardContent>
               </Card>
@@ -134,7 +134,7 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Total de Usuarios
                       </p>
                       <p className="text-2xl font-bold">{totalUsersCount}</p>
@@ -147,7 +147,7 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Operadores
                       </p>
                       <p className="text-2xl font-bold">{operatorsCount}</p>
@@ -160,7 +160,7 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Casos Asignados
                       </p>
                       <p className="text-2xl font-bold">{totalCases}</p>

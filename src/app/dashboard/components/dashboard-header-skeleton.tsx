@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function DashboardHeaderSkeleton() {
   return (
-    <header className="border-b border-gray-200 bg-white px-6 py-4">
+    <header className="border-border bg-card border-b px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="flex cursor-pointer items-center space-x-3">
@@ -18,7 +18,7 @@ export function DashboardHeaderSkeleton() {
               className="rounded-full"
             />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">INSOLVENTIC</h1>
+              <h1 className="text-foreground text-xl font-bold">INSOLVENTIC</h1>
               <div className="flex items-center space-x-2">
                 <Skeleton className="h-4 w-4 rounded-full" />
                 <Skeleton className="h-5 w-24" />
@@ -34,12 +34,12 @@ export function DashboardHeaderSkeleton() {
               size="sm"
               aria-label="Notificaciones"
               disabled
-              className="text-gray-600"
+              className="text-muted-foreground"
             >
               <Bell className="h-4 w-4" />
             </Button>
 
-            <div className="flex items-center space-x-3 rounded-lg bg-gray-50 px-3 py-2">
+            <div className="bg-muted flex items-center space-x-3 rounded-lg px-3 py-2">
               <Skeleton className="h-8 w-8 rounded-full" />
               <div className="flex flex-col space-y-1">
                 <Skeleton className="h-4 w-32" />
@@ -59,7 +59,7 @@ export function DashboardHeaderSkeleton() {
               size="sm"
               aria-label="Notificaciones"
               disabled
-              className="text-gray-600"
+              className="text-muted-foreground"
             >
               <Bell className="h-4 w-4" />
             </Button>

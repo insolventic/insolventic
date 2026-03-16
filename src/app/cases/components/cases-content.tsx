@@ -125,17 +125,17 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-muted min-h-screen">
       <DashboardHeader />
 
       <main className="container mx-auto px-4 py-6">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-foreground text-3xl font-bold">
                 Gestión de Casos
               </h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Administre casos de insolvencia, conciliación y acuerdos de
                 apoyo
               </p>

@@ -45,23 +45,23 @@ const getNotificationTypeIcon = (type: string) => {
 const getNotificationTypeColor = (type: string) => {
   if (type.includes('_created')) {
     return {
-      bg: 'bg-green-100',
-      icon: 'text-green-600',
+      bg: 'bg-green-100 dark:bg-green-900/30',
+      icon: 'text-green-600 dark:text-green-400',
     };
   } else if (type.includes('_updated')) {
     return {
-      bg: 'bg-blue-100',
-      icon: 'text-blue-600',
+      bg: 'bg-blue-100 dark:bg-blue-900/30',
+      icon: 'text-blue-600 dark:text-blue-400',
     };
   } else if (type.includes('_deleted')) {
     return {
-      bg: 'bg-red-100',
-      icon: 'text-red-600',
+      bg: 'bg-red-100 dark:bg-red-900/30',
+      icon: 'text-red-600 dark:text-red-400',
     };
   } else {
     return {
-      bg: 'bg-gray-100',
-      icon: 'text-gray-600',
+      bg: 'bg-muted',
+      icon: 'text-muted-foreground',
     };
   }
 };
@@ -102,7 +102,7 @@ export function NotificationItem({
 
   return (
     <div
-      className={`flex items-start ${isDashboard ? 'space-x-3' : 'space-x-4'} rounded-lg border bg-white ${isDashboard ? 'p-3' : 'p-4'} transition-colors ${isDashboard ? 'hover:bg-gray-50' : 'border-blue-200'} ${className}`}
+      className={`flex items-start ${isDashboard ? 'space-x-3' : 'space-x-4'} bg-card rounded-lg border ${isDashboard ? 'p-3' : 'p-4'} transition-colors ${isDashboard ? 'hover:bg-muted' : 'border-border'} ${className}`}
     >
       <div className="shrink-0">
         <div
@@ -116,19 +116,17 @@ export function NotificationItem({
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center justify-between">
           <h4
-            className={`${isDashboard ? 'truncate' : ''} text-sm font-medium text-gray-900`}
+            className={`${isDashboard ? 'truncate' : ''} text-foreground text-sm font-medium`}
           >
             {notification.title}
           </h4>
         </div>
         <p
-          className={`mb-2 ${isDashboard ? 'text-xs' : 'text-sm'} ${isDashboard ? 'text-gray-600' : 'text-gray-700'}`}
+          className={`mb-2 ${isDashboard ? 'text-xs' : 'text-sm'} text-muted-foreground`}
         >
           {notification.message}
         </p>
-        <p
-          className={`text-xs ${isDashboard ? 'text-gray-400' : 'text-gray-500'}`}
-        >
+        <p className="text-muted-foreground text-xs">
           {isDashboard
             ? formatRelativeDate(notification.createdDate)
             : formatAbsoluteDate(notification.createdDate)}

@@ -22,7 +22,7 @@ export function LegalFoundationsSection({
           <CardContent className="space-y-4">
             {caseData?.requestedFee && (
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Tarifa Solicitada
                 </p>
                 <p className="text-sm">{caseData.requestedFee}</p>
@@ -30,7 +30,7 @@ export function LegalFoundationsSection({
             )}
             {caseData?.legalFoundations && (
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-muted-foreground text-sm font-medium">
                   Fundamentos de Derecho
                 </p>
                 <p className="text-sm whitespace-pre-wrap">
@@ -54,7 +54,7 @@ export function LegalFoundationsSection({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {caseData?.notificationAddress && (
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Dirección para Notificaciones
                   </p>
                   <p className="text-sm">{caseData.notificationAddress}</p>
@@ -62,13 +62,15 @@ export function LegalFoundationsSection({
               )}
               {caseData?.notificationPhone && (
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Teléfono</p>
+                  <p className="text-muted-foreground text-sm font-medium">
+                    Teléfono
+                  </p>
                   <p className="text-sm">{caseData.notificationPhone}</p>
                 </div>
               )}
               {caseData?.notificationEmail && (
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Correo Electrónico
                   </p>
                   <p className="text-sm">{caseData.notificationEmail}</p>
@@ -89,7 +91,7 @@ export function LegalFoundationsSection({
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {caseData?.applicantSignatureName && (
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Nombre Completo
                   </p>
                   <p className="text-sm">{caseData.applicantSignatureName}</p>
@@ -97,13 +99,17 @@ export function LegalFoundationsSection({
               )}
               {caseData?.applicantSignatureId && (
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Cédula</p>
+                  <p className="text-muted-foreground text-sm font-medium">
+                    Cédula
+                  </p>
                   <p className="text-sm">{caseData.applicantSignatureId}</p>
                 </div>
               )}
               {caseData?.applicantSignature && (
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Firma</p>
+                  <p className="text-muted-foreground text-sm font-medium">
+                    Firma
+                  </p>
                   <p className="text-sm italic">
                     {caseData.applicantSignature}
                   </p>

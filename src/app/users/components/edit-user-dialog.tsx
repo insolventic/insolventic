@@ -142,7 +142,7 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label htmlFor="name">Nombre Completo</Label>
               <div className="relative">
-                <UserIcon className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <UserIcon className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="name"
                   {...register('name')}
@@ -157,7 +157,7 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico</Label>
               <div className="relative">
-                <Mail className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Mail className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="email"
                   type="email"
@@ -175,7 +175,7 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label htmlFor="phone">Teléfono</Label>
               <div className="relative">
-                <Phone className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Phone className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input id="phone" {...register('phone')} className="pl-10" />
               </div>
             </div>
@@ -183,7 +183,7 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label htmlFor="professionalCard">Tarjeta Profesional</Label>
               <div className="relative">
-                <CreditCard className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <CreditCard className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="professionalCard"
                   {...register('professionalCard')}
@@ -196,7 +196,7 @@ export function EditUserDialog({
           <div className="space-y-2">
             <Label htmlFor="address">Dirección</Label>
             <div className="relative">
-              <MapPin className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+              <MapPin className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
               <Input id="address" {...register('address')} className="pl-10" />
             </div>
           </div>
@@ -205,7 +205,7 @@ export function EditUserDialog({
             <div className="space-y-2">
               <Label htmlFor="role">Rol</Label>
               <div className="relative">
-                <Shield className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Shield className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Select
                   value={watch('roleId')}
                   onValueChange={(value) => setValue('roleId', value)}
@@ -235,7 +235,7 @@ export function EditUserDialog({
               <h3 className="mb-2 font-medium">
                 Permisos del Rol: {selectedRole?.name ?? 'N/A'}
               </h3>
-              <ul className="space-y-1 text-sm text-gray-600">
+              <ul className="text-muted-foreground space-y-1 text-sm">
                 {(selectedRole?.permissions ?? []).map((permission: string) => (
                   <li key={permission} className="flex items-center">
                     <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
@@ -246,15 +246,15 @@ export function EditUserDialog({
             </div>
           )}
 
-          <div className="rounded-lg border bg-blue-50 p-4">
+          <div className="bg-muted rounded-lg border p-4">
             <h3 className="mb-2 font-medium">Información del Sistema</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-600">Casos Asignados:</p>
+                <p className="text-muted-foreground">Casos Asignados:</p>
                 <p className="font-medium">{user?.assignedCases.length ?? 0}</p>
               </div>
               <div>
-                <p className="text-gray-600">Último Acceso:</p>
+                <p className="text-muted-foreground">Último Acceso:</p>
                 <p className="font-medium">
                   {!user?.lastLogin
                     ? 'Nunca'
@@ -262,7 +262,7 @@ export function EditUserDialog({
                 </p>
               </div>
               <div>
-                <p className="text-gray-600">Fecha de Creación:</p>
+                <p className="text-muted-foreground">Fecha de Creación:</p>
                 <p className="font-medium">
                   {user?.createdDate
                     ? new Date(user.createdDate).toLocaleDateString('es-CO')

@@ -109,7 +109,7 @@ export function CreditorsSection({
               </Select>
             </div>
             <div className="relative">
-              <span className="absolute top-1/2 left-3 z-10 -translate-y-1/2 text-gray-500">
+              <span className="text-muted-foreground absolute top-1/2 left-3 z-10 -translate-y-1/2">
                 $
               </span>
               <Input

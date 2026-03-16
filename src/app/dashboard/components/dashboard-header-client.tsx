@@ -1,12 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Bell, Key, Database, LogOut } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Key,
+  Database,
+  LogOut,
+  Sun,
+  Moon,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTheme } from 'next-themes';
 
 import { useAuth } from '@/hooks/use-auth';
+import { getTenantTheme } from '@/lib/tenant-theme';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -15,40 +25,22 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
 
 import { ChangePasswordDialog } from '@/components/auth/change-password-dialog';
 import { DashboardHeaderSkeleton } from './dashboard-header-skeleton';
-
-interface DatabaseInfo {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-}
-
-const databaseInfo: Record<string, DatabaseInfo> = {
-  armonia: {
-    id: 'armonia',
-    name: 'Armonia',
-    icon: '/images/toucan.png',
-    color: 'text-orange-600',
-  },
-  'constructores-paz': {
-    id: 'constructores-paz',
-    name: 'Constructores de Paz',
-    icon: '/images/dove-of-peace.png',
-    color: 'text-blue-600',
-  },
-};
 
 export function DashboardHeaderClient() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading, logout, switchDatabase, checkPermission } =
     useAuth();
+  const { theme, setTheme } = useTheme();
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const isDark = theme === 'dark';
 
   const getUserInitials = (name: string): string => {
     const nameParts = name.trim().split(' ').filter(Boolean);
@@ -79,14 +71,14 @@ export function DashboardHeaderClient() {
     setIsChangePasswordOpen(true);
   };
 
-  const currentDb = user?.tenantId ? databaseInfo[user.tenantId] : null;
+  const currentDb = user ? getTenantTheme(user.tenantId) : null;
 
   if (isLoading || !user || !currentDb) {
     return <DashboardHeaderSkeleton />;
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white px-6 py-4">
+    <header className="border-border bg-card border-b px-6 py-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           {pathname !== '/dashboard' && (
@@ -111,7 +103,7 @@ export function DashboardHeaderClient() {
               className="rounded-full"
             />
             <div>
-              <h1 className="text-xl font-bold text-gray-900">INSOLVENTIC</h1>
+              <h1 className="text-foreground text-xl font-bold">INSOLVENTIC</h1>
               <div className="flex items-center space-x-2">
                 <Image
                   src={currentDb.icon || '/placeholder.svg'}
@@ -121,7 +113,7 @@ export function DashboardHeaderClient() {
                 />
                 <Badge
                   variant="outline"
-                  className={`${currentDb.color} border-current text-xs`}
+                  className={`${currentDb.textClass} border-current text-xs`}
                 >
                   {currentDb.name}
                 </Badge>
@@ -140,7 +132,7 @@ export function DashboardHeaderClient() {
               onClick={handleNotificationsClick}
               disabled={!checkPermission('Ver casos')}
               aria-label="Notificaciones"
-              className="text-gray-600 hover:text-gray-900"
+              className="text-muted-foreground hover:text-foreground"
             >
               <Bell className="h-4 w-4" />
             </Button>
@@ -148,18 +140,20 @@ export function DashboardHeaderClient() {
             {/* User Info Section with Dropdown - Better grouped */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <div className="flex cursor-pointer items-center space-x-3 rounded-lg bg-gray-50 px-3 py-2 transition-colors hover:bg-gray-100">
+                <div className="bg-muted hover:bg-accent flex cursor-pointer items-center space-x-3 rounded-lg px-3 py-2 transition-colors">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" alt={user.name} />
-                    <AvatarFallback className="bg-blue-100 font-semibold text-blue-700">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                       {getUserInitials(user.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-foreground text-sm font-semibold">
                       {user.name}
                     </p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
               </DropdownMenuTrigger>
@@ -167,6 +161,27 @@ export function DashboardHeaderClient() {
                 <DropdownMenuItem onClick={handleChangePassword}>
                   <Key className="mr-2 h-4 w-4" />
                   <span>Cambiar Contraseña</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center">
+                    {isDark ? (
+                      <Moon className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Sun className="mr-2 h-4 w-4" />
+                    )}
+                    <span>Modo</span>
+                  </div>
+                  <Switch
+                    checked={isDark}
+                    onCheckedChange={(checked) =>
+                      setTheme(checked ? 'dark' : 'light')
+                    }
+                    aria-label="Alternar modo oscuro"
+                  />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -177,7 +192,7 @@ export function DashboardHeaderClient() {
                 variant="outline"
                 size="sm"
                 onClick={handleSwitchDatabase}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 <Database className="mr-2 h-4 w-4" />
                 <span className="hidden xl:inline">Cambiar BD</span>
@@ -187,7 +202,7 @@ export function DashboardHeaderClient() {
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span className="hidden xl:inline">Cerrar Sesión</span>
@@ -203,7 +218,7 @@ export function DashboardHeaderClient() {
               onClick={handleNotificationsClick}
               disabled={!checkPermission('Ver casos')}
               aria-label="Notificaciones"
-              className="text-gray-600 hover:text-gray-900"
+              className="text-muted-foreground hover:text-foreground"
             >
               <Bell className="h-4 w-4" />
             </Button>
@@ -216,7 +231,7 @@ export function DashboardHeaderClient() {
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" alt={user.name} />
-                    <AvatarFallback className="bg-blue-100 font-semibold text-blue-700">
+                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                       {getUserInitials(user.name)}
                     </AvatarFallback>
                   </Avatar>
@@ -226,6 +241,27 @@ export function DashboardHeaderClient() {
                 <DropdownMenuItem onClick={handleChangePassword}>
                   <Key className="mr-2 h-4 w-4" />
                   <span>Cambiar Contraseña</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onSelect={(e) => e.preventDefault()}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center">
+                    {isDark ? (
+                      <Moon className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Sun className="mr-2 h-4 w-4" />
+                    )}
+                    <span>Modo</span>
+                  </div>
+                  <Switch
+                    checked={isDark}
+                    onCheckedChange={(checked) =>
+                      setTheme(checked ? 'dark' : 'light')
+                    }
+                    aria-label="Alternar modo oscuro"
+                  />
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

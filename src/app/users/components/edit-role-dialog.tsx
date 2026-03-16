@@ -50,7 +50,7 @@ export function EditRoleDialog({
       name: '',
       description: '',
       permissions: [],
-      color: 'bg-gray-100 text-gray-800',
+      color: 'bg-muted text-foreground',
     },
   });
 
@@ -108,31 +108,38 @@ export function EditRoleDialog({
   }, [open]);
 
   const colorOptions = [
-    { value: 'bg-red-100 text-red-800', label: 'Rojo', preview: 'bg-red-100' },
     {
-      value: 'bg-blue-100 text-blue-800',
+      value: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+      label: 'Rojo',
+      preview: 'bg-red-100',
+    },
+    {
+      value: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
       label: 'Azul',
       preview: 'bg-blue-100',
     },
     {
-      value: 'bg-green-100 text-green-800',
+      value:
+        'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
       label: 'Verde',
       preview: 'bg-green-100',
     },
     {
-      value: 'bg-yellow-100 text-yellow-800',
+      value:
+        'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
       label: 'Amarillo',
       preview: 'bg-yellow-100',
     },
     {
-      value: 'bg-purple-100 text-purple-800',
+      value:
+        'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
       label: 'Morado',
       preview: 'bg-purple-100',
     },
     {
-      value: 'bg-gray-100 text-gray-800',
+      value: 'bg-muted text-foreground',
       label: 'Gris',
-      preview: 'bg-gray-100',
+      preview: 'bg-muted',
     },
   ];
 
@@ -174,8 +181,8 @@ export function EditRoleDialog({
                         color.preview
                       } ${
                         watch('color') === color.value
-                          ? 'border-gray-800'
-                          : 'border-gray-300'
+                          ? 'border-foreground'
+                          : 'border-border'
                       }`}
                       onClick={() => setValue('color', color.value)}
                       title={color.label}
@@ -228,7 +235,7 @@ export function EditRoleDialog({
                         {loadingPermissions ? (
                           <div className="flex items-center justify-center py-4">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            <span className="ml-2 text-sm text-gray-500">
+                            <span className="text-muted-foreground ml-2 text-sm">
                               Cargando permisos...
                             </span>
                           </div>
@@ -237,7 +244,7 @@ export function EditRoleDialog({
                             {Object.entries(groupedPermissions).map(
                               ([category, permissions]) => (
                                 <div key={category} className="space-y-3">
-                                  <h4 className="border-b border-gray-200 pb-1 text-sm font-medium text-gray-900">
+                                  <h4 className="border-border text-foreground border-b pb-1 text-sm font-medium">
                                     {category}
                                   </h4>
                                   <div className="space-y-2">
@@ -282,20 +289,22 @@ export function EditRoleDialog({
                   {errors.permissions.message}
                 </p>
               )}
-              <p className="text-sm text-gray-500">
+              <p className="text-muted-foreground text-sm">
                 Seleccionados: {watch('permissions')?.length ?? 0} permisos
               </p>
             </div>
 
-            <div className="rounded-lg border bg-blue-50 p-4">
+            <div className="bg-muted rounded-lg border p-4">
               <h3 className="mb-2 font-medium">Información del Rol</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-600">Usuarios con este rol:</p>
+                  <p className="text-muted-foreground">
+                    Usuarios con este rol:
+                  </p>
                   <p className="font-medium">{role.users.length}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Permisos actuales:</p>
+                  <p className="text-muted-foreground">Permisos actuales:</p>
                   <p className="font-medium">{role.permissions.length}</p>
                 </div>
               </div>

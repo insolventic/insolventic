@@ -193,7 +193,7 @@ export function LegalProcessesSection() {
         </Button>
 
         {fields.length === 0 && (
-          <div className="py-8 text-center text-gray-500">
+          <div className="text-muted-foreground py-8 text-center">
             <p className="mb-4">No hay procesos judiciales registrados</p>
             <p className="text-sm">
               Use el botón para agregar procesos judiciales en contra del

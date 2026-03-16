@@ -36,8 +36,8 @@ export function HelpTooltip({
             aria-label={ariaLabel}
             className={cn(
               'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full',
-              'text-gray-400 transition-colors hover:text-gray-600',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
+              'text-muted-foreground hover:text-foreground transition-colors',
+              'focus-visible:ring-ring focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none',
               className,
             )}
             onClick={(e) => e.stopPropagation()}

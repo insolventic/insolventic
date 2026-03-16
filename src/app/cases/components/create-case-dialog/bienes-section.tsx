@@ -77,7 +77,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
 
       {/* 6.1 Identificacion del Bien */}
       <div className="space-y-4">
-        <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+        <h4 className="text-foreground border-b pb-2 text-sm font-medium">
           6.1 Identificacion del Bien
         </h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -116,9 +116,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor={`bienes.${index}.bienUbicacion`}>
-              Ubicacion
-            </Label>
+            <Label htmlFor={`bienes.${index}.bienUbicacion`}>Ubicacion</Label>
             <Input
               id={`bienes.${index}.bienUbicacion`}
               placeholder="Direccion o ubicacion"
@@ -160,9 +158,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
               <Input
                 id={`bienes.${index}.bienEntidadFinanciera`}
                 placeholder="Nombre de la entidad"
-                {...register(
-                  `bienes.${index}.bienEntidadFinanciera` as const,
-                )}
+                {...register(`bienes.${index}.bienEntidadFinanciera` as const)}
               />
             </div>
           )}
@@ -171,7 +167,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
 
       {/* 6.2 Valoracion */}
       <div className="space-y-4">
-        <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+        <h4 className="text-foreground border-b pb-2 text-sm font-medium">
           6.2 Valoracion
         </h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -218,11 +214,11 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
 
       {/* 6.3 Situacion Juridica */}
       <div className="space-y-4">
-        <h4 className="border-b pb-2 text-sm font-medium text-gray-700">
+        <h4 className="text-foreground border-b pb-2 text-sm font-medium">
           6.3 Situacion Juridica
         </h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="flex items-center justify-between rounded-md border bg-white p-3">
+          <div className="bg-card flex items-center justify-between rounded-md border p-3">
             <Label
               htmlFor={`bienes.${index}.bienGravamenes`}
               className="cursor-pointer font-normal"
@@ -238,7 +234,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-md border bg-white p-3">
+          <div className="bg-card flex items-center justify-between rounded-md border p-3">
             <Label
               htmlFor={`bienes.${index}.bienEmbargado`}
               className="cursor-pointer font-normal"
@@ -254,7 +250,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-md border bg-white p-3">
+          <div className="bg-card flex items-center justify-between rounded-md border p-3">
             <Label
               htmlFor={`bienes.${index}.bienAfectadoViviendaFamiliar`}
               className="cursor-pointer font-normal"
@@ -264,9 +260,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
             <Switch
               id={`bienes.${index}.bienAfectadoViviendaFamiliar`}
               checked={
-                !!watch(
-                  `bienes.${index}.bienAfectadoViviendaFamiliar` as const,
-                )
+                !!watch(`bienes.${index}.bienAfectadoViviendaFamiliar` as const)
               }
               onCheckedChange={(checked) =>
                 setValue(
@@ -277,7 +271,7 @@ const BienItem = memo(function BienItem({ index, onRemove }: BienItemProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-md border bg-white p-3">
+          <div className="bg-card flex items-center justify-between rounded-md border p-3">
             <Label
               htmlFor={`bienes.${index}.bienEnLeasing`}
               className="cursor-pointer font-normal"
@@ -356,7 +350,7 @@ export function BienesSection() {
       </div>
 
       {fields.length === 0 && (
-        <div className="py-8 text-center text-gray-500">
+        <div className="text-muted-foreground py-8 text-center">
           <p className="mb-2">No hay bienes registrados</p>
           <p className="text-sm">
             Use el boton para agregar bienes al inventario del deudor

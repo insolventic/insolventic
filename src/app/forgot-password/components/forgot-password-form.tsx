@@ -44,7 +44,7 @@ const databaseInfo: Record<string, DatabaseInfo> = {
     id: 'constructores-paz',
     name: 'Constructores de Paz',
     icon: '/images/dove-of-peace.png',
-    color: 'text-blue-600',
+    color: 'text-primary',
   },
 };
 
@@ -122,7 +122,9 @@ export function ForgotPasswordForm() {
               className="mr-3"
             />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">INSOLVENTIC</h1>
+              <h1 className="text-foreground text-3xl font-bold">
+                INSOLVENTIC
+              </h1>
               <Badge
                 variant="outline"
                 className={`${currentDb.color} mt-1 border-current`}
@@ -143,14 +145,14 @@ export function ForgotPasswordForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-muted-foreground text-sm">
               Revise su bandeja de entrada y siga las instrucciones del correo
               electrónico.
             </p>
             <div className="text-center">
               <Link
                 href={`/login?db=${selectedDb}`}
-                className="text-blue-600 hover:underline"
+                className="text-primary hover:underline"
               >
                 Volver al inicio de sesión
               </Link>
@@ -173,7 +175,7 @@ export function ForgotPasswordForm() {
             className="mr-3"
           />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">INSOLVENTIC</h1>
+            <h1 className="text-foreground text-3xl font-bold">INSOLVENTIC</h1>
             <Badge
               variant="outline"
               className={`${currentDb.color} mt-1 border-current`}
@@ -182,7 +184,7 @@ export function ForgotPasswordForm() {
             </Badge>
           </div>
         </div>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Sistema de Gestión de Procesos de Insolvencia
         </p>
       </div>
@@ -200,7 +202,7 @@ export function ForgotPasswordForm() {
               variant="ghost"
               size="sm"
               onClick={handleBackToSelector}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
               Cambiar
@@ -218,7 +220,7 @@ export function ForgotPasswordForm() {
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico</Label>
               <div className="relative">
-                <Mail className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Mail className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="email"
                   type="email"
@@ -238,13 +240,13 @@ export function ForgotPasswordForm() {
             <div className="space-y-2 text-center">
               <Link
                 href={`/login?db=${selectedDb}`}
-                className="block text-sm text-blue-600 hover:underline"
+                className="text-primary block text-sm hover:underline"
               >
                 Volver al inicio de sesión
               </Link>
               <Link
                 href={`/register?db=${selectedDb}`}
-                className="block text-sm text-gray-600 hover:underline"
+                className="text-muted-foreground block text-sm hover:underline"
               >
                 ¿No tienes cuenta? Registrarse
               </Link>

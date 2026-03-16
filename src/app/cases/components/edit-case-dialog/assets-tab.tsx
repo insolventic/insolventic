@@ -334,7 +334,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
             {/* Campos específicos para INMUEBLE */}
             {assetType === 'INMUEBLE' && (
               <div className="space-y-4 border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700">
+                <h4 className="text-foreground text-sm font-medium">
                   Información del Inmueble
                 </h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -395,7 +395,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
             {/* Campos específicos para VEHICULO */}
             {assetType === 'VEHICULO' && (
               <div className="space-y-4 border-t pt-4">
-                <h4 className="text-sm font-medium text-gray-700">
+                <h4 className="text-foreground text-sm font-medium">
                   Información del Vehículo
                 </h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

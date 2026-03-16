@@ -117,7 +117,7 @@ export function CreateUserDialog({
             <div className="space-y-2">
               <Label htmlFor="name">Nombre Completo *</Label>
               <div className="relative">
-                <UserIcon className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <UserIcon className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="name"
                   placeholder="Nombre completo"
@@ -133,7 +133,7 @@ export function CreateUserDialog({
             <div className="space-y-2">
               <Label htmlFor="email">Correo Electrónico *</Label>
               <div className="relative">
-                <Mail className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Mail className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="email"
                   type="email"
@@ -152,7 +152,7 @@ export function CreateUserDialog({
             <div className="space-y-2">
               <Label htmlFor="phone">Teléfono</Label>
               <div className="relative">
-                <Phone className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Phone className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="phone"
                   placeholder="+57 300 123 4567"
@@ -165,7 +165,7 @@ export function CreateUserDialog({
             <div className="space-y-2">
               <Label htmlFor="professionalCard">Tarjeta Profesional</Label>
               <div className="relative">
-                <CreditCard className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <CreditCard className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="professionalCard"
                   placeholder="123.456"
@@ -179,7 +179,7 @@ export function CreateUserDialog({
           <div className="space-y-2">
             <Label htmlFor="address">Dirección</Label>
             <div className="relative">
-              <MapPin className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+              <MapPin className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
               <Input
                 id="address"
                 placeholder="Dirección completa"
@@ -192,7 +192,7 @@ export function CreateUserDialog({
           <div className="space-y-2">
             <Label htmlFor="role">Rol *</Label>
             <div className="relative">
-              <Shield className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+              <Shield className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
               <Select
                 value={watch('roleId')}
                 onValueChange={(value) => setValue('roleId', value)}
@@ -238,7 +238,7 @@ export function CreateUserDialog({
               <h3 className="mb-2 font-medium">
                 Permisos del Rol: {selectedRole?.name ?? 'N/A'}
               </h3>
-              <ul className="space-y-1 text-sm text-gray-600">
+              <ul className="text-muted-foreground space-y-1 text-sm">
                 {(selectedRole?.permissions ?? []).map((permission: string) => (
                   <li key={permission} className="flex items-center">
                     <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>

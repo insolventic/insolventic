@@ -42,7 +42,11 @@ interface AssetItemProps {
   onRemove: (index: number) => void;
 }
 
-const AssetItem = memo(function AssetItem({ index, fieldId, onRemove }: AssetItemProps) {
+const AssetItem = memo(function AssetItem({
+  index,
+  fieldId,
+  onRemove,
+}: AssetItemProps) {
   const form = useFormContext();
 
   // useWatch dentro del componente hijo - solo este componente se re-renderiza
@@ -52,10 +56,7 @@ const AssetItem = memo(function AssetItem({ index, fieldId, onRemove }: AssetIte
   });
 
   return (
-    <div
-      key={fieldId}
-      className="space-y-4 rounded-lg border bg-slate-50 p-6"
-    >
+    <div key={fieldId} className="space-y-4 rounded-lg border bg-slate-50 p-6">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-purple-700">
           Bien #{index + 1} - {assetType || 'Sin tipo'}
@@ -96,9 +97,7 @@ const AssetItem = memo(function AssetItem({ index, fieldId, onRemove }: AssetIte
                   </SelectItem>
                   <SelectItem value="MUEBLE">Mueble</SelectItem>
                   <SelectItem value="JOYA">Joya</SelectItem>
-                  <SelectItem value="DINERO">
-                    Dinero/Efectivo
-                  </SelectItem>
+                  <SelectItem value="DINERO">Dinero/Efectivo</SelectItem>
                   <SelectItem value="ACCION">Acción/Título</SelectItem>
                   <SelectItem value="CUENTA_COBRAR">
                     Cuenta por Cobrar
@@ -116,14 +115,10 @@ const AssetItem = memo(function AssetItem({ index, fieldId, onRemove }: AssetIte
           render={({ field: formField }) => (
             <FormItem>
               <FormLabel>
-                Nombre/Descripción{' '}
-                <span className="text-red-500">*</span>
+                Nombre/Descripción <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input
-                  {...formField}
-                  placeholder="Ej: Casa, Carro Toyota"
-                />
+                <Input {...formField} placeholder="Ej: Casa, Carro Toyota" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -146,87 +141,87 @@ const AssetItem = memo(function AssetItem({ index, fieldId, onRemove }: AssetIte
         />
       </div>
       {assetType === 'INMUEBLE' && (
-                <div className="space-y-4 border-t pt-4">
-                  <h4 className="text-sm font-medium text-gray-700">
-                    Información del Inmueble
-                  </h4>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.propertyType`}
-                      render={({ field: formField }) => (
-                        <FormItem>
-                          <FormLabel>Tipo de Inmueble</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...formField}
-                              placeholder="Casa, Apartamento, Lote"
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
+        <div className="space-y-4 border-t pt-4">
+          <h4 className="text-foreground text-sm font-medium">
+            Información del Inmueble
+          </h4>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name={`assets.${index}.propertyType`}
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>Tipo de Inmueble</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...formField}
+                      placeholder="Casa, Apartamento, Lote"
                     />
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.address`}
-                      render={({ field: formField }) => (
-                        <FormItem>
-                          <FormLabel>Dirección</FormLabel>
-                          <FormControl>
-                            <Input {...formField} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.registrationNumber`}
-                      render={({ field: formField }) => (
-                        <FormItem>
-                          <FormLabel>Matrícula Inmobiliaria</FormLabel>
-                          <FormControl>
-                            <Input {...formField} />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.encumbrance`}
-                      render={({ field: formField }) => (
-                        <FormItem>
-                          <FormLabel>Gravamen</FormLabel>
-                          <FormControl>
-                            <Input {...formField} placeholder="Hipoteca" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <FormField
-                      control={form.control}
-                      name={`assets.${index}.isFamilyHome`}
-                      render={({ field: formField }) => (
-                        <FormItem className="flex items-center space-y-0 space-x-2">
-                          <FormControl>
-                            <Checkbox
-                              checked={formField.value}
-                              onCheckedChange={formField.onChange}
-                            />
-                          </FormControl>
-                          <FormLabel className="cursor-pointer font-normal">
-                            Vivienda Familiar (Ley 258/1996)
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
+                  </FormControl>
+                </FormItem>
               )}
+            />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.address`}
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>Dirección</FormLabel>
+                  <FormControl>
+                    <Input {...formField} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.registrationNumber`}
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>Matrícula Inmobiliaria</FormLabel>
+                  <FormControl>
+                    <Input {...formField} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.encumbrance`}
+              render={({ field: formField }) => (
+                <FormItem>
+                  <FormLabel>Gravamen</FormLabel>
+                  <FormControl>
+                    <Input {...formField} placeholder="Hipoteca" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="flex flex-col gap-3">
+            <FormField
+              control={form.control}
+              name={`assets.${index}.isFamilyHome`}
+              render={({ field: formField }) => (
+                <FormItem className="flex items-center space-y-0 space-x-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={formField.value}
+                      onCheckedChange={formField.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer font-normal">
+                    Vivienda Familiar (Ley 258/1996)
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+      )}
       {assetType === 'VEHICULO' && (
         <div className="space-y-4 border-t pt-4">
-          <h4 className="text-sm font-medium text-gray-700">
+          <h4 className="text-foreground text-sm font-medium">
             Información del Vehículo
           </h4>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -353,7 +348,7 @@ export function AssetsSection() {
           </Button>
         </div>
         {fields.length === 0 && (
-          <div className="py-8 text-center text-gray-500">
+          <div className="text-muted-foreground py-8 text-center">
             <p className="mb-4">No hay bienes registrados</p>
             <p className="text-sm">
               Use los botones para agregar bienes del deudor

@@ -44,7 +44,7 @@ const databaseInfo: Record<string, DatabaseInfo> = {
     id: 'constructores-paz',
     name: 'Constructores de Paz',
     icon: '/images/dove-of-peace.png',
-    color: 'text-blue-600',
+    color: 'text-primary',
   },
 };
 
@@ -146,7 +146,9 @@ export function ResetPasswordForm() {
               className="mr-3"
             />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">INSOLVENTIC</h1>
+              <h1 className="text-foreground text-3xl font-bold">
+                INSOLVENTIC
+              </h1>
               <Badge
                 variant="outline"
                 className={`${currentDb.color} mt-1 border-current`}
@@ -167,7 +169,7 @@ export function ResetPasswordForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-muted-foreground text-sm">
               Ahora puede iniciar sesión con su nueva contraseña.
             </p>
             <Button asChild className="w-full">
@@ -191,7 +193,7 @@ export function ResetPasswordForm() {
             className="mr-3"
           />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">INSOLVENTIC</h1>
+            <h1 className="text-foreground text-3xl font-bold">INSOLVENTIC</h1>
             <Badge
               variant="outline"
               className={`${currentDb.color} mt-1 border-current`}
@@ -200,7 +202,7 @@ export function ResetPasswordForm() {
             </Badge>
           </div>
         </div>
-        <p className="text-gray-600">
+        <p className="text-muted-foreground">
           Sistema de Gestión de Procesos de Insolvencia
         </p>
       </div>
@@ -216,7 +218,7 @@ export function ResetPasswordForm() {
               variant="ghost"
               size="sm"
               onClick={handleBackToSelector}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-1 h-4 w-4" />
               Cambiar
@@ -234,7 +236,7 @@ export function ResetPasswordForm() {
             <div className="space-y-2">
               <Label htmlFor="password">Nueva Contraseña</Label>
               <div className="relative">
-                <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Lock className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
@@ -253,9 +255,9 @@ export function ResetPasswordForm() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="text-muted-foreground h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="text-muted-foreground h-4 w-4" />
                   )}
                 </Button>
               </div>
@@ -266,7 +268,7 @@ export function ResetPasswordForm() {
                 Confirmar Nueva Contraseña
               </Label>
               <div className="relative">
-                <Lock className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Lock className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
@@ -284,9 +286,9 @@ export function ResetPasswordForm() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
+                    <EyeOff className="text-muted-foreground h-4 w-4" />
                   ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
+                    <Eye className="text-muted-foreground h-4 w-4" />
                   )}
                 </Button>
               </div>
@@ -299,7 +301,7 @@ export function ResetPasswordForm() {
             <div className="text-center">
               <Link
                 href={`/login?db=${selectedDb}`}
-                className="text-sm text-blue-600 hover:underline"
+                className="text-primary text-sm hover:underline"
               >
                 Volver al inicio de sesión
               </Link>

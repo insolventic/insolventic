@@ -72,8 +72,10 @@ export function DeleteRoleDialog({
             </div>
             <div className="flex-1">
               <h3 className="font-medium">{role.name}</h3>
-              <p className="text-sm text-gray-600">{role.description}</p>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="text-muted-foreground text-sm">
+                {role.description}
+              </p>
+              <p className="text-muted-foreground mt-1 text-xs">
                 {role.users.length} usuario{role.users.length !== 1 ? 's' : ''}{' '}
                 con este rol
               </p>

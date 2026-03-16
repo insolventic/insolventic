@@ -66,7 +66,7 @@ export function UsersTable({
 
   const getRoleColor = (role: string) => {
     const roleConfig = roles.find((r) => r.name === role);
-    return roleConfig?.color ?? 'bg-gray-100 text-gray-800';
+    return roleConfig?.color ?? 'bg-muted text-foreground';
   };
 
   const filteredUsers = users.filter((user) => {
@@ -92,7 +92,7 @@ export function UsersTable({
           </div>
           <div className="mt-4 flex items-center space-x-2">
             <div className="relative">
-              <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+              <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
               <Input
                 placeholder="Buscar usuarios..."
                 value={searchTerm}
@@ -135,7 +135,9 @@ export function UsersTable({
                     <TableCell>
                       <div>
                         <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-gray-600">{user.email}</p>
+                        <p className="text-muted-foreground text-sm">
+                          {user.email}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>

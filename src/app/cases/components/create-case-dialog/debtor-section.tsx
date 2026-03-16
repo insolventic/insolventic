@@ -126,47 +126,49 @@ export function DebtorSection({
           </div>
 
           {selectedDebtor && (
-            <Card className="bg-gray-50">
+            <Card className="bg-muted">
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="flex items-start space-x-3">
-                    <User className="mt-0.5 h-5 w-5 text-gray-500" />
+                    <User className="text-muted-foreground mt-0.5 h-5 w-5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Nombre
                       </p>
                       <p className="text-base">{selectedDebtor.name}</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <CreditCard className="mt-0.5 h-5 w-5 text-gray-500" />
+                    <CreditCard className="text-muted-foreground mt-0.5 h-5 w-5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Cédula
                       </p>
                       <p className="text-base">{selectedDebtor.idNumber}</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <Mail className="mt-0.5 h-5 w-5 text-gray-500" />
+                    <Mail className="text-muted-foreground mt-0.5 h-5 w-5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Email</p>
+                      <p className="text-muted-foreground text-sm font-medium">
+                        Email
+                      </p>
                       <p className="text-base">{selectedDebtor.email}</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <Phone className="mt-0.5 h-5 w-5 text-gray-500" />
+                    <Phone className="text-muted-foreground mt-0.5 h-5 w-5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Teléfono
                       </p>
                       <p className="text-base">{selectedDebtor.phone}</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3 md:col-span-2">
-                    <MapPin className="mt-0.5 h-5 w-5 text-gray-500" />
+                    <MapPin className="text-muted-foreground mt-0.5 h-5 w-5" />
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Dirección
                       </p>
                       <p className="text-base">
@@ -178,7 +180,7 @@ export function DebtorSection({
                   <div className="flex items-start space-x-3">
                     <DollarSign className="mt-0.5 h-5 w-5 text-green-600" />
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Ingresos Mensuales
                       </p>
                       <p className="text-base font-semibold text-green-600">
@@ -189,7 +191,7 @@ export function DebtorSection({
                   <div className="flex items-start space-x-3">
                     <DollarSign className="mt-0.5 h-5 w-5 text-red-600" />
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-muted-foreground text-sm font-medium">
                         Gastos Mensuales
                       </p>
                       <p className="text-base font-semibold text-red-600">
@@ -237,7 +239,7 @@ export function DebtorSection({
                 <FormLabel>Deuda Total</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <span className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-500">
+                    <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2">
                       $
                     </span>
                     <Input

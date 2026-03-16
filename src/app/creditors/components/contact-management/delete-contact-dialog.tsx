@@ -73,12 +73,12 @@ export function DeleteContactDialog({
             <div className="flex-1">
               <h3 className="font-medium">{contact.name}</h3>
               <div className="mt-1 space-y-1">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="text-muted-foreground flex items-center gap-2 text-sm">
                   <Mail className="h-3 w-3" />
                   <span>{contact.email}</span>
                 </div>
                 {contact.phone && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="text-muted-foreground flex items-center gap-2 text-sm">
                     <Phone className="h-3 w-3" />
                     <span>{contact.phone}</span>
                   </div>

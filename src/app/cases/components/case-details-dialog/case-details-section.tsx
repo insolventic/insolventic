@@ -21,27 +21,33 @@ export function CaseDetailsSection({
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <p className="text-sm font-medium text-gray-600">Número de Caso</p>
+            <p className="text-muted-foreground text-sm font-medium">
+              Número de Caso
+            </p>
             <p className="text-sm">{caseData?.caseNumber || 'N/A'}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-600">Tipo de Caso</p>
+            <p className="text-muted-foreground text-sm font-medium">
+              Tipo de Caso
+            </p>
             <p className="text-sm">{caseData?.type || 'N/A'}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-600">Monto Total</p>
+            <p className="text-muted-foreground text-sm font-medium">
+              Monto Total
+            </p>
             <p className="text-sm">
               ${(caseData?.totalDebt || 0).toLocaleString()}
             </p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-600">
+            <p className="text-muted-foreground text-sm font-medium">
               Número de Acreedores
             </p>
             <p className="text-sm">{caseData?.creditors || 0}</p>
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-600">
+            <p className="text-muted-foreground text-sm font-medium">
               Fecha de Creación
             </p>
             <p className="text-sm">
@@ -53,7 +59,7 @@ export function CaseDetailsSection({
         </div>
         <Separator />
         <div>
-          <p className="text-sm font-medium text-gray-600">
+          <p className="text-muted-foreground text-sm font-medium">
             Causas de Insolvencia
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -62,14 +68,14 @@ export function CaseDetailsSection({
                 {cause}
               </Badge>
             )) || (
-              <span className="text-sm text-gray-500">
+              <span className="text-muted-foreground text-sm">
                 No hay causas registradas
               </span>
             )}
           </div>
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-600">Trámite</p>
+          <p className="text-muted-foreground text-sm font-medium">Trámite</p>
           <p className="text-sm">{caseData?.tramite || 'Sin especificar'}</p>
         </div>
       </CardContent>

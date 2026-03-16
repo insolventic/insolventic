@@ -15,7 +15,7 @@ export function CaseFilters({
 }: Readonly<CaseFiltersProps>) {
   return (
     <div className="relative">
-      <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+      <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
       <Input
         placeholder="Buscar por nombre, ID o cédula..."
         value={searchTerm}

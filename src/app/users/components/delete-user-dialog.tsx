@@ -53,15 +53,15 @@ export function DeleteUserDialog({
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'Operadora de Insolvencia':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       case 'Abogado':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       case 'Asistente Legal':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'Secretaria':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -86,12 +86,12 @@ export function DeleteUserDialog({
             </div>
             <div className="flex-1">
               <h3 className="font-medium">{user.name}</h3>
-              <p className="text-sm text-gray-600">{user.email}</p>
+              <p className="text-muted-foreground text-sm">{user.email}</p>
               <div className="mt-1 flex items-center space-x-2">
                 <Badge className={getRoleColor(user.role.name)}>
                   {user.role.name}
                 </Badge>
-                <span className="text-xs text-gray-500">
+                <span className="text-muted-foreground text-xs">
                   {user.assignedCases.length} casos asignados
                 </span>
               </div>

@@ -37,15 +37,15 @@ export function UserDetailsDialog({
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'Operadora de Insolvencia':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
       case 'Abogado':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       case 'Asistente Legal':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'Secretaria':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -62,11 +62,11 @@ export function UserDetailsDialog({
         <div className="space-y-6">
           <div className="flex items-start space-x-4 rounded-lg p-4 shadow-sm">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-              <UserIcon className="h-8 w-8 text-blue-600" />
+              <UserIcon className="text-primary h-8 w-8" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold">{user.name}</h3>
-              <p className="text-gray-600">{user.email}</p>
+              <p className="text-muted-foreground">{user.email}</p>
               <div className="mt-2">
                 <Badge className={getRoleColor(user.role.name)}>
                   {user.role.name}
@@ -76,39 +76,43 @@ export function UserDetailsDialog({
           </div>
 
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">
+            <h4 className="text-foreground font-medium">
               Información de Contacto
             </h4>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-gray-400" />
+                <Mail className="text-muted-foreground h-5 w-5" />
                 <div>
-                  <p className="text-sm text-gray-600">Correo Electrónico</p>
+                  <p className="text-muted-foreground text-sm">
+                    Correo Electrónico
+                  </p>
                   <p className="font-medium">{user.email}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Phone className="h-5 w-5 text-gray-400" />
+                <Phone className="text-muted-foreground h-5 w-5" />
                 <div>
-                  <p className="text-sm text-gray-600">Teléfono</p>
+                  <p className="text-muted-foreground text-sm">Teléfono</p>
                   <p className="font-medium">
                     {user.phone || 'No especificado'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <MapPin className="h-5 w-5 text-gray-400" />
+                <MapPin className="text-muted-foreground h-5 w-5" />
                 <div>
-                  <p className="text-sm text-gray-600">Dirección</p>
+                  <p className="text-muted-foreground text-sm">Dirección</p>
                   <p className="font-medium">
                     {user.address || 'No especificada'}
                   </p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <CreditCard className="h-5 w-5 text-gray-400" />
+                <CreditCard className="text-muted-foreground h-5 w-5" />
                 <div>
-                  <p className="text-sm text-gray-600">Tarjeta Profesional</p>
+                  <p className="text-muted-foreground text-sm">
+                    Tarjeta Profesional
+                  </p>
                   <p className="font-medium">{user.professionalCard}</p>
                 </div>
               </div>
@@ -118,28 +122,30 @@ export function UserDetailsDialog({
           <Separator />
 
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">
+            <h4 className="text-foreground font-medium">
               Información Profesional
             </h4>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div className="flex items-center space-x-3">
-                <Shield className="h-5 w-5 text-gray-400" />
+                <Shield className="text-muted-foreground h-5 w-5" />
                 <div>
-                  <p className="text-sm text-gray-600">Rol</p>
+                  <p className="text-muted-foreground text-sm">Rol</p>
                   <p className="font-medium">{user.role.name}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Calendar className="h-5 w-5 text-gray-400" />
+                <Calendar className="text-muted-foreground h-5 w-5" />
                 <div>
-                  <p className="text-sm text-gray-600">Casos Asignados</p>
+                  <p className="text-muted-foreground text-sm">
+                    Casos Asignados
+                  </p>
                   <p className="font-medium">{user.assignedCases.length}</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Clock className="h-5 w-5 text-gray-400" />
+                <Clock className="text-muted-foreground h-5 w-5" />
                 <div>
-                  <p className="text-sm text-gray-600">Último Acceso</p>
+                  <p className="text-muted-foreground text-sm">Último Acceso</p>
                   <p className="font-medium">
                     {!user.lastLogin
                       ? 'Nunca'
@@ -153,7 +159,9 @@ export function UserDetailsDialog({
           <Separator />
 
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">Permisos del Usuario</h4>
+            <h4 className="text-foreground font-medium">
+              Permisos del Usuario
+            </h4>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {user.role.permissions.map((permission) => (
                 <div key={permission} className="flex items-center">
@@ -167,12 +175,14 @@ export function UserDetailsDialog({
           <Separator />
 
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">
+            <h4 className="text-foreground font-medium">
               Información del Sistema
             </h4>
             <div className="rounded-lg p-4 shadow-sm">
               <div>
-                <p className="text-sm text-gray-600">Fecha de Creación</p>
+                <p className="text-muted-foreground text-sm">
+                  Fecha de Creación
+                </p>
                 <p className="font-medium">
                   {new Date(user.createdDate).toLocaleDateString('es-CO')}
                 </p>

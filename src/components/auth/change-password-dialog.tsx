@@ -80,7 +80,7 @@ export function ChangePasswordDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5 text-blue-600" />
+            <Key className="text-primary h-5 w-5" />
             Cambiar Contraseña
           </DialogTitle>
           <DialogDescription>
@@ -104,7 +104,7 @@ export function ChangePasswordDialog({
               <button
                 type="button"
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
               >
                 {showCurrentPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -134,7 +134,7 @@ export function ChangePasswordDialog({
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
               >
                 {showNewPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -166,7 +166,7 @@ export function ChangePasswordDialog({
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -183,10 +183,10 @@ export function ChangePasswordDialog({
           </div>
 
           {/* Security Tips */}
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <div className="bg-muted rounded-lg border p-3">
             <div className="flex items-start space-x-2">
-              <Lock className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
-              <div className="text-sm text-blue-800">
+              <Lock className="text-primary mt-0.5 h-4 w-4 flex-shrink-0" />
+              <div className="text-muted-foreground text-sm">
                 <p className="mb-1 font-medium">Tips de seguridad:</p>
                 <ul className="space-y-1 text-xs">
                   <li>• Use al menos 6 caracteres</li>
@@ -208,11 +208,7 @@ export function ChangePasswordDialog({
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
+            <Button type="submit" disabled={isPending} className="">
               {isPending ? 'Cambiando...' : 'Cambiar Contraseña'}
             </Button>
           </div>

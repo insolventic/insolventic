@@ -74,13 +74,13 @@ export function CreditorDetailsDialog({
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'Entidad Financiera':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
       case 'Cooperativa':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
       case 'Financiera':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -164,11 +164,11 @@ export function CreditorDetailsDialog({
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="rounded-lg bg-blue-100 p-3">
-                    <Building className="h-8 w-8 text-blue-600" />
+                    <Building className="text-primary h-8 w-8" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold">{creditor.name}</h2>
-                    <p className="mt-1 flex items-center text-gray-600">
+                    <p className="text-muted-foreground mt-1 flex items-center">
                       <MapPin className="mr-1 h-4 w-4" />
                       {creditor.address}
                     </p>
@@ -184,7 +184,7 @@ export function CreditorDetailsDialog({
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-600">NIT</p>
+                  <p className="text-muted-foreground text-sm">NIT</p>
                   <p className="font-medium">{creditor.nit}</p>
                 </div>
               </div>
@@ -211,7 +211,7 @@ export function CreditorDetailsDialog({
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Tipo:</span>
+                      <span className="text-muted-foreground">Tipo:</span>
                       <Badge
                         className={getTypeColor(
                           getCreditorTypeInSpanish(creditor.type),
@@ -222,17 +222,19 @@ export function CreditorDetailsDialog({
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">NIT:</span>
+                      <span className="text-muted-foreground">NIT:</span>
                       <span className="font-medium">{creditor.nit}</span>
                     </div>
                     {creditor.website && (
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Sitio Web:</span>
+                        <span className="text-muted-foreground">
+                          Sitio Web:
+                        </span>
                         <a
                           href={creditor.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center text-blue-600 hover:underline"
+                          className="text-primary flex items-center hover:underline"
                         >
                           <Globe className="mr-1 h-4 w-4" />
                           Visitar
@@ -251,18 +253,18 @@ export function CreditorDetailsDialog({
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center space-x-2">
-                      <Mail className="h-4 w-4 text-gray-400" />
+                      <Mail className="text-muted-foreground h-4 w-4" />
                       <span>{creditor.email}</span>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
+                      <Phone className="text-muted-foreground h-4 w-4" />
                       <span>{creditor.phone}</span>
                     </div>
                     <div className="flex items-start space-x-2">
-                      <MapPin className="mt-1 h-4 w-4 text-gray-400" />
+                      <MapPin className="text-muted-foreground mt-1 h-4 w-4" />
                       <div>
                         <p>{creditor.address}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-muted-foreground text-sm">
                           {creditor.city}, {creditor.department}
                         </p>
                       </div>
@@ -279,7 +281,9 @@ export function CreditorDetailsDialog({
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Fecha de Registro:</span>
+                      <span className="text-muted-foreground">
+                        Fecha de Registro:
+                      </span>
                       <span>
                         {new Date(
                           creditor.createdDate ?? Date.now(),
@@ -287,7 +291,7 @@ export function CreditorDetailsDialog({
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">
+                      <span className="text-muted-foreground">
                         Última Actualización:
                       </span>
                       <span>
@@ -306,7 +310,7 @@ export function CreditorDetailsDialog({
                     <CardTitle>Descripción</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700">{creditor.description}</p>
+                    <p className="text-foreground">{creditor.description}</p>
                   </CardContent>
                 </Card>
               )}
@@ -323,7 +327,7 @@ export function CreditorDetailsDialog({
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">
+                      <Label className="text-muted-foreground text-sm font-medium">
                         Nombre Completo
                       </Label>
                       <p className="font-medium">
@@ -331,7 +335,7 @@ export function CreditorDetailsDialog({
                       </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">
+                      <Label className="text-muted-foreground text-sm font-medium">
                         Cédula
                       </Label>
                       <p className="font-medium">
@@ -339,7 +343,7 @@ export function CreditorDetailsDialog({
                       </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">
+                      <Label className="text-muted-foreground text-sm font-medium">
                         Correo Electrónico
                       </Label>
                       <p className="font-medium">
@@ -347,7 +351,7 @@ export function CreditorDetailsDialog({
                       </p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium text-gray-600">
+                      <Label className="text-muted-foreground text-sm font-medium">
                         Teléfono
                       </Label>
                       <p className="font-medium">
@@ -375,7 +379,7 @@ export function CreditorDetailsDialog({
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="font-medium">{contact.name}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-muted-foreground text-sm">
                                 {contact.role}
                               </p>
                             </div>
@@ -394,7 +398,7 @@ export function CreditorDetailsDialog({
                       ))}
                     </div>
                   ) : (
-                    <p className="py-4 text-center text-gray-500">
+                    <p className="text-muted-foreground py-4 text-center">
                       No hay contactos adicionales registrados
                     </p>
                   )}
@@ -498,7 +502,7 @@ function Label({
   className?: string;
 }>) {
   return (
-    <p className={`text-sm font-medium text-gray-600 ${className}`}>
+    <p className={`text-muted-foreground text-sm font-medium ${className}`}>
       {children}
     </p>
   );

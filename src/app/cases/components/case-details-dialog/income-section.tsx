@@ -20,7 +20,7 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Ingresos Mensuales Declarados
               </p>
               <p className="text-sm">
@@ -28,7 +28,7 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Gastos Mensuales
               </p>
               <p className="text-sm">
@@ -38,13 +38,13 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
             {caseData?.otherIncomeDescription && (
               <>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Otros Ingresos
                   </p>
                   <p className="text-sm">{caseData.otherIncomeDescription}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Valor Otros Ingresos
                   </p>
                   <p className="text-sm">
@@ -54,7 +54,7 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
               </>
             )}
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Recursos Disponibles
               </p>
               <p className="text-sm font-bold text-green-600">
@@ -67,7 +67,7 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Certificación de Empleador
               </p>
               <Badge
@@ -94,17 +94,19 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
                 <div key={index} className="rounded-lg border p-3">
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Nombre
                       </p>
                       <p className="text-sm">{dependent.name}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-600">Edad</p>
+                      <p className="text-muted-foreground text-xs font-medium">
+                        Edad
+                      </p>
                       <p className="text-sm">{dependent.age} años</p>
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-gray-600">
+                      <p className="text-muted-foreground text-xs font-medium">
                         Parentesco
                       </p>
                       <p className="text-sm">{dependent.relationship}</p>

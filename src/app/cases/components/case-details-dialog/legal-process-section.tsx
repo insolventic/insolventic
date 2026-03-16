@@ -21,40 +21,46 @@ export function LegalProcessSection({
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Número de Juzgado
               </p>
               <p className="text-sm">{caseData?.courtNumber || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Ciudad</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Ciudad
+              </p>
               <p className="text-sm">{caseData?.city || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Tipo de Proceso
               </p>
               <p className="text-sm">{caseData?.processType || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Demandante</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Demandante
+              </p>
               <p className="text-sm">{caseData?.plaintiff || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Número de Expediente
               </p>
               <p className="text-sm">{caseData?.judicialFileNumber || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Abogado</p>
+              <p className="text-muted-foreground text-sm font-medium">
+                Abogado
+              </p>
               <p className="text-sm">{caseData?.attorney || 'N/A'}</p>
             </div>
           </div>
           <Separator />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Fecha de Radicación
               </p>
               <p className="text-sm">
@@ -64,7 +70,7 @@ export function LegalProcessSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Fecha de Admisión
               </p>
               <p className="text-sm">
@@ -74,7 +80,7 @@ export function LegalProcessSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Primera Audiencia
               </p>
               <p className="text-sm">
@@ -84,7 +90,7 @@ export function LegalProcessSection({
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-muted-foreground text-sm font-medium">
                 Operador Designado
               </p>
               <p className="text-sm">{caseData?.designatedOperator || 'N/A'}</p>
@@ -109,7 +115,7 @@ export function LegalProcessSection({
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {process.processType && (
                       <div>
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Tipo de Proceso
                         </p>
                         <p>{process.processType}</p>
@@ -117,7 +123,7 @@ export function LegalProcessSection({
                     )}
                     {process.plaintiff && (
                       <div>
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Demandante
                         </p>
                         <p>{process.plaintiff}</p>
@@ -125,7 +131,7 @@ export function LegalProcessSection({
                     )}
                     {process.court && (
                       <div>
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Juzgado
                         </p>
                         <p>{process.court}</p>
@@ -133,7 +139,7 @@ export function LegalProcessSection({
                     )}
                     {process.fileNumber && (
                       <div>
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Expediente
                         </p>
                         <p>{process.fileNumber}</p>
@@ -141,7 +147,7 @@ export function LegalProcessSection({
                     )}
                     {process.precautionaryMeasure && (
                       <div className="col-span-2">
-                        <p className="text-xs font-medium text-gray-600">
+                        <p className="text-muted-foreground text-xs font-medium">
                           Medida Cautelar
                         </p>
                         <p>{process.precautionaryMeasure}</p>

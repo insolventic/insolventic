@@ -170,12 +170,12 @@ export function CreditorManagement({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Total Acreedores
                   </p>
                   <p className="text-2xl font-bold">{creditors.length}</p>
                 </div>
-                <Building className="h-8 w-8 text-blue-600" />
+                <Building className="text-primary h-8 w-8" />
               </div>
             </CardContent>
           </Card>
@@ -183,7 +183,7 @@ export function CreditorManagement({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Total Deuda
                   </p>
                   <p className="text-2xl font-bold">
@@ -203,7 +203,7 @@ export function CreditorManagement({
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-muted-foreground text-sm font-medium">
                     Promedio Deuda
                   </p>
                   <p className="text-2xl font-bold">
@@ -240,7 +240,7 @@ export function CreditorManagement({
             </div>
             <div className="mt-4 flex items-center space-x-2">
               <div className="relative">
-                <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   placeholder="Buscar acreedores..."
                   value={searchTerm}
@@ -287,7 +287,7 @@ export function CreditorManagement({
                       <TableCell>
                         <div>
                           <p className="font-medium">{creditor.name}</p>
-                          <p className="flex items-center text-sm text-gray-600">
+                          <p className="text-muted-foreground flex items-center text-sm">
                             <MapPin className="mr-1 h-3 w-3" />
                             {creditor.address}
                           </p>
