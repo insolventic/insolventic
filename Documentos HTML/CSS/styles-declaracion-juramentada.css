@@ -1,45 +1,8 @@
-/* Reset y configuración base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@import url('styles-base.css');
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #000;
-  background-color: #fff;
-}
-
-/* Contenedor principal */
-.container {
-  max-width: 21cm;
-  margin: 0 auto;
-  padding: 2cm 2.5cm;
-  background-color: #fff;
-}
-
-/* Utilidades de texto */
-.text-center {
-  text-align: center;
-}
-
-.bold {
-  font-weight: bold;
-}
-
-/* Logo principal */
-.logo-section {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.logo {
-  max-width: 400px;
-  height: auto;
-}
+/* ============================================
+   DECLARACIÓN JURAMENTADA - Estilos específicos
+   ============================================ */
 
 /* Sección del destinatario */
 .destinatario-section {
@@ -76,18 +39,7 @@ body {
 /* Sección de contenido */
 .content-section {
   margin: 30px 0;
-}
-
-.parrafo-justified {
-  text-align: justify;
-  margin-bottom: 18px;
-  line-height: 1.8;
-  font-size: 12px;
-}
-
-.parrafo-justified strong {
-  font-weight: bold;
-  color: #000;
+  padding: 10px 0;
 }
 
 /* Despedida */
@@ -97,7 +49,7 @@ body {
   font-size: 12px;
 }
 
-/* Sección de firma */
+/* Sección de firma específica (sin flex, estilo carta) */
 .firma-section {
   margin-top: 50px;
   margin-bottom: 40px;
@@ -124,42 +76,8 @@ body {
   min-width: 80px;
 }
 
-/* Footer */
-.footer {
-  margin-top: 60px;
-  padding-top: 20px;
-  border-top: 1px solid #ccc;
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.footer p {
-  margin-bottom: 8px;
-}
-
 /* Impresión */
 @media print {
-  body {
-    background-color: #fff;
-  }
-
-  .container {
-    max-width: 100%;
-    padding: 0;
-    margin: 0;
-  }
-
-  @page {
-    margin: 2cm 2.5cm;
-    size: letter;
-  }
-
-  .footer {
-    border-top: none;
-  }
-
-  /* Prevenir cortes de página */
   .content-section {
     page-break-inside: avoid;
   }
@@ -172,22 +90,20 @@ body {
     page-break-after: avoid;
   }
 
-  .parrafo-justified {
-    orphans: 3;
-    widows: 3;
+  .destinatario-section,
+  .referencia,
+  .content-section p:first-child {
+    page-break-after: avoid;
+  }
+
+  .despedida,
+  .firma-section {
+    page-break-before: avoid;
   }
 }
 
 /* Responsive para tablets */
 @media screen and (max-width: 768px) {
-  .container {
-    padding: 1.5cm 1cm;
-  }
-
-  .logo {
-    max-width: 300px;
-  }
-
   .referencia {
     text-align: left;
     margin: 25px 0 30px 0;
@@ -204,18 +120,6 @@ body {
 
 /* Responsive para móviles */
 @media screen and (max-width: 480px) {
-  body {
-    font-size: 11px;
-  }
-
-  .container {
-    padding: 1cm 0.5cm;
-  }
-
-  .logo {
-    max-width: 250px;
-  }
-
   .destinatario-titulo,
   .destinatario-nombre,
   .destinatario-ciudad {
@@ -225,12 +129,6 @@ body {
   .referencia {
     font-size: 11px;
     text-align: left;
-  }
-
-  .parrafo-justified {
-    font-size: 11px;
-    text-align: left;
-    line-height: 1.7;
   }
 
   .despedida {
@@ -244,28 +142,6 @@ body {
 
   .firma-datos strong {
     min-width: 70px;
-  }
-
-  .footer {
-    font-size: 10px;
-  }
-}
-
-/* Animación de entrada suave (opcional) */
-@media screen {
-  .container {
-    animation: fadeIn 0.3s ease-in;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 }
 
@@ -286,56 +162,7 @@ body.edit-mode .firma-datos p:hover {
   transition: background-color 0.2s ease;
 }
 
-/* Espaciado especial entre párrafos */
-.parrafo-justified:last-child {
-  margin-bottom: 25px;
-}
-
-/* Estilo para el primer párrafo (con nombre en negrita) */
-.parrafo-justified:first-child {
-  margin-top: 0;
-}
-
-/* Mejora de legibilidad en pantallas grandes */
-@media screen and (min-width: 1200px) {
-  .container {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-  }
-
-  body {
-    background-color: #f5f5f5;
-    padding: 20px 0;
-  }
-}
-
-/* Estilo para campos editables (variables) */
-body.edit-mode strong[contenteditable='true'] {
-  background-color: #fff3cd;
-  padding: 2px 4px;
-  border-radius: 2px;
-  border: 1px dashed #ffc107;
-}
-
-/* Prevenir saltos de página en elementos importantes */
-@media print {
-  .destinatario-section,
-  .referencia,
-  .content-section p:first-child {
-    page-break-after: avoid;
-  }
-
-  .despedida,
-  .firma-section {
-    page-break-before: avoid;
-  }
-}
-
-/* Espaciado adicional para claridad visual */
-.content-section {
-  padding: 10px 0;
-}
-
-/* Estilo especial para el texto de juramento */
+/* Estilo para el texto de juramento */
 .parrafo-justified:nth-child(2) {
   font-weight: 500;
   background-color: #f8f9fa;
@@ -367,4 +194,21 @@ body.edit-mode strong[contenteditable='true'] {
 /* Estilo para resaltar información importante */
 .firma-datos p:hover strong {
   color: #007bff;
+}
+
+/* Estilo para campos editables (variables) */
+body.edit-mode strong[contenteditable='true'] {
+  background-color: #fff3cd;
+  padding: 2px 4px;
+  border-radius: 2px;
+  border: 1px dashed #ffc107;
+}
+
+/* Espaciado especial entre párrafos */
+.parrafo-justified:last-child {
+  margin-bottom: 25px;
+}
+
+.parrafo-justified:first-child {
+  margin-top: 0;
 }

@@ -49,7 +49,7 @@ export function CaseStats({ stats }: Readonly<CaseStatsProps>) {
               </p>
               <p className="text-2xl font-bold">{stats.totalCreditors ?? 0}</p>
             </div>
-            <Calendar className="h-8 w-8 text-green-600" />
+            <Calendar className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
         </CardContent>
       </Card>

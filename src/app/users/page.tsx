@@ -139,7 +139,7 @@ export default async function UsersPage({ searchParams }: Readonly<PageProps>) {
                       </p>
                       <p className="text-2xl font-bold">{totalUsersCount}</p>
                     </div>
-                    <UserCheck className="h-8 w-8 text-green-600" />
+                    <UserCheck className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
                 </CardContent>
               </Card>

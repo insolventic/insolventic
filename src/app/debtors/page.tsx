@@ -86,7 +86,7 @@ export default async function DebtorsPage() {
                         {formatCurrency(totalIncome)}
                       </p>
                     </div>
-                    <Briefcase className="h-8 w-8 text-green-600" />
+                    <Briefcase className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
                 </CardContent>
               </Card>

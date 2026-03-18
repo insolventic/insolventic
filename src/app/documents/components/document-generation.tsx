@@ -391,7 +391,7 @@ export function DocumentGeneration({
                 'rounded-lg border p-4',
                 generationResult.failedDocuments > 0
                   ? 'border-amber-200 bg-amber-50'
-                  : 'border-green-200 bg-green-50',
+                  : 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950',
               )}
             >
               <div className="flex items-center justify-between">
@@ -510,7 +510,7 @@ export function DocumentGeneration({
                     {failedDocs.map((doc, index) => (
                       <div
                         key={`err-${index}-${doc.templateId}`}
-                        className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm"
+                        className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm dark:border-red-800 dark:bg-red-950"
                       >
                         <span className="font-medium text-red-800">
                           {doc.templateName}

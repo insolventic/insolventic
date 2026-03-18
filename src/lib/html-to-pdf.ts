@@ -80,7 +80,9 @@ async function getExecutablePath(): Promise<string> {
     }
   }
 
-  throw new Error('No se encontro Chromium. Instale Google Chrome o configure CHROME_PATH.');
+  throw new Error(
+    'No se encontro Chromium. Instale Google Chrome o configure CHROME_PATH.',
+  );
 }
 
 /**
@@ -133,18 +135,23 @@ function isFullHtmlDocument(html: string): boolean {
  * @param html - The HTML content
  * @param assetsBaseDir - Absolute path to the directory containing CSS/ and img/ folders
  */
-export async function inlineAssets(html: string, assetsBaseDir: string): Promise<string> {
+export async function inlineAssets(
+  html: string,
+  assetsBaseDir: string,
+): Promise<string> {
   const fs = await import('fs');
   const pathModule = await import('path');
 
   let result = html;
 
   // 1. Inline CSS: Replace <link rel="stylesheet" href="..."> with <style>...</style>
-  const linkRegex = /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*\/?>/gi;
+  const linkRegex =
+    /<link\s+[^>]*rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*\/?>/gi;
   const linkMatches = [...result.matchAll(linkRegex)];
 
   // Also match href before rel
-  const linkRegex2 = /<link\s+[^>]*href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*\/?>/gi;
+  const linkRegex2 =
+    /<link\s+[^>]*href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*\/?>/gi;
   const linkMatches2 = [...result.matchAll(linkRegex2)];
 
   const allLinkMatches = [...linkMatches, ...linkMatches2];
@@ -163,7 +170,30 @@ export async function inlineAssets(html: string, assetsBaseDir: string): Promise
 
     try {
       if (fs.existsSync(cssPath)) {
-        const cssContent = fs.readFileSync(cssPath, 'utf-8');
+        let cssContent = fs.readFileSync(cssPath, 'utf-8');
+        // Resolve @import statements within CSS files
+        const cssDir = pathModule.dirname(cssPath);
+        const importRegex = /@import\s+url\(["']?([^"')]+)["']?\)\s*;/gi;
+        const importMatches = [...cssContent.matchAll(importRegex)];
+        for (const importMatch of importMatches) {
+          const importUrl = importMatch[1];
+          const importPath = pathModule.resolve(cssDir, importUrl);
+          try {
+            if (fs.existsSync(importPath)) {
+              const importedCss = fs.readFileSync(importPath, 'utf-8');
+              cssContent = cssContent.replace(importMatch[0], importedCss);
+            } else {
+              console.warn(
+                `Imported CSS not found: ${importPath} (from @import "${importUrl}")`,
+              );
+            }
+          } catch (importErr) {
+            console.warn(
+              `Error reading imported CSS ${importPath}:`,
+              importErr,
+            );
+          }
+        }
         result = result.replace(fullTag, `<style>\n${cssContent}\n</style>`);
       } else {
         console.warn(`CSS file not found: ${cssPath} (from href="${href}")`);
@@ -287,7 +317,8 @@ export async function htmlToPdf(
 
     const executablePath = await getExecutablePath();
     const args = await getBrowserArgs();
-    const isServerless = process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL;
+    const isServerless =
+      process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL;
 
     browser = await puppeteer.launch({
       args,
@@ -316,7 +347,9 @@ export async function htmlToPdf(
     return Buffer.from(pdfBuffer);
   } catch (error) {
     console.error('Error generating PDF:', error);
-    throw new Error(`Error al generar PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Error al generar PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    );
   } finally {
     if (browser) {
       await browser.close();
@@ -340,7 +373,8 @@ export async function batchHtmlToPdf(
   try {
     const executablePath = await getExecutablePath();
     const args = await getBrowserArgs();
-    const isServerless = process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL;
+    const isServerless =
+      process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.VERCEL;
 
     browser = await puppeteer.launch({
       args,
@@ -355,7 +389,9 @@ export async function batchHtmlToPdf(
       const doc = documents[i];
       let page = null;
       try {
-        console.log(`[batchHtmlToPdf] Processing ${i + 1}/${documents.length}: ${doc.filename}`);
+        console.log(
+          `[batchHtmlToPdf] Processing ${i + 1}/${documents.length}: ${doc.filename}`,
+        );
 
         // Inline assets if base directory provided
         let processedHtml = assetsBaseDir
@@ -390,10 +426,17 @@ export async function batchHtmlToPdf(
         await page.close();
         page = null;
       } catch (error) {
-        console.error(`[batchHtmlToPdf] FAILED for ${doc.filename} (${i + 1}/${documents.length}):`, error instanceof Error ? error.message : error);
+        console.error(
+          `[batchHtmlToPdf] FAILED for ${doc.filename} (${i + 1}/${documents.length}):`,
+          error instanceof Error ? error.message : error,
+        );
         // Continue with other documents - don't break the batch
         if (page) {
-          try { await page.close(); } catch { /* ignore close error */ }
+          try {
+            await page.close();
+          } catch {
+            /* ignore close error */
+          }
         }
       }
     }

@@ -85,12 +85,12 @@ export function DebtorInfoSection({
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="flex items-start space-x-3">
-              <DollarSign className="mt-0.5 h-5 w-5 text-green-600" />
+              <DollarSign className="mt-0.5 h-5 w-5 text-green-600 dark:text-green-400" />
               <div>
                 <p className="text-muted-foreground text-sm font-medium">
                   Ingresos Mensuales
                 </p>
-                <p className="text-sm font-semibold text-green-600">
+                <p className="text-sm font-semibold text-green-600 dark:text-green-400">
                   ${(caseData?.debtor?.monthlyIncome || 0).toLocaleString()}
                 </p>
               </div>

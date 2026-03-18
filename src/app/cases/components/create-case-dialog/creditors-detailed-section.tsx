@@ -77,10 +77,10 @@ export function CreditorsDetailedSection() {
           return (
             <div
               key={field.id}
-              className="space-y-4 rounded-lg border bg-slate-50 p-6"
+              className="space-y-4 rounded-lg border bg-slate-50 p-6 dark:bg-slate-900"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-purple-700">
+                <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-400">
                   Acreedor #{index + 1}
                 </h3>
                 <Button
@@ -88,7 +88,7 @@ export function CreditorsDetailedSection() {
                   variant="ghost"
                   size="sm"
                   onClick={() => remove(index)}
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

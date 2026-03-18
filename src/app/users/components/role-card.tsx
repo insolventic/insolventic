@@ -64,7 +64,7 @@ export function RoleCard({ role, users }: Readonly<RoleCardProps>) {
             <ul className="text-muted-foreground space-y-1 text-sm">
               {role.permissions.slice(0, 5).map((permission: string) => (
                 <li key={permission} className="flex items-center">
-                  <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
+                  <div className="mr-2 h-2 w-2 rounded-full bg-green-500 dark:bg-green-400"></div>
                   {permission}
                 </li>
               ))}
@@ -102,7 +102,7 @@ export function RoleCard({ role, users }: Readonly<RoleCardProps>) {
               size="sm"
               onClick={() => setShowDeleteDialog(true)}
               disabled={!canDeleteRoles || role.users.length > 0}
-              className="min-w-0 flex-1 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+              className="min-w-0 flex-1 hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-700 dark:hover:bg-red-950 dark:hover:text-red-400"
               title={getDeleteButtonTitle()}
             >
               <Trash2 className="mr-1.5 h-4 w-4 shrink-0" />

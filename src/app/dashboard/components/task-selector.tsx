@@ -60,7 +60,7 @@ export function TaskSelector() {
       icon: Building,
       href: '/creditors',
       color: 'bg-green-100',
-      iconColor: 'text-green-600',
+      iconColor: 'text-green-600 dark:text-green-400',
       stats: { total: 4, active: 3 },
       permission: P.VER_ACREEDORES,
       helpText:

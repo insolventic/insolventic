@@ -29,17 +29,17 @@
                 <div class="deudor-datos">
                     <div class="campo-deudor">
                         <label>NOMBRE</label>
-                        <input type="text" class="input-deudor" value="{{NOMBRE_DEUDOR}}">
+                        <span class="dato-deudor">{{NOMBRE_DEUDOR}}</span>
                     </div>
                     <div class="campo-deudor">
                         <label>CEDULA</label>
-                        <input type="text" class="input-deudor" value="{{CEDULA_DEUDOR}}">
+                        <span class="dato-deudor">{{CEDULA_DEUDOR}}</span>
                     </div>
                 </div>
             </div>
             <div class="info-fecha-box">
                 <p class="label-fecha">FECHA Y HORA</p>
-                <input type="datetime-local" class="input-fecha">
+                <span class="dato-fecha">{{FECHA_HORA_AUDIENCIA}}</span>
             </div>
         </div>
 
@@ -59,123 +59,122 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Filas dinámicas de acreedores (11 filas) -->
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_1}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC1_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC1_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="1" value="{{AC1_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC1_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="1">{{PORCENTAJE_1}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_1}}</span></td>
+                        <td><span class="dato-tabla">{{AC1_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC1_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC1_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC1_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_1}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC1_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_2}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC2_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC2_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="2" value="{{AC2_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC2_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="2">{{PORCENTAJE_2}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_2}}</span></td>
+                        <td><span class="dato-tabla">{{AC2_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC2_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC2_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC2_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_2}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC2_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_3}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC3_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC3_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="3" value="{{AC3_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC3_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="3">{{PORCENTAJE_3}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_3}}</span></td>
+                        <td><span class="dato-tabla">{{AC3_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC3_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC3_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC3_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_3}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC3_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_4}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC4_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC4_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="4" value="{{AC4_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC4_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="4">{{PORCENTAJE_4}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_4}}</span></td>
+                        <td><span class="dato-tabla">{{AC4_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC4_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC4_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC4_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_4}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC4_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_5}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC5_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC5_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="5" value="{{AC5_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC5_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="5">{{PORCENTAJE_5}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_5}}</span></td>
+                        <td><span class="dato-tabla">{{AC5_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC5_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC5_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC5_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_5}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC5_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_6}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC6_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC6_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="6" value="{{AC6_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC6_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="6">{{PORCENTAJE_6}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_6}}</span></td>
+                        <td><span class="dato-tabla">{{AC6_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC6_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC6_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC6_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_6}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC6_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_7}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC7_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC7_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="7" value="{{AC7_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC7_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="7">{{PORCENTAJE_7}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_7}}</span></td>
+                        <td><span class="dato-tabla">{{AC7_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC7_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC7_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC7_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_7}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC7_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_8}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC8_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC8_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="8" value="{{AC8_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC8_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="8">{{PORCENTAJE_8}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_8}}</span></td>
+                        <td><span class="dato-tabla">{{AC8_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC8_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC8_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC8_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_8}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC8_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_9}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC9_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC9_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="9" value="{{AC9_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC9_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="9">{{PORCENTAJE_9}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_9}}</span></td>
+                        <td><span class="dato-tabla">{{AC9_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC9_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC9_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC9_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_9}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC9_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_10}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC10_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC10_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="10" value="{{AC10_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC10_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="10">{{PORCENTAJE_10}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_10}}</span></td>
+                        <td><span class="dato-tabla">{{AC10_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC10_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC10_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC10_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_10}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC10_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                     <tr class="fila-acreedor">
-                        <td><input type="text" class="input-tabla" value="{{ACREEDOR_11}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC11_DOCUMENTO}}"></td>
-                        <td><input type="text" class="input-tabla" value="{{AC11_CLASIFICACION}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" data-row="11" value="{{AC11_CAPITAL_RAW}}"></td>
-                        <td><input type="number" class="input-tabla input-numero" value="{{AC11_INTERESES_RAW}}"></td>
-                        <td class="celda-porcentaje" data-row="11">{{PORCENTAJE_11}}</td>
-                        <td><textarea class="textarea-tabla" rows="2"></textarea></td>
+                        <td><span class="dato-tabla">{{ACREEDOR_11}}</span></td>
+                        <td><span class="dato-tabla">{{AC11_DOCUMENTO}}</span></td>
+                        <td><span class="dato-tabla">{{AC11_CLASIFICACION}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC11_CAPITAL}}</span></td>
+                        <td><span class="dato-tabla dato-tabla-numero">{{AC11_INTERESES}}</span></td>
+                        <td class="celda-porcentaje">{{PORCENTAJE_11}}</td>
+                        <td><span class="dato-tabla dato-tabla-texto">{{AC11_APODERADO}}</span></td>
                         <td class="celda-firma"></td>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr class="fila-totales">
                         <td colspan="3" class="label-totales">TOTALES</td>
-                        <td class="total-capital">$0.00</td>
-                        <td class="total-intereses">$0.00</td>
+                        <td class="total-capital">{{TOTAL_CAPITAL}}</td>
+                        <td class="total-intereses">{{TOTAL_INTERESES}}</td>
                         <td class="total-porcentaje">100.00%</td>
                         <td colspan="2"></td>
                     </tr>
@@ -205,46 +204,5 @@
             <strong>VIGILADO Ministerio de justicia y del Derecho.</strong></p>
         </div>
     </div>
-
-    <script>
-        // Script para calcular totales y porcentajes automáticamente
-        function calcularTotales() {
-            const inputs = document.querySelectorAll('.input-numero[data-row]');
-            let totalCapital = 0;
-            let totalIntereses = 0;
-            
-            // Calcular totales
-            document.querySelectorAll('.input-numero[data-row]').forEach(input => {
-                const valor = parseFloat(input.value) || 0;
-                totalCapital += valor;
-            });
-            
-            document.querySelectorAll('.input-numero:not([data-row])').forEach(input => {
-                const valor = parseFloat(input.value) || 0;
-                totalIntereses += valor;
-            });
-            
-            // Actualizar totales
-            document.querySelector('.total-capital').textContent = '$' + totalCapital.toLocaleString('es-CO', {minimumFractionDigits: 2});
-            document.querySelector('.total-intereses').textContent = '$' + totalIntereses.toLocaleString('es-CO', {minimumFractionDigits: 2});
-            
-            // Calcular porcentajes
-            document.querySelectorAll('.celda-porcentaje').forEach(celda => {
-                const row = celda.getAttribute('data-row');
-                const inputCapital = document.querySelector(`.input-numero[data-row="${row}"]`);
-                const valor = parseFloat(inputCapital.value) || 0;
-                const porcentaje = totalCapital > 0 ? (valor / totalCapital * 100) : 0;
-                celda.textContent = porcentaje.toFixed(2) + '%';
-            });
-        }
-        
-        // Event listeners
-        document.querySelectorAll('.input-numero').forEach(input => {
-            input.addEventListener('input', calcularTotales);
-        });
-        
-        // Calcular al cargar
-        calcularTotales();
-    </script>
 </body>
 </html>

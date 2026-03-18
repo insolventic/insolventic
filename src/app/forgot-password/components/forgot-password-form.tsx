@@ -137,7 +137,7 @@ export function ForgotPasswordForm() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-center text-green-600">
+            <CardTitle className="text-center text-green-600 dark:text-green-400">
               Solicitud Enviada
             </CardTitle>
             <CardDescription className="text-center">

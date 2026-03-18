@@ -2,10 +2,30 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, FileText, FolderOpen, RefreshCw, FileCheck, FilePlus, AlertTriangle } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Loader2,
+  FileText,
+  FolderOpen,
+  RefreshCw,
+  FileCheck,
+  FilePlus,
+  AlertTriangle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
@@ -26,25 +46,38 @@ const FAILURE_TYPES = [
   { id: 'acuerdo-bilateral', name: 'Fracaso por Acuerdo Bilateral' },
   { id: 'falta-pago-gastos', name: 'Fracaso por Falta de Pago de Gastos' },
   { id: 'impugnacion', name: 'Fracaso por Impugnación del Acuerdo' },
-  { id: 'inasistencia-vencimiento', name: 'Fracaso por Inasistencia y Vencimiento' },
-  { id: 'inasistencia-animo', name: 'Fracaso por Inasistencia sin Ánimo de Conciliar' },
+  {
+    id: 'inasistencia-vencimiento',
+    name: 'Fracaso por Inasistencia y Vencimiento',
+  },
+  {
+    id: 'inasistencia-animo',
+    name: 'Fracaso por Inasistencia sin Ánimo de Conciliar',
+  },
   { id: 'incumplimiento', name: 'Fracaso por Incumplimiento' },
   { id: 'muerte-deudor', name: 'Fracaso por Muerte del Deudor' },
   { id: 'propuesta-mala', name: 'Fracaso por Propuesta Inadecuada' },
-  { id: 'propuesta-vencimiento', name: 'Fracaso por Propuesta Mala y Vencimiento' },
+  {
+    id: 'propuesta-vencimiento',
+    name: 'Fracaso por Propuesta Mala y Vencimiento',
+  },
   { id: 'propuesta-quorum', name: 'Fracaso por Propuesta Mala y Quórum' },
   { id: 'reforma-acuerdo', name: 'Fracaso por Reforma del Acuerdo' },
   { id: 'vencimiento-terminos', name: 'Fracaso por Vencimiento de Términos' },
 ];
 
-export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSectionProps) {
+export function DocumentsSection({
+  caseData,
+  onDocumentsGenerated,
+}: DocumentsSectionProps) {
   const [generatingInitial, setGeneratingInitial] = useState(false);
   const [generatingAdmission, setGeneratingAdmission] = useState(false);
   const [generatingAgreement, setGeneratingAgreement] = useState(false);
   const [generatingFailure, setGeneratingFailure] = useState(false);
   const [selectedFailureType, setSelectedFailureType] = useState<string>('');
 
-  const generatedDocuments = caseData.documents?.filter(d => d.isGenerated) || [];
+  const generatedDocuments =
+    caseData.documents?.filter((d) => d.isGenerated) || [];
   const hasDriveFolder = !!caseData.driveFolderId;
 
   const handleGenerateInitial = async () => {
@@ -52,7 +85,9 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
     try {
       const result = await generateInitialDocuments(caseData.id);
       if (result.success) {
-        toast.success(`Se generaron ${result.data?.documents.length || 0} documentos iniciales`);
+        toast.success(
+          `Se generaron ${result.data?.documents.length || 0} documentos iniciales`,
+        );
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
@@ -75,7 +110,9 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
     try {
       const result = await generateAdmissionDocuments(caseData.id);
       if (result.success) {
-        toast.success(`Se generaron ${result.data?.length || 0} documentos de admisión`);
+        toast.success(
+          `Se generaron ${result.data?.length || 0} documentos de admisión`,
+        );
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
@@ -98,7 +135,9 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
     try {
       const result = await generateAgreementDocuments(caseData.id);
       if (result.success) {
-        toast.success(`Se generaron ${result.data?.length || 0} documentos de acuerdo`);
+        toast.success(
+          `Se generaron ${result.data?.length || 0} documentos de acuerdo`,
+        );
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
@@ -124,9 +163,14 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
 
     setGeneratingFailure(true);
     try {
-      const result = await generateFailureDocuments(caseData.id, selectedFailureType);
+      const result = await generateFailureDocuments(
+        caseData.id,
+        selectedFailureType,
+      );
       if (result.success) {
-        toast.success(`Se generaron ${result.data?.length || 0} documentos de fracaso`);
+        toast.success(
+          `Se generaron ${result.data?.length || 0} documentos de fracaso`,
+        );
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
@@ -141,7 +185,10 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
 
   const openDriveFolder = () => {
     if (caseData.driveFolderId) {
-      window.open(`https://drive.google.com/drive/folders/${caseData.driveFolderId}`, '_blank');
+      window.open(
+        `https://drive.google.com/drive/folders/${caseData.driveFolderId}`,
+        '_blank',
+      );
     }
   };
 
@@ -162,7 +209,7 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Carpeta en Google Drive</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {hasDriveFolder ? 'Creada' : 'No creada aún'}
               </p>
             </div>
@@ -177,11 +224,13 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Documentos generados</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {generatedDocuments.length} documento(s)
               </p>
             </div>
-            <Badge variant={generatedDocuments.length > 0 ? 'default' : 'secondary'}>
+            <Badge
+              variant={generatedDocuments.length > 0 ? 'default' : 'secondary'}
+            >
               {generatedDocuments.length > 0 ? 'Activo' : 'Sin documentos'}
             </Badge>
           </div>
@@ -201,11 +250,12 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Etapa 1: Documentos Iniciales */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
               <p className="font-medium">1. Documentos de Solicitud</p>
-              <p className="text-sm text-muted-foreground">
-                Solicitud, Check List, Certificado de Ingresos, Declaración, Hoja Guía
+              <p className="text-muted-foreground text-sm">
+                Solicitud, Check List, Certificado de Ingresos, Declaración,
+                Hoja Guía
               </p>
             </div>
             <Button
@@ -233,14 +283,16 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
           </div>
 
           {/* Etapa 2: Documentos de Admisión */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
               <p className="font-medium">2. Documentos de Admisión</p>
-              <p className="text-sm text-muted-foreground">
-                Auto Admisión, Designación, Aceptación, Notificación, Edicto, Suspensiones
+              <p className="text-muted-foreground text-sm">
+                Auto Admisión, Designación, Aceptación, Notificación, Edicto,
+                Suspensiones
               </p>
-              <p className="text-xs text-amber-600 mt-1">
-                ⚠️ Requiere fechas de radicación, designación y aceptación ingresadas
+              <p className="mt-1 text-xs text-amber-600">
+                ⚠️ Requiere fechas de radicación, designación y aceptación
+                ingresadas
               </p>
             </div>
             <Button
@@ -263,13 +315,13 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
           </div>
 
           {/* Etapa 3: Documentos de Acuerdo */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="flex items-center justify-between rounded-lg border p-4">
             <div>
               <p className="font-medium">3. Documentos de Acuerdo</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Acuerdo de Pago, Acuerdo Bilateral, Remisión Resultado
               </p>
-              <p className="text-xs text-amber-600 mt-1">
+              <p className="mt-1 text-xs text-amber-600">
                 ⚠️ Requiere datos de votación y vigencia del acuerdo
               </p>
             </div>
@@ -293,16 +345,21 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
           </div>
 
           {/* Etapa 4: Documentos de Fracaso */}
-          <div className="p-4 border rounded-lg border-red-200 bg-red-50/50">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="rounded-lg border border-red-200 bg-red-50/50 p-4 dark:border-red-800 dark:bg-red-950/50">
+            <div className="mb-3 flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
-              <p className="font-medium text-red-700">4. Documentos de Fracaso</p>
+              <p className="font-medium text-red-700">
+                4. Documentos de Fracaso
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground mb-3">
+            <p className="text-muted-foreground mb-3 text-sm">
               Constancia de No Acuerdo y Remisión al Juzgado
             </p>
             <div className="flex gap-3">
-              <Select value={selectedFailureType} onValueChange={setSelectedFailureType}>
+              <Select
+                value={selectedFailureType}
+                onValueChange={setSelectedFailureType}
+              >
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Seleccione tipo de fracaso..." />
                 </SelectTrigger>
@@ -316,7 +373,9 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
               </Select>
               <Button
                 onClick={handleGenerateFailure}
-                disabled={generatingFailure || !hasDriveFolder || !selectedFailureType}
+                disabled={
+                  generatingFailure || !hasDriveFolder || !selectedFailureType
+                }
                 variant="destructive"
               >
                 {generatingFailure ? (
@@ -332,8 +391,9 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
                 )}
               </Button>
             </div>
-            <p className="text-xs text-red-600 mt-2">
-              ⚠️ Esta acción genera documentos para enviar el caso al juzgado por liquidación patrimonial
+            <p className="mt-2 text-xs text-red-600">
+              ⚠️ Esta acción genera documentos para enviar el caso al juzgado
+              por liquidación patrimonial
             </p>
           </div>
         </CardContent>
@@ -343,12 +403,17 @@ export function DocumentsSection({ caseData, onDocumentsGenerated }: DocumentsSe
       {generatedDocuments.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Documentos Generados ({generatedDocuments.length})</CardTitle>
+            <CardTitle>
+              Documentos Generados ({generatedDocuments.length})
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="max-h-96 space-y-2 overflow-y-auto">
               {generatedDocuments.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
+                <div
+                  key={doc.id}
+                  className="flex items-center justify-between rounded border p-2"
+                >
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-blue-500" />
                     <span className="text-sm">{doc.name}</span>

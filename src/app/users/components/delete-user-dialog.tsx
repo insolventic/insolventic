@@ -80,7 +80,7 @@ export function DeleteUserDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="flex items-center space-x-3 rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-center space-x-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
               <UserIcon className="h-5 w-5 text-red-600" />
             </div>
@@ -99,7 +99,7 @@ export function DeleteUserDialog({
           </div>
 
           {!canDelete && (
-            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-950">
               <div className="flex items-start space-x-2">
                 <AlertTriangle className="mt-0.5 h-5 w-5 text-yellow-600" />
                 <div>
@@ -128,7 +128,7 @@ export function DeleteUserDialog({
           )}
 
           {canDelete && (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
               <div className="flex items-start space-x-2">
                 <Shield className="mt-0.5 h-5 w-5 text-red-600" />
                 <div>

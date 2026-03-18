@@ -196,7 +196,7 @@ export function CreditorManagement({
                     }).format(totalDebtAmount)}
                   </p>
                 </div>
-                <Building className="h-8 w-8 text-green-600" />
+                <Building className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
             </CardContent>
           </Card>

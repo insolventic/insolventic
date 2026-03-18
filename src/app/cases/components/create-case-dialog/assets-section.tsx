@@ -56,9 +56,12 @@ const AssetItem = memo(function AssetItem({
   });
 
   return (
-    <div key={fieldId} className="space-y-4 rounded-lg border bg-slate-50 p-6">
+    <div
+      key={fieldId}
+      className="space-y-4 rounded-lg border bg-slate-50 p-6 dark:bg-slate-900"
+    >
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-purple-700">
+        <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-400">
           Bien #{index + 1} - {assetType || 'Sin tipo'}
         </h3>
         <Button
@@ -66,7 +69,7 @@ const AssetItem = memo(function AssetItem({
           variant="ghost"
           size="sm"
           onClick={() => onRemove(index)}
-          className="text-red-600 hover:bg-red-50 hover:text-red-700"
+          className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
         >
           <Trash2 className="h-4 w-4" />
         </Button>

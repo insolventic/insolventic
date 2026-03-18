@@ -165,7 +165,7 @@ export function UserDetailsDialog({
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {user.role.permissions.map((permission) => (
                 <div key={permission} className="flex items-center">
-                  <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
+                  <div className="mr-2 h-2 w-2 rounded-full bg-green-500 dark:bg-green-400"></div>
                   {permission}
                 </div>
               ))}

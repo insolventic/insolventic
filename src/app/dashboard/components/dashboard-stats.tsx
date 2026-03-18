@@ -23,7 +23,7 @@ export function DashboardStats() {
       value: '156',
       change: '+12 registros nuevos',
       icon: Users,
-      color: 'text-green-600',
+      color: 'text-green-600 dark:text-green-400',
     },
     {
       title: 'Documentos Pendientes',

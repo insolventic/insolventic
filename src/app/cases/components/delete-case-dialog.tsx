@@ -67,7 +67,7 @@ export function DeleteCaseDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg bg-red-50 p-4">
+          <div className="rounded-lg bg-red-50 p-4 dark:bg-red-950">
             <h4 className="font-medium text-red-900">Información del Caso</h4>
             <div className="mt-2 space-y-1 text-sm text-red-700">
               <p>
@@ -88,7 +88,7 @@ export function DeleteCaseDialog({
           </div>
 
           {(hasDocuments || hasAssets || hasDebts) && (
-            <div className="rounded-lg bg-yellow-50 p-4">
+            <div className="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-950">
               <h4 className="font-medium text-yellow-900">Advertencia</h4>
               <p className="mt-1 text-sm text-yellow-700">
                 Este caso tiene información asociada que también será eliminada:

@@ -228,11 +228,11 @@ export function RoleUsersDialog({
                       <p className="text-muted-foreground text-sm font-medium">
                         Total de Usuarios
                       </p>
-                      <p className="text-2xl font-bold text-green-600">
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                         {roleUsers.length}
                       </p>
                     </div>
-                    <UserCheck className="h-8 w-8 text-green-600" />
+                    <UserCheck className="h-8 w-8 text-green-600 dark:text-green-400" />
                   </div>
                 </CardContent>
               </Card>

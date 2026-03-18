@@ -161,7 +161,7 @@ export function ResetPasswordForm() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-center text-green-600">
+            <CardTitle className="text-center text-green-600 dark:text-green-400">
               Contraseña Actualizada
             </CardTitle>
             <CardDescription className="text-center">

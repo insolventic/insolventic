@@ -1,326 +1,125 @@
-/* Reset y configuración base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #000;
-  background-color: #fff;
-}
-
-/* Contenedor principal */
-.container {
-  max-width: 21cm;
-  margin: 0 auto;
-  padding: 2cm 2.5cm;
-  background-color: #fff;
-}
-
-/* Utilidades de texto */
-.text-center {
-  text-align: center;
-}
-
-.bold {
-  font-weight: bold;
-}
-
-/* Logo principal */
-.logo-section {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-.logo {
-  max-width: 400px;
-  height: auto;
-}
+/* Edicto Emplazatorio - Importa base */
+@import url('styles-base.css');
 
 /* Título principal */
 .titulo-principal {
   font-size: 16px;
   font-weight: bold;
   text-align: center;
-  margin: 25px 0 20px 0;
+  margin: 20px 0 16px 0;
   line-height: 1.4;
   text-transform: uppercase;
 }
 
+.titulo-principal::after {
+  content: '';
+  display: block;
+  width: 80px;
+  height: 2px;
+  background-color: #1a73e8;
+  margin: 10px auto 0;
+}
+
 /* Fecha */
 .fecha {
-  margin: 20px 0 30px 0;
+  margin: 16px 0 24px 0;
   font-size: 12px;
   line-height: 1.6;
 }
 
-.fecha strong {
-  font-weight: bold;
-}
-
 /* Sección de contenido */
 .content-section {
-  margin: 25px 0;
-}
-
-.parrafo-justified {
-  text-align: justify;
-  margin-bottom: 18px;
-  line-height: 1.8;
-  font-size: 12px;
-}
-
-.parrafo-justified strong {
-  font-weight: bold;
-  color: #000;
-}
-
-/* Párrafo principal (primer párrafo largo) */
-.parrafo-principal {
-  margin-bottom: 25px;
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-left: 4px solid #007bff;
-  border-radius: 2px;
-}
-
-/* Párrafo de advertencia */
-.parrafo-advertencia {
-  background-color: #fff3cd;
-  padding: 14px;
-  border-left: 4px solid #ffc107;
   margin: 20px 0;
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
-}
-
-/* Cúmplase */
-.cumplase {
-  margin-top: 30px;
-  margin-bottom: 10px;
-  font-size: 12px;
-  text-align: justify;
-}
-
-.cumplase strong {
-  font-weight: bold;
+  padding: 10px 0;
 }
 
 /* Tabla de acreedores */
 .tabla-acreedores-section {
-  margin: 25px 0;
+  margin: 20px 0;
 }
 
 .tabla-acreedores {
   width: 100%;
   border-collapse: collapse;
-  margin: 20px 0;
+  margin: 16px 0;
 }
 
 .tabla-acreedores thead th {
-  background-color: #343a40;
+  background-color: #2c3e50;
   color: #fff;
-  padding: 12px;
+  padding: 10px 12px;
   text-align: center;
   font-weight: bold;
-  font-size: 13px;
-  border: 1px solid #000;
+  font-size: 12px;
+  border: 1.5px solid #2c3e50;
+  letter-spacing: 0.5px;
 }
 
 .tabla-acreedores tbody td {
-  border: 1px solid #000;
-  padding: 15px;
+  border: 1.5px solid #000;
+  padding: 12px;
   vertical-align: top;
   font-size: 12px;
-  min-height: 100px;
+  min-height: 80px;
 }
 
 .acreedor-placeholder {
-  background-color: #f9f9f9;
-  color: #666;
+  background-color: #fafafa;
+  color: #888;
   font-style: italic;
   text-align: center;
 }
 
-/* Sección de firmas */
-.firma-section {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 30px;
-  margin: 50px 0 20px 0;
-  padding: 20px 0;
-}
-
-.logo-firma {
-  max-width: 290px;
-  height: auto;
-}
-
-.firma-img {
-  max-width: 180px;
-  height: auto;
-}
-
-/* Información de firma */
-.firma-info {
-  margin-top: 10px;
-  margin-bottom: 30px;
-}
-
-.nombre-directora {
-  font-size: 12px;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.cargo-directora {
-  font-size: 12px;
-  font-weight: bold;
-}
-
-/* Footer */
-.footer {
-  margin-top: 50px;
-  padding-top: 20px;
-  border-top: 1px solid #ccc;
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.footer p {
+/* Cúmplase */
+.cumplase {
+  margin-top: 24px;
   margin-bottom: 8px;
+  font-size: 12px;
+  text-align: justify;
 }
 
-/* Impresión */
+/* Impresión extra */
 @media print {
-  body {
-    background-color: #fff;
-  }
-
-  .container {
-    max-width: 100%;
-    padding: 0;
-    margin: 0;
-  }
-
-  @page {
-    margin: 2cm 2.5cm;
-    size: letter;
-  }
-
-  .footer {
-    border-top: none;
-  }
-
-  /* Mantener colores de fondo en impresión */
-  .parrafo-principal {
-    background-color: #f8f9fa;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    border-left: 4px solid #007bff;
-  }
-
-  .parrafo-advertencia {
-    background-color: #fff3cd;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    border-left: 4px solid #ffc107;
-  }
-
-  .tabla-acreedores thead th {
-    background-color: #343a40;
-    color: #fff;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  .acreedor-placeholder {
-    background-color: #f9f9f9;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* Prevenir cortes de página */
-  .titulo-principal {
-    page-break-after: avoid;
+  .titulo-principal::after {
+    display: none;
   }
 
   .fecha {
     page-break-after: avoid;
   }
 
-  .parrafo-principal,
-  .parrafo-advertencia {
-    page-break-inside: avoid;
-  }
-
   .tabla-acreedores {
     page-break-inside: avoid;
   }
 
-  .firma-section,
-  .firma-info {
-    page-break-inside: avoid;
-    page-break-before: avoid;
+  .tabla-acreedores thead th {
+    background-color: #2c3e50;
+    color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  .parrafo-justified {
-    orphans: 3;
-    widows: 3;
+  .acreedor-placeholder {
+    background-color: #fafafa;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 
-/* Responsive para tablets */
+/* Responsive tablet */
 @media screen and (max-width: 768px) {
-  .container {
-    padding: 1.5cm 1cm;
-  }
-
-  .logo {
-    max-width: 300px;
-  }
-
   .titulo-principal {
     font-size: 14px;
   }
 
-  .firma-section {
-    flex-direction: column;
-    gap: 20px;
-    margin: 40px 0 20px 0;
-  }
-
-  .logo-firma,
-  .firma-img {
-    max-width: 200px;
-  }
-
   .tabla-acreedores thead th {
-    font-size: 12px;
-    padding: 10px;
+    font-size: 11px;
+    padding: 8px;
   }
 }
 
-/* Responsive para móviles */
+/* Responsive móvil */
 @media screen and (max-width: 480px) {
-  body {
-    font-size: 11px;
-  }
-
-  .container {
-    padding: 1cm 0.5cm;
-  }
-
-  .logo {
-    max-width: 250px;
-  }
-
   .titulo-principal {
     font-size: 13px;
   }
@@ -329,209 +128,13 @@ body {
     font-size: 11px;
   }
 
-  .parrafo-justified {
-    font-size: 11px;
-    text-align: left;
-    line-height: 1.7;
-  }
-
-  .parrafo-principal,
-  .parrafo-advertencia {
-    padding: 12px;
-  }
-
   .tabla-acreedores thead th {
-    font-size: 11px;
-    padding: 8px;
+    font-size: 10px;
+    padding: 6px;
   }
 
   .tabla-acreedores tbody td {
     font-size: 11px;
-    padding: 10px;
-  }
-
-  .logo-firma {
-    max-width: 200px;
-  }
-
-  .firma-img {
-    max-width: 140px;
-  }
-
-  .nombre-directora,
-  .cargo-directora {
-    font-size: 11px;
-  }
-
-  .footer {
-    font-size: 10px;
-  }
-}
-
-/* Animación de entrada suave */
-@media screen {
-  .container {
-    animation: fadeIn 0.3s ease-in;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-}
-
-/* Estados hover para modo edición */
-body.edit-mode .parrafo-justified:hover {
-  background-color: #fffbea;
-  cursor: text;
-  transition: background-color 0.2s ease;
-  padding: 4px;
-  margin-left: -4px;
-  margin-right: -4px;
-  border-radius: 2px;
-}
-
-body.edit-mode .acreedor-placeholder:hover {
-  background-color: #ffffcc;
-  cursor: pointer;
-  border-color: #999;
-  transition: all 0.3s ease;
-}
-
-/* Mejora de legibilidad en pantallas grandes */
-@media screen and (min-width: 1200px) {
-  .container {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-  }
-
-  body {
-    background-color: #f5f5f5;
-    padding: 20px 0;
-  }
-}
-
-/* Decoración del título principal */
-.titulo-principal::after {
-  content: '';
-  display: block;
-  width: 80px;
-  height: 3px;
-  background-color: #007bff;
-  margin: 12px auto 0;
-}
-
-/* Espaciado especial entre elementos */
-.fecha + .content-section {
-  margin-top: 30px;
-}
-
-.tabla-acreedores-section + p {
-  margin-top: 20px;
-}
-
-/* Estilo para campos editables (variables) */
-body.edit-mode strong[contenteditable='true'] {
-  background-color: #fff3cd;
-  padding: 2px 4px;
-  border-radius: 2px;
-  border: 1px dashed #ffc107;
-}
-
-/* Hover en tabla de acreedores */
-.tabla-acreedores tbody tr:hover td {
-  background-color: #f0f0f0;
-  transition: background-color 0.2s ease;
-}
-
-/* Prevenir saltos de línea huérfanas */
-p {
-  orphans: 3;
-  widows: 3;
-}
-
-/* Espaciado consistente */
-h1,
-h2,
-h3,
-p,
-table {
-  clear: both;
-}
-
-/* Icono para párrafo de advertencia */
-.parrafo-advertencia::before {
-  content: '⚠️ ';
-  font-size: 16px;
-  margin-right: 8px;
-}
-
-/* Icono para párrafo principal */
-.parrafo-principal::before {
-  content: '📢 ';
-  font-size: 16px;
-  margin-right: 8px;
-}
-
-/* Mejorar visualización de la tabla cuando está vacía */
-.acreedor-placeholder::before {
-  content: 'Lista de acreedores (insertar aquí)';
-  display: block;
-  padding: 20px;
-}
-
-/* Ajuste de impresión para iconos */
-@media print {
-  .parrafo-advertencia::before,
-  .parrafo-principal::before {
-    display: none;
-  }
-}
-
-/* Espaciado adicional para claridad visual */
-.content-section {
-  padding: 10px 0;
-}
-
-/* Estilo especial para el cumplase */
-.cumplase {
-  border-top: 2px solid #f0f0f0;
-  padding-top: 20px;
-  margin-top: 30px;
-}
-
-/* Hover en firmas */
-.firma-section:hover .logo-firma,
-.firma-section:hover .firma-img {
-  opacity: 0.9;
-  transition: opacity 0.3s ease;
-}
-
-/* Mejorar contraste de texto en tabla */
-.tabla-acreedores thead th {
-  letter-spacing: 0.5px;
-}
-
-/* Separador visual sutil */
-.tabla-acreedores-section::before,
-.tabla-acreedores-section::after {
-  content: '';
-  display: block;
-  width: 50%;
-  height: 1px;
-  background: linear-gradient(to right, transparent, #ddd, transparent);
-  margin: 15px auto;
-}
-
-/* Ocultar separadores en impresión */
-@media print {
-  .tabla-acreedores-section::before,
-  .tabla-acreedores-section::after {
-    display: none;
+    padding: 8px;
   }
 }

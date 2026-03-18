@@ -57,7 +57,7 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
               <p className="text-muted-foreground text-sm font-medium">
                 Recursos Disponibles
               </p>
-              <p className="text-sm font-bold text-green-600">
+              <p className="text-sm font-bold text-green-600 dark:text-green-400">
                 $
                 {(
                   (caseData?.monthlyIncome || 0) +

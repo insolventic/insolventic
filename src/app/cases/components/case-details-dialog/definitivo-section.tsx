@@ -197,7 +197,7 @@ export function DefinitivoSection({
               <p className="text-muted-foreground text-sm font-medium">
                 Total Ingresos Mensuales
               </p>
-              <p className="text-sm font-semibold text-green-600">
+              <p className="text-sm font-semibold text-green-600 dark:text-green-400">
                 {formatCurrency(caseData.totalIngresosMensuales)}
               </p>
             </div>
@@ -278,7 +278,9 @@ export function DefinitivoSection({
               </p>
               <p
                 className={`text-sm font-semibold ${
-                  capacidadPago >= 0 ? 'text-green-600' : 'text-red-600'
+                  capacidadPago >= 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : 'text-red-600 dark:text-red-400'
                 }`}
               >
                 {formatCurrency(caseData.capacidadPagoEstimada)}

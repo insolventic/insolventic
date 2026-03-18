@@ -1,45 +1,16 @@
-/* Reset y configuración base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@import url('styles-base.css');
 
+/* ============================================
+   HOJA GUÍA - Estilos específicos
+   ============================================ */
+
+/* Sobrescribir fondo del body para hoja guía interactiva */
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #000;
   background-color: #f5f5f5;
 }
 
-/* Contenedor principal */
 .container {
-  max-width: 21cm;
-  margin: 20px auto;
-  padding: 2cm 2.5cm;
-  background-color: #fff;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-}
-
-/* Utilidades de texto */
-.text-center {
-  text-align: center;
-}
-
-.bold {
-  font-weight: bold;
-}
-
-/* Logo principal */
-.logo-section {
-  text-align: center;
-  margin-bottom: 25px;
-}
-
-.logo {
-  max-width: 400px;
-  height: auto;
 }
 
 /* Encabezado principal */
@@ -130,7 +101,7 @@ body {
 }
 
 .tabla-principal thead th {
-  background-color: #343a40;
+  background-color: #2c3e50;
   color: #fff;
   padding: 12px;
   text-align: center;
@@ -185,6 +156,7 @@ body {
   margin: 25px 0 15px 0;
   border-radius: 5px;
   text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .seccion-header h2 {
@@ -384,18 +356,10 @@ body {
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
 
-/* Footer */
+/* Footer específico */
 .footer {
   margin-top: 50px;
-  padding-top: 20px;
   border-top: 2px solid #dee2e6;
-  text-align: center;
-  font-size: 11px;
-  line-height: 1.6;
-}
-
-.footer p {
-  margin-bottom: 8px;
 }
 
 /* Efectos hover */
@@ -421,22 +385,18 @@ body {
   }
 
   .container {
-    max-width: 100%;
-    padding: 0;
-    margin: 0;
     box-shadow: none;
+    margin: 0;
   }
 
   @page {
     margin: 1.5cm 2cm;
-    size: letter;
   }
 
   .footer {
     border-top: 1px solid #dee2e6;
   }
 
-  /* Mantener colores en impresión */
   .titulo-proceso,
   .seccion-header.admision,
   .seccion-header.final,
@@ -447,13 +407,12 @@ body {
   }
 
   .tabla-principal thead th {
-    background-color: #343a40;
+    background-color: #2c3e50;
     color: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
 
-  /* Prevenir cortes de página */
   .encabezado-principal,
   .info-deudor,
   .seccion-header {
@@ -477,12 +436,7 @@ body {
 /* Responsive para tablets */
 @media screen and (max-width: 768px) {
   .container {
-    padding: 1.5cm 1cm;
     margin: 10px;
-  }
-
-  .logo {
-    max-width: 300px;
   }
 
   .encabezado-principal {
@@ -518,17 +472,8 @@ body {
 
 /* Responsive para móviles */
 @media screen and (max-width: 480px) {
-  body {
-    font-size: 11px;
-  }
-
   .container {
-    padding: 1cm 0.5cm;
     margin: 5px;
-  }
-
-  .logo {
-    max-width: 250px;
   }
 
   .titulo-proceso h1 {
@@ -555,40 +500,15 @@ body {
   .label-radio span {
     font-size: 11px;
   }
-
-  .footer {
-    font-size: 10px;
-  }
-}
-
-/* Animación de entrada */
-.container {
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Mejoras visuales */
-.seccion-header {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 input[type='checkbox']:checked + span,
 input[type='radio']:checked + span {
   color: #007bff;
   font-weight: bold;
 }
 
-/* Estilos para inputs con foco */
 .input-field:hover,
 .input-fecha:hover,
 .input-observacion:hover,
@@ -596,7 +516,6 @@ input[type='radio']:checked + span {
   border-color: #80bdff;
 }
 
-/* Espaciado adicional */
 .grid-consolidados + .grid-seguimiento {
   margin-top: 15px;
 }

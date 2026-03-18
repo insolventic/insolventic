@@ -1,10 +1,13 @@
-/* CONFIGURACIÓN GENERAL */
+@import url('styles-base.css');
+
+/* ============================================
+   REMISIÓN JUZGADO - Estilos específicos
+   ============================================ */
+
+/* Sobrescribir fuente para este documento tipo oficio */
 body {
   font-family: 'Times New Roman', serif;
   font-size: 12pt;
-  line-height: 1.6;
-  margin: 3cm;
-  color: #000;
 }
 
 /* ENCABEZADO */
@@ -46,13 +49,15 @@ body {
 }
 
 .firma {
-  width: 170px;
+  width: 150px;
   height: auto;
+  object-fit: contain;
 }
 
 .logo-secundario {
-  width: 110px;
+  width: 200px;
   height: auto;
+  object-fit: contain;
 }
 
 .firma-nombre {
@@ -61,9 +66,10 @@ body {
 
 /* PIE DE PÁGINA */
 .pie {
-  margin-top: 60px;
-  font-size: 10pt;
+  margin-top: 40px;
+  font-size: 10px;
   text-align: center;
+  color: #444;
 }
 
 .vigilado {
@@ -72,21 +78,23 @@ body {
   text-decoration: underline;
 }
 
-/* FORMATO IMPRESIÓN */
-@media print {
-  body {
-    margin: 2.5cm;
-  }
-}
-
+/* Tabla de información */
 table {
   width: 100%;
   border-collapse: collapse;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 12px;
 }
+
 td {
-  border: 1px solid #000;
-  padding: 6px;
+  border: 1.5px solid #000;
+  padding: 8px 12px;
   vertical-align: middle;
+}
+
+/* FORMATO IMPRESIÓN */
+@media print {
+  body {
+    margin: 2.5cm;
+  }
 }

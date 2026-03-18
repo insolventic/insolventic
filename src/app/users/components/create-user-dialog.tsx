@@ -216,10 +216,10 @@ export function CreateUserDialog({
             )}
           </div>
 
-          <div className="rounded-lg border bg-green-50 p-4">
+          <div className="rounded-lg border bg-green-50 p-4 dark:bg-green-950">
             <div className="flex items-center">
               <div className="mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
-                <span className="text-green-600">📧</span>
+                <span className="text-green-600 dark:text-green-400">📧</span>
               </div>
               <div>
                 <h3 className="font-medium text-green-800">
@@ -234,14 +234,14 @@ export function CreateUserDialog({
           </div>
 
           {selectedRole && (
-            <div className="rounded-lg border bg-green-50 p-4">
+            <div className="rounded-lg border bg-green-50 p-4 dark:bg-green-950">
               <h3 className="mb-2 font-medium">
                 Permisos del Rol: {selectedRole?.name ?? 'N/A'}
               </h3>
               <ul className="text-muted-foreground space-y-1 text-sm">
                 {(selectedRole?.permissions ?? []).map((permission: string) => (
                   <li key={permission} className="flex items-center">
-                    <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
+                    <div className="mr-2 h-2 w-2 rounded-full bg-green-500 dark:bg-green-400"></div>
                     {permission}
                   </li>
                 ))}

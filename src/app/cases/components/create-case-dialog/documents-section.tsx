@@ -122,10 +122,10 @@ export function DocumentsSection({
     const hasFile = (selectedMap[doc.key]?.length ?? 0) > 0;
     const borderClass = isRequired
       ? hasFile
-        ? 'border-green-300 bg-green-50'
-        : 'border-red-300 bg-red-50'
+        ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950'
+        : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-950'
       : hasFile
-        ? 'border-green-300 bg-green-50'
+        ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950'
         : '';
 
     return (
@@ -146,7 +146,7 @@ export function DocumentsSection({
         <div className="flex items-center gap-2">
           {isRequired &&
             (hasFile ? (
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600" />
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
             ) : (
               <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
             ))}

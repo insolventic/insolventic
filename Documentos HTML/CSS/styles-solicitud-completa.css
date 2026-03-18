@@ -1,59 +1,33 @@
-/* Reset y configuración base */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@import url('styles-base.css');
 
+/* ============================================
+   SOLICITUD COMPLETA - Estilos específicos
+   ============================================ */
+
+/* Sobrescribir para documento denso */
 body {
-  font-family: Arial, Helvetica, sans-serif;
   font-size: 11px;
   line-height: 1.5;
-  color: #000;
-  background-color: #f5f5f5;
 }
 
-/* Contenedor principal */
-.container {
-  max-width: 21cm;
-  margin: 0 auto;
-  padding: 2cm 2.5cm;
-  background-color: #fff;
-  min-height: 27cm;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Utilidades de texto */
-.text-center {
-  text-align: center;
-}
-
-.bold {
-  font-weight: bold;
-}
-
-.justified {
-  text-align: justify;
-  line-height: 1.6;
-}
-
-/* Logo principal */
+/* Logo section con borde inferior */
 .logo-section {
-  text-align: center;
   margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 2px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .logo {
   max-width: 350px;
-  height: auto;
 }
 
 /* Destinatario */
 .destinatario {
   margin: 25px 0;
   line-height: 1.4;
+  padding-left: 10px;
+  border-left: 3px solid #3498db;
 }
 
 .destinatario p {
@@ -66,17 +40,10 @@ body {
   text-align: center;
   font-size: 12px;
   text-decoration: underline;
-}
-
-/* Párrafos */
-p {
-  margin-bottom: 12px;
-}
-
-p.justified {
-  text-align: justify;
-  margin-bottom: 14px;
-  line-height: 1.7;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Párrafo del juramento */
@@ -90,7 +57,7 @@ p.justified {
 }
 
 .juramento::before {
-  content: '⚖️ ';
+  content: '\2696\FE0F ';
   font-size: 16px;
   margin-right: 8px;
 }
@@ -106,6 +73,11 @@ p.justified {
   border-radius: 3px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.section-title::before {
+  content: '\25B8 ';
+  margin-right: 5px;
 }
 
 .subsection-title {
@@ -124,11 +96,13 @@ p.justified {
   border-collapse: collapse;
   margin: 15px 0 25px 0;
   font-size: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .table-std thead {
   background-color: #34495e;
   color: #fff;
+  font-weight: 600;
 }
 
 .table-std thead th {
@@ -136,6 +110,9 @@ p.justified {
   text-align: left;
   font-weight: bold;
   border: 1px solid #2c3e50;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .table-std tbody td {
@@ -171,6 +148,7 @@ p.justified {
   border-collapse: collapse;
   min-width: 900px;
   font-size: 9px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .table-acreencias thead {
@@ -303,6 +281,8 @@ p.justified {
   text-align: center;
   background-color: #3498db;
   color: #fff;
+  width: 40px;
+  min-width: 40px;
 }
 
 /* Valor grande */
@@ -315,6 +295,11 @@ p.justified {
   background-color: #e8f8f5;
   border: 2px solid #1abc9c;
   border-radius: 5px;
+}
+
+.valor-grande::before {
+  content: '\1F4B0 ';
+  font-size: 20px;
 }
 
 /* Lista de anexos */
@@ -332,6 +317,8 @@ p.justified {
 .firma-section {
   margin-top: 50px;
   text-align: center;
+  border-top: 2px solid #e0e0e0;
+  padding-top: 30px;
 }
 
 .firma-linea {
@@ -346,24 +333,15 @@ p.justified {
 
 /* Impresión */
 @media print {
-  body {
-    background-color: #fff;
-  }
-
   .container {
-    max-width: 100%;
-    padding: 0;
-    margin: 0;
     min-height: auto;
     box-shadow: none;
   }
 
   @page {
     margin: 1.5cm 2cm;
-    size: letter;
   }
 
-  /* Preservar colores en impresión */
   .section-title,
   .subsection-title,
   .acreedor-title,
@@ -377,7 +355,6 @@ p.justified {
     color-adjust: exact;
   }
 
-  /* Prevenir cortes de página */
   .section-title,
   .subsection-title,
   .acreedor-title {
@@ -398,7 +375,6 @@ p.justified {
     page-break-inside: avoid;
   }
 
-  /* Ajustar tamaños para impresión */
   .logo {
     max-width: 300px;
   }
@@ -415,34 +391,35 @@ p.justified {
   }
 
   .table-acreencias {
-    font-size: 8px;
+    font-size: 7px;
   }
 
-  /* Asegurar que las tablas anchas se ajusten */
   .tabla-scroll {
     overflow: visible;
-  }
-
-  .table-acreencias {
-    font-size: 7px;
   }
 
   .table-acreencias thead th,
   .table-acreencias tbody td {
     padding: 5px 3px;
   }
+
+  .table-acreencias thead {
+    display: table-header-group;
+  }
+
+  .table-acreencias tbody tr {
+    page-break-inside: avoid;
+  }
+
+  .table-std .label-td,
+  .table-acreedor .label-td,
+  .table-bienes .label-td {
+    border: 1px solid #333;
+  }
 }
 
 /* Responsive para tablets */
 @media screen and (max-width: 768px) {
-  .container {
-    padding: 1.5cm 1cm;
-  }
-
-  .logo {
-    max-width: 280px;
-  }
-
   .section-title {
     font-size: 12px;
     padding: 8px 12px;
@@ -470,7 +447,6 @@ p.justified {
   }
 
   .container {
-    padding: 1cm 0.8cm;
     min-height: auto;
   }
 
@@ -506,10 +482,6 @@ p.justified {
     width: 40%;
   }
 
-  p.justified {
-    text-align: left;
-  }
-
   .valor-grande {
     font-size: 14px;
     padding: 10px;
@@ -518,24 +490,6 @@ p.justified {
   .anexos-list {
     margin-left: 20px;
     font-size: 10px;
-  }
-}
-
-/* Animación de entrada suave */
-@media screen {
-  .container {
-    animation: fadeIn 0.4s ease-in;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(15px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 }
 
@@ -549,49 +503,19 @@ p.justified {
   }
 }
 
-/* Mejoras visuales adicionales */
-.logo-section {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.destinatario {
-  padding-left: 10px;
-  border-left: 3px solid #3498db;
-}
-
-.referencia {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
 /* Estilos para resaltar información importante */
 strong {
   color: #2c3e50;
   font-weight: bold;
 }
 
-/* Mejorar legibilidad de las tablas */
-.table-std thead th,
-.table-acreencias thead th {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
 /* Estilo para celdas vacías en modo edición */
 body.edit-mode .table-std td:not(.label-td):empty::before,
 body.edit-mode .table-acreedor td:not(.label-td):empty::before,
 body.edit-mode .table-bienes td:not(.label-td):empty::before {
-  content: '[vacío]';
+  content: '[vac\00EDo]';
   color: #999;
   font-style: italic;
-}
-
-/* Ajuste fino de espaciado */
-.section-title:first-of-type {
-  margin-top: 20px;
 }
 
 /* Sombras sutiles para profundidad */
@@ -603,7 +527,7 @@ body.edit-mode .table-bienes td:not(.label-td):empty::before {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* Estilo para enlaces si se agregan */
+/* Estilo para enlaces */
 a {
   color: #3498db;
   text-decoration: none;
@@ -613,58 +537,20 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Accesibilidad - contraste mejorado */
-.table-std thead,
-.table-acreencias thead {
-  font-weight: 600;
+/* Ajuste fino de espaciado */
+.section-title:first-of-type {
+  margin-top: 20px;
 }
 
-/* Indicador visual para secciones importantes */
-.section-title::before {
-  content: '▸ ';
-  margin-right: 5px;
-}
-
-/* Mejora visual para la tabla de propuesta */
-.table-propuesta .propuesta-row td:first-child {
-  width: 40px;
-  min-width: 40px;
-}
-
-/* Estilos para números grandes */
-.valor-grande::before {
-  content: '💰 ';
-  font-size: 20px;
-}
-
-/* Optimización de impresión de tablas largas */
-@media print {
-  .table-acreencias thead {
-    display: table-header-group;
-  }
-
-  .table-acreencias tbody tr {
-    page-break-inside: avoid;
-  }
-}
-
-/* Estilo para destacar el monto total */
+/* Destacar monto total */
 .table-acreencias .total-row td:nth-child(3) {
   font-size: 11px;
   color: #c0392b;
 }
 
-/* Sección de notificaciones destacada */
-.firma-section {
-  border-top: 2px solid #e0e0e0;
-  padding-top: 30px;
-}
-
 /* Mejora de contraste para impresión */
 @media print {
-  .table-std .label-td,
-  .table-acreedor .label-td,
-  .table-bienes .label-td {
-    border: 1px solid #333;
+  .table-acreencias thead {
+    display: table-header-group;
   }
 }
