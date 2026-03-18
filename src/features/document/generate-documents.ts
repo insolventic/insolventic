@@ -7,7 +7,11 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
 import { htmlToPdf } from '@/lib/html-to-pdf';
-import { mapCaseToPlaceholders, replacePlaceholders, validatePlaceholderCoverage } from './placeholder-mapper';
+import {
+  mapCaseToPlaceholders,
+  replacePlaceholders,
+  validatePlaceholderCoverage,
+} from './placeholder-mapper';
 import {
   getTemplatesForCaseCreation,
   getTemplatesForAdmission,
@@ -39,14 +43,17 @@ export interface GeneratedDocument {
  * Document requirements by category
  * Defines which data must exist for each document type to generate
  */
-const DOCUMENT_REQUIREMENTS: Record<string, {
-  requiresCreditors?: boolean;
-  requiresAssets?: boolean;
-  requiresLegalProcesses?: boolean;
-  requiresPaymentProposal?: boolean;
-  minCoveragePercentage?: number;
-  criticalVariables?: string[];
-}> = {
+const DOCUMENT_REQUIREMENTS: Record<
+  string,
+  {
+    requiresCreditors?: boolean;
+    requiresAssets?: boolean;
+    requiresLegalProcesses?: boolean;
+    requiresPaymentProposal?: boolean;
+    minCoveragePercentage?: number;
+    criticalVariables?: string[];
+  }
+> = {
   // Solicitud documents
   'solicitud-insolvencia': {
     requiresCreditors: true,
@@ -66,7 +73,11 @@ const DOCUMENT_REQUIREMENTS: Record<string, {
     requiresCreditors: true,
     requiresPaymentProposal: true,
     minCoveragePercentage: 80,
-    criticalVariables: ['NOMBRE_DEUDOR', 'CUADRO_CALIFICACION_GRADUACION', 'PROYECCION_PAGOS'],
+    criticalVariables: [
+      'NOMBRE_DEUDOR',
+      'CUADRO_CALIFICACION_GRADUACION',
+      'PROYECCION_PAGOS',
+    ],
   },
   'acuerdo-bilateral': {
     requiresCreditors: true,
@@ -75,7 +86,11 @@ const DOCUMENT_REQUIREMENTS: Record<string, {
   // Fracaso documents
   'fracaso-tramite': {
     requiresCreditors: true,
-    criticalVariables: ['NOMBRE_DEUDOR', 'ACREEDOR_MAYORITARIO', 'TOTAL_CAPITAL_ADEUDADO'],
+    criticalVariables: [
+      'NOMBRE_DEUDOR',
+      'ACREEDOR_MAYORITARIO',
+      'TOTAL_CAPITAL_ADEUDADO',
+    ],
   },
   // Suspensión documents
   'suspension-juzgados': {
@@ -101,14 +116,16 @@ const DOCUMENT_REQUIREMENTS: Record<string, {
 function validateDocumentRequirements(
   template: DocumentTemplate,
   caseData: CaseWithRelations,
-  placeholders: Record<string, string>
+  placeholders: Record<string, string>,
 ): { canGenerate: boolean; reason?: string; missingVariables?: string[] } {
   // Get template ID without extension for matching
   const templateKey = template.id.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
   // Find matching requirement
-  const requirements = Object.entries(DOCUMENT_REQUIREMENTS).find(([key]) =>
-    templateKey.includes(key) || template.name.toLowerCase().includes(key.replace(/-/g, ' '))
+  const requirements = Object.entries(DOCUMENT_REQUIREMENTS).find(
+    ([key]) =>
+      templateKey.includes(key) ||
+      template.name.toLowerCase().includes(key.replace(/-/g, ' ')),
   )?.[1];
 
   if (!requirements) {
@@ -137,7 +154,10 @@ function validateDocumentRequirements(
   }
 
   // Check legal processes requirement
-  if (requirements.requiresLegalProcesses && (!caseData.legalProcesses || caseData.legalProcesses.length === 0)) {
+  if (
+    requirements.requiresLegalProcesses &&
+    (!caseData.legalProcesses || caseData.legalProcesses.length === 0)
+  ) {
     return {
       canGenerate: false,
       reason: 'Este documento requiere al menos un proceso judicial registrado',
@@ -150,7 +170,8 @@ function validateDocumentRequirements(
     if (!caseData.paymentTermMonths || !caseData.monthlyPaymentAmount) {
       return {
         canGenerate: false,
-        reason: 'Este documento requiere una propuesta de pago definida (plazo y cuota mensual)',
+        reason:
+          'Este documento requiere una propuesta de pago definida (plazo y cuota mensual)',
         missingVariables: ['PROPUESTA_PAGO'],
       };
     }
@@ -160,7 +181,12 @@ function validateDocumentRequirements(
   if (requirements.criticalVariables) {
     for (const variable of requirements.criticalVariables) {
       const value = placeholders[variable];
-      if (!value || value.trim() === '' || value.includes('____') || value === 'N/A') {
+      if (
+        !value ||
+        value.trim() === '' ||
+        value.includes('____') ||
+        value === 'N/A'
+      ) {
         missingVariables.push(variable);
       }
     }
@@ -211,28 +237,40 @@ async function readTemplate(templatePath: string): Promise<string> {
  */
 async function getOrCreateCaseFolder(
   caseNumber: string,
-  debtorName: string
+  debtorName: string,
+  centerFolderName: string,
 ): Promise<string> {
-  try {
-    const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-    if (!rootFolderId) {
-      throw new Error('GOOGLE_DRIVE_FOLDER_ID no esta configurado');
-    }
-
-    // Create folder name: "CASO-XXXX - Nombre Deudor"
-    const folderName = `${caseNumber} - ${debtorName}`;
-
-    // Find or create the case folder
-    const folderId = await googleDriveService.findOrCreateCaseFolder(
-      folderName,
-      rootFolderId
-    );
-
-    return folderId;
-  } catch (error) {
-    console.error('Error creating case folder:', error);
-    throw new Error('Error al crear carpeta del caso en Google Drive');
+  const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (!rootFolderId) {
+    throw new Error('GOOGLE_DRIVE_FOLDER_ID no esta configurado');
   }
+
+  // 1. Find or create "documentos-generados" folder
+  const rootContents =
+    await googleDriveService.listFoldersAndFiles(rootFolderId);
+  let docGenFolderId = rootContents.folders.find(
+    (f) => f.name?.toLowerCase() === 'documentos-generados',
+  )?.id;
+  if (!docGenFolderId) {
+    docGenFolderId = await googleDriveService.createFolder(
+      'documentos-generados',
+      rootFolderId,
+    );
+  }
+
+  // 2. Find or create center subfolder
+  const centerFolderId = await googleDriveService.createFolderHierarchy(
+    [centerFolderName],
+    docGenFolderId,
+  );
+
+  // 3. Find or create case folder inside center
+  const caseFolderId = await googleDriveService.findOrCreateCaseFolder(
+    caseNumber,
+    centerFolderId,
+  );
+
+  return caseFolderId;
 }
 
 /**
@@ -240,7 +278,7 @@ async function getOrCreateCaseFolder(
  */
 async function createDocumentSubfolder(
   caseFolderId: string,
-  folderPath: string[]
+  folderPath: string[],
 ): Promise<string> {
   if (folderPath.length === 0) {
     return caseFolderId;
@@ -249,7 +287,7 @@ async function createDocumentSubfolder(
   try {
     return await googleDriveService.createFolderHierarchy(
       folderPath,
-      caseFolderId
+      caseFolderId,
     );
   } catch (error) {
     console.error('Error creating subfolder:', error);
@@ -265,12 +303,16 @@ async function generateDocument(
   caseData: CaseWithRelations,
   placeholders: Record<string, string>,
   caseFolderId: string,
-  options: GenerationOptions & { skipValidation?: boolean }
+  options: GenerationOptions & { skipValidation?: boolean },
 ): Promise<GeneratedDocument> {
   try {
     // Validate document requirements before generation
     if (!options.skipValidation) {
-      const validation = validateDocumentRequirements(template, caseData, placeholders);
+      const validation = validateDocumentRequirements(
+        template,
+        caseData,
+        placeholders,
+      );
       if (!validation.canGenerate) {
         return {
           templateId: template.id,
@@ -296,8 +338,13 @@ async function generateDocument(
     const filledHtml = replacePlaceholders(htmlContent, placeholders);
 
     // Log coverage for debugging (in development)
-    if (process.env.NODE_ENV === 'development' && coverage.coveragePercentage < 80) {
-      console.warn(`[${template.name}] Low coverage: ${coverage.coveragePercentage}%`);
+    if (
+      process.env.NODE_ENV === 'development' &&
+      coverage.coveragePercentage < 80
+    ) {
+      console.warn(
+        `[${template.name}] Low coverage: ${coverage.coveragePercentage}%`,
+      );
       if (coverage.missing.length > 0) {
         console.warn(`  Missing variables: ${coverage.missing.join(', ')}`);
       }
@@ -331,14 +378,14 @@ async function generateDocument(
       // Create subfolder if template has folder path
       const targetFolderId = await createDocumentSubfolder(
         caseFolderId,
-        template.folderPath
+        template.folderPath,
       );
 
       googleDriveId = await googleDriveService.uploadFile(
         fileName,
         fileBuffer,
         mimeType,
-        targetFolderId
+        targetFolderId,
       );
       googleDriveUrl = googleDriveService.getFileUrl(googleDriveId);
     }
@@ -351,7 +398,8 @@ async function generateDocument(
       googleDriveUrl,
       status: 'success',
       coveragePercentage: coverage.coveragePercentage,
-      missingVariables: coverage.missing.length > 0 ? coverage.missing : undefined,
+      missingVariables:
+        coverage.missing.length > 0 ? coverage.missing : undefined,
     };
   } catch (error) {
     console.error(`Error generating document ${template.name}:`, error);
@@ -372,7 +420,8 @@ async function generateDocument(
  */
 export async function generateDocumentsForNewCase(
   caseData: CaseWithRelations,
-  options: GenerationOptions = {}
+  options: GenerationOptions = {},
+  centerFolderName?: string,
 ): Promise<{
   caseFolderId: string;
   caseFolderUrl: string;
@@ -389,7 +438,8 @@ export async function generateDocumentsForNewCase(
   if (mergedOptions.uploadToGoogleDrive && !caseFolderId) {
     caseFolderId = await getOrCreateCaseFolder(
       caseData.caseNumber,
-      caseData.debtor.name
+      caseData.debtor.name,
+      centerFolderName || 'General',
     );
     caseFolderUrl = googleDriveService.getFolderUrl(caseFolderId);
   }
@@ -404,7 +454,7 @@ export async function generateDocumentsForNewCase(
       caseData,
       placeholders,
       caseFolderId,
-      mergedOptions
+      mergedOptions,
     );
     documents.push(result);
   }
@@ -422,7 +472,7 @@ export async function generateDocumentsForNewCase(
 export async function generateDocumentsForAdmission(
   caseData: CaseWithRelations,
   caseFolderId: string,
-  options: GenerationOptions = {}
+  options: GenerationOptions = {},
 ): Promise<GeneratedDocument[]> {
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
   const templates = getTemplatesForAdmission();
@@ -436,7 +486,7 @@ export async function generateDocumentsForAdmission(
       caseData,
       placeholders,
       caseFolderId,
-      mergedOptions
+      mergedOptions,
     );
     documents.push(result);
   }
@@ -450,7 +500,7 @@ export async function generateDocumentsForAdmission(
 export async function generateDocumentsForAgreement(
   caseData: CaseWithRelations,
   caseFolderId: string,
-  options: GenerationOptions = {}
+  options: GenerationOptions = {},
 ): Promise<GeneratedDocument[]> {
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
   const templates = getTemplatesForAgreement();
@@ -464,7 +514,7 @@ export async function generateDocumentsForAgreement(
       caseData,
       placeholders,
       caseFolderId,
-      mergedOptions
+      mergedOptions,
     );
     documents.push(result);
   }
@@ -479,7 +529,7 @@ export async function generateDocumentsForFailure(
   caseData: CaseWithRelations,
   caseFolderId: string,
   failureType: string,
-  options: GenerationOptions = {}
+  options: GenerationOptions = {},
 ): Promise<GeneratedDocument[]> {
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
   const templates = getTemplatesForFailure(failureType);
@@ -498,7 +548,7 @@ export async function generateDocumentsForFailure(
       caseData,
       placeholders,
       caseFolderId,
-      mergedOptions
+      mergedOptions,
     );
     documents.push(result);
   }
@@ -513,7 +563,7 @@ export async function regenerateDocument(
   caseData: CaseWithRelations,
   templateId: string,
   caseFolderId: string,
-  options: GenerationOptions = {}
+  options: GenerationOptions = {},
 ): Promise<GeneratedDocument> {
   const { getTemplateById } = await import('./templates-config');
   const template = getTemplateById(templateId);
@@ -538,7 +588,7 @@ export async function regenerateDocument(
     caseData,
     placeholders,
     caseFolderId,
-    mergedOptions
+    mergedOptions,
   );
 }
 
@@ -549,7 +599,7 @@ export async function generateSpecificDocuments(
   caseData: CaseWithRelations,
   templateIds: string[],
   caseFolderId: string,
-  options: GenerationOptions = {}
+  options: GenerationOptions = {},
 ): Promise<GeneratedDocument[]> {
   const { getTemplateById } = await import('./templates-config');
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
@@ -577,7 +627,7 @@ export async function generateSpecificDocuments(
       caseData,
       placeholders,
       caseFolderId,
-      mergedOptions
+      mergedOptions,
     );
     documents.push(result);
   }
@@ -591,7 +641,7 @@ export async function generateSpecificDocuments(
 export async function previewDocument(
   caseData: CaseWithRelations,
   templateId: string,
-  format: 'html' | 'pdf' = 'html'
+  format: 'html' | 'pdf' = 'html',
 ): Promise<{ content: string | Buffer; mimeType: string }> {
   const { getTemplateById } = await import('./templates-config');
   const template = getTemplateById(templateId);

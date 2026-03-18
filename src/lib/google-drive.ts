@@ -425,10 +425,21 @@ class GoogleDriveService {
     caseFolderId: string,
   ): Promise<{ fileId: string; fileUrl: string }> {
     try {
+      // Detect MIME type from file extension instead of hardcoding DOCX
+      const ext = fileName.toLowerCase().split('.').pop();
+      const mimeTypes: Record<string, string> = {
+        pdf: 'application/pdf',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        doc: 'application/msword',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        html: 'text/html',
+      };
+      const mimeType = mimeTypes[ext || ''] || 'application/pdf';
+
       const fileId = await this.uploadFile(
         fileName,
         fileBuffer,
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        mimeType,
         caseFolderId,
       );
 

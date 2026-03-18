@@ -3,6 +3,7 @@
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
+import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import {
   generateDocumentsForNewCase,
   generateDocumentsForAdmission,
@@ -222,8 +223,14 @@ export async function generateInitialDocuments(caseId: string): Promise<{
       return { success: false, error: 'Caso no encontrado' };
     }
 
+    const centerFolderName = resolveCenterFolderName(
+      tenantId,
+      caseData.centroConciliacionNombre,
+    );
     const result = await generateDocumentsForNewCase(
       caseData as unknown as CaseWithRelations,
+      {},
+      centerFolderName,
     );
 
     // Update case with folder ID

@@ -875,6 +875,14 @@ export async function batchGenerateDocuments(input: {
       );
       caseFolderId = caseFolder.id;
       caseFolderUrl = caseFolder.webViewLink;
+
+      // Persist folder ID on the case so subsequent operations find it
+      if (caseFolderId && !caseData.driveFolderId) {
+        await prisma.case.update({
+          where: { id: caseData.id, tenantId },
+          data: { driveFolderId: caseFolderId },
+        });
+      }
     } catch (driveError) {
       console.warn(
         'Google Drive folder creation failed, continuing without upload:',
@@ -1249,6 +1257,18 @@ export async function uploadCaseDocuments(input: {
       caseData.caseNumber,
       centerFolderId,
     );
+
+    // Update case.driveFolderId if not set (ensures subsequent operations find the folder)
+    const existingCase = await prisma.case.findUnique({
+      where: { id: caseId, tenantId },
+      select: { driveFolderId: true },
+    });
+    if (!existingCase?.driveFolderId) {
+      await prisma.case.update({
+        where: { id: caseId, tenantId },
+        data: { driveFolderId: caseFolderId },
+      });
+    }
 
     // Create Adjuntos subfolder inside case folder (not Personas/{name})
     const adjuntosFolderId = await googleDriveService.createFolderHierarchy(
