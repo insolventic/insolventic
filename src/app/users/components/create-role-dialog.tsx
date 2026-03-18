@@ -135,7 +135,7 @@ export function CreateRoleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[95vh] flex-col sm:max-w-5xl">
+      <DialogContent className="flex max-h-[95vh] w-[95vw] flex-col sm:max-w-2xl md:max-w-3xl lg:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Rol</DialogTitle>
           <DialogDescription>
@@ -145,9 +145,9 @@ export function CreateRoleDialog({
 
         <form
           onSubmit={handleSubmit(handleCreateRole)}
-          className="flex flex-col space-y-4"
+          className="flex flex-col gap-4 overflow-hidden"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre del Rol *</Label>
               <Input
@@ -162,12 +162,12 @@ export function CreateRoleDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="color">Color del Badge</Label>
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2">
                 {colorOptions.map((color) => (
                   <button
                     key={color.value}
                     type="button"
-                    className={`h-8 w-8 rounded-full border-2 ${
+                    className={`h-8 w-8 shrink-0 rounded-full border-2 ${
                       color.preview
                     } ${
                       watch('color') === color.value
@@ -188,12 +188,13 @@ export function CreateRoleDialog({
               id="description"
               placeholder="Descripción del rol y sus responsabilidades"
               {...register('description')}
+              rows={2}
             />
           </div>
 
-          <div className="flex flex-col space-y-2 overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col space-y-2">
             <Label>Permisos del Rol</Label>
-            <div className="flex-1 overflow-y-auto rounded-lg border p-4">
+            <div className="overflow-y-auto rounded-lg border p-3 sm:p-4">
               <Controller
                 name="permissions"
                 control={control}
@@ -276,7 +277,7 @@ export function CreateRoleDialog({
                           </span>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {Object.values(MODULES).map((mod) => {
                             const modulePerms = availablePermissions.filter(
                               (p) =>
@@ -298,10 +299,10 @@ export function CreateRoleDialog({
                             return (
                               <div
                                 key={mod.key}
-                                className="space-y-3 rounded-lg border p-4"
+                                className="space-y-2 rounded-lg border p-3 sm:space-y-3 sm:p-4"
                               >
-                                <div className="flex items-center justify-between border-b pb-2">
-                                  <h4 className="text-foreground text-sm font-semibold">
+                                <div className="flex items-center justify-between gap-2 border-b pb-2">
+                                  <h4 className="text-foreground truncate text-sm font-semibold">
                                     {mod.label}
                                   </h4>
                                   <div className="flex items-center gap-2">
@@ -436,13 +437,22 @@ export function CreateRoleDialog({
             </p>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
             <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={isPending}>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isPending}
+                className="w-full sm:w-auto"
+              >
                 Cancelar
               </Button>
             </DialogClose>
-            <Button type="submit" disabled={isPending}>
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="w-full sm:w-auto"
+            >
               {isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
