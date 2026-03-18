@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
+import { getRoutePermissions } from '@/lib/permissions';
+
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -97,15 +99,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Route-level permission checks
-  const routePermissions: Record<string, string> = {
-    '/cases': 'Ver casos',
-    '/users': 'Ver usuarios',
-    '/creditors': 'Ver acreedores',
-    '/debtors': 'Ver deudores',
-    '/documents': 'Ver documentos',
-    '/notifications': 'Ver notificaciones',
-  };
+  // Route-level permission checks — derived from centralized MODULES config
+  const routePermissions = getRoutePermissions();
 
   for (const [route, permission] of Object.entries(routePermissions)) {
     if (pathname.startsWith(route) && !user.permissions.includes(permission)) {

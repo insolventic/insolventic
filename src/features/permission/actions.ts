@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { getAllPermissionsSchema } from './schemas';
 import type { Permission } from './schemas';
@@ -14,7 +15,7 @@ export async function getAllPermissions(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver roles')) {
+    if (!user.permissions.includes(P.VER_ROLES)) {
       throw new Error('No tiene permisos para: Ver roles');
     }
 

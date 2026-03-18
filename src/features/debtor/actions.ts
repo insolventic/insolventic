@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
+import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 
 import {
@@ -26,7 +27,7 @@ export async function getAllDebtors(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver deudores')) {
+    if (!user.permissions.includes(P.VER_DEUDORES)) {
       throw new Error('No tiene permisos para: Ver deudores');
     }
 
@@ -40,9 +41,9 @@ export async function getAllDebtors(): Promise<{
     };
 
     // Check user permissions to determine case visibility scope
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     let debtors: Awaited<ReturnType<typeof prisma.debtor.findMany>>;
 
@@ -180,7 +181,7 @@ export async function getDebtorById(id: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver deudores')) {
+    if (!user.permissions.includes(P.VER_DEUDORES)) {
       throw new Error('No tiene permisos para: Ver deudores');
     }
 
@@ -219,9 +220,9 @@ export async function getDebtorById(id: string): Promise<{
     }
 
     // Check user permissions to determine if they can view this debtor
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     if (canViewAllCases) {
       // Can see all debtors
@@ -270,7 +271,7 @@ export async function createDebtor(input: unknown): Promise<{
 
     // Check permission - using authenticateUser's user object
     const { user } = await authenticateUser();
-    if (!user.permissions.includes('Crear deudores')) {
+    if (!user.permissions.includes(P.CREAR_DEUDORES)) {
       throw new Error('No tiene permisos para: Crear deudores');
     }
 
@@ -314,7 +315,7 @@ export async function updateDebtor(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Editar deudores')) {
+    if (!user.permissions.includes(P.EDITAR_DEUDORES)) {
       throw new Error('No tiene permisos para: Editar deudores');
     }
 
@@ -361,7 +362,7 @@ export async function deleteDebtor(id: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Eliminar deudores')) {
+    if (!user.permissions.includes(P.ELIMINAR_DEUDORES)) {
       throw new Error('No tiene permisos para: Eliminar deudores');
     }
 
@@ -383,9 +384,13 @@ export async function deleteDebtor(id: string): Promise<{
         await tx.document.deleteMany({ where: { caseId: { in: caseIds } } });
         await tx.debt.deleteMany({ where: { caseId: { in: caseIds } } });
         await tx.asset.deleteMany({ where: { caseId: { in: caseIds } } });
-        await tx.legalProcess.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.legalProcess.deleteMany({
+          where: { caseId: { in: caseIds } },
+        });
         await tx.libranza.deleteMany({ where: { caseId: { in: caseIds } } });
-        await tx.suspendedService.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.suspendedService.deleteMany({
+          where: { caseId: { in: caseIds } },
+        });
         await tx.dependent.deleteMany({ where: { caseId: { in: caseIds } } });
 
         // 3. Delete all cases (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)

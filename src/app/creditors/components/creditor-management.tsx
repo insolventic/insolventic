@@ -35,6 +35,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { CreateCreditorDialog } from './create-creditor-dialog';
 import { CreditorTypeSelect } from './creditor-type-select';
@@ -61,10 +62,10 @@ export function CreditorManagement({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const { checkPermission } = useAuth();
-  const canViewCreditors = checkPermission('Ver acreedores');
-  const canCreateCreditors = checkPermission('Crear acreedores');
-  const canEditCreditors = checkPermission('Editar acreedores');
-  const canDeleteCreditors = checkPermission('Eliminar acreedores');
+  const canViewCreditors = checkPermission(P.VER_ACREEDORES);
+  const canCreateCreditors = checkPermission(P.CREAR_ACREEDORES);
+  const canEditCreditors = checkPermission(P.EDITAR_ACREEDORES);
+  const canDeleteCreditors = checkPermission(P.ELIMINAR_ACREEDORES);
 
   const getCreditorTypeInSpanish = (type: string) => {
     switch (type) {

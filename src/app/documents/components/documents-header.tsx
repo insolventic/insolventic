@@ -5,6 +5,7 @@ import { Cloud, Loader2, Info } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 import {
   syncTemplatesWithGoogleDrive,
   syncDocumentsWithGoogleDrive,
@@ -22,8 +23,8 @@ export function DocumentsHeader({
   onDocumentsSynced,
 }: Readonly<DocumentsHeaderProps>) {
   const { checkPermission } = useAuth();
-  const canGenerateDocuments = checkPermission('Generar documentos');
-  const canViewDocuments = checkPermission('Ver documentos');
+  const canGenerateDocuments = checkPermission(P.GENERAR_DOCUMENTOS);
+  const canViewDocuments = checkPermission(P.VER_DOCUMENTOS);
   const [isPending, startTransition] = useTransition();
 
   const handleSyncAll = () => {

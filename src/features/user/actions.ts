@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { emailService } from '@/lib/email';
 
@@ -28,7 +29,7 @@ export async function getAllUsers(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver usuarios')) {
+    if (!user.permissions.includes(P.VER_USUARIOS)) {
       throw new Error('No tiene permisos para: Ver usuarios');
     }
 
@@ -85,7 +86,7 @@ export async function createUser(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Crear usuarios')) {
+    if (!user.permissions.includes(P.CREAR_USUARIOS)) {
       throw new Error('No tiene permisos para: Crear usuarios');
     }
 
@@ -150,7 +151,7 @@ export async function updateUser(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Editar usuarios')) {
+    if (!user.permissions.includes(P.EDITAR_USUARIOS)) {
       throw new Error('No tiene permisos para: Editar usuarios');
     }
 
@@ -208,7 +209,7 @@ export async function deleteUser(id: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Eliminar usuarios')) {
+    if (!user.permissions.includes(P.ELIMINAR_USUARIOS)) {
       throw new Error('No tiene permisos para: Eliminar usuarios');
     }
 

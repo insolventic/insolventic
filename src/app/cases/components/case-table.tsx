@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import type { Case } from '@/features/case/schemas';
 
@@ -35,9 +36,9 @@ export function CaseTable({
 }: Readonly<CaseTableProps>) {
   const { checkPermission } = useAuth();
 
-  const canViewCases = checkPermission('Ver casos');
-  const canEditCases = checkPermission('Editar casos');
-  const canDeleteCases = checkPermission('Eliminar casos');
+  const canViewCases = checkPermission(P.VER_CASOS);
+  const canEditCases = checkPermission(P.EDITAR_CASOS);
+  const canDeleteCases = checkPermission(P.ELIMINAR_CASOS);
 
   const getTypeColor = (type: string) => {
     switch (type) {

@@ -100,6 +100,18 @@ export async function authenticateUser() {
   };
 }
 
+/**
+ * Authenticate the user AND verify they have the required permission.
+ * Use this in server actions as a one-liner authorization check.
+ */
+export async function requireActionPermission(permission: string) {
+  const { user, tenantId } = await authenticateUser();
+  if (!user.permissions.includes(permission)) {
+    throw new Error(`No tiene permisos para: ${permission}`);
+  }
+  return { user, tenantId };
+}
+
 async function getClientIp(): Promise<string> {
   try {
     const headersList = await headers();
@@ -485,6 +497,112 @@ export async function switchDatabase(): Promise<void> {
     );
     // Even on error, redirect to prevent staying on authenticated page
     redirect('/');
+  }
+}
+
+export async function switchTenant(targetTenantSlug: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    // 1. Verify current user is authenticated
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get('access-token')?.value;
+
+    if (!accessToken) {
+      redirect('/login');
+    }
+
+    const currentPayload = await verifyToken(accessToken);
+    if (!currentPayload) {
+      redirect('/login');
+    }
+
+    // 2. Find the target tenant
+    const targetTenant = await prisma.tenant.findUnique({
+      where: { slug: targetTenantSlug as TenantId },
+    });
+
+    if (!targetTenant) {
+      return { success: false, error: 'Organización no encontrada' };
+    }
+
+    // 3. Check if current tenant is the same
+    if (currentPayload.tenantId === targetTenantSlug) {
+      return { success: false, error: 'Ya estás en esta organización' };
+    }
+
+    // 4. Look up user by email in the target tenant
+    const userInTarget = await prisma.user.findUnique({
+      where: {
+        email_tenantId: {
+          email: currentPayload.email,
+          tenantId: targetTenant.id,
+        },
+      },
+      include: {
+        role: {
+          include: {
+            permissions: {
+              include: {
+                permission: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!userInTarget) {
+      return {
+        success: false,
+        error: 'No tienes cuenta en esta organización',
+      };
+    }
+
+    // 5. Generate new tokens for the target tenant
+    const permissions = userInTarget.role.permissions.map(
+      (rp) => rp.permission.name,
+    );
+
+    const accessTokenNew = await createAccessToken({
+      id: userInTarget.id,
+      name: userInTarget.name,
+      email: userInTarget.email,
+      roleId: userInTarget.role.id,
+      roleName: userInTarget.role.name,
+      permissions,
+      tenantId: targetTenantSlug,
+      tenantName: targetTenant.name,
+      lastLogin: new Date(),
+    });
+
+    const refreshTokenNew = await createRefreshToken({
+      userId: userInTarget.id,
+      tenantId: targetTenantSlug,
+    });
+
+    // 6. Set new auth cookies
+    await setAuthCookies(accessTokenNew, refreshTokenNew);
+
+    // 7. Update last login
+    await prisma.user.update({
+      where: { id: userInTarget.id },
+      data: { lastLogin: new Date() },
+    });
+
+    revalidateTag('auth');
+    redirect('/dashboard');
+  } catch (error) {
+    // redirect() throws an error by design in Next.js
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+    console.error('Error switching tenant:', error);
+    return {
+      success: false,
+      error: 'Error al cambiar de organización',
+    };
   }
 }
 

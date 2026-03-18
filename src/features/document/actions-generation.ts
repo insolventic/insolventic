@@ -2,6 +2,7 @@
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import {
   generateDocumentsForNewCase,
   generateDocumentsForAdmission,
@@ -27,7 +28,14 @@ export async function getDocumentTemplates(): Promise<{
   error?: string;
 }> {
   try {
-    await authenticateUser();
+    const { user } = await authenticateUser();
+
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para ver documentos',
+      };
+    }
 
     const templates = getAllTemplates().map((t) => ({
       id: t.id,
@@ -41,7 +49,8 @@ export async function getDocumentTemplates(): Promise<{
     console.error('Error getting document templates:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener plantillas',
+      error:
+        error instanceof Error ? error.message : 'Error al obtener plantillas',
     };
   }
 }
@@ -58,7 +67,14 @@ export async function regenerateCaseDocument(input: {
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para generar documentos',
+      };
+    }
 
     const { caseId, templateId } = input;
 
@@ -149,7 +165,8 @@ export async function regenerateCaseDocument(input: {
     console.error('Error regenerating document:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al regenerar documento',
+      error:
+        error instanceof Error ? error.message : 'Error al regenerar documento',
     };
   }
 }
@@ -167,7 +184,14 @@ export async function generateInitialDocuments(caseId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para generar documentos',
+      };
+    }
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
@@ -235,7 +259,8 @@ export async function generateInitialDocuments(caseId: string): Promise<{
     console.error('Error generating initial documents:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al generar documentos',
+      error:
+        error instanceof Error ? error.message : 'Error al generar documentos',
     };
   }
 }
@@ -249,7 +274,14 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para generar documentos',
+      };
+    }
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
@@ -334,7 +366,14 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para generar documentos',
+      };
+    }
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
@@ -415,14 +454,21 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
  */
 export async function generateFailureDocuments(
   caseId: string,
-  failureType: string
+  failureType: string,
 ): Promise<{
   success: boolean;
   data?: GeneratedDocument[];
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para generar documentos',
+      };
+    }
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
@@ -463,7 +509,7 @@ export async function generateFailureDocuments(
     const result = await generateDocumentsForFailure(
       caseData as unknown as CaseWithRelations,
       caseData.driveFolderId,
-      failureType
+      failureType,
     );
 
     // Create document records
@@ -508,14 +554,25 @@ export async function getFailureTypes(): Promise<{
   error?: string;
 }> {
   try {
-    await authenticateUser();
+    const { user } = await authenticateUser();
+
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para ver documentos',
+      };
+    }
+
     const { getFailureTypes: getTypes } = await import('./templates-config');
     return { success: true, data: getTypes() };
   } catch (error) {
     console.error('Error getting failure types:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener tipos de fracaso',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al obtener tipos de fracaso',
     };
   }
 }
@@ -534,7 +591,14 @@ export async function getCaseDocumentStatus(caseId: string): Promise<{
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para ver documentos',
+      };
+    }
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },

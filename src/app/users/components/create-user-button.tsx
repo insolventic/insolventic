@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { CreateUserDialog } from './create-user-dialog';
 
@@ -18,7 +19,7 @@ export function CreateUserButton({ roles }: Readonly<CreateUserButtonProps>) {
   const [showDialog, setShowDialog] = useState(false);
   const { checkPermission } = useAuth();
 
-  const canCreateUsers = checkPermission('Crear usuarios');
+  const canCreateUsers = checkPermission(P.CREAR_USUARIOS);
 
   return (
     <>

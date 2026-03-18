@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { generateDocumentsForNewCase } from '@/features/document/generate-documents';
 import type { CaseWithRelations } from './schemas';
@@ -53,7 +54,7 @@ export async function getAllCases(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Ver casos');
+    const hasPermission = user.permissions.includes(P.VER_CASOS);
     if (!hasPermission) {
       return { success: false, error: 'No tienes permisos para ver casos' };
     }
@@ -68,9 +69,9 @@ export async function getAllCases(): Promise<{
     };
 
     // Check user permissions to determine case visibility scope
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     if (canViewAllCases) {
       // Administrador, Operadora de Insolvencia, Secretaria: see all cases
@@ -149,7 +150,7 @@ export async function getCaseById(id: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Ver casos');
+    const hasPermission = user.permissions.includes(P.VER_CASOS);
     if (!hasPermission) {
       return { success: false, error: 'No tienes permisos para ver casos' };
     }
@@ -201,9 +202,9 @@ export async function getCaseById(id: string): Promise<{
     }
 
     // Check if user has permission to view this specific case
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     if (canViewAllCases) {
       // Can see all cases
@@ -254,7 +255,7 @@ export async function createCase(
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Crear casos');
+    const hasPermission = user.permissions.includes(P.CREAR_CASOS);
     if (!hasPermission) {
       return { success: false, error: 'No tienes permisos para crear casos' };
     }
@@ -515,15 +516,29 @@ export async function createCase(
                   acreedorTelefono: a.acreedorTelefono,
                   tipoObligacion: a.tipoObligacion,
                   numeroObligacion: a.numeroObligacion,
-                  fechaOtorgamiento: a.fechaOtorgamiento ? new Date(a.fechaOtorgamiento) : null,
-                  fechaVencimiento: a.fechaVencimiento ? new Date(a.fechaVencimiento) : null,
+                  fechaOtorgamiento: a.fechaOtorgamiento
+                    ? new Date(a.fechaOtorgamiento)
+                    : null,
+                  fechaVencimiento: a.fechaVencimiento
+                    ? new Date(a.fechaVencimiento)
+                    : null,
                   fechaMora: a.fechaMora ? new Date(a.fechaMora) : null,
                   diasMora: a.diasMora,
-                  valorCapital: a.valorCapital ? parseFloat(a.valorCapital) : null,
-                  valorInteresesCorrientes: a.valorInteresesCorrientes ? parseFloat(a.valorInteresesCorrientes) : null,
-                  valorInteresesMora: a.valorInteresesMora ? parseFloat(a.valorInteresesMora) : null,
-                  valorGastosCobranza: a.valorGastosCobranza ? parseFloat(a.valorGastosCobranza) : null,
-                  valorTotalObligacion: a.valorTotalObligacion ? parseFloat(a.valorTotalObligacion) : null,
+                  valorCapital: a.valorCapital
+                    ? parseFloat(a.valorCapital)
+                    : null,
+                  valorInteresesCorrientes: a.valorInteresesCorrientes
+                    ? parseFloat(a.valorInteresesCorrientes)
+                    : null,
+                  valorInteresesMora: a.valorInteresesMora
+                    ? parseFloat(a.valorInteresesMora)
+                    : null,
+                  valorGastosCobranza: a.valorGastosCobranza
+                    ? parseFloat(a.valorGastosCobranza)
+                    : null,
+                  valorTotalObligacion: a.valorTotalObligacion
+                    ? parseFloat(a.valorTotalObligacion)
+                    : null,
                   naturalezaCredito: a.naturalezaCredito,
                   obligacionCodeudores: a.obligacionCodeudores ?? false,
                   nombreCodeudores: a.nombreCodeudores,
@@ -551,13 +566,20 @@ export async function createCase(
                   bienMatriculaInmobiliaria: b.bienMatriculaInmobiliaria,
                   bienPlaca: b.bienPlaca,
                   bienEntidadFinanciera: b.bienEntidadFinanciera,
-                  bienValorComercial: b.bienValorComercial ? parseFloat(b.bienValorComercial) : null,
-                  bienValorCatastral: b.bienValorCatastral ? parseFloat(b.bienValorCatastral) : null,
-                  bienValorLibros: b.bienValorLibros ? parseFloat(b.bienValorLibros) : null,
+                  bienValorComercial: b.bienValorComercial
+                    ? parseFloat(b.bienValorComercial)
+                    : null,
+                  bienValorCatastral: b.bienValorCatastral
+                    ? parseFloat(b.bienValorCatastral)
+                    : null,
+                  bienValorLibros: b.bienValorLibros
+                    ? parseFloat(b.bienValorLibros)
+                    : null,
                   bienGravamenes: b.bienGravamenes ?? false,
                   descripcionGravamen: b.descripcionGravamen,
                   bienEmbargado: b.bienEmbargado ?? false,
-                  bienAfectadoViviendaFamiliar: b.bienAfectadoViviendaFamiliar ?? false,
+                  bienAfectadoViviendaFamiliar:
+                    b.bienAfectadoViviendaFamiliar ?? false,
                   bienEnLeasing: b.bienEnLeasing ?? false,
                   tenantId,
                 })),
@@ -566,17 +588,21 @@ export async function createCase(
         procesosJudiciales:
           procesosJudiciales && procesosJudiciales.length > 0
             ? {
-                create: procesosJudiciales.map((p: ProcesoJudicialFormData) => ({
-                  tipoProceso: p.tipoProceso,
-                  juzgadoNombre: p.juzgadoNombre,
-                  juzgadoCiudad: p.juzgadoCiudad,
-                  procesoJudicialRadicado: p.procesoJudicialRadicado,
-                  demandanteNombre: p.demandanteNombre,
-                  demandadoNombre: p.demandadoNombre,
-                  cuantiaProceso: p.cuantiaProceso ? parseFloat(p.cuantiaProceso) : null,
-                  estadoProceso: p.estadoProceso,
-                  tenantId,
-                })),
+                create: procesosJudiciales.map(
+                  (p: ProcesoJudicialFormData) => ({
+                    tipoProceso: p.tipoProceso,
+                    juzgadoNombre: p.juzgadoNombre,
+                    juzgadoCiudad: p.juzgadoCiudad,
+                    procesoJudicialRadicado: p.procesoJudicialRadicado,
+                    demandanteNombre: p.demandanteNombre,
+                    demandadoNombre: p.demandadoNombre,
+                    cuantiaProceso: p.cuantiaProceso
+                      ? parseFloat(p.cuantiaProceso)
+                      : null,
+                    estadoProceso: p.estadoProceso,
+                    tenantId,
+                  }),
+                ),
               }
             : undefined,
       },
@@ -634,8 +660,12 @@ export async function createCase(
             creditorAddress: debt.creditorAddress,
             creditorCity: debt.creditorCity,
             creditorEmail: debt.creditorEmail,
-            capitalAmount: debt.capitalAmount ? parseFloat(debt.capitalAmount) : null,
-            interestAmount: debt.interestAmount ? parseFloat(debt.interestAmount) : null,
+            capitalAmount: debt.capitalAmount
+              ? parseFloat(debt.capitalAmount)
+              : null,
+            interestAmount: debt.interestAmount
+              ? parseFloat(debt.interestAmount)
+              : null,
             isDeferred: debt.isDeferred ?? false,
             documentType: debt.documentType,
             grantDate: debt.grantDate ? new Date(debt.grantDate) : null,
@@ -643,7 +673,9 @@ export async function createCase(
             creditClassification: debt.creditClassification,
             hasActiveLibranza: debt.hasActiveLibranza ?? false,
             creditorClass: debt.creditorClass,
-            percentageOfTotal: debt.percentageOfTotal ? parseFloat(debt.percentageOfTotal) : null,
+            percentageOfTotal: debt.percentageOfTotal
+              ? parseFloat(debt.percentageOfTotal)
+              : null,
             daysOverdue: debt.daysOverdue ?? 0,
             coDebtorName: debt.coDebtorName,
             coDebtorCity: debt.coDebtorCity,
@@ -693,7 +725,9 @@ export async function createCase(
 
     if (caseWithRelations) {
       // Generate documents in background (don't await to avoid blocking response)
-      generateDocumentsForNewCase(caseWithRelations as unknown as CaseWithRelations)
+      generateDocumentsForNewCase(
+        caseWithRelations as unknown as CaseWithRelations,
+      )
         .then(async (result) => {
           // Update case with the Google Drive folder ID
           if (result.caseFolderId) {
@@ -723,10 +757,15 @@ export async function createCase(
             }
           }
 
-          console.log(`Documents generated for case ${finalCaseNumber}: ${result.documents.length} documents`);
+          console.log(
+            `Documents generated for case ${finalCaseNumber}: ${result.documents.length} documents`,
+          );
         })
         .catch((error) => {
-          console.error(`Error generating documents for case ${finalCaseNumber}:`, error);
+          console.error(
+            `Error generating documents for case ${finalCaseNumber}:`,
+            error,
+          );
         });
     }
 
@@ -752,7 +791,7 @@ export async function updateCase(
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Editar casos');
+    const hasPermission = user.permissions.includes(P.EDITAR_CASOS);
     if (!hasPermission) {
       return { success: false, error: 'No tienes permisos para editar casos' };
     }
@@ -893,7 +932,11 @@ export async function addDebtToCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = addDebtToCaseSchema.parse(input);
     const { caseId, creditorId, amount, type, interestRate } = validatedInput;
@@ -961,7 +1004,11 @@ export async function removeDebtFromCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = removeDebtFromCaseSchema.parse(input);
     const { debtId } = validatedInput;
@@ -1008,7 +1055,11 @@ export async function addLibranzaToCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = addLibranzaToCaseSchema.parse(input);
     const {
@@ -1078,7 +1129,11 @@ export async function removeLibranzaFromCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = removeLibranzaFromCaseSchema.parse(input);
     const { libranzaId } = validatedInput;
@@ -1123,7 +1178,11 @@ export async function addSuspendedServiceToCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = addSuspendedServiceToCaseSchema.parse(input);
     const {
@@ -1193,7 +1252,11 @@ export async function removeSuspendedServiceFromCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = removeSuspendedServiceFromCaseSchema.parse(input);
     const { suspendedServiceId } = validatedInput;
@@ -1238,7 +1301,11 @@ export async function addAssetToCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = addAssetToCaseSchema.parse(input);
     const {
@@ -1355,7 +1422,11 @@ export async function removeAssetFromCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = removeAssetFromCaseSchema.parse(input);
     const { assetId } = validatedInput;
@@ -1415,7 +1486,11 @@ export async function addDependentToCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = addDependentToCaseSchema.parse(input);
     const { caseId, name, age, relationship } = validatedInput;
@@ -1471,7 +1546,11 @@ export async function removeDependentFromCase(
   error?: string;
 }> {
   try {
-    const { tenantId } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
 
     const validatedInput = removeDependentFromCaseSchema.parse(input);
     const { dependentId } = validatedInput;
@@ -1516,7 +1595,7 @@ export async function deleteCase(
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Eliminar casos');
+    const hasPermission = user.permissions.includes(P.ELIMINAR_CASOS);
     if (!hasPermission) {
       return {
         success: false,
@@ -1593,7 +1672,7 @@ export async function getCaseStats(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Ver casos');
+    const hasPermission = user.permissions.includes(P.VER_CASOS);
     if (!hasPermission) {
       return { success: false, error: 'No tienes permisos para ver casos' };
     }
@@ -1607,9 +1686,9 @@ export async function getCaseStats(): Promise<{
       tenantId,
     };
 
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     if (canViewAllCases) {
       // No additional filtering needed

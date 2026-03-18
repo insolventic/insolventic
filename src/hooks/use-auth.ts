@@ -7,6 +7,7 @@ import {
   validateSession,
   logoutUser,
   switchDatabase,
+  switchTenant,
 } from '@/features/auth/actions';
 import type { ValidateSessionResult } from '@/features/auth/schemas';
 
@@ -18,6 +19,9 @@ interface UseAuthReturn {
   isLoading: boolean;
   logout: () => Promise<void>;
   switchDatabase: () => Promise<void>;
+  switchTenant: (
+    targetTenantSlug: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   checkPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
@@ -162,6 +166,26 @@ export function useAuth(): UseAuthReturn {
     }
   }, [router]);
 
+  const switchTenantHandler = useCallback(
+    async (targetTenantSlug: string) => {
+      try {
+        const result = await switchTenant(targetTenantSlug);
+        if (!result.success) {
+          return result;
+        }
+        // If successful, the server action will redirect to /dashboard
+        // This line is unlikely to be reached due to the redirect
+        await refreshSession();
+        return result;
+      } catch (error) {
+        // redirect() throws an error by design in Next.js
+        console.log('Tenant switch redirect triggered (expected behavior)');
+        return { success: true };
+      }
+    },
+    [refreshSession],
+  );
+
   const checkPermission = useCallback(
     (permission: string): boolean => {
       if (!user) return false;
@@ -196,6 +220,7 @@ export function useAuth(): UseAuthReturn {
     isLoading,
     logout,
     switchDatabase: switchDatabaseHandler,
+    switchTenant: switchTenantHandler,
     checkPermission,
     hasAnyPermission,
     hasAllPermissions,

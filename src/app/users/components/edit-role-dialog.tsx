@@ -24,6 +24,8 @@ import { updateRole } from '@/features/role/actions';
 import { getAllPermissions } from '@/features/permission/actions';
 import { createRoleSchema, type Role } from '@/features/role/schemas';
 import type { Permission } from '@/features/permission/schemas';
+import { MODULES } from '@/lib/permissions';
+import type { ModuleDefinition } from '@/lib/permissions';
 
 interface EditRoleDialogProps {
   open: boolean;
@@ -218,16 +220,55 @@ export function EditRoleDialog({
                       }
                     };
 
-                    const groupedPermissions = availablePermissions.reduce(
-                      (acc, permission) => {
-                        const category = permission.category;
-                        if (!acc[category]) {
-                          acc[category] = [];
-                        }
-                        acc[category].push(permission);
-                        return acc;
-                      },
-                      {} as Record<string, typeof availablePermissions>,
+                    const handleModuleToggle = (
+                      mod: ModuleDefinition,
+                      checked: boolean | 'indeterminate',
+                    ) => {
+                      const current = field.value || [];
+                      const modulePermNames =
+                        mod.permissions as readonly string[];
+                      if (checked === true) {
+                        const updated = current.includes(mod.gatePermission)
+                          ? current
+                          : [...current, mod.gatePermission];
+                        field.onChange(updated);
+                      } else {
+                        field.onChange(
+                          current.filter(
+                            (p: string) => !modulePermNames.includes(p),
+                          ),
+                        );
+                      }
+                    };
+
+                    const handleSelectAllModule = (
+                      mod: ModuleDefinition,
+                      modulePerms: Permission[],
+                      checked: boolean | 'indeterminate',
+                    ) => {
+                      const current = field.value || [];
+                      const modulePermNames = modulePerms.map((p) => p.name);
+                      if (checked === true) {
+                        const toAdd = modulePermNames.filter(
+                          (name) => !current.includes(name),
+                        );
+                        field.onChange([...current, ...toAdd]);
+                      } else {
+                        field.onChange(
+                          current.filter(
+                            (p: string) => !modulePermNames.includes(p),
+                          ),
+                        );
+                      }
+                    };
+
+                    const allModulePermNames = new Set(
+                      Object.values(MODULES).flatMap(
+                        (m) => m.permissions as readonly string[],
+                      ),
+                    );
+                    const unmatchedPermissions = availablePermissions.filter(
+                      (p) => !allModulePermNames.has(p.name),
                     );
 
                     return (
@@ -240,42 +281,149 @@ export function EditRoleDialog({
                             </span>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {Object.entries(groupedPermissions).map(
-                              ([category, permissions]) => (
-                                <div key={category} className="space-y-3">
-                                  <h4 className="border-border text-foreground border-b pb-1 text-sm font-medium">
-                                    {category}
-                                  </h4>
-                                  <div className="space-y-2">
-                                    {permissions.map((permission) => (
-                                      <div
-                                        key={permission.id}
-                                        className="flex items-center space-x-2"
-                                      >
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {Object.values(MODULES).map((mod) => {
+                              const modulePerms = availablePermissions.filter(
+                                (p) =>
+                                  (
+                                    mod.permissions as readonly string[]
+                                  ).includes(p.name),
+                              );
+                              if (modulePerms.length === 0) return null;
+
+                              const hasGatePermission =
+                                field.value?.includes(mod.gatePermission) ??
+                                false;
+                              const countSelected = modulePerms.filter((p) =>
+                                field.value?.includes(p.name),
+                              ).length;
+                              const totalInModule = modulePerms.length;
+                              const allSelected =
+                                countSelected === totalInModule;
+
+                              return (
+                                <div
+                                  key={mod.key}
+                                  className="space-y-3 rounded-lg border p-4"
+                                >
+                                  <div className="flex items-center justify-between border-b pb-2">
+                                    <h4 className="text-foreground text-sm font-semibold">
+                                      {mod.label}
+                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-muted-foreground text-xs">
+                                        {countSelected}/{totalInModule}
+                                      </span>
+                                      <Checkbox
+                                        checked={hasGatePermission}
+                                        onCheckedChange={(checked) =>
+                                          handleModuleToggle(mod, checked)
+                                        }
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="space-y-2 pl-2">
+                                    {modulePerms.length > 1 && (
+                                      <div className="flex items-center space-x-2 border-b pb-2">
                                         <Checkbox
-                                          id={permission.id}
-                                          checked={field.value?.includes(
-                                            permission.name,
-                                          )}
+                                          id={`${mod.key}-select-all`}
+                                          disabled={!hasGatePermission}
+                                          checked={
+                                            hasGatePermission && allSelected
+                                          }
                                           onCheckedChange={(checked) =>
-                                            handlePermissionChange(
-                                              permission.name,
+                                            handleSelectAllModule(
+                                              mod,
+                                              modulePerms,
                                               checked,
                                             )
                                           }
                                         />
                                         <Label
-                                          htmlFor={permission.id}
-                                          className="cursor-pointer text-sm"
+                                          htmlFor={`${mod.key}-select-all`}
+                                          className={`cursor-pointer text-sm font-medium ${!hasGatePermission ? 'text-muted-foreground opacity-50' : ''}`}
                                         >
-                                          {permission.name}
+                                          Seleccionar todos
                                         </Label>
                                       </div>
-                                    ))}
+                                    )}
+                                    {modulePerms
+                                      .filter(
+                                        (p) => p.name !== mod.gatePermission,
+                                      )
+                                      .map((permission) => (
+                                        <div
+                                          key={permission.id}
+                                          className="flex items-center space-x-2"
+                                        >
+                                          <Checkbox
+                                            id={permission.id}
+                                            disabled={!hasGatePermission}
+                                            checked={field.value?.includes(
+                                              permission.name,
+                                            )}
+                                            onCheckedChange={(checked) =>
+                                              handlePermissionChange(
+                                                permission.name,
+                                                checked,
+                                              )
+                                            }
+                                          />
+                                          <Label
+                                            htmlFor={permission.id}
+                                            className={`cursor-pointer text-sm ${!hasGatePermission ? 'text-muted-foreground opacity-50' : ''}`}
+                                          >
+                                            {permission.name}
+                                          </Label>
+                                        </div>
+                                      ))}
                                   </div>
                                 </div>
-                              ),
+                              );
+                            })}
+                            {unmatchedPermissions.length > 0 && (
+                              <div className="space-y-3 rounded-lg border p-4">
+                                <div className="flex items-center justify-between border-b pb-2">
+                                  <h4 className="text-foreground text-sm font-semibold">
+                                    Otros
+                                  </h4>
+                                  <span className="text-muted-foreground text-xs">
+                                    {
+                                      unmatchedPermissions.filter((p) =>
+                                        field.value?.includes(p.name),
+                                      ).length
+                                    }
+                                    /{unmatchedPermissions.length}
+                                  </span>
+                                </div>
+                                <div className="space-y-2 pl-2">
+                                  {unmatchedPermissions.map((permission) => (
+                                    <div
+                                      key={permission.id}
+                                      className="flex items-center space-x-2"
+                                    >
+                                      <Checkbox
+                                        id={permission.id}
+                                        checked={field.value?.includes(
+                                          permission.name,
+                                        )}
+                                        onCheckedChange={(checked) =>
+                                          handlePermissionChange(
+                                            permission.name,
+                                            checked,
+                                          )
+                                        }
+                                      />
+                                      <Label
+                                        htmlFor={permission.id}
+                                        className="cursor-pointer text-sm"
+                                      >
+                                        {permission.name}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             )}
                           </div>
                         )}

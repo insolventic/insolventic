@@ -29,6 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { CreateUserButton } from './create-user-button';
 import { EditUserDialog } from './edit-user-dialog';
@@ -60,9 +61,9 @@ export function UsersTable({
 
   const { checkPermission } = useAuth();
 
-  const canViewUsers = checkPermission('Ver usuarios');
-  const canEditUsers = checkPermission('Editar usuarios');
-  const canDeleteUsers = checkPermission('Eliminar usuarios');
+  const canViewUsers = checkPermission(P.VER_USUARIOS);
+  const canEditUsers = checkPermission(P.EDITAR_USUARIOS);
+  const canDeleteUsers = checkPermission(P.ELIMINAR_USUARIOS);
 
   const getRoleColor = (role: string) => {
     const roleConfig = roles.find((r) => r.name === role);

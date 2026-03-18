@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { DashboardHeader } from '../../dashboard/components/dashboard-header';
 
@@ -48,7 +49,7 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const { checkPermission } = useAuth();
-  const canCreateCases = checkPermission('Crear casos');
+  const canCreateCases = checkPermission(P.CREAR_CASOS);
   const [loadingCaseDetails, setLoadingCaseDetails] = useState(false);
 
   const filteredCases = cases.filter((caseItem) => {

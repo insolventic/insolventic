@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import { P } from '@/lib/permissions';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -109,7 +110,7 @@ export function DocumentGeneration({
   onDocumentsGenerated,
 }: Readonly<DocumentGenerationProps>) {
   const { checkPermission } = useAuth();
-  const canGenerateDocuments = checkPermission('Generar documentos');
+  const canGenerateDocuments = checkPermission(P.GENERAR_DOCUMENTOS);
   const [selectedCaseId, setSelectedCaseId] = useState('');
   const [selectedPackage, setSelectedPackage] = useState('all');
   const [open, setOpen] = useState(false);

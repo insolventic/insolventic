@@ -6,6 +6,7 @@ import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import {
   getNotificationsInputSchema,
   getNotificationsOutputSchema,
@@ -30,7 +31,7 @@ export async function getNotifications(
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Ver notificaciones');
+    const hasPermission = user.permissions.includes(P.VER_NOTIFICACIONES);
     if (!hasPermission) {
       return {
         success: false,
@@ -116,7 +117,7 @@ export async function deleteNotification(
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Eliminar notificaciones');
+    const hasPermission = user.permissions.includes(P.GESTIONAR_NOTIFICACIONES);
     if (!hasPermission) {
       return {
         success: false,
@@ -177,7 +178,7 @@ export async function getNotificationStats(
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    const hasPermission = user.permissions.includes('Ver notificaciones');
+    const hasPermission = user.permissions.includes(P.VER_NOTIFICACIONES);
     if (!hasPermission) {
       return {
         success: false,

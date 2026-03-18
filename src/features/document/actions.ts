@@ -5,6 +5,7 @@ import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import type { DocumentTemplate } from './templates-config';
 
@@ -23,7 +24,7 @@ export async function getTemplatesFromDatabase() {
   try {
     const { user, tenantId } = await authenticateUser();
 
-    if (!user.permissions.includes('Ver documentos')) {
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
       return {
         success: false,
         error: 'No tienes permisos para ver documentos',
@@ -69,7 +70,7 @@ export async function syncTemplatesWithGoogleDrive() {
   try {
     const { user, tenantId } = await authenticateUser();
 
-    if (!user.permissions.includes('Ver documentos')) {
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
       return {
         success: false,
         error: 'No tienes permisos para sincronizar plantillas',
@@ -338,7 +339,7 @@ export async function getDocumentsFromDrive() {
   try {
     const { user, tenantId } = await authenticateUser();
 
-    if (!user.permissions.includes('Ver documentos')) {
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
       return {
         success: false,
         error: 'No tienes permisos para ver documentos',
@@ -401,9 +402,9 @@ export async function getDocumentsFromDrive() {
     });
 
     // Check user permissions to determine case visibility scope
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     if (canViewAllCases) {
       // Can see all documents
@@ -499,7 +500,7 @@ export async function syncDocumentsWithGoogleDrive() {
   try {
     const { user, tenantId } = await authenticateUser();
 
-    if (!user.permissions.includes('Ver documentos')) {
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
       return {
         success: false,
         error: 'No tienes permisos para sincronizar documentos',
@@ -694,7 +695,7 @@ export async function batchGenerateDocuments(input: {
   try {
     const { user, tenantId } = await authenticateUser();
 
-    if (!user.permissions.includes('Generar documentos')) {
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
       return {
         success: false,
         message: 'No tienes permisos para generar documentos',
@@ -729,9 +730,9 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Check user permissions
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     let hasAccessToCase = false;
 
@@ -1195,7 +1196,7 @@ export async function uploadCaseDocuments(input: {
   try {
     const { user, tenantId } = await authenticateUser();
 
-    if (!user.permissions.includes('Generar documentos')) {
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
       return {
         success: false,
         error: 'No tienes permisos para subir documentos',

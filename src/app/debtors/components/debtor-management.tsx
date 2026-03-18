@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { CreateDebtorDialog } from './create-debtor-dialog';
 import { DeleteDebtorDialog } from './delete-debtor-dialog';
@@ -51,10 +52,10 @@ export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
   const [occupationFilter, setOccupationFilter] = useState('all');
 
   const { checkPermission } = useAuth();
-  const canViewDebtors = checkPermission('Ver deudores');
-  const canCreateDebtors = checkPermission('Crear deudores');
-  const canEditDebtors = checkPermission('Editar deudores');
-  const canDeleteDebtors = checkPermission('Eliminar deudores');
+  const canViewDebtors = checkPermission(P.VER_DEUDORES);
+  const canCreateDebtors = checkPermission(P.CREAR_DEUDORES);
+  const canEditDebtors = checkPermission(P.EDITAR_DEUDORES);
+  const canDeleteDebtors = checkPermission(P.ELIMINAR_DEUDORES);
 
   const [openCreateDebtorDialog, setOpenCreateDebtorDialog] = useState(false);
   const [openEditDebtorDialog, setOpenEditDebtorDialog] = useState(false);

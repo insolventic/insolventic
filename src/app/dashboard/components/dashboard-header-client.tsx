@@ -5,7 +5,7 @@ import {
   ArrowLeft,
   Bell,
   Key,
-  Database,
+  Building2,
   LogOut,
   Sun,
   Moon,
@@ -16,6 +16,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 import { getTenantTheme } from '@/lib/tenant-theme';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -130,7 +131,7 @@ export function DashboardHeaderClient() {
               variant="ghost"
               size="sm"
               onClick={handleNotificationsClick}
-              disabled={!checkPermission('Ver casos')}
+              disabled={!checkPermission(P.VER_NOTIFICACIONES)}
               aria-label="Notificaciones"
               className="text-muted-foreground hover:text-foreground"
             >
@@ -157,7 +158,7 @@ export function DashboardHeaderClient() {
                   </div>
                 </div>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48" align="end" forceMount>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuItem onClick={handleChangePassword}>
                   <Key className="mr-2 h-4 w-4" />
                   <span>Cambiar Contraseña</span>
@@ -183,31 +184,20 @@ export function DashboardHeaderClient() {
                     aria-label="Alternar modo oscuro"
                   />
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSwitchDatabase}>
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <span>Cambiar Organización</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Cerrar Sesión</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
-            {/* Action Buttons - Improved hierarchy */}
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSwitchDatabase}
-                className="border-border text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <Database className="mr-2 h-4 w-4" />
-                <span className="hidden xl:inline">Cambiar BD</span>
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span className="hidden xl:inline">Cerrar Sesión</span>
-              </Button>
-            </div>
           </div>
 
           {/* Mobile/Tablet Layout - Show notifications and dropdown menu */}
@@ -216,7 +206,7 @@ export function DashboardHeaderClient() {
               variant="ghost"
               size="sm"
               onClick={handleNotificationsClick}
-              disabled={!checkPermission('Ver casos')}
+              disabled={!checkPermission(P.VER_NOTIFICACIONES)}
               aria-label="Notificaciones"
               className="text-muted-foreground hover:text-foreground"
             >
@@ -237,7 +227,7 @@ export function DashboardHeaderClient() {
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48" align="end" forceMount>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuItem onClick={handleChangePassword}>
                   <Key className="mr-2 h-4 w-4" />
                   <span>Cambiar Contraseña</span>
@@ -262,6 +252,18 @@ export function DashboardHeaderClient() {
                     }
                     aria-label="Alternar modo oscuro"
                   />
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSwitchDatabase}>
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <span>Cambiar Organización</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Cerrar Sesión</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

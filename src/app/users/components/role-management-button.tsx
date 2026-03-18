@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { CreateRoleDialog } from './create-role-dialog';
 
@@ -18,7 +19,7 @@ export function RoleManagementButton({
   const [showDialog, setShowDialog] = useState(false);
   const { checkPermission } = useAuth();
 
-  const canCreateRoles = checkPermission('Crear roles');
+  const canCreateRoles = checkPermission(P.CREAR_ROLES);
 
   return (
     <>

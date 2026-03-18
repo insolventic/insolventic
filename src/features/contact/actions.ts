@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 
 import {
@@ -25,7 +26,7 @@ export async function getAllContacts(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver acreedores')) {
+    if (!user.permissions.includes(P.VER_ACREEDORES)) {
       throw new Error('No tiene permisos para: Ver acreedores');
     }
 
@@ -65,7 +66,7 @@ export async function getContactById(id: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver acreedores')) {
+    if (!user.permissions.includes(P.VER_ACREEDORES)) {
       throw new Error('No tiene permisos para: Ver acreedores');
     }
 
@@ -110,7 +111,7 @@ export async function addContactToCreditor(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Crear acreedores')) {
+    if (!user.permissions.includes(P.CREAR_ACREEDORES)) {
       throw new Error('No tiene permisos para: Crear acreedores');
     }
 
@@ -151,7 +152,7 @@ export async function updateContact(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Editar acreedores')) {
+    if (!user.permissions.includes(P.EDITAR_ACREEDORES)) {
       throw new Error('No tiene permisos para: Editar acreedores');
     }
 
@@ -194,7 +195,7 @@ export async function deleteContact(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Eliminar acreedores')) {
+    if (!user.permissions.includes(P.ELIMINAR_ACREEDORES)) {
       throw new Error('No tiene permisos para: Eliminar acreedores');
     }
 

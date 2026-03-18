@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { DeleteRoleDialog } from './delete-role-dialog';
 import { EditRoleDialog } from './edit-role-dialog';
@@ -27,9 +28,9 @@ export function RoleCard({ role, users }: Readonly<RoleCardProps>) {
 
   const { checkPermission } = useAuth();
 
-  const canEditRoles = checkPermission('Editar roles');
-  const canDeleteRoles = checkPermission('Eliminar roles');
-  const canViewUsers = checkPermission('Ver usuarios');
+  const canEditRoles = checkPermission(P.EDITAR_ROLES);
+  const canDeleteRoles = checkPermission(P.ELIMINAR_ROLES);
+  const canViewUsers = checkPermission(P.VER_USUARIOS);
 
   const getDeleteButtonTitle = () => {
     if (!canDeleteRoles) {

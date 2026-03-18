@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
+import { P } from '@/lib/permissions';
 
 import { Task } from './task';
 
@@ -35,7 +36,7 @@ export function TaskSelector() {
       color: 'bg-blue-100',
       iconColor: 'text-primary',
       stats: { active: 41, pending: 5, total: 46 },
-      permission: 'Ver casos',
+      permission: P.VER_CASOS,
       helpText:
         'Administra los procesos de insolvencia, crea nuevos casos, consulta su estado y realiza el seguimiento completo de cada expediente.',
     },
@@ -48,7 +49,7 @@ export function TaskSelector() {
       color: 'bg-purple-100',
       iconColor: 'text-purple-600',
       stats: { total: 4, active: 3 },
-      permission: 'Ver usuarios',
+      permission: P.VER_USUARIOS,
       helpText:
         'Crea usuarios, asigna roles y controla los permisos de acceso dentro del sistema según su función.',
     },
@@ -61,7 +62,7 @@ export function TaskSelector() {
       color: 'bg-green-100',
       iconColor: 'text-green-600',
       stats: { total: 4, active: 3 },
-      permission: 'Ver acreedores',
+      permission: P.VER_ACREEDORES,
       helpText:
         'Registra y administra la información de los acreedores asociados a cada caso de insolvencia.',
     },
@@ -74,7 +75,7 @@ export function TaskSelector() {
       color: 'bg-orange-100',
       iconColor: 'text-orange-600',
       stats: { total: 3, active: 3 },
-      permission: 'Ver deudores',
+      permission: P.VER_DEUDORES,
       helpText:
         'Gestiona los datos de los deudores, su información personal y su relación con los casos activos.',
     },
@@ -87,7 +88,7 @@ export function TaskSelector() {
       color: 'bg-red-100',
       iconColor: 'text-red-600',
       stats: { total: 156, recent: 12 },
-      permission: 'Ver documentos',
+      permission: P.VER_DOCUMENTOS,
       helpText:
         'Genera, consulta y administra los documentos legales asociados a cada proceso de insolvencia.',
     },
@@ -100,7 +101,7 @@ export function TaskSelector() {
       color: 'bg-yellow-100',
       iconColor: 'text-yellow-600',
       stats: { unread: 7, total: 45 },
-      permission: 'Ver notificaciones',
+      permission: P.VER_NOTIFICACIONES,
       helpText:
         'Recibe alertas y notificaciones importantes sobre cambios, eventos y estados de los casos.',
     },

@@ -2,6 +2,7 @@
 
 import { revalidateTag } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { createNotificationForAction } from '@/features/notification/actions';
 
@@ -17,7 +18,7 @@ export async function getAllRoles(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver roles')) {
+    if (!user.permissions.includes(P.VER_ROLES)) {
       throw new Error('No tiene permisos para: Ver roles');
     }
 
@@ -63,7 +64,7 @@ export async function createRole(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Crear roles')) {
+    if (!user.permissions.includes(P.CREAR_ROLES)) {
       throw new Error('No tiene permisos para: Crear roles');
     }
 
@@ -146,7 +147,7 @@ export async function updateRole(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Editar roles')) {
+    if (!user.permissions.includes(P.EDITAR_ROLES)) {
       throw new Error('No tiene permisos para: Editar roles');
     }
 
@@ -246,7 +247,7 @@ export async function deleteRole(id: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Eliminar roles')) {
+    if (!user.permissions.includes(P.ELIMINAR_ROLES)) {
       throw new Error('No tiene permisos para: Eliminar roles');
     }
 

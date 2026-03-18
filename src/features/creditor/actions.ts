@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
+import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 
 import {
@@ -30,14 +31,14 @@ export async function getAllCreditors(): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver acreedores')) {
+    if (!user.permissions.includes(P.VER_ACREEDORES)) {
       throw new Error('No tiene permisos para: Ver acreedores');
     }
 
     // Check user permissions to determine case visibility scope
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     let creditors: Awaited<ReturnType<typeof prisma.creditor.findMany>>;
 
@@ -212,7 +213,7 @@ export async function getCreditorById(id: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Ver acreedores')) {
+    if (!user.permissions.includes(P.VER_ACREEDORES)) {
       throw new Error('No tiene permisos para: Ver acreedores');
     }
 
@@ -251,9 +252,9 @@ export async function getCreditorById(id: string): Promise<{
     }
 
     // Check user permissions to determine if they can view this creditor
-    const canViewAllCases = user.permissions.includes('Ver todos los casos');
-    const canViewOwnCases = user.permissions.includes('Ver casos propios');
-    const canViewAsClient = user.permissions.includes('Ver casos como cliente');
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
 
     if (canViewAllCases) {
       // Can see all creditors
@@ -347,7 +348,7 @@ export async function createCreditor(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Crear acreedores')) {
+    if (!user.permissions.includes(P.CREAR_ACREEDORES)) {
       throw new Error('No tiene permisos para: Crear acreedores');
     }
 
@@ -404,7 +405,7 @@ export async function updateCreditor(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Editar acreedores')) {
+    if (!user.permissions.includes(P.EDITAR_ACREEDORES)) {
       throw new Error('No tiene permisos para: Editar acreedores');
     }
 
@@ -465,7 +466,7 @@ export async function deleteCreditor(input: unknown): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
-    if (!user.permissions.includes('Eliminar acreedores')) {
+    if (!user.permissions.includes(P.ELIMINAR_ACREEDORES)) {
       throw new Error('No tiene permisos para: Eliminar acreedores');
     }
 
