@@ -1,0 +1,455 @@
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #000;
+  background-color: #fff;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 21cm;
+  margin: 0 auto;
+  padding: 2cm 2.5cm;
+  background-color: #fff;
+}
+
+/* Utilidades de texto */
+.text-center {
+  text-align: center;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.justified {
+  text-align: justify;
+}
+
+/* Logo principal */
+.logo-section {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.logo {
+  max-width: 400px;
+  height: auto;
+}
+
+/* Título del proceso */
+.proceso-title {
+  font-size: 12px;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+/* Título principal */
+.title-main {
+  font-size: 14px;
+  margin: 16px 0 20px 0;
+  line-height: 1.4;
+}
+
+/* Tabla de información del deudor */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.info-table td {
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.info-table .label-cell {
+  font-weight: bold;
+  width: 20%;
+  background-color: #f5f5f5;
+}
+
+/* Títulos de sección */
+.section-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.subsection-title {
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 16px;
+  margin-bottom: 10px;
+  text-align: center;
+  text-decoration: underline;
+}
+
+/* Párrafos */
+p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+p.justified {
+  text-align: justify;
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+
+/* Párrafo importante (contexto de incumplimiento) */
+p.importante {
+  background-color: #e7f3ff;
+  padding: 12px;
+  border-left: 4px solid #0066cc;
+  margin: 20px 0;
+  font-weight: 500;
+}
+
+/* Items de causa (en párrafos, no lista) */
+.causa-item {
+  margin-left: 20px;
+  margin-bottom: 14px;
+  text-align: justify;
+  line-height: 1.7;
+}
+
+.causa-item em {
+  font-style: italic;
+}
+
+/* Placeholders para contenido dinámico */
+.cuadro-placeholder,
+.propuesta-placeholder {
+  min-height: 100px;
+  border: 2px dashed #ccc;
+  padding: 20px;
+  margin: 16px 0;
+  background-color: #f9f9f9;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.cuadro-placeholder::before {
+  content: 'Insertar tabla de calificación y graduación de créditos';
+}
+
+.propuesta-placeholder::before {
+  content: 'Insertar detalle de la propuesta de reforma de pago';
+}
+
+/* Constancia final */
+.constancia-final {
+  margin-top: 30px;
+  margin-bottom: 30px;
+  font-weight: normal;
+}
+
+/* Sección de firmas */
+.firma-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  margin: 30px 0 20px 0;
+  padding: 20px 0;
+}
+
+.logo-firma {
+  max-width: 270px;
+  height: auto;
+}
+
+.firma-img {
+  max-width: 180px;
+  height: auto;
+}
+
+/* Nombre del operador */
+.operadora-nombre {
+  margin-top: 10px;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+.operadora-nombre em {
+  font-style: italic;
+}
+
+/* Footer */
+.footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #ccc;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.footer p {
+  margin-bottom: 8px;
+}
+
+/* Impresión */
+@media print {
+  body {
+    background-color: #fff;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  @page {
+    margin: 2cm 2.5cm;
+    size: letter;
+  }
+
+  .footer {
+    border-top: none;
+  }
+
+  .importante {
+    background-color: #e7f3ff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Prevenir cortes de página */
+  .section-title,
+  .subsection-title {
+    page-break-after: avoid;
+  }
+
+  .firma-section,
+  .operadora-nombre {
+    page-break-inside: avoid;
+  }
+
+  .cuadro-placeholder,
+  .propuesta-placeholder {
+    border-style: solid;
+    background-color: #fff;
+  }
+
+  h2 {
+    page-break-after: avoid;
+  }
+
+  .constancia-final {
+    page-break-inside: avoid;
+  }
+
+  .importante {
+    page-break-inside: avoid;
+  }
+
+  .causa-item {
+    page-break-inside: avoid;
+  }
+}
+
+/* Responsive para tablets */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1.5cm 1cm;
+  }
+
+  .logo {
+    max-width: 300px;
+  }
+
+  .title-main {
+    font-size: 13px;
+  }
+
+  .firma-section {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .logo-firma,
+  .firma-img {
+    max-width: 200px;
+  }
+
+  .info-table .label-cell {
+    width: 25%;
+  }
+
+  .causa-item {
+    margin-left: 10px;
+  }
+}
+
+/* Responsive para móviles */
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 11px;
+  }
+
+  .container {
+    padding: 1cm 0.5cm;
+  }
+
+  .logo {
+    max-width: 250px;
+  }
+
+  .title-main {
+    font-size: 12px;
+  }
+
+  .proceso-title {
+    font-size: 11px;
+  }
+
+  .section-title {
+    font-size: 12px;
+  }
+
+  .subsection-title {
+    font-size: 11px;
+  }
+
+  .info-table .label-cell {
+    width: 28%;
+    font-size: 11px;
+  }
+
+  .logo-firma {
+    max-width: 180px;
+  }
+
+  .firma-img {
+    max-width: 140px;
+  }
+
+  p.justified {
+    text-align: left;
+  }
+
+  .causa-item {
+    margin-left: 5px;
+  }
+}
+
+/* Mejoras visuales */
+.section-title::before {
+  content: '';
+  display: block;
+  width: 40px;
+  height: 3px;
+  background-color: #333;
+  margin-bottom: 8px;
+}
+
+/* Estados hover para modo edición */
+body.edit-mode .cuadro-placeholder:hover,
+body.edit-mode .propuesta-placeholder:hover {
+  background-color: #ffffcc;
+  cursor: pointer;
+  border-color: #999;
+  transition: all 0.3s ease;
+}
+
+/* Estilos para tablas dentro de placeholders */
+.cuadro-placeholder table,
+.propuesta-placeholder table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+  background-color: #fff;
+}
+
+.cuadro-placeholder table th,
+.cuadro-placeholder table td {
+  border: 1px solid #000;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.cuadro-placeholder table th {
+  background-color: #f0f0f0;
+  font-weight: bold;
+}
+
+/* Animación de entrada suave (opcional) */
+@media screen {
+  .container {
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Estilo para elementos strong */
+p strong {
+  color: #000;
+  font-weight: bold;
+}
+
+/* Efecto hover en tabla de información */
+body.edit-mode .info-table td:not(.label-cell):hover {
+  background-color: #fffbea;
+  cursor: text;
+  transition: background-color 0.2s ease;
+}
+
+/* Espaciado después de placeholders */
+.cuadro-placeholder + .section-title,
+.propuesta-placeholder + p {
+  margin-top: 18px;
+}
+
+/* Mejorar visibilidad del párrafo importante */
+.importante {
+  box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+}
+
+/* Icono para el párrafo importante */
+.importante::before {
+  content: 'ℹ️ ';
+  font-size: 14px;
+  margin-right: 6px;
+}
+
+/* Numeración para causa items */
+.causa-item::first-letter {
+  font-weight: bold;
+}
+
+/* Mejorar visibilidad en impresión */
+@media print {
+  .importante {
+    border: 1px solid #0066cc;
+  }
+}
+
+/* Espaciado especial para título del proceso */
+.proceso-title {
+  padding: 8px 0;
+}

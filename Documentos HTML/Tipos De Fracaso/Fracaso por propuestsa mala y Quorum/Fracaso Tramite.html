@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constancia de No Acuerdo - Fracaso del Trámite</title>
+    <link rel="stylesheet" href="/CSS/fracaso/styles-fracaso-tramite.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Resolución -->
+    <p class="text-center bold">RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003 MINJUSTICIA</p>
+
+    <!-- Proceso -->
+    <p class="text-center bold proceso-title">
+        PROCESO DE NEGOCIACIÓN DE DEUDAS DE LA PERSONA NATURAL NO COMERCIANTE Y DE LA PEQUEÑA COMERCIANTE
+    </p>
+
+    <!-- Título -->
+    <p class="text-center bold title-main">
+        CONSTANCIA DE NO ACUERDO No. {{NUMERO_CONSTANCIA}}-{{ANO_CONSTANCIA}}
+    </p>
+
+    <!-- Datos del deudor -->
+    <table class="info-table">
+        <tr>
+            <td class="label-cell">DEUDOR</td>
+            <td>{{NOMBRE_DEUDOR}}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">CC.</td>
+            <td>{{CEDULA_DEUDOR}}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">RADICADO</td>
+            <td>{{NUMERO_RADICADO}}-{{ANO_RADICADO}}</td>
+        </tr>
+    </table>
+
+    <!-- Introducción -->
+    <p class="justified">
+        <strong>BEATRIZ HELENA MALAVERA LOPEZ,</strong> obrando en mi calidad de operadora de Insolvencia Económica de la persona natural no comerciante del Centro de Conciliación y Arbitraje Constructores de Paz, autorizado para conocer el trámite de insolvencia de persona natural no comerciante por el Ministerio de Justicia y del Derecho, dejo constancia de lo siguiente:
+    </p>
+
+    <!-- Acreedores -->
+    <h2 class="section-title">ACREEDORES</h2>
+
+    <p class="justified">
+        Los acreedores que fueron reconocidos en el proceso de negociación de deudas, los valores de capital conciliado, la asistencia y los derechos de voto, fueron los siguientes:
+    </p>
+
+    <h3 class="subsection-title">CALIFICACIÓN Y GRADUACIÓN DE CRÉDITOS</h3>
+
+    <div class="cuadro-placeholder">
+        {{CUADRO_CALIFICACION_GRADUACION}}
+    </div>
+
+    <!-- Causa del fracaso -->
+    <h2 class="section-title">CAUSA DEL FRACASO DE LA NEGOCIACIÓN</h2>
+
+    <p class="justified">
+        El conciliador designado certifica que se calificaron y graduaron los saldos de las acreencias conciliadas por las partes, y según lo establecido por el numeral 1 del artículo 550 del Código General del Proceso, la anterior relación de acreencias constituye la relación definitiva aceptada tanto por los acreedores como por {{GENERO_DEUDOR}}. A continuación, se presentó la propuesta de pago consistente en:
+    </p>
+
+    <div class="propuesta-placeholder">
+        {{PROPUESTA_PAGO}}
+    </div>
+
+    <p class="justified">
+        Expuesta la propuesta de pago, se buscaron alternativas para negociar los pasivos; sin embargo, no fue posible llegar a una oferta de pago atractiva para los acreedores, ni el deudor cuenta con la posibilidad de aumentar el valor de la cuota propuesta, en los siguientes términos:
+    </p>
+
+    <ol class="causa-fracaso-list">
+        <li>
+            <em>
+                La operadora de insolvencia solicitó al deudor la exposición de la propuesta de pago para la atención de las obligaciones, la cual fue puesta en consideración de los acreedores, quienes manifestaron su inconformidad con la misma.
+            </em>
+        </li>
+        <li>
+            <em>
+                Posteriormente, la operadora de insolvencia consultó la posibilidad de mejorar la propuesta mediante contrapropuestas tales como aumento de cuota, disminución de plazo o cuotas extraordinarias; no obstante, no se logró un acercamiento entre las partes.
+            </em>
+        </li>
+    </ol>
+
+    <p class="justified declaracion-terminos">
+        En virtud de lo anterior, se procede a la votación, obteniéndose un porcentaje de participación negativa del <strong>{{PORCENTAJE_NEGATIVO}}%</strong>, correspondiente al voto del acreedor mayoritario {{ACREEDOR_MAYORITARIO}} y a la falta de asistencia de varios acreedores, situación que impidió conformar el quórum y cumplir con la pluralidad requerida. En consecuencia, se declara el fracaso del trámite y se dispone el envío del expediente al Señor Juez Civil Municipal de Bogotá (Reparto), para el inicio del trámite de liquidación patrimonial conforme al artículo 563 del Código General del Proceso.
+    </p>
+
+    <!-- Fecha -->
+    <p class="constancia-final">
+        En constancia se firma en la ciudad de Bogotá a los {{NUMERO_DIA}} días del mes de {{NOMBRE_MES}} de {{ANO_FIRMA}}.
+    </p>
+
+    <!-- Firmas -->
+    <div class="firma-section">
+        <img src="/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <p class="text-center bold operadora-nombre">
+        <em>BEATRIZ HELENA MALAVERA LOPEZ<br>OPERADORA DE INSOLVENCIA</em>
+    </p>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>
+            Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+            Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+            Cel. 311 811 7520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co
+        </p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del
+            Derecho<br>
+            Resolución No. 1459 del 5 de septiembre de 2003 Minjusticia
+        </p>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,670 @@
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #000;
+  background-color: #f5f5f5;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 21cm;
+  margin: 0 auto;
+  padding: 2cm 2.5cm;
+  background-color: #fff;
+  min-height: 27cm;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Utilidades de texto */
+.text-center {
+  text-align: center;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.justified {
+  text-align: justify;
+  line-height: 1.6;
+}
+
+/* Logo principal */
+.logo-section {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.logo {
+  max-width: 350px;
+  height: auto;
+}
+
+/* Destinatario */
+.destinatario {
+  margin: 25px 0;
+  line-height: 1.4;
+}
+
+.destinatario p {
+  margin-bottom: 4px;
+}
+
+/* Referencia */
+.referencia {
+  margin: 25px 0;
+  text-align: center;
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+/* Párrafos */
+p {
+  margin-bottom: 12px;
+}
+
+p.justified {
+  text-align: justify;
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+
+/* Párrafo del juramento */
+.juramento {
+  background-color: #fff9e6;
+  padding: 12px 15px;
+  border-left: 4px solid #f39c12;
+  margin: 20px 0;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(243, 156, 18, 0.15);
+}
+
+.juramento::before {
+  content: '⚖️ ';
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+/* Títulos de sección */
+.section-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin: 30px 0 15px 0;
+  padding: 10px 15px;
+  background-color: #2c3e50;
+  color: #fff;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subsection-title {
+  font-size: 12px;
+  font-weight: bold;
+  margin: 20px 0 12px 0;
+  padding: 8px 12px;
+  background-color: #34495e;
+  color: #fff;
+  border-radius: 3px;
+}
+
+/* Tablas estándar */
+.table-std {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0 25px 0;
+  font-size: 10px;
+}
+
+.table-std thead {
+  background-color: #34495e;
+  color: #fff;
+}
+
+.table-std thead th {
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: bold;
+  border: 1px solid #2c3e50;
+}
+
+.table-std tbody td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  vertical-align: middle;
+}
+
+.table-std .label-td {
+  font-weight: bold;
+  background-color: #ecf0f1;
+  width: 35%;
+}
+
+.table-std .total-row {
+  background-color: #e8f4f8;
+  font-weight: bold;
+}
+
+.table-std .total-row td {
+  border-top: 2px solid #2c3e50;
+  padding: 10px 8px;
+}
+
+/* Tabla de acreencias */
+.tabla-scroll {
+  overflow-x: auto;
+  margin: 15px 0 25px 0;
+}
+
+.table-acreencias {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px;
+  font-size: 9px;
+}
+
+.table-acreencias thead {
+  background-color: #2980b9;
+  color: #fff;
+}
+
+.table-acreencias thead th {
+  padding: 10px 6px;
+  text-align: center;
+  font-weight: bold;
+  border: 1px solid #2471a3;
+  white-space: nowrap;
+}
+
+.table-acreencias tbody td {
+  padding: 8px 6px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.table-acreencias tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table-acreencias tbody tr:hover {
+  background-color: #e8f4f8;
+  transition: background-color 0.2s ease;
+}
+
+.table-acreencias .total-row {
+  background-color: #d5e8f7;
+  font-weight: bold;
+}
+
+/* Nota DIAN */
+.nota-dian {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-left: 4px solid #ff9800;
+  padding: 15px;
+  margin: 20px 0;
+  border-radius: 3px;
+}
+
+.nota-dian p {
+  margin-bottom: 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* Títulos de acreedor */
+.acreedor-title {
+  font-size: 12px;
+  font-weight: bold;
+  margin: 25px 0 12px 0;
+  padding: 8px 12px;
+  background-color: #16a085;
+  color: #fff;
+  border-radius: 3px;
+}
+
+/* Tabla de acreedores */
+.table-acreedor {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0 25px 0;
+  font-size: 10px;
+}
+
+.table-acreedor td {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+}
+
+.table-acreedor .label-td {
+  font-weight: bold;
+  background-color: #ecf0f1;
+  width: 30%;
+}
+
+.table-acreedor tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Tabla de bienes */
+.table-bienes {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0 25px 0;
+  font-size: 10px;
+}
+
+.table-bienes td {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+}
+
+.table-bienes .label-td {
+  font-weight: bold;
+  background-color: #d5f4e6;
+  width: 40%;
+}
+
+/* Tabla de propuesta */
+.table-propuesta {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0 25px 0;
+  font-size: 10px;
+}
+
+.table-propuesta td {
+  padding: 8px;
+  border: 1px solid #ddd;
+  vertical-align: middle;
+}
+
+.table-propuesta .label-td {
+  font-weight: bold;
+  background-color: #ecf0f1;
+}
+
+.table-propuesta .propuesta-row {
+  background-color: #e8f4f8;
+}
+
+.table-propuesta .propuesta-row td:first-child {
+  font-weight: bold;
+  text-align: center;
+  background-color: #3498db;
+  color: #fff;
+}
+
+/* Valor grande */
+.valor-grande {
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  margin: 15px 0;
+  padding: 15px;
+  background-color: #e8f8f5;
+  border: 2px solid #1abc9c;
+  border-radius: 5px;
+}
+
+/* Lista de anexos */
+.anexos-list {
+  margin: 15px 0 15px 30px;
+  line-height: 1.8;
+}
+
+.anexos-list li {
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+/* Sección de firma */
+.firma-section {
+  margin-top: 50px;
+  text-align: center;
+}
+
+.firma-linea {
+  margin-top: 60px;
+  display: inline-block;
+}
+
+.firma-linea p {
+  margin-bottom: 5px;
+  line-height: 1.4;
+}
+
+/* Impresión */
+@media print {
+  body {
+    background-color: #fff;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    min-height: auto;
+    box-shadow: none;
+  }
+
+  @page {
+    margin: 1.5cm 2cm;
+    size: letter;
+  }
+
+  /* Preservar colores en impresión */
+  .section-title,
+  .subsection-title,
+  .acreedor-title,
+  .table-std thead,
+  .table-acreencias thead,
+  .juramento,
+  .nota-dian,
+  .valor-grande {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  /* Prevenir cortes de página */
+  .section-title,
+  .subsection-title,
+  .acreedor-title {
+    page-break-after: avoid;
+  }
+
+  .table-std,
+  .table-acreencias,
+  .table-acreedor,
+  .table-bienes,
+  .table-propuesta {
+    page-break-inside: avoid;
+  }
+
+  .juramento,
+  .nota-dian,
+  .firma-section {
+    page-break-inside: avoid;
+  }
+
+  /* Ajustar tamaños para impresión */
+  .logo {
+    max-width: 300px;
+  }
+
+  body {
+    font-size: 10px;
+  }
+
+  .table-std,
+  .table-acreedor,
+  .table-bienes,
+  .table-propuesta {
+    font-size: 9px;
+  }
+
+  .table-acreencias {
+    font-size: 8px;
+  }
+
+  /* Asegurar que las tablas anchas se ajusten */
+  .tabla-scroll {
+    overflow: visible;
+  }
+
+  .table-acreencias {
+    font-size: 7px;
+  }
+
+  .table-acreencias thead th,
+  .table-acreencias tbody td {
+    padding: 5px 3px;
+  }
+}
+
+/* Responsive para tablets */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1.5cm 1cm;
+  }
+
+  .logo {
+    max-width: 280px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .table-std,
+  .table-acreedor,
+  .table-bienes {
+    font-size: 9px;
+  }
+
+  .table-acreencias {
+    font-size: 8px;
+  }
+
+  .table-propuesta {
+    font-size: 9px;
+  }
+}
+
+/* Responsive para móviles */
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 10px;
+  }
+
+  .container {
+    padding: 1cm 0.8cm;
+    min-height: auto;
+  }
+
+  .logo {
+    max-width: 220px;
+  }
+
+  .section-title {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .subsection-title,
+  .acreedor-title {
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+
+  .table-std,
+  .table-acreedor,
+  .table-bienes,
+  .table-propuesta {
+    font-size: 8px;
+  }
+
+  .table-acreencias {
+    font-size: 7px;
+  }
+
+  .table-std .label-td,
+  .table-acreedor .label-td,
+  .table-bienes .label-td {
+    width: 40%;
+  }
+
+  p.justified {
+    text-align: left;
+  }
+
+  .valor-grande {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .anexos-list {
+    margin-left: 20px;
+    font-size: 10px;
+  }
+}
+
+/* Animación de entrada suave */
+@media screen {
+  .container {
+    animation: fadeIn 0.4s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Efectos hover para tablas */
+@media screen {
+  .table-std tbody tr:hover,
+  .table-acreedor tr:hover,
+  .table-bienes tr:hover {
+    background-color: #f0f8ff;
+    transition: background-color 0.2s ease;
+  }
+}
+
+/* Mejoras visuales adicionales */
+.logo-section {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.destinatario {
+  padding-left: 10px;
+  border-left: 3px solid #3498db;
+}
+
+.referencia {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para resaltar información importante */
+strong {
+  color: #2c3e50;
+  font-weight: bold;
+}
+
+/* Mejorar legibilidad de las tablas */
+.table-std thead th,
+.table-acreencias thead th {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Estilo para celdas vacías en modo edición */
+body.edit-mode .table-std td:not(.label-td):empty::before,
+body.edit-mode .table-acreedor td:not(.label-td):empty::before,
+body.edit-mode .table-bienes td:not(.label-td):empty::before {
+  content: '[vacío]';
+  color: #999;
+  font-style: italic;
+}
+
+/* Ajuste fino de espaciado */
+.section-title:first-of-type {
+  margin-top: 20px;
+}
+
+/* Sombras sutiles para profundidad */
+.table-std,
+.table-acreencias,
+.table-acreedor,
+.table-bienes,
+.table-propuesta {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Estilo para enlaces si se agregan */
+a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Accesibilidad - contraste mejorado */
+.table-std thead,
+.table-acreencias thead {
+  font-weight: 600;
+}
+
+/* Indicador visual para secciones importantes */
+.section-title::before {
+  content: '▸ ';
+  margin-right: 5px;
+}
+
+/* Mejora visual para la tabla de propuesta */
+.table-propuesta .propuesta-row td:first-child {
+  width: 40px;
+  min-width: 40px;
+}
+
+/* Estilos para números grandes */
+.valor-grande::before {
+  content: '💰 ';
+  font-size: 20px;
+}
+
+/* Optimización de impresión de tablas largas */
+@media print {
+  .table-acreencias thead {
+    display: table-header-group;
+  }
+
+  .table-acreencias tbody tr {
+    page-break-inside: avoid;
+  }
+}
+
+/* Estilo para destacar el monto total */
+.table-acreencias .total-row td:nth-child(3) {
+  font-size: 11px;
+  color: #c0392b;
+}
+
+/* Sección de notificaciones destacada */
+.firma-section {
+  border-top: 2px solid #e0e0e0;
+  padding-top: 30px;
+}
+
+/* Mejora de contraste para impresión */
+@media print {
+  .table-std .label-td,
+  .table-acreedor .label-td,
+  .table-bienes .label-td {
+    border: 1px solid #333;
+  }
+}

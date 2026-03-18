@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado de Ingresos</title>
+    <link rel="stylesheet" href="/CSS/styles-certificado-ingresos.css">
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Encabezado -->
+    <div class="header">
+        <p class="bold">SEÑORES</p>
+        <p class="bold">CENTRO DE CONCILIACIÓN Y ARBITRAJE CONSTRUCTORES DE PAZ</p>
+        <p class="bold">BOGOTÁ D.C</p>
+    </div>
+
+    <!-- Cuerpo -->
+    <p class="justified">
+        {{NOMBRE_DECLARANTE}}, mayor de edad, con domicilio en la ciudad de {{CIUDAD_DOMICILIO}}, identificado como aparece al pie de mi firma, manifiesto bajo la gravedad de juramento que mis ingresos mensuales provienen de la actividad vinculada con {{ACTIVIDAD_ECONOMICA}}, con un ingreso base mensual de <strong>${{INGRESO_MENSUAL}}</strong>.
+    </p>
+
+    <p class="justified">
+        La presente declaración se suscribe con el fin de adjuntarla a la solicitud para dar inicio al proceso de insolvencia de la persona natural no comerciante y de la pequeña comerciante, ante el Centro de Conciliación.
+    </p>
+
+    <!-- Firma -->
+    <div class="firma-simple">
+        <hr>
+        <p class="bold">{{NOMBRE_DECLARANTE}}</p>
+        <p>CC. {{CEDULA_DECLARANTE}}</p>
+        <p>Correo: {{CORREO_DECLARANTE}}</p>
+        <p>Teléfono: {{TELEFONO_DECLARANTE}}</p>
+    </div>
+
+</div>
+
+</body>
+</html>

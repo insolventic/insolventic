@@ -1,0 +1,195 @@
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Times New Roman', Georgia, serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #000;
+  background-color: #fff;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 21cm;
+  margin: 0 auto;
+  padding: 2.5cm 3cm;
+  background-color: #fff;
+}
+
+/* Utilidades */
+.text-center {
+  text-align: center;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+/* Logo */
+.logo-section {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.logo {
+  max-width: 380px;
+  height: auto;
+}
+
+/* Destinatario */
+.destinatario-section {
+  margin: 30px 0 25px 0;
+}
+
+.destinatario-titulo,
+.destinatario-nombre {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 5px;
+}
+
+.destinatario-ciudad {
+  font-size: 12px;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+/* Asunto */
+.asunto-section {
+  margin: 30px 0;
+  padding: 12px 15px;
+  border: 1px solid #000;
+  text-align: left;
+}
+
+.asunto-linea1 {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.asunto-linea2 {
+  font-size: 11px;
+  font-style: italic;
+}
+
+/* Tabla de referencia */
+.tabla-referencia {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 25px 0 30px 0;
+  border: 1px solid #000;
+}
+
+.tabla-referencia th,
+.tabla-referencia td {
+  border: 1px solid #000;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.tabla-referencia thead th {
+  font-weight: bold;
+  text-align: center;
+}
+
+.tabla-referencia .label-cell {
+  font-weight: bold;
+  width: 35%;
+  background-color: #f2f2f2;
+}
+
+.tabla-referencia .value-cell {
+  background-color: #fff;
+}
+
+.tabla-referencia .tipo-especial {
+  font-weight: bold;
+}
+
+/* Contenido principal */
+.content-section {
+  margin: 30px 0;
+}
+
+/* Párrafos */
+.parrafo-principal,
+.parrafo-anexo,
+.parrafo-contacto {
+  text-align: justify;
+  margin-bottom: 25px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Lista de observaciones */
+.lista-observaciones {
+  margin: 20px 0 30px 30px;
+  list-style: decimal;
+}
+
+.lista-observaciones li {
+  margin-bottom: 15px;
+  text-align: justify;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Firma */
+.firma-section {
+  margin: 50px 0 20px 0;
+  text-align: center;
+}
+
+.logo-firma {
+  max-width: 260px;
+  margin-bottom: 15px;
+}
+
+.firma-img {
+  max-width: 170px;
+  margin-bottom: 10px;
+}
+
+.firma-info {
+  margin-top: 10px;
+}
+
+.nombre-operadora,
+.cargo-operadora {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Footer */
+.footer {
+  margin-top: 50px;
+  padding-top: 15px;
+  border-top: 1px solid #000;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* Impresión */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .container {
+    padding: 2.5cm 3cm;
+  }
+}
+
+/* Responsive básico */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1.5cm 1.5cm;
+  }
+}

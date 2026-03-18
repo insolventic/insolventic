@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Insolvencia - Completa</title>
+    <link rel="stylesheet" href="/CSS/styles-solicitud-completa.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Destinatario -->
+        <div class="destinatario">
+            <p class="bold">Señores:</p>
+            <p class="bold">CENTRO DE CONCILIACIÓN Y ARBITRAJE CONSTRUCTORES DE PAZ</p>
+            <p class="bold">ATN. BEATRIZ MALAVERA LOPEZ</p>
+            <p class="bold">OPERADORA DE INSOLVENCIA</p>
+            <p class="bold">BOGOTÁ</p>
+        </div>
+
+        <p class="referencia bold">REFERENCIA: SOLICITUD DE ADMISIÓN AL PROCESO DE INSOLVENCIA DE LA PERSONA NATURAL NO COMERCIANTE Y DE LA PEQUEÑA COMERCIANTE.</p>
+
+        <!-- Introducción -->
+        <p class="justified">{{NOMBRE_DEUDOR}} mayor de edad, con domicilio en la ciudad de Bogotá D.C., identificado(a) con la cédula de ciudadanía número <strong>{{CEDULA_DEUDOR}}</strong>, con fundamento en la Ley 1564 de 2012 y la ley 2445 de 2025 especialmente en el Artículo 531 y siguientes y sus modificaciones, sobre Insolvencia de la persona natural no Comerciante y de la pequeña comerciante, mediante el presente escrito, solicito se inicie y tramite el correspondiente proceso de negociación de deudas con mis acreedores de quienes suministraré información completa más adelante en esta solicitud.</p>
+
+        <p class="justified">Actualmente me encuentro en cesación de pagos con más de 2 acreedores por más de noventa (90) días, el valor porcentual de sus obligaciones incumplidas representa no menos de treinta (30%) por ciento del pasivo total a mi cargo, cumpliendo de esta forma con los supuestos de insolvencia establecidos en el Artículo 538 del Código General del Proceso, razón por la cual, es procedente este trámite.</p>
+
+        <p class="justified juramento">De manera expresa manifestó, bajo la gravedad de juramento, que toda la información que suministro y adjunto a esta solicitud es verdadera. No he incurrido en omisiones, imprecisiones o errores voluntarios que impidan conocer mi verdadera situación económica y capacidad de pago.</p>
+
+        <p class="justified">De igual manera como deudor manifiesto que conozco la norma, sus efectos, consecuencias, los derechos que me otorga, las prohibiciones a las cuales estoy sujeto y toda la carga que me impone, de acuerdo con lo preceptuado en el Artículo 531 y siguientes de la Ley 1564 de 2012 y la ley 2445 de 2025 y lo contemplado en el Decreto Reglamentario número 2677 del 2012 sobre Insolvencia de la persona natural no Comerciante y de la pequeña comerciante.</p>
+
+        <!-- SECCIÓN 1 -->
+        <h2 class="section-title">1. APLICACIÓN ARTÍCULO 532</h2>
+        <table class="table-std">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>ÁMBITO DE APLICACIÓN</th>
+                    <th>SI/NO</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>PERSONA NATURAL NO COMERCIANTE</td>
+                    <td>{{APLICACION_NO_COMERCIANTE}}</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>PERSONA NATURAL PEQUEÑA COMERCIANTE</td>
+                    <td>{{APLICACION_PEQUENA_COMERCIANTE}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- SECCIÓN 2 -->
+        <h2 class="section-title">2. LAS SIGUIENTES SON LAS CAUSAS <u>PRECISAS</u> QUE CONLLEVARON LA SITUACIÓN DE INSOLVENCIA ECONÓMICA:</h2>
+        
+        <p class="justified">Conforme a lo establecido en el articulo 10 de la ley 2445 de 2024 que modifica el articulo 539, manifiesto bajo la gravedad de juramento que mi decisión de ingresar al tramite de insolvencia se debe a que he sufrido un quebranto económico, y necesito un reintegro a la vida económica, poder disfrutar del derecho a una vida digna, darle una vida digna a mi familia, deseo que mis acreedores me otorguen el derecho a un mínimo vital y renacer financieramente.</p>
+
+        <table class="table-std">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th>CAUSAS</th>
+                    <th>SI/NO</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>SOBREENDEUDAMIENTO POR FALTA DE RECURSOS</td><td>{{CAUSA_1}}</td></tr>
+                <tr><td>2</td><td>PERDIDA DE EMPLEO</td><td>{{CAUSA_2}}</td></tr>
+                <tr><td>3</td><td>DIVORCIO</td><td>{{CAUSA_3}}</td></tr>
+                <tr><td>4</td><td>ENFERMEDAD</td><td>{{CAUSA_4}}</td></tr>
+                <tr><td>5</td><td>ACCIDENTE</td><td>{{CAUSA_5}}</td></tr>
+                <tr><td>6</td><td>ESTAFA</td><td>{{CAUSA_6}}</td></tr>
+                <tr><td>7</td><td>DISMINUCIÓN DE INGRESOS</td><td>{{CAUSA_7}}</td></tr>
+                <tr><td>8</td><td>FALTA DE EDUCACIÓN FINANCIERA Y MALOS HÁBITOS FINANCIEROS</td><td>{{CAUSA_8}}</td></tr>
+                <tr><td>9</td><td>MUERTE DE CÓNYUGE</td><td>{{CAUSA_9}}</td></tr>
+                <tr><td>10</td><td>ACUDÍ A NUEVOS CRÉDITOS PARA CUBRIR OTROS</td><td>{{CAUSA_10}}</td></tr>
+                <tr><td>11</td><td>MALA INVERSIÓN</td><td>{{CAUSA_11}}</td></tr>
+                <tr><td>12</td><td>OTROS ¿CUÁL? {{CAUSA_12_DETALLE}}</td><td>{{CAUSA_12}}</td></tr>
+            </tbody>
+        </table>
+
+        <h3 class="subsection-title">RESUMEN DE ACREENCIAS</h3>
+        <div class="tabla-scroll">
+            <table class="table-acreencias">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>NOMBRE ACREEDORES</th>
+                        <th>VALOR ACREENCIA</th>
+                        <th>LIBRANZA ACTIVA (SI/NO)</th>
+                        <th>CLASE</th>
+                        <th>%</th>
+                        <th># DÍAS OBLIGACIÓN INCUMPLIDA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>{{ACREEDOR_1}}</td><td>{{VALOR_1}}</td><td>{{LIBRANZA_1}}</td><td>{{CLASE_1}}</td><td>{{PORCENTAJE_1}}</td><td>{{DIAS_1}}</td></tr>
+                    <tr><td>2</td><td>{{ACREEDOR_2}}</td><td>{{VALOR_2}}</td><td>{{LIBRANZA_2}}</td><td>{{CLASE_2}}</td><td>{{PORCENTAJE_2}}</td><td>{{DIAS_2}}</td></tr>
+                    <tr><td>3</td><td>{{ACREEDOR_3}}</td><td>{{VALOR_3}}</td><td>{{LIBRANZA_3}}</td><td>{{CLASE_3}}</td><td>{{PORCENTAJE_3}}</td><td>{{DIAS_3}}</td></tr>
+                    <tr><td>4</td><td>{{ACREEDOR_4}}</td><td>{{VALOR_4}}</td><td>{{LIBRANZA_4}}</td><td>{{CLASE_4}}</td><td>{{PORCENTAJE_4}}</td><td>{{DIAS_4}}</td></tr>
+                    <tr><td>5</td><td>{{ACREEDOR_5}}</td><td>{{VALOR_5}}</td><td>{{LIBRANZA_5}}</td><td>{{CLASE_5}}</td><td>{{PORCENTAJE_5}}</td><td>{{DIAS_5}}</td></tr>
+                    <tr><td>6</td><td>{{ACREEDOR_6}}</td><td>{{VALOR_6}}</td><td>{{LIBRANZA_6}}</td><td>{{CLASE_6}}</td><td>{{PORCENTAJE_6}}</td><td>{{DIAS_6}}</td></tr>
+                    <tr><td>7</td><td>{{ACREEDOR_7}}</td><td>{{VALOR_7}}</td><td>{{LIBRANZA_7}}</td><td>{{CLASE_7}}</td><td>{{PORCENTAJE_7}}</td><td>{{DIAS_7}}</td></tr>
+                    <tr><td>8</td><td>{{ACREEDOR_8}}</td><td>{{VALOR_8}}</td><td>{{LIBRANZA_8}}</td><td>{{CLASE_8}}</td><td>{{PORCENTAJE_8}}</td><td>{{DIAS_8}}</td></tr>
+                    <tr><td>9</td><td>{{ACREEDOR_9}}</td><td>{{VALOR_9}}</td><td>{{LIBRANZA_9}}</td><td>{{CLASE_9}}</td><td>{{PORCENTAJE_9}}</td><td>{{DIAS_9}}</td></tr>
+                    <tr><td>10</td><td>{{ACREEDOR_10}}</td><td>{{VALOR_10}}</td><td>{{LIBRANZA_10}}</td><td>{{CLASE_10}}</td><td>{{PORCENTAJE_10}}</td><td>{{DIAS_10}}</td></tr>
+                    <tr class="total-row"><td colspan="2"><strong>TOTAL ACREENCIAS</strong></td><td>{{TOTAL_ACREENCIAS}}</td><td></td><td></td><td><strong>100,00%</strong></td><td></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SECCIÓN 3 -->
+        <h2 class="section-title">3. LOS ACREEDORES</h2>
+        <p class="justified">La información que encontraran en los siguientes cuadros está diligenciada con corte al último día calendario del mes inmediatamente anterior al que estoy presentando esta solicitud. Informo que como alguna información puedo no tenerla exacta, desde ya manifiesto bajo la gravedad de juramento que no la conozco de manera puntual, por lo que me abstengo de suministrarla y procederé a conciliarla con cada uno de los acreedores en la audiencia de calificación de créditos:</p>
+
+        <div class="nota-dian">
+            <p>Por medio de la presente, solicito que se realice una notificación formal a la Dirección de Impuestos y Aduanas Nacionales (DIAN), debido a que no tengo certeza sobre la existencia de posibles deudas o pendientes a mi nombre...</p>
+        </div>
+
+        <!-- Acreedor 1 -->
+        <h3 class="acreedor-title">Acreedor No. 1</h3>
+        <table class="table-acreedor">
+            <tr><td class="label-td">Nombre</td><td>{{AC1_NOMBRE}}</td></tr>
+            <tr><td class="label-td">Domicilio</td><td>{{AC1_DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Dirección</td><td>{{AC1_DIRECCION}}</td></tr>
+            <tr><td class="label-td">E-mail</td><td>{{AC1_EMAIL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Capital</td><td>{{AC1_CAPITAL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Intereses</td><td>{{AC1_INTERESES}}</td></tr>
+            <tr><td class="label-td">Postergado Si o No</td><td>{{AC1_POSTERGADO}}</td></tr>
+            <tr><td class="label-td">Tasa Interés</td><td>{{AC1_TASA}}</td></tr>
+            <tr><td class="label-td">Documento en que consta</td><td>{{AC1_DOCUMENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Otorgamiento crédito</td><td>{{AC1_FECHA_OTORGAMIENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Vencimiento crédito</td><td>{{AC1_FECHA_VENCIMIENTO}}</td></tr>
+            <tr><td class="label-td">Clasificación del Crédito</td><td>{{AC1_CLASIFICACION}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Nombre</td><td>{{AC1_CODEUDOR_NOMBRE}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Domicilio</td><td>{{AC1_CODEUDOR_DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Dirección</td><td>{{AC1_CODEUDOR_DIRECCION}}</td></tr>
+        </table>
+
+        <!-- Acreedor 2 -->
+        <h3 class="acreedor-title">Acreedor No. 2</h3>
+        <table class="table-acreedor">
+            <tr><td class="label-td">Nombre</td><td>{{AC2_NOMBRE}}</td></tr>
+            <tr><td class="label-td">Domicilio</td><td>{{AC2_DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Dirección</td><td>{{AC2_DIRECCION}}</td></tr>
+            <tr><td class="label-td">E-mail</td><td>{{AC2_EMAIL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Capital</td><td>{{AC2_CAPITAL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Intereses</td><td>{{AC2_INTERESES}}</td></tr>
+            <tr><td class="label-td">Postergado Si o No</td><td>{{AC2_POSTERGADO}}</td></tr>
+            <tr><td class="label-td">Tasa Interés</td><td>{{AC2_TASA}}</td></tr>
+            <tr><td class="label-td">Documento en que consta</td><td>{{AC2_DOCUMENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Otorgamiento crédito</td><td>{{AC2_FECHA_OTORGAMIENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Vencimiento crédito</td><td>{{AC2_FECHA_VENCIMIENTO}}</td></tr>
+            <tr><td class="label-td">Clasificación del Crédito</td><td>{{AC2_CLASIFICACION}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Nombre</td><td>{{AC2_CODEUDOR_NOMBRE}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Domicilio</td><td>{{AC2_CODEUDOR_DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Dirección</td><td>{{AC2_CODEUDOR_DIRECCION}}</td></tr>
+        </table>
+
+        <!-- Acreedor 3 -->
+        <h3 class="acreedor-title">Acreedor No. 3</h3>
+        <table class="table-acreedor">
+            <tr><td class="label-td">Nombre</td><td>{{AC3_NOMBRE}}</td></tr>
+            <tr><td class="label-td">Domicilio</td><td>{{AC3_DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Dirección</td><td>{{AC3_DIRECCION}}</td></tr>
+            <tr><td class="label-td">E-mail</td><td>{{AC3_EMAIL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Capital</td><td>{{AC3_CAPITAL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Intereses</td><td>{{AC3_INTERESES}}</td></tr>
+            <tr><td class="label-td">Postergado Si o No</td><td>{{AC3_POSTERGADO}}</td></tr>
+            <tr><td class="label-td">Tasa Interés</td><td>{{AC3_TASA}}</td></tr>
+            <tr><td class="label-td">Documento en que consta</td><td>{{AC3_DOCUMENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Otorgamiento crédito</td><td>{{AC3_FECHA_OTORGAMIENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Vencimiento crédito</td><td>{{AC3_FECHA_VENCIMIENTO}}</td></tr>
+            <tr><td class="label-td">Clasificación del Crédito</td><td>{{AC3_CLASIFICACION}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Nombre</td><td>{{AC3_CODEUDOR_NOMBRE}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Domicilio</td><td>{{AC3_CODEUDOR_DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Dirección</td><td>{{AC3_CODEUDOR_DIRECCION}}</td></tr>
+        </table>
+
+        <!-- SECCIÓN 4 -->
+        <h2 class="section-title">4. RELACIÓN E INVENTARIO DE BIENES</h2>
+        
+        <h3 class="subsection-title">BIENES INMUEBLES:</h3>
+        <table class="table-bienes">
+            <tr><td class="label-td">Tipo de Inmueble</td><td>{{INMUEBLE_TIPO}}</td></tr>
+            <tr><td class="label-td">Dirección</td><td>{{INMUEBLE_DIRECCION}}</td></tr>
+            <tr><td class="label-td">Matrícula Inmobiliaria</td><td>{{INMUEBLE_MATRICULA}}</td></tr>
+            <tr><td class="label-td">Valor Comercial o estimado</td><td>{{INMUEBLE_VALOR}}</td></tr>
+            <tr><td class="label-td">Gravamen</td><td>{{INMUEBLE_GRAVAMEN}}</td></tr>
+            <tr><td class="label-td">Afectación</td><td>{{INMUEBLE_AFECTACION}}</td></tr>
+            <tr><td class="label-td">Medida cautelar</td><td>{{INMUEBLE_MEDIDA}}</td></tr>
+            <tr><td class="label-td">Afectación a vivienda familiar (LEY 258 DE 1996)</td><td>{{INMUEBLE_VIVIENDA_FAMILIAR}}</td></tr>
+            <tr><td class="label-td">Patrimonio de familia inembargable (LEY 70 DE 1931)</td><td>{{INMUEBLE_PATRIMONIO_FAMILIA}}</td></tr>
+            <tr><td class="label-td">Documento idóneo de prueba (OBLIGATORIO)</td><td>{{INMUEBLE_DOCUMENTO}}</td></tr>
+        </table>
+
+        <h3 class="subsection-title">BIENES MUEBLES:</h3>
+        <table class="table-std">
+            <thead>
+                <tr>
+                    <th>ARTÍCULO</th>
+                    <th>DESCRIPCIÓN</th>
+                    <th>VALOR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Equipo Eléctrico y Electrónico</td><td>{{MUEBLE_ELECTRONICO_DESC}}</td><td>{{MUEBLE_ELECTRONICO_VALOR}}</td></tr>
+                <tr><td>Muebles</td><td>{{MUEBLE_ENSERES_DESC}}</td><td>{{MUEBLE_ENSERES_VALOR}}</td></tr>
+                <tr><td>Vehículos</td><td>{{MUEBLE_VEHICULO_DESC}}</td><td>{{MUEBLE_VEHICULO_VALOR}}</td></tr>
+                <tr><td>Joyas</td><td>{{MUEBLE_JOYAS_DESC}}</td><td>{{MUEBLE_JOYAS_VALOR}}</td></tr>
+                <tr><td>Dinero en efectivo</td><td>{{MUEBLE_EFECTIVO_DESC}}</td><td>{{MUEBLE_EFECTIVO_VALOR}}</td></tr>
+                <tr><td>Acciones</td><td>{{MUEBLE_ACCIONES_DESC}}</td><td>{{MUEBLE_ACCIONES_VALOR}}</td></tr>
+                <tr><td>Cuentas por cobrar</td><td>{{MUEBLE_CUENTAS_DESC}}</td><td>{{MUEBLE_CUENTAS_VALOR}}</td></tr>
+                <tr class="total-row"><td colspan="2"><strong>Total bienes muebles:</strong></td><td><strong>{{TOTAL_MUEBLES}}</strong></td></tr>
+            </tbody>
+        </table>
+
+        <table class="table-std">
+            <tr><td class="label-td">Bienes Inmuebles:</td><td>{{TOTAL_INMUEBLES}}</td></tr>
+            <tr><td class="label-td">Bienes Muebles:</td><td>{{TOTAL_MUEBLES}}</td></tr>
+            <tr class="total-row"><td class="label-td"><strong>VALOR TOTAL INVENTARIO BIENES:</strong></td><td><strong>{{TOTAL_BIENES}}</strong></td></tr>
+        </table>
+
+        <!-- SECCIÓN 5 -->
+        <h2 class="section-title">5. PROCESOS JUDICIALES</h2>
+        <table class="table-std">
+            <tr><td class="label-td">TIPO DE PROCESO</td><td>{{PROCESO_1_TIPO}}</td></tr>
+            <tr><td class="label-td">DEMANDANTE</td><td>{{PROCESO_1_DEMANDANTE}}</td></tr>
+            <tr><td class="label-td">JUZGADO</td><td>{{PROCESO_1_JUZGADO}}</td></tr>
+            <tr><td class="label-td">EXPEDIENTE</td><td>{{PROCESO_1_EXPEDIENTE}}</td></tr>
+            <tr><td class="label-td">MEDIDA CAUTELAR</td><td>{{PROCESO_1_MEDIDA}}</td></tr>
+        </table>
+
+        <table class="table-std">
+            <tr><td class="label-td">TIPO DE PROCESO</td><td>{{PROCESO_2_TIPO}}</td></tr>
+            <tr><td class="label-td">DEMANDANTE</td><td>{{PROCESO_2_DEMANDANTE}}</td></tr>
+            <tr><td class="label-td">JUZGADO</td><td>{{PROCESO_2_JUZGADO}}</td></tr>
+            <tr><td class="label-td">EXPEDIENTE</td><td>{{PROCESO_2_EXPEDIENTE}}</td></tr>
+            <tr><td class="label-td">MEDIDA CAUTELAR</td><td>{{PROCESO_2_MEDIDA}}</td></tr>
+        </table>
+
+        <!-- SECCIÓN 6 -->
+        <h2 class="section-title">6. INFORMACIÓN SOBRE LIBRANZAS Y PAGADOR - DE PRODUCTOS FINANCIEROS Y ACREEDOR</h2>
+        <table class="table-std">
+            <tr><td class="label-td">NOMBRE PAGADOR</td><td>{{LIBRANZA_PAGADOR}}</td></tr>
+            <tr><td class="label-td">DIRECCIÓN</td><td>{{LIBRANZA_DIRECCION}}</td></tr>
+            <tr><td class="label-td">CORREO ELECTRÓNICO</td><td>{{LIBRANZA_EMAIL}}</td></tr>
+            <tr><td class="label-td">TELÉFONO</td><td>{{LIBRANZA_TELEFONO}}</td></tr>
+            <tr><td class="label-td">SUMA DESCONTADA</td><td>{{LIBRANZA_SUMA}}</td></tr>
+            <tr><td class="label-td">PRODUCTO Y ACREEDOR</td><td>{{LIBRANZA_PRODUCTO}}</td></tr>
+        </table>
+
+        <!-- SECCIÓN 7 -->
+        <h2 class="section-title">7. INFORMACIÓN SOBRE SUSPENSIÓN DE SERVICIOS PÚBLICOS DOMICILIARIOS</h2>
+        <table class="table-std">
+            <tr><td class="label-td">NOMBRE ACREEDOR</td><td>{{SERVICIOS_ACREEDOR}}</td></tr>
+            <tr><td class="label-td">DIRECCIÓN</td><td>{{SERVICIOS_DIRECCION}}</td></tr>
+            <tr><td class="label-td">CORREO ELECTRÓNICO</td><td>{{SERVICIOS_EMAIL}}</td></tr>
+            <tr><td class="label-td">TELÉFONO</td><td>{{SERVICIOS_TELEFONO}}</td></tr>
+            <tr><td class="label-td">PRODUCTO SUSPENDIDO Y FECHA</td><td>{{SERVICIOS_PRODUCTO}}</td></tr>
+            <tr><td class="label-td">VALOR ADEUDADO</td><td>{{SERVICIOS_VALOR}}</td></tr>
+        </table>
+
+        <!-- SECCIÓN 8 -->
+        <h2 class="section-title">8. INGRESOS</h2>
+        <table class="table-std">
+            <thead>
+                <tr>
+                    <th>DETALLE</th>
+                    <th>VALOR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Declaro y manifiesto bajo la gravedad de juramento que mi ingreso es el siguiente:</td><td>{{INGRESO_PRINCIPAL}}</td></tr>
+                <tr><td>Otros Ingresos (cual): {{OTROS_INGRESOS_DETALLE}}</td><td>{{OTROS_INGRESOS_VALOR}}</td></tr>
+                <tr class="total-row"><td><strong>TOTAL</strong></td><td><strong>{{TOTAL_INGRESOS}}</strong></td></tr>
+                <tr><td>Certificación de empleador (si es trabajador) <strong>obligatorio</strong></td><td><strong>{{CERTIFICACION_EMPLEADOR}}</strong></td></tr>
+            </tbody>
+        </table>
+
+        <!-- SECCIÓN 9 -->
+        <h2 class="section-title">9. VALOR GASTOS GENERALES MENSUALES</h2>
+        <p class="valor-grande">$ {{GASTOS_MENSUALES}}</p>
+
+        <!-- SECCIÓN 10 -->
+        <h2 class="section-title">10. OBLIGACIONES ALIMENTARIAS</h2>
+        <p class="justified">Poseo la siguiente obligación alimentaria a mi cargo:</p>
+        <table class="table-std">
+            <thead>
+                <tr>
+                    <th>NOMBRE</th>
+                    <th>EDAD</th>
+                    <th>PARENTESCO</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>{{OBL_ALIM_1_NOMBRE}}</td><td>{{OBL_ALIM_1_EDAD}}</td><td>{{OBL_ALIM_1_PARENTESCO}}</td></tr>
+                <tr><td>{{OBL_ALIM_2_NOMBRE}}</td><td>{{OBL_ALIM_2_EDAD}}</td><td>{{OBL_ALIM_2_PARENTESCO}}</td></tr>
+            </tbody>
+        </table>
+
+        <!-- SECCIÓN 11 -->
+        <h2 class="section-title">11. DE LOS RECURSOS DISPONIBLES</h2>
+        <p class="justified">Los siguientes
+
+
+            <!-- SECCIÓN 11 -->
+        <h2 class="section-title">11. DE LOS RECURSOS DISPONIBLES</h2>
+        <p class="justified">Los siguientes son los recursos mensuales que corresponden al valor mensual que tengo dispuesto para el pago de mis obligaciones:</p>
+        
+        <table class="table-std">
+            <thead>
+                <tr>
+                    <th>INGRESOS</th>
+                    <th>GASTO MENSUAL</th>
+                    <th>DISPONIBLE</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{RECURSOS_INGRESOS}}</td>
+                    <td>{{RECURSOS_GASTOS}}</td>
+                    <td>{{RECURSOS_DISPONIBLE}}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- SECCIÓN 12 -->
+        <h2 class="section-title">12. PROPUESTA DE PAGO</h2>
+        <p class="justified">De acuerdo con los recursos y patrimonio disponibles, la propuesta de pago clara, expresa y objetiva, es la siguiente:</p>
+
+        <table class="table-propuesta">
+            <tr>
+                <td class="label-td" colspan="2"><strong>OPCIÓN</strong></td>
+                <td colspan="2"><strong>TOTAL DE OBLIGACIONES A CAPITAL UNICAMENTE</strong></td>
+                <td>{{PROPUESTA_TOTAL_CAPITAL}}</td>
+            </tr>
+            <tr>
+                <td class="label-td" colspan="2"></td>
+                <td colspan="2"><strong>(+) INGRESOS</strong></td>
+                <td>{{PROPUESTA_INGRESOS}}</td>
+            </tr>
+            <tr>
+                <td class="label-td" colspan="2"></td>
+                <td colspan="2"><strong>(-) GASTOS</strong></td>
+                <td>{{PROPUESTA_GASTOS}}</td>
+            </tr>
+            <tr>
+                <td class="label-td" colspan="2"></td>
+                <td colspan="2"><strong>DISPONIBLE ($)</strong></td>
+                <td>{{PROPUESTA_DISPONIBLE}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>1</strong></td>
+                <td colspan="2"><strong>PERIODO DE GRACIA (SOLO SI LO VA A PEDIR)</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_GRACIA_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_GRACIA_NO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="6">Meses que necesita de periodo de gracia: {{PROP_GRACIA_MESES}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>2</strong></td>
+                <td colspan="2"><strong>DACIÓN EN PAGO (SOLO SI VA A ENTREGAR EL INMUEBLE DE SU PROPIEDAD)</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_DACION_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_DACION_NO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="6">DESCRIPCIÓN DE BIEN: {{PROP_DACION_DESC}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>3</strong></td>
+                <td colspan="2"><strong>AUTORIZACIÓN DE VENTA DE BIEN (SOLO SI VA A VENDER SU INMUEBLE PARA PAGAR)</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_VENTA_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_VENTA_NO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="6">DESCRIPCIÓN DE BIEN: {{PROP_VENTA_DESC}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>4</strong></td>
+                <td colspan="2"><strong>PAGO CON FLUJO DE CAJA (EL FLUJO DE CAJA ES SU DINERO DISPONIBLE MENSUALMENTE)</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_FLUJO_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_FLUJO_NO}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>5</strong></td>
+                <td colspan="2"><strong>PLAZO (EN MESES) (DIVIDA TOTAL DE CAPITAL CON DISPONIBLE)</strong></td>
+                <td colspan="4">{{PROP_PLAZO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">VALOR CUOTA MENSUAL</td>
+                <td colspan="4">{{PROP_CUOTA_MENSUAL}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">VALOR CUOTA VARIABLE</td>
+                <td colspan="4">{{PROP_CUOTA_VARIABLE}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>6</strong></td>
+                <td colspan="2"><strong>CUOTA EXTRAORDINARIA (EJEMPLO: CESANTIAS, PRIMAS, HORAS EXTRA, BONIFICACIONES)</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_EXTRAORDINARIA_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_EXTRAORDINARIA_NO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">FECHA</td>
+                <td colspan="2">{{PROP_EXTRA_FECHA}}</td>
+                <td>MES</td>
+                <td>{{PROP_EXTRA_MES}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>7</strong></td>
+                <td colspan="2"><strong>TASA (PORCENTAJE DE INTERES MENSUAL O ANUAL QUE VA A OFRECER A SUS ACREEDORES)</strong></td>
+                <td>MENSUAL</td>
+                <td>{{PROP_TASA_MENSUAL}}</td>
+                <td>ANUAL</td>
+                <td>{{PROP_TASA_ANUAL}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>8</strong></td>
+                <td colspan="2"><strong>QUITAS DE CAPITAL</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_QUITAS_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_QUITAS_NO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>PORCENTAJE QUITAS</td>
+                <td>{{PROP_QUITAS_PORCENTAJE}}%</td>
+                <td colspan="2">VALOR A PAGAR</td>
+                <td colspan="2">{{PROP_QUITAS_VALOR}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>9</strong></td>
+                <td colspan="6"><strong>OFRECIMIENTO DE SEGUROS (INFORME QUE TIPO DE SEGURO ESTA DISPUESTO A PAGAR)</strong></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="3">INCENDIO - TERREMOTO</td>
+                <td colspan="3">{{PROP_SEGURO_INCENDIO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="3">VIDA</td>
+                <td colspan="3">{{PROP_SEGURO_VIDA}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>10</strong></td>
+                <td colspan="2"><strong>CONDONACIÓN DE INTERESES</strong></td>
+                <td>CAUSADO (SI/NO)</td>
+                <td>{{PROP_COND_CAUSADO}}</td>
+                <td>FUTURO (SI/NO)</td>
+                <td>{{PROP_COND_FUTURO}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>11</strong></td>
+                <td colspan="6"><strong>ORDEN DE PRELACIÓN EN LA QUE PAGARA SUS OBLIGACIONES</strong></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">PRIMERA</td>
+                <td colspan="4">{{PROP_PRELACION_1}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">SEGUNDA</td>
+                <td colspan="4">{{PROP_PRELACION_2}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">TERCERA</td>
+                <td colspan="4">{{PROP_PRELACION_3}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">CUARTA</td>
+                <td colspan="4">{{PROP_PRELACION_4}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">QUINTA</td>
+                <td colspan="4">{{PROP_PRELACION_5}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="2">ESTABLECERA PRIVILEGIOS ENTRE CLASES - DE ACUERDO AL NUMERAL 8 ARTICULO 553 CGP</td>
+                <td>SI</td>
+                <td>{{PROP_PRIVILEGIOS_SI}}</td>
+                <td>NO</td>
+                <td>{{PROP_PRIVILEGIOS_NO}}</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td colspan="6">DESCRIBALO: {{PROP_PRIVILEGIOS_DESC}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>12</strong></td>
+                <td colspan="2"><strong>AUTORIZACIÓN PAGO POR TERCEROS</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_PAGO_TERCEROS_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_PAGO_TERCEROS_NO}}</td>
+            </tr>
+            <tr class="propuesta-row">
+                <td><strong>13</strong></td>
+                <td colspan="2"><strong>SUSTITUCIÓN O DISMINUCIÓN DE GARANTIAS</strong></td>
+                <td><strong>SI</strong></td>
+                <td>{{PROP_GARANTIAS_SI}}</td>
+                <td><strong>NO</strong></td>
+                <td>{{PROP_GARANTIAS_NO}}</td>
+            </tr>
+        </table>
+
+        <!-- SECCIÓN 13 -->
+        <h2 class="section-title">13. SOCIEDAD CONYUGAL Y PATRIMONIAL</h2>
+        <p class="justified">Manifiesto que tengo Sociedad Conyugal Vigente con <strong>{{CONYUGE_NOMBRE}}</strong> identificado con CC. <strong>{{CONYUGE_CC}}</strong> y a quien se puede notificar en la dirección <strong>{{CONYUGE_DIRECCION}}</strong>, teléfono <strong>{{CONYUGE_TELEFONO}}</strong> y correo electrónico <strong>{{CONYUGE_EMAIL}}</strong>.</p>
+
+        <!-- SECCIÓN 14 -->
+        <h2 class="section-title">14. SOLICITUD SOBRE LA TARIFA</h2>
+        <p class="justified">Atendiendo las tarifas contenidas en el Decreto 2677 de 2012, por las condiciones de insolvencia económica en que me encuentro, con el debido respeto con fundamento en Artículo 536 de la ley 1564 de 2012 y su Decreto reglamentario, le solicito fijar una tarifa que me permita tener acceso a este mecanismo de negociación de mis obligaciones.</p>
+
+        <!-- SECCIÓN 15 -->
+        <h2 class="section-title">15. FUNDAMENTOS DE DERECHO</h2>
+        <p class="justified">Fundamento esta solicitud, conforme al Título IV de la Ley 1564 de 2012, y la ley 2445 de 2025 especialmente en el Artículo 531 y siguientes y sus modificaciones, sobre Insolvencia de la persona natural no Comerciante y de la pequeña comerciante.</p>
+
+        <!-- SECCIÓN 16 -->
+        <h2 class="section-title">16. ANEXOS</h2>
+        <p class="justified">Para efectos del cumplimiento de los requisitos exigidos se anexan los siguientes documentos:</p>
+        <ul class="anexos-list">
+            <li>Copia del documento de identificación (OBLIGATORIO)</li>
+            <li>Certificado de ingresos (OBLIGATORIO)</li>
+            <li>Copia de los Extractos de las Obligaciones</li>
+            <li>Copia de Redam (OBLIGATORIO)</li>
+        </ul>
+
+        <!-- SECCIÓN 17 -->
+        <h2 class="section-title">17. NOTIFICACIONES</h2>
+        <p class="justified">Como deudor recibiré notificaciones en la siguiente dirección: <strong>{{NOTIF_DIRECCION}}</strong></p>
+        <p class="justified">Teléfono: <strong>{{NOTIF_TELEFONO}}</strong></p>
+        <p class="justified">Correo electrónico: <strong>{{NOTIF_EMAIL}}</strong></p>
+        <p class="justified">Los acreedores recibirán las notificaciones en las direcciones descritas en el Punto Número 3 de esta solicitud.</p>
+
+        <!-- FIRMA -->
+        <div class="firma-section">
+            <p>Atentamente,</p>
+            <div class="firma-linea">
+                <p>_________________________________</p>
+                <p><strong>{{NOMBRE_DEUDOR}}</strong></p>
+                <p><strong>CC. {{CEDULA_DEUDOR}}</strong></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

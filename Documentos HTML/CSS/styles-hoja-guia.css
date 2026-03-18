@@ -1,0 +1,602 @@
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #000;
+  background-color: #f5f5f5;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 21cm;
+  margin: 20px auto;
+  padding: 2cm 2.5cm;
+  background-color: #fff;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Utilidades de texto */
+.text-center {
+  text-align: center;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+/* Logo principal */
+.logo-section {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.logo {
+  max-width: 400px;
+  height: auto;
+}
+
+/* Encabezado principal */
+.encabezado-principal {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-bottom: 25px;
+  align-items: center;
+}
+
+.titulo-proceso {
+  background-color: #007bff;
+  padding: 15px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.titulo-proceso h1 {
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.tramite-numero {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border: 2px solid #007bff;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.tramite-numero label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #007bff;
+}
+
+/* Información del deudor */
+.info-deudor {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.campo-info {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+}
+
+.campo-info label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #495057;
+}
+
+/* Campos de entrada */
+.input-field {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Tabla de seguimiento */
+.tabla-seguimiento {
+  margin-bottom: 30px;
+}
+
+.tabla-principal {
+  width: 100%;
+  border-collapse: collapse;
+  border: 2px solid #000;
+}
+
+.tabla-principal thead th {
+  background-color: #343a40;
+  color: #fff;
+  padding: 12px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+  border: 1px solid #000;
+}
+
+.tabla-principal tbody td {
+  border: 1px solid #000;
+  padding: 5px;
+}
+
+.col-fecha {
+  width: 20%;
+}
+
+.col-observacion {
+  width: 80%;
+}
+
+.input-cell {
+  padding: 0;
+}
+
+.input-fecha {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.input-observacion {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  resize: vertical;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.input-fecha:focus,
+.input-observacion:focus {
+  outline: 2px solid #007bff;
+  outline-offset: -2px;
+}
+
+/* Secciones con encabezado */
+.seccion-header {
+  padding: 12px 20px;
+  margin: 25px 0 15px 0;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.seccion-header h2 {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  margin: 0;
+}
+
+.seccion-header.admision {
+  background-color: #28a745;
+}
+
+.seccion-header.final {
+  background-color: #dc3545;
+}
+
+.seccion-header.consolidados {
+  background-color: #ffc107;
+  color: #000;
+}
+
+.seccion-header.consolidados h2 {
+  color: #000;
+}
+
+.seccion-header.observacion {
+  background-color: #6c757d;
+}
+
+/* Grids de checkboxes */
+.grid-consolidados,
+.grid-seguimiento,
+.grid-cierre,
+.grid-centrales,
+.grid-consolidados-finales {
+  display: grid;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.grid-consolidados {
+  grid-template-columns: 1fr 1fr;
+}
+
+.grid-seguimiento {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-cierre {
+  grid-template-columns: 2fr 1fr;
+}
+
+.grid-centrales {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-consolidados-finales {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+/* Items con checkbox */
+.item-consolidado,
+.item-seguimiento,
+.item-cierre,
+.item-central,
+.item-consolidado-final {
+  background-color: #f8f9fa;
+  padding: 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+}
+
+.label-check {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.label-check input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+.label-check span {
+  font-size: 12px;
+}
+
+/* Grid de resultado */
+.grid-resultado {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr 1fr;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 20px;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+}
+
+.label-resultado {
+  font-size: 13px;
+  color: #495057;
+}
+
+.item-resultado {
+  display: flex;
+  align-items: center;
+}
+
+.label-radio {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.label-radio input[type='radio'] {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.campo-resultado {
+  display: flex;
+  flex-direction: column;
+}
+
+.campo-resultado label {
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #495057;
+}
+
+/* Otro resultado */
+.otro-resultado {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+  background-color: #fff3cd;
+  padding: 15px;
+  border: 1px solid #ffc107;
+  border-radius: 5px;
+}
+
+.otro-resultado label {
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.input-otro-resultado {
+  flex: 1;
+}
+
+/* Campo radicado */
+.campo-radicado {
+  grid-column: span 2;
+  background-color: #e7f3ff;
+  padding: 12px;
+  border: 1px solid #007bff;
+  border-radius: 5px;
+}
+
+.campo-radicado label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #007bff;
+}
+
+/* Observación final */
+.observacion-final {
+  margin-bottom: 30px;
+}
+
+.textarea-observacion {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #6c757d;
+  border-radius: 5px;
+  resize: vertical;
+  font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100px;
+}
+
+.textarea-observacion:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Footer */
+.footer {
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 2px solid #dee2e6;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.footer p {
+  margin-bottom: 8px;
+}
+
+/* Efectos hover */
+.item-consolidado:hover,
+.item-seguimiento:hover,
+.item-cierre:hover,
+.item-central:hover,
+.item-consolidado-final:hover {
+  background-color: #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.label-check:hover span,
+.label-radio:hover span {
+  color: #007bff;
+  transition: color 0.2s ease;
+}
+
+/* Impresión */
+@media print {
+  body {
+    background-color: #fff;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  @page {
+    margin: 1.5cm 2cm;
+    size: letter;
+  }
+
+  .footer {
+    border-top: 1px solid #dee2e6;
+  }
+
+  /* Mantener colores en impresión */
+  .titulo-proceso,
+  .seccion-header.admision,
+  .seccion-header.final,
+  .seccion-header.consolidados,
+  .seccion-header.observacion {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .tabla-principal thead th {
+    background-color: #343a40;
+    color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Prevenir cortes de página */
+  .encabezado-principal,
+  .info-deudor,
+  .seccion-header {
+    page-break-inside: avoid;
+    page-break-after: avoid;
+  }
+
+  .grid-consolidados,
+  .grid-seguimiento,
+  .grid-cierre,
+  .grid-centrales,
+  .grid-resultado {
+    page-break-inside: avoid;
+  }
+
+  .tabla-seguimiento {
+    page-break-inside: auto;
+  }
+}
+
+/* Responsive para tablets */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1.5cm 1cm;
+    margin: 10px;
+  }
+
+  .logo {
+    max-width: 300px;
+  }
+
+  .encabezado-principal {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .info-deudor {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .grid-consolidados,
+  .grid-seguimiento,
+  .grid-cierre,
+  .grid-centrales {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-resultado {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .grid-consolidados-finales {
+    grid-template-columns: 1fr;
+  }
+
+  .campo-radicado {
+    grid-column: span 1;
+  }
+}
+
+/* Responsive para móviles */
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 11px;
+  }
+
+  .container {
+    padding: 1cm 0.5cm;
+    margin: 5px;
+  }
+
+  .logo {
+    max-width: 250px;
+  }
+
+  .titulo-proceso h1 {
+    font-size: 14px;
+  }
+
+  .seccion-header h2 {
+    font-size: 13px;
+  }
+
+  .tabla-principal thead th {
+    font-size: 11px;
+    padding: 8px;
+  }
+
+  .input-field,
+  .input-fecha,
+  .input-observacion,
+  .textarea-observacion {
+    font-size: 11px;
+  }
+
+  .label-check span,
+  .label-radio span {
+    font-size: 11px;
+  }
+
+  .footer {
+    font-size: 10px;
+  }
+}
+
+/* Animación de entrada */
+.container {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mejoras visuales */
+.seccion-header {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+input[type='checkbox']:checked + span,
+input[type='radio']:checked + span {
+  color: #007bff;
+  font-weight: bold;
+}
+
+/* Estilos para inputs con foco */
+.input-field:hover,
+.input-fecha:hover,
+.input-observacion:hover,
+.textarea-observacion:hover {
+  border-color: #80bdff;
+}
+
+/* Espaciado adicional */
+.grid-consolidados + .grid-seguimiento {
+  margin-top: 15px;
+}

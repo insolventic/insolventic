@@ -1,0 +1,92 @@
+/* CONFIGURACIÓN GENERAL */
+body {
+  font-family: 'Times New Roman', serif;
+  font-size: 12pt;
+  line-height: 1.6;
+  margin: 3cm;
+  color: #000;
+}
+
+/* ENCABEZADO */
+.encabezado {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.logo-principal {
+  width: 260px;
+  height: auto;
+  margin-bottom: 15px;
+}
+
+.titulo {
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* CUERPO */
+.contenido p {
+  margin: 10px 0;
+}
+
+.negrita {
+  font-weight: bold;
+}
+
+.justificado {
+  text-align: justify;
+}
+
+/* BLOQUE FIRMA + LOGO */
+.bloque-firma {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  margin-top: 30px;
+}
+
+.firma {
+  width: 170px;
+  height: auto;
+}
+
+.logo-secundario {
+  width: 110px;
+  height: auto;
+}
+
+.firma-nombre {
+  margin-top: 15px;
+}
+
+/* PIE DE PÁGINA */
+.pie {
+  margin-top: 60px;
+  font-size: 10pt;
+  text-align: center;
+}
+
+.vigilado {
+  margin-top: 15px;
+  font-weight: bold;
+  text-decoration: underline;
+}
+
+/* FORMATO IMPRESIÓN */
+@media print {
+  body {
+    margin: 2.5cm;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+}
+td {
+  border: 1px solid #000;
+  padding: 6px;
+  vertical-align: middle;
+}

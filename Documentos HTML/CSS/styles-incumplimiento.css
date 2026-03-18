@@ -1,0 +1,250 @@
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #000;
+  background-color: #fff;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 21cm;
+  margin: 0 auto;
+  padding: 2cm 2.5cm;
+  background-color: #fff;
+}
+
+/* Utilidades de texto */
+.text-center {
+  text-align: center;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.justified {
+  text-align: justify;
+}
+
+/* Logo principal */
+.logo-section {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.logo {
+  max-width: 400px;
+  height: auto;
+}
+
+/* Título principal */
+.title-main {
+  font-size: 13px;
+  margin: 12px 0 16px 0;
+  line-height: 1.4;
+}
+
+/* Tabla de información del deudor */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.info-table td {
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.info-table .label-cell {
+  font-weight: bold;
+  width: 20%;
+  background-color: #f5f5f5;
+}
+
+/* Párrafos */
+p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+p.justified {
+  text-align: justify;
+  margin-bottom: 14px;
+}
+
+/* Títulos de sección */
+.section-title {
+  font-size: 13px;
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+/* Lista de disposiciones */
+.disposiciones-list {
+  margin-left: 24px;
+  margin-top: 12px;
+  margin-bottom: 20px;
+}
+
+.disposiciones-list li {
+  margin-bottom: 16px;
+  text-align: justify;
+  line-height: 1.7;
+  padding-left: 8px;
+}
+
+.disposiciones-list li strong {
+  font-weight: bold;
+}
+
+/* Enlaces */
+a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Sección de firmas */
+.firma-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  margin: 40px 0 20px 0;
+  padding: 20px 0;
+}
+
+.logo-firma {
+  max-width: 280px;
+  height: auto;
+}
+
+.firma-img {
+  max-width: 180px;
+  height: auto;
+}
+
+/* Nombre del operador */
+.operadora-nombre {
+  margin-top: 10px;
+  margin-bottom: 30px;
+  line-height: 1.5;
+}
+
+/* Footer */
+.footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #ccc;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.footer p {
+  margin-bottom: 8px;
+}
+
+/* Espaciado especial para fecha/ciudad */
+p.bold:not(.section-title):not(.title-main):not(.operadora-nombre) {
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+/* Impresión */
+@media print {
+  body {
+    background-color: #fff;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  @page {
+    margin: 2cm 2.5cm;
+    size: letter;
+  }
+
+  .footer {
+    border-top: none;
+  }
+
+  a {
+    color: #000;
+    text-decoration: none;
+  }
+}
+
+/* Responsive para tablets */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1.5cm 1cm;
+  }
+
+  .logo {
+    max-width: 300px;
+  }
+
+  .firma-section {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .logo-firma,
+  .firma-img {
+    max-width: 200px;
+  }
+}
+
+/* Responsive para móviles */
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 11px;
+  }
+
+  .container {
+    padding: 1cm 0.5cm;
+  }
+
+  .logo {
+    max-width: 250px;
+  }
+
+  .title-main {
+    font-size: 12px;
+  }
+
+  .disposiciones-list {
+    margin-left: 16px;
+  }
+
+  .info-table .label-cell {
+    width: 25%;
+    font-size: 11px;
+  }
+}
+
+/* Highlight para variables (opcional para modo edición) */
+body.edit-mode [class*='{{']::before,
+body.edit-mode [class*='{{']::after {
+  background-color: #fff3cd;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-weight: normal;
+}

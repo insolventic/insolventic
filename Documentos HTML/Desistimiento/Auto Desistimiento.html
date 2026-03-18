@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Desistimiento</title>
+    <link rel="stylesheet" href="/CSS/styles-desistimiento.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Resolución -->
+        <p class="text-center bold">RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003 MINJUSTICIA</p>
+
+        <!-- Título principal -->
+        <p class="text-center bold title-main">AUTO DESISTIMIENTO TRÁMITE {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}</p>
+
+        <!-- Información del deudor -->
+        <table class="info-table">
+            <tr>
+                <td class="label-cell">DEUDOR</td>
+                <td>{{NOMBRE_DEUDOR}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">CC.</td>
+                <td>{{CEDULA_DEUDOR}}</td>
+            </tr>
+        </table>
+
+        <!-- Fecha -->
+        <p class="fecha-texto">Bogotá, a los {{NUMERO_DIA}} ({{NUMERO_DIA_LETRAS}}) días del mes de {{NOMBRE_MES}} del año {{ANO_ACTUAL}}</p>
+
+        <!-- Cuerpo del documento -->
+        <p class="justified">Admitido la Negociación de Pasivos correspondiente al proceso de Insolvencia Económica de las Personas Naturales No Comerciantes y de las pequeñas comerciantes en referencia, se procede a notificar a las partes, sin embargo, el día {{DIA_DESISTIMIENTO}} de {{MES_DESISTIMIENTO}} del {{ANO_DESISTIMIENTO}} es recibida solicitud de desistimiento por parte de {{TIPO_SOLICITANTE}} del deudor.</p>
+
+        <!-- Resolutivo -->
+        <p class="section-title bold">RESUELVE</p>
+
+        <ol class="resuelve-list">
+            <li>
+                Aceptar el desistimiento del proceso de insolvencia de la persona natural no comerciante y de la pequeña comerciante del deudor en referencia.
+            </li>
+
+            <li>
+                Notificar a las partes de la presente decisión.
+            </li>
+
+            <li>
+                Realizar las anotaciones correspondientes en el Sicaac.
+            </li>
+        </ol>
+
+        <!-- Cúmplase -->
+        <p class="cumplase bold">Cúmplase,</p>
+
+        <!-- Firmas e imágenes -->
+        <div class="firma-section">
+            <img src="/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+            <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+        </div>
+
+        <p class="bold text-center operadora-nombre">BEATRIZ HELENA MALAVERA LÓPEZ<br>OPERADORA EN INSOLVENCIA</p>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+            Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+            Cel. 311 811 7520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co</p>
+            <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+        </div>
+    </div>
+</body>
+</html>

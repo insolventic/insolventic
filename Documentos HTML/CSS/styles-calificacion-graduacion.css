@@ -1,0 +1,402 @@
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #000;
+  background-color: #f5f5f5;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 29.7cm;
+  margin: 20px auto;
+  padding: 1.5cm 1cm;
+  background-color: #fff;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Logo */
+.logo-section {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.logo {
+  max-width: 350px;
+  height: auto;
+}
+
+/* Encabezado principal */
+.encabezado-principal {
+  text-align: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 15px;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+.encabezado-principal h1 {
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+
+.centro-nombre {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Título del documento */
+.titulo-documento {
+  text-align: center;
+  background-color: #343a40;
+  color: #fff;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 3px;
+  margin-bottom: 15px;
+}
+
+/* Info header */
+.info-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.info-deudor-box,
+.info-fecha-box {
+  border: 2px solid #667eea;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.label-deudor,
+.label-fecha {
+  font-weight: bold;
+  font-size: 11px;
+  text-align: center;
+  margin-bottom: 8px;
+  color: #667eea;
+}
+
+.deudor-datos {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
+.campo-deudor label {
+  display: block;
+  font-weight: bold;
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+
+.input-deudor,
+.input-fecha {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.input-deudor:focus,
+.input-fecha:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+/* Tabla wrapper */
+.tabla-wrapper {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+/* Tabla de calificación */
+.tabla-calificacion {
+  width: 100%;
+  border-collapse: collapse;
+  border: 2px solid #000;
+  font-size: 10px;
+}
+
+.tabla-calificacion thead th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 8px 4px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 9px;
+  border: 1px solid #667eea;
+  line-height: 1.3;
+}
+
+.tabla-calificacion tbody td,
+.tabla-calificacion tfoot td {
+  border: 1px solid #000;
+  padding: 4px;
+  vertical-align: middle;
+}
+
+/* Columnas */
+.col-acreedor {
+  width: 18%;
+}
+.col-numero {
+  width: 10%;
+}
+.col-prelacion {
+  width: 10%;
+}
+.col-capital {
+  width: 12%;
+}
+.col-intereses {
+  width: 10%;
+}
+.col-porcentaje {
+  width: 12%;
+}
+.col-apoderado {
+  width: 18%;
+}
+.col-firma {
+  width: 10%;
+}
+
+/* Inputs de tabla */
+.input-tabla,
+.textarea-tabla {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #dee2e6;
+  font-size: 10px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.input-tabla:focus,
+.textarea-tabla:focus {
+  outline: none;
+  border-color: #667eea;
+  background-color: #f0f4ff;
+}
+
+.input-numero {
+  text-align: right;
+}
+
+.textarea-tabla {
+  resize: vertical;
+  min-height: 30px;
+}
+
+/* Celdas especiales */
+.celda-porcentaje {
+  text-align: center;
+  font-weight: bold;
+  background-color: #e8eaf6;
+  color: #5e35b1;
+}
+
+.celda-firma {
+  background-color: #f9f9f9;
+}
+
+/* Fila de totales */
+.fila-totales {
+  background-color: #343a40;
+  color: #fff;
+  font-weight: bold;
+}
+
+.label-totales {
+  text-align: center;
+  font-size: 11px;
+}
+
+.total-capital,
+.total-intereses,
+.total-porcentaje {
+  text-align: center;
+  font-size: 11px;
+}
+
+/* Firma footer */
+.firma-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin: 30px 0 20px 0;
+  padding: 20px 0;
+  border-top: 2px solid #dee2e6;
+}
+
+.firma-deudor {
+  text-align: center;
+}
+
+.firma-linea {
+  width: 80%;
+  height: 60px;
+  border-bottom: 2px solid #000;
+  margin: 0 auto 10px;
+}
+
+.nombre-cedula-deudor {
+  font-weight: bold;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.firma-operadora {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-firma {
+  max-width: 200px;
+  height: auto;
+}
+
+.firma-img {
+  max-width: 140px;
+  height: auto;
+}
+
+.nombre-operadora {
+  font-weight: bold;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.6;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 5px;
+  margin-top: 20px;
+}
+
+/* Filas alternadas */
+.fila-acreedor:nth-child(odd) {
+  background-color: #f9f9f9;
+}
+
+.fila-acreedor:hover {
+  background-color: #e7f3ff;
+}
+
+/* Impresión */
+@media print {
+  body {
+    background-color: #fff;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  @page {
+    margin: 1cm;
+    size: A4 landscape;
+  }
+
+  .encabezado-principal,
+  .tabla-calificacion thead th,
+  .fila-totales,
+  .celda-porcentaje {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .tabla-calificacion {
+    page-break-inside: auto;
+  }
+
+  .tabla-calificacion thead {
+    display: table-header-group;
+  }
+
+  .tabla-calificacion tfoot {
+    display: table-footer-group;
+  }
+}
+
+/* Responsive */
+@media screen and (max-width: 1024px) {
+  .container {
+    padding: 1cm 0.5cm;
+  }
+
+  .info-header {
+    grid-template-columns: 1fr;
+  }
+
+  .tabla-wrapper {
+    overflow-x: scroll;
+  }
+
+  .tabla-calificacion {
+    min-width: 1000px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .logo {
+    max-width: 250px;
+  }
+
+  .encabezado-principal h1 {
+    font-size: 11px;
+  }
+
+  .firma-footer {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Animación */
+.container {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hover effects */
+.input-tabla:hover,
+.textarea-tabla:hover {
+  border-color: #667eea;
+}

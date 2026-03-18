@@ -1,0 +1,279 @@
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #000;
+  background-color: #fff;
+}
+
+/* Contenedor principal */
+.container {
+  max-width: 21cm;
+  margin: 0 auto;
+  padding: 2cm 2.5cm;
+  background-color: #fff;
+  min-height: 27cm;
+}
+
+/* Utilidades de texto */
+.text-center {
+  text-align: center;
+}
+
+.bold {
+  font-weight: bold;
+}
+
+.justified {
+  text-align: justify;
+}
+
+/* Logo principal */
+.logo-section {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.logo {
+  max-width: 400px;
+  height: auto;
+}
+
+/* Título principal */
+.title-main {
+  font-size: 13px;
+  margin: 12px 0 20px 0;
+  line-height: 1.4;
+}
+
+/* Tabla de información del deudor */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+}
+
+.info-table td {
+  border: 1px solid #000;
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.info-table .label-cell {
+  font-weight: bold;
+  width: 18%;
+  background-color: #f8f8f8;
+}
+
+/* Párrafos */
+p {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+/* Fecha */
+.fecha-texto {
+  margin-bottom: 20px;
+  margin-top: 20px;
+}
+
+/* Texto justificado */
+p.justified {
+  text-align: justify;
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+/* Títulos de sección */
+.section-title {
+  font-size: 13px;
+  margin-top: 24px;
+  margin-bottom: 14px;
+}
+
+/* Lista de resolución */
+.resuelve-list {
+  margin-left: 28px;
+  margin-top: 12px;
+  margin-bottom: 24px;
+}
+
+.resuelve-list li {
+  margin-bottom: 14px;
+  text-align: justify;
+  line-height: 1.7;
+  padding-left: 6px;
+}
+
+/* Cúmplase */
+.cumplase {
+  margin-top: 30px;
+  margin-bottom: 10px;
+}
+
+/* Sección de firmas */
+.firma-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 35px;
+  margin: 30px 0 20px 0;
+  padding: 15px 0;
+}
+
+.logo-firma {
+  max-width: 300px;
+  height: auto;
+}
+
+.firma-img {
+  max-width: 180px;
+  height: auto;
+}
+
+/* Nombre del operador */
+.operadora-nombre {
+  margin-top: 10px;
+  margin-bottom: 40px;
+  line-height: 1.5;
+  font-size: 12px;
+}
+
+/* Footer */
+.footer {
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 1px solid #d0d0d0;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.footer p {
+  margin-bottom: 10px;
+}
+
+.footer p:last-child {
+  margin-top: 12px;
+}
+
+/* Impresión */
+@media print {
+  body {
+    background-color: #fff;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    min-height: auto;
+  }
+
+  @page {
+    margin: 2cm 2.5cm;
+    size: letter;
+  }
+
+  .footer {
+    border-top: none;
+    page-break-inside: avoid;
+  }
+
+  .firma-section {
+    page-break-inside: avoid;
+  }
+}
+
+/* Responsive para tablets */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1.5cm 1cm;
+  }
+
+  .logo {
+    max-width: 320px;
+  }
+
+  .firma-section {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .logo-firma,
+  .firma-img {
+    max-width: 220px;
+  }
+
+  .info-table .label-cell {
+    width: 25%;
+  }
+}
+
+/* Responsive para móviles */
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 11px;
+  }
+
+  .container {
+    padding: 1cm 0.8cm;
+    min-height: auto;
+  }
+
+  .logo {
+    max-width: 260px;
+  }
+
+  .title-main {
+    font-size: 12px;
+  }
+
+  .resuelve-list {
+    margin-left: 20px;
+  }
+
+  .info-table .label-cell {
+    width: 28%;
+    font-size: 11px;
+  }
+
+  .firma-section {
+    gap: 15px;
+  }
+
+  .logo-firma {
+    max-width: 200px;
+  }
+
+  .firma-img {
+    max-width: 150px;
+  }
+}
+
+/* Efecto hover para modo edición (opcional) */
+body.edit-mode .info-table td:not(.label-cell):hover {
+  background-color: #fffbea;
+  cursor: text;
+}
+
+/* Espaciado de seguridad para evitar cortes en impresión */
+@media print {
+  .resuelve-list,
+  .cumplase,
+  .firma-section,
+  .operadora-nombre {
+    page-break-inside: avoid;
+  }
+
+  .section-title {
+    page-break-after: avoid;
+  }
+}

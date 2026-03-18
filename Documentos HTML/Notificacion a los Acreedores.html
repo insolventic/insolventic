@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificación a los Acreedores</title>
+    <link rel="stylesheet" href="/CSS/styles-notificacion-acreedores.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Destinatario -->
+        <div class="destinatario-section">
+            <p class="destinatario-titulo"><strong>SEÑOR</strong></p>
+            <p class="destinatario-nombre"><strong>ACREEDOR</strong></p>
+        </div>
+
+        <!-- Asunto -->
+        <div class="asunto-section">
+            <p class="asunto-texto">
+                <strong>ASUNTO: NOTIFICACIÓN ACEPTACIÓN PROCESO DE INSOLVENCIA DE LA PERSONA NATURAL NO COMERCIANTE Y DE LA PEQUEÑA COMERCIANTE Y CITACIÓN A NEGOCIACIÓN.</strong>
+            </p>
+        </div>
+
+        <!-- Deudor -->
+        <p class="deudor-info"><strong>DEUDOR: {{NOMBRE_DEUDOR}} CC. {{CEDULA_DEUDOR}}</strong></p>
+
+        <!-- Contenido principal -->
+        <div class="content-section">
+            <p class="saludo">Respetado acreedor:</p>
+
+            <p class="parrafo-justified">
+                Sírvase comparecer por medios virtuales en fecha y hora establecida en el auto de admisión al proceso de insolvencia del titular de la referencia, con el fin de realizar negociación de deudas.
+            </p>
+
+            <p class="instrucciones-titulo">Tener en cuenta la siguiente información:</p>
+
+            <!-- Lista de instrucciones -->
+            <ul class="lista-instrucciones">
+                <li>
+                    Los acreedores deben asistir personalmente a la audiencia de negociación de deudas o representados conforme a lo dispuesto en el art. 75 C.G.P. inc. 2, con poder debidamente conferido, con sus anexos. Los representantes legales de personas jurídicas deberán acreditar su calidad con el respectivo certificado de existencia y representación legal expedido por el órgano competente. De todo lo enunciado, deberán aportar copia para el proceso.
+                </li>
+                <li>
+                    Es obligatorio que en la primera audiencia presente copia de los títulos valores con los que pretende hacer valer su obligación.
+                </li>
+                <li>
+                    Es obligatorio que adjunte certificado de cuenta bancaria, para que el deudor pueda consignar en caso de acuerdo de pago.
+                </li>
+                <li>
+                    Del expediente con la solicitud y sus anexos, podrá solicitar copia escaneada al Centro de Conciliación.
+                </li>
+            </ul>
+        </div>
+
+        <!-- Sección de firma -->
+        <div class="firma-section">
+            <img src="/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+            <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+        </div>
+
+        <div class="text-center firma-info">
+            <p class="bold nombre-operadora">BEATRIZ HELENA MALAVERA LOPEZ</p>
+            <p class="bold cargo-operadora">OPERADORA DE INSOLVENCIA</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+            Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+            Cel. 311 811 7520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co</p>
+            <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+        </div>
+    </div>
+</body>
+</html>

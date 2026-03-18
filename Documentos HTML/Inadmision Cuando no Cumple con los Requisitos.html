@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inadmisión - No Cumple Requisitos</title>
+    <link rel="stylesheet" href="/CSS/styles-inadmision.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <img src="/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+        </div>
+
+        <!-- Título del proceso -->
+        <h1 class="titulo-proceso">PROCEDIMIENTO DE INSOLVENCIA DE LA PERSONA NATURAL NO COMERCIANTE Y DE LA PEQUEÑA COMERCIANTE</h1>
+
+        <!-- Título de la decisión -->
+        <h2 class="titulo-decision">DECISION SOLICITUD DE NEGOCIACIÓN DE DEUDAS</h2>
+        <p class="text-center bold articulo-ref">ARTICULO 13 LEY 2445/2025 QUE MODIFICA EL ARTICULO 542 CGP LEY 2564/2012</p>
+
+        <!-- Información del deudor -->
+        <div class="info-deudor-section">
+            <p class="text-center bold label-deudor">DEUDOR</p>
+            <p class="text-center bold nombre-deudor">{{NOMBRE_DEUDOR}}</p>
+            <p class="text-center bold cedula-deudor">C.C. {{CEDULA_DEUDOR}}</p>
+        </div>
+
+        <!-- Fecha -->
+        <p class="text-center bold fecha-documento">Bogotá, {{DIA}} de {{MES}} de {{ANO}}</p>
+
+        <!-- Contenido principal -->
+        <div class="content-section">
+            <p class="parrafo-justified">
+                <strong>BEATRIZ HELENA MALAVERA LOPEZ</strong>, mayor de edad, identificada con cédula de ciudadanía número 52.439.312, abogada en ejercicio inscrita ante el Centro de Conciliación y arbitraje CONSTRUCTORES DE PAZ, autorizado por el Ministerio de Justicia y del Derecho mediante Resolución Número 1459 del 5 de septiembre de 2003 y, Autorizada como Operadora de Insolvencia Económica de la Persona Natural No Comerciante y de la pequeña comerciante, bajo Resolución del Ministerio de Justicia y del Derecho No. 0001 del 02 de enero de 2014, de acuerdo con lo preceptuado en el Artículo 539 CGP modificado por el artículo 10 de la ley 2445 de 2025 y el artículo 542 del CGP modificado por el artículo 13 de la ley 2445 de 2025, se informa al deudor que su solicitud no cumple con los requisitos legales, por lo que se hace necesario otorgar el termino de 5 días para que corrija.
+            </p>
+
+            <!-- Título de requisitos -->
+            <div class="titulo-requisitos">
+                <h3>REQUISITOS ARTICULO 539 CGP</h3>
+                <p>MODIFICADO POR EL ARTÍCULO 10 DE LA LEY 2445 DE 2025</p>
+            </div>
+
+            <!-- Tabla de verificación de requisitos -->
+            <div class="tabla-requisitos-wrapper">
+                <table class="tabla-requisitos">
+                    <thead>
+                        <tr>
+                            <th class="col-requisito" colspan="2">VERIFICACIÓN DE CONFORMIDAD CON LOS REQUISITOS DE LEY</th>
+                            <th class="col-sino">SI / NO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="2" class="requisito-item">¿Es radicada la solicitud por el deudor?</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="seccion-header-row">
+                            <td colspan="3" class="seccion-nombre">PEQUEÑO COMERCIANTE</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Valor de los bienes reportados (1000 SMMLV)</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">CUANTIA DE LAS OBLIGACIONES MENOS - HASTA 150 SMMLV</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">CUANTIA DE LAS OBLIGACIONES SUPERIOR 150 SMMLV</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">ARTÍCULO 538- Cesación de pagos</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">ACTUA POR MEDIO DE APODERADO debe anexar poder debidamente conferido notariado o remitido desde correo del deudor.</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="seccion-header-row">
+                            <td colspan="3" class="seccion-nombre">ARTÍCULO 539- Requisitos de la solicitud de tramite</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 1. Causas</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 2. Propuesta</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 3 certificado de ahorros o valor de garantía mobiliaria</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td rowspan="10" class="grupo-requisito">Numeral 3. Relación de acreedores</td>
+                            <td class="requisito-subitem">Prelación</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Nombre</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Domicilio</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Dirección</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Correo electrónico</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Cuantía (diferencia capital e intereses)</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Naturaleza de los créditos</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Tasa de interés</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Documentos en que consta</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Fecha de otorgamiento y vencimiento del crédito</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="grupo-requisito"></td>
+                            <td class="requisito-subitem">Nombre, domicilio y dirección de codeudor, fiador o avalista</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Verificar si incluye todos los acreedores de la lista de procesos o que estén mencionados en la solicitud</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 3 inciso segundo ¿De la anterior relación expresa de no conoce alguna información?</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 4. Relación de bienes</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Información si los bienes tienen medida cautelar</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 5. Relación de procesos judiciales</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 6. Certificado de ingresos – documento</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Numeral 7. Monto de Recursos disponibles</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td rowspan="4" class="grupo-requisito">Numeral 8. Sociedad conyugal</td>
+                            <td class="requisito-subitem">Nombre</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Dirección</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Teléfono</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Correo Electrónico</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td rowspan="2" class="grupo-requisito">Numeral 9. Discriminación obligaciones alimentarias</td>
+                            <td class="requisito-subitem">Cuantía</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="subseccion-row">
+                            <td class="requisito-subitem">Beneficiarios</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td class="requisito-item">Documento</td>
+                            <td class="requisito-subitem">Certificado REDAM</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td class="requisito-item">Documento (pequeños comerciantes)</td>
+                            <td class="requisito-subitem">Constancia de matricula mercantil</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Parágrafo 1. ¿Realiza manifestación que no ha incurrido en omisiones, imprecisiones o errores?</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Parágrafo 2. ¿Informa que la relación de acreedores la hace con corte al último día del mes anterior a la presentación de la solicitud?</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Parágrafo 3 informa si tiene soporte de obligaciones o manifestación que no las posee</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr class="seccion-header-row">
+                            <td colspan="3" class="seccion-nombre">DOCUMENTALES</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Fotocopia de la cedula</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">CERTIFICADO REDAM</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">CONSTANCIA DE MATRICULA MERCANTIL</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Pago de impuestos del año en curso si está incluyendo bienes sujetos a registro (inmuebles y vehículos) – porque son gastos de administración.</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Debe incluir un listado de bienes muebles para que los jueces acepten la liquidación. (cama- televisor- nevera- estufa- etc)</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Poder debidamente conferido si va a actuar por intermedio de abogado. En caso de no estar notariado, tiene que existir evidencia desde el correo del deudor al correo del abogado</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Certificado de tradición y libertad (si es propietario de bienes inmuebles)</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Fotocopia de gastos incluidos en su manutención mensual y de su flia.</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Extractos Bancarios</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">Manifiesta que conoce la norma, sus efectos, consecuencias, los derechos que me otorga, las prohibiciones a las cuales estoy sujeto y toda la carga que me impone la Ley 1564 de 2012 en su título IV artículos 531 al 576</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="requisito-item">El deudor firma la solicitud de insolvencia.</td>
+                            <td class="check-cell"><input type="checkbox"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Texto de cierre -->
+            <p class="parrafo-advertencia">
+                Se le informa que se otorga un plazo de 5 días para subsanar lo anterior, de conformidad con lo establecido en el artículo 13 de la ley 2445 de 2025 que modifica el artículo 542 de la ley 1564 de 2012, si no subsana, su solicitud será rechazada.
+            </p>
+        </div>
+
+        <!-- Sección de firma -->
+        <div class="firma-section">
+            <img src="/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+            <img src="/img/firma abogada.png" alt="Firma" class="firma-img">
+        </div>
+
+        <div class="text-center firma-info">
+            <p class="bold nombre-operadora">BEATRIZ HELENA MALAVERA LÓPEZ</p>
+            <p class="bold cargo-operadora">OPERADORA DE INSOLVENCIA DESIGNADA</p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+            Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+            Cel. 311 811 7520<br>
+            www.constructoresdepaz.com.co<br>
+            contacto@constructoresdepaz.com.co</p>
+            <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+        </div>
+    </div>
+</body>
+</html>
