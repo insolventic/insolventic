@@ -24,6 +24,18 @@ interface UserCreatedEmailData {
   createdBy: string;
 }
 
+interface ActionNotificationEmailData {
+  adminName: string;
+  actorName: string;
+  actorEmail: string;
+  actorRole: string;
+  action: string;
+  entity: string;
+  entityName: string;
+  database: string;
+  date: Date;
+}
+
 class EmailService {
   private transporter: nodemailer.Transporter;
 
@@ -575,6 +587,205 @@ class EmailService {
     - Rol: Usuario
 
     Puedes iniciar sesión en: ${loginUrl}
+
+    --
+    Sistema Insolventic - ${databaseName}
+    `;
+
+    return this.sendEmail({
+      to,
+      subject,
+      html,
+      text: text.trim(),
+    });
+  }
+
+  async sendActionNotificationEmail(
+    to: string,
+    data: ActionNotificationEmailData,
+  ): Promise<boolean> {
+    const {
+      adminName,
+      actorName,
+      actorEmail,
+      actorRole,
+      action,
+      entity,
+      entityName,
+      database,
+      date,
+    } = data;
+
+    const databaseDisplayNames = {
+      armonia: 'Armonia',
+      'constructores-paz': 'Constructores de Paz',
+    };
+
+    const databaseName =
+      databaseDisplayNames[database as keyof typeof databaseDisplayNames] ||
+      database;
+
+    const entityCapitalized = entity.charAt(0).toUpperCase() + entity.slice(1);
+    const formattedDate =
+      date.toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }) +
+      ' ' +
+      date.toLocaleTimeString('es-CO', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+    const subject = `Notificación de Acción: ${entityCapitalized} ${action} - Sistema Insolventic (${databaseName})`;
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Notificación de Acción en el Sistema</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: #f5f5f5;
+        }
+        .container {
+          background: white;
+          padding: 30px;
+          border-radius: 10px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #3b82f6;
+        }
+        .logo {
+          font-size: 28px;
+          font-weight: bold;
+          color: #3b82f6;
+          margin-bottom: 10px;
+        }
+        .database-badge {
+          background: ${database === 'armonia' ? '#ea580c' : '#3b82f6'};
+          color: white;
+          padding: 4px 12px;
+          border-radius: 15px;
+          font-size: 12px;
+          display: inline-block;
+        }
+        .info-box {
+          background: #f8fafc;
+          border: 2px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 20px;
+          margin: 20px 0;
+        }
+        .info-row {
+          padding: 8px 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+          border-bottom: none;
+        }
+        .info-label {
+          font-weight: bold;
+          color: #374151;
+        }
+        .info-value {
+          color: #1f2937;
+        }
+        .footer {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          font-size: 12px;
+          color: #6b7280;
+          text-align: center;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <div class="logo">🏛️ INSOLVENTIC</div>
+          <span class="database-badge">${databaseName}</span>
+          <p style="margin: 10px 0 0 0; color: #6b7280;">Sistema de Gestión de Procesos de Insolvencia</p>
+        </div>
+
+        <div style="margin: 30px 0;">
+          <h2 style="color: #1f2937;">Notificación de Acción en el Sistema</h2>
+
+          <p>Hola ${adminName},</p>
+          <p>Se ha registrado la siguiente acción en el sistema <strong>${databaseName}</strong>:</p>
+
+          <div class="info-box">
+            <div class="info-row">
+              <span class="info-label">Acción:</span>
+              <span class="info-value">${entityCapitalized} ${action}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Elemento:</span>
+              <span class="info-value">${entityName}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Realizada por:</span>
+              <span class="info-value">${actorName}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Email del actor:</span>
+              <span class="info-value">${actorEmail}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Rol:</span>
+              <span class="info-value">${actorRole}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Fecha y hora:</span>
+              <span class="info-value">${formattedDate}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Organización:</span>
+              <span class="info-value">${databaseName}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p>Este es un correo automático de notificación de acciones del sistema.</p>
+          <p>No es necesario responder a este correo.</p>
+          <p>© ${new Date().getFullYear()} Sistema Insolventic - ${databaseName}</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const text = `
+    Notificación de Acción en el Sistema
+
+    Hola ${adminName},
+
+    Se ha registrado la siguiente acción en el sistema ${databaseName}:
+
+    DETALLE DE LA ACCIÓN:
+    - Acción: ${entityCapitalized} ${action}
+    - Elemento: ${entityName}
+    - Realizada por: ${actorName}
+    - Email del actor: ${actorEmail}
+    - Rol: ${actorRole}
+    - Fecha y hora: ${formattedDate}
+    - Organización: ${databaseName}
 
     --
     Sistema Insolventic - ${databaseName}

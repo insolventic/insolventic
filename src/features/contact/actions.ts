@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
+import { createAuditLog } from '@/features/audit-log/actions';
 
 import {
   contactSchema,
@@ -129,6 +130,19 @@ export async function addContactToCreditor(input: unknown): Promise<{
 
     revalidatePath('/creditors');
 
+    createAuditLog({
+      action: 'created',
+      entityType: 'contact',
+      entityId: contact.id,
+      entityName: contact.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
+
     const validated = contactSchema.parse(contact);
     return {
       success: true,
@@ -171,6 +185,19 @@ export async function updateContact(input: unknown): Promise<{
     revalidatePath('/contacts');
     revalidatePath('/creditors');
 
+    createAuditLog({
+      action: 'updated',
+      entityType: 'contact',
+      entityId: contact.id,
+      entityName: contact.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
+
     const validated = contactSchema.parse(contact);
     return {
       success: true,
@@ -211,6 +238,19 @@ export async function deleteContact(input: unknown): Promise<{
 
     revalidatePath('/contacts');
     revalidatePath('/creditors');
+
+    createAuditLog({
+      action: 'deleted',
+      entityType: 'contact',
+      entityId: deletedContact.id,
+      entityName: deletedContact.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = contactSchema.parse(deletedContact);
     return {

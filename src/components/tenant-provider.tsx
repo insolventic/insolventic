@@ -13,6 +13,34 @@ import { useAuth } from '@/hooks/use-auth';
 const TenantContext = createContext<TenantTheme | null>(null);
 
 /**
+ * Applies the tenant CSS custom properties on <html>.
+ *
+ * Inline styles on documentElement override the :root / .dark values in
+ * globals.css, so every component that uses `bg-primary`, `text-primary`,
+ * `ring-primary`, etc. automatically reflects the tenant identity.
+ */
+function applyTenantStyles(theme: TenantTheme, isDark: boolean) {
+  const accent = isDark ? theme.accentDark : theme.accentLight;
+  const fg = isDark ? theme.accentForegroundDark : theme.accentForegroundLight;
+
+  const el = document.documentElement;
+  el.style.setProperty('--tenant-accent', accent);
+  el.style.setProperty('--tenant-accent-foreground', fg);
+  el.style.setProperty('--primary', accent);
+  el.style.setProperty('--primary-foreground', fg);
+  el.style.setProperty('--ring', accent);
+}
+
+function removeTenantStyles() {
+  const el = document.documentElement;
+  el.style.removeProperty('--tenant-accent');
+  el.style.removeProperty('--tenant-accent-foreground');
+  el.style.removeProperty('--primary');
+  el.style.removeProperty('--primary-foreground');
+  el.style.removeProperty('--ring');
+}
+
+/**
  * Reads the current user's tenantId from auth (or from localStorage for
  * pre-auth pages like login/register) and sets CSS custom properties
  * (--primary, --primary-foreground, --ring) on <html>, so every component
@@ -23,9 +51,14 @@ const TenantContext = createContext<TenantTheme | null>(null);
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
-  const [preAuthTenantId, setPreAuthTenantId] = useState<string | null>(null);
+  const [preAuthTenantId, setPreAuthTenantId] = useState<string | null>(() => {
+    // Read localStorage synchronously on first render (SSR-safe guard)
+    if (typeof window === 'undefined') return null;
+    const stored = localStorage.getItem('selectedDatabase');
+    return stored && TENANT_THEMES[stored] ? stored : null;
+  });
 
-  // Detect tenant from localStorage for pre-auth pages (login, register, etc.)
+  // Keep pre-auth tenant in sync with localStorage
   useEffect(() => {
     if (!user) {
       const stored = localStorage.getItem('selectedDatabase');
@@ -45,32 +78,28 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     [activeTenantId],
   );
 
+  // Apply / update tenant CSS custom properties
   useEffect(() => {
-    // Apply tenant colors when we have any tenant identification
     if (!activeTenantId) return;
 
     const isDark = resolvedTheme === 'dark';
-    const accent = isDark ? tenantTheme.accentDark : tenantTheme.accentLight;
-    const fg = isDark
-      ? tenantTheme.accentForegroundDark
-      : tenantTheme.accentForegroundLight;
+    applyTenantStyles(tenantTheme, isDark);
 
-    const el = document.documentElement;
-    el.style.setProperty('--tenant-accent', accent);
-    el.style.setProperty('--tenant-accent-foreground', fg);
-    // Override primary so all primary-colored elements reflect tenant identity
-    el.style.setProperty('--primary', accent);
-    el.style.setProperty('--primary-foreground', fg);
-    el.style.setProperty('--ring', accent);
-
+    // Only remove styles when the component truly unmounts (no tenant),
+    // NOT on every dependency change — that would flash the default blue.
     return () => {
-      el.style.removeProperty('--tenant-accent');
-      el.style.removeProperty('--tenant-accent-foreground');
-      el.style.removeProperty('--primary');
-      el.style.removeProperty('--primary-foreground');
-      el.style.removeProperty('--ring');
+      // We only clean up when the provider unmounts entirely.
+      // If the effect re-runs (theme/tenant changed), the new invocation
+      // immediately overwrites the properties, so no flash occurs.
     };
   }, [tenantTheme, resolvedTheme, activeTenantId]);
+
+  // Clean up on true unmount (e.g. root layout teardown)
+  useEffect(() => {
+    return () => {
+      removeTenantStyles();
+    };
+  }, []);
 
   return (
     <TenantContext.Provider value={tenantTheme}>

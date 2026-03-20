@@ -41,6 +41,7 @@ model Tenant {
   acreedores          Acreedor[]
   bienes              Bien[]
   procesosJudiciales  ProcesoJudicial[]
+  auditLogs           AuditLog[]
 }
 
 model Case {
@@ -737,6 +738,28 @@ model PasswordResetToken {
   tenant    Tenant   @relation(fields: [tenantId], references: [id])
 
   @@map("password_reset_tokens")
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  action        String   // created, updated, deleted
+  entityType    String   // case, debtor, creditor, user, role, contact, document
+  entityId      String
+  entityName    String
+  userId        String
+  userName      String
+  userCedula    String
+  description   String   // Mensaje completo de auditoría
+  metadata      Json?    // Datos adicionales opcionales (cambios, IPs, etc.)
+  tenantId      String
+  createdAt     DateTime @default(now())
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, entityType])
+  @@index([tenantId, userId])
+  @@map("audit_logs")
 }
 
 model Libranza {

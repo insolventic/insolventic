@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { createNotificationForAction } from '@/features/notification/actions';
+import { createAuditLog } from '@/features/audit-log/actions';
 
 import { createRoleSchema, updateRoleSchema, roleSchema } from './schemas';
 import type { Role } from './schemas';
@@ -115,7 +116,28 @@ export async function createRole(input: unknown): Promise<{
       prisma,
       tenantId,
       newRole.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'created',
+      entityType: 'role',
+      entityId: newRole.id,
+      entityName: newRole.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const formattedRole = {
       ...roleWithRelations!,
@@ -215,7 +237,28 @@ export async function updateRole(input: unknown): Promise<{
       prisma,
       tenantId,
       roleWithRelations!.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'updated',
+      entityType: 'role',
+      entityId: roleWithRelations!.id,
+      entityName: roleWithRelations!.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const formattedRole = {
       ...roleWithRelations!,
@@ -298,7 +341,28 @@ export async function deleteRole(id: string): Promise<{
       prisma,
       tenantId,
       roleToDelete.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'deleted',
+      entityType: 'role',
+      entityId: roleToDelete.id,
+      entityName: roleToDelete.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const formattedRole = {
       ...roleToDelete,

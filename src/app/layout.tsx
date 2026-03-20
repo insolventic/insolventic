@@ -24,6 +24,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        {/*
+          Inline script to apply tenant colors BEFORE React hydrates.
+          Reads the selected tenant from localStorage and sets --primary,
+          --primary-foreground, --ring on <html> immediately, preventing
+          a flash of the default blue theme while React loads.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('selectedDatabase');if(!t)return;var c={armonia:{l:'25 95% 53%',fl:'0 0% 100%',d:'25 90% 58%',fd:'25 100% 10%'},'constructores-paz':{l:'221.2 83.2% 53.3%',fl:'210 40% 98%',d:'217.2 91.2% 59.8%',fd:'222.2 47.4% 11.2%'}};var v=c[t];if(!v)return;var dk=document.documentElement.classList.contains('dark');var a=dk?v.d:v.l;var f=dk?v.fd:v.fl;var s=document.documentElement.style;s.setProperty('--primary',a);s.setProperty('--primary-foreground',f);s.setProperty('--ring',a);s.setProperty('--tenant-accent',a);s.setProperty('--tenant-accent-foreground',f)}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light">
           {/* 

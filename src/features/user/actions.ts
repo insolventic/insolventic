@@ -3,6 +3,7 @@
 import { revalidateTag } from 'next/cache';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
+import { z } from 'zod';
 
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
@@ -10,6 +11,7 @@ import { authenticateUser } from '@/features/auth/actions';
 import { emailService } from '@/lib/email';
 
 import { createNotificationForAction } from '@/features/notification/actions';
+import { createAuditLog } from '@/features/audit-log/actions';
 
 import {
   createUserSchema,
@@ -117,7 +119,28 @@ export async function createUser(input: unknown): Promise<{
       prisma,
       tenantId,
       createdUser.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'created',
+      entityType: 'user',
+      entityId: createdUser.id,
+      entityName: createdUser.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     await emailService.sendUserCreatedEmail(createdUser.email, {
       name: createdUser.name,
@@ -183,7 +206,28 @@ export async function updateUser(input: unknown): Promise<{
       prisma,
       tenantId,
       updatedUser.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'updated',
+      entityType: 'user',
+      entityId: updatedUser.id,
+      entityName: updatedUser.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = userSummarySchema.parse(updatedUser);
     return {
@@ -228,7 +272,28 @@ export async function deleteUser(id: string): Promise<{
       prisma,
       tenantId,
       deletedUser.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'deleted',
+      entityType: 'user',
+      entityId: deletedUser.id,
+      entityName: deletedUser.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = userSummarySchema.parse(deletedUser);
     return {
@@ -241,6 +306,102 @@ export async function deleteUser(id: string): Promise<{
       success: false,
       error:
         error instanceof Error ? error.message : 'Error al eliminar usuario',
+    };
+  }
+}
+
+export async function getProfile(): Promise<{
+  success: boolean;
+  data?: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    professionalCard: string;
+    roleName: string;
+    createdDate: Date;
+    lastLogin: Date | null;
+  };
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    const profile = await prisma.user.findUnique({
+      where: { id: user.id, tenantId },
+      select: {
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        professionalCard: true,
+        createdDate: true,
+        lastLogin: true,
+        role: { select: { name: true } },
+      },
+    });
+
+    if (!profile) {
+      return { success: false, error: 'Perfil no encontrado' };
+    }
+
+    return {
+      success: true,
+      data: {
+        ...profile,
+        roleName: profile.role.name,
+      },
+    };
+  } catch (error) {
+    console.error('Error getting profile:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al obtener perfil',
+    };
+  }
+}
+
+export async function updateProfile(input: unknown): Promise<{
+  success: boolean;
+  data?: UserSummaryData;
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    // Users can only update their own profile - no special permission needed
+    const profileSchema = z.object({
+      name: z.string().min(1, 'El nombre es requerido'),
+      phone: z.string().min(1, 'El teléfono es requerido'),
+      address: z.string().min(1, 'La dirección es requerida'),
+      professionalCard: z
+        .string()
+        .min(1, 'La tarjeta profesional es requerida'),
+    });
+
+    const validatedInput = profileSchema.parse(input);
+
+    const updatedUser = await prisma.user.update({
+      where: {
+        id: user.id,
+        tenantId,
+      },
+      data: validatedInput,
+    });
+
+    revalidateTag('users');
+
+    const validated = userSummarySchema.parse(updatedUser);
+    return {
+      success: true,
+      data: validated,
+    };
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Error al actualizar perfil',
     };
   }
 }

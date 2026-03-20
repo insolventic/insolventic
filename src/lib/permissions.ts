@@ -54,6 +54,9 @@ export const P = {
   VER_NOTIFICACIONES: 'Ver notificaciones',
   EDITAR_NOTIFICACIONES: 'Editar notificaciones',
   GESTIONAR_NOTIFICACIONES: 'Gestionar notificaciones',
+
+  // Auditoría
+  VER_AUDITORIA: 'Ver auditoría',
 } as const;
 
 export type PermissionString = (typeof P)[keyof typeof P];
@@ -157,6 +160,15 @@ export const MODULES = {
       P.EDITAR_NOTIFICACIONES,
       P.GESTIONAR_NOTIFICACIONES,
     ],
+  },
+  auditLog: {
+    key: 'auditLog',
+    label: 'Auditoría',
+    description: 'Registro de auditoría del sistema',
+    route: '/audit-log',
+    icon: 'Shield',
+    gatePermission: P.VER_AUDITORIA,
+    permissions: [P.VER_AUDITORIA],
   },
 } as const satisfies Record<string, ModuleDefinition>;
 

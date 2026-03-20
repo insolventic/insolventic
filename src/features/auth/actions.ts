@@ -94,6 +94,8 @@ export async function authenticateUser() {
       id: user.id,
       name: user.name,
       email: user.email,
+      roleName: user.role.name,
+      professionalCard: user.professionalCard || '',
       permissions: user.role.permissions.map((rp) => rp.permission.name),
     },
     tenantId: tenant.id,

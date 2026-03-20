@@ -6,6 +6,7 @@ import type { PrismaClient } from '@prisma/client';
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
+import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import type { DocumentTemplate } from './templates-config';
 
@@ -1083,6 +1084,21 @@ export async function batchGenerateDocuments(input: {
 
     revalidatePath('/documents');
 
+    if (successfulDocuments > 0) {
+      createAuditLog({
+        action: 'created',
+        entityType: 'document',
+        entityId: caseData.id,
+        entityName: `${successfulDocuments} documentos para caso ${caseData.caseNumber}`,
+        actor: {
+          userId: user.id,
+          userName: user.name,
+          userCedula: user.professionalCard,
+        },
+        tenantId,
+      });
+    }
+
     return {
       success: true,
       message: `Generación completada: ${successfulDocuments} exitosos, ${failedDocuments} fallidos`,
@@ -1330,6 +1346,21 @@ export async function uploadCaseDocuments(input: {
       });
 
       uploaded++;
+    }
+
+    if (uploaded > 0) {
+      createAuditLog({
+        action: 'created',
+        entityType: 'document',
+        entityId: caseId,
+        entityName: `${uploaded} documentos adjuntos para caso ${caseData.caseNumber}`,
+        actor: {
+          userId: user.id,
+          userName: user.name,
+          userCedula: user.professionalCard,
+        },
+        tenantId,
+      });
     }
 
     const result = uploadCaseDocumentsOutputSchema.parse({ uploaded });

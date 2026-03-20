@@ -1,6 +1,13 @@
 'use client';
 
-import { Bell, FileText, Users, Building, FileSearch } from 'lucide-react';
+import {
+  Bell,
+  FileText,
+  Users,
+  Building,
+  FileSearch,
+  Shield,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -33,7 +40,7 @@ export function TaskSelector() {
       description: 'Revisar y actualizar casos activos',
       icon: FileText,
       href: '/cases',
-      color: 'bg-blue-100',
+      color: 'bg-primary/10',
       iconColor: 'text-primary',
       stats: { active: 41, pending: 5, total: 46 },
       permission: P.VER_CASOS,
@@ -104,6 +111,19 @@ export function TaskSelector() {
       permission: P.VER_NOTIFICACIONES,
       helpText:
         'Recibe alertas y notificaciones importantes sobre cambios, eventos y estados de los casos.',
+    },
+    {
+      id: 9,
+      title: 'Auditoría',
+      description: 'Registro de auditoría del sistema',
+      icon: Shield,
+      href: '/audit-log',
+      color: 'bg-slate-100',
+      iconColor: 'text-slate-600 dark:text-slate-400',
+      stats: {},
+      permission: P.VER_AUDITORIA,
+      helpText:
+        'Consulta el historial inmutable de todas las acciones realizadas en el sistema: quién hizo qué, cuándo y sobre qué entidad.',
     },
   ];
 

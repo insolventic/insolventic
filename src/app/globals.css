@@ -2,6 +2,15 @@
 
 @source '../*.{js,ts,jsx,tsx,mdx}';
 
+/*
+  Tailwind v4 defaults dark: to @media (prefers-color-scheme: dark) (OS).
+  next-themes uses attribute="class" → adds .dark on <html>.
+  This directive syncs the two so dark: utilities follow the .dark class,
+  not the OS preference. Without it, users with OS dark mode will see
+  dark backgrounds (bg-slate-900, etc.) even when the app is in light mode.
+*/
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));

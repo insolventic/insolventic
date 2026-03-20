@@ -7,6 +7,7 @@ import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
+import { createAuditLog } from '@/features/audit-log/actions';
 import { generateDocumentsForNewCase } from '@/features/document/generate-documents';
 import type { CaseWithRelations } from './schemas';
 
@@ -694,7 +695,27 @@ export async function createCase(
       tenantId,
       newCase.id,
       newCase.id,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'created',
+      entityType: 'case',
+      entityId: newCase.id,
+      entityName: `${finalCaseNumber} - ${debtor.name}`,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     // Generate documents for the new case (async, non-blocking)
     // Fetch the complete case with relations for document generation
@@ -910,7 +931,27 @@ export async function updateCase(
       tenantId,
       updatedCase.id,
       updatedCase.id,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'updated',
+      entityType: 'case',
+      entityId: updatedCase.id,
+      entityName: `${updatedCase.caseNumber} - ${updatedCase.debtorName}`,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const result = caseSummarySchema.parse(updatedCase);
     return { success: true, data: result };
@@ -1649,7 +1690,27 @@ export async function deleteCase(
       tenantId,
       undefined, // No entityId since case is deleted
       undefined, // No caseId since case is deleted
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: id,
+      entityName: `${deletedCase.caseNumber} - ${deletedCase.debtorName}`,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const result = caseSummarySchema.parse(deletedCase);
     return { success: true, data: result };

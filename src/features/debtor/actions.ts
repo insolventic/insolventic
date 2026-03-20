@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
+import { createAuditLog } from '@/features/audit-log/actions';
 
 import {
   createDebtorSchema,
@@ -293,7 +294,28 @@ export async function createDebtor(input: unknown): Promise<{
       prisma,
       tenantId,
       debtor.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'created',
+      entityType: 'debtor',
+      entityId: debtor.id,
+      entityName: debtor.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = debtorSummarySchema.parse(debtor);
     return { success: true, data: validated };
@@ -339,7 +361,28 @@ export async function updateDebtor(input: unknown): Promise<{
       prisma,
       tenantId,
       updatedDebtor.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'updated',
+      entityType: 'debtor',
+      entityId: updatedDebtor.id,
+      entityName: updatedDebtor.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = debtorSummarySchema.parse(updatedDebtor);
     return { success: true, data: validated };
@@ -418,7 +461,28 @@ export async function deleteDebtor(id: string): Promise<{
       prisma,
       tenantId,
       deletedDebtor.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'deleted',
+      entityType: 'debtor',
+      entityId: deletedDebtor.id,
+      entityName: deletedDebtor.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = debtorSummarySchema.parse(deletedDebtor);
     return { success: true, data: validated };

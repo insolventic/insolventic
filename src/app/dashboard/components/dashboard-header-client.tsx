@@ -9,6 +9,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  UserCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -159,6 +160,10 @@ export function DashboardHeaderClient() {
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem onClick={() => router.push('/profile')}>
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  <span>Mi Perfil</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleChangePassword}>
                   <Key className="mr-2 h-4 w-4" />
                   <span>Cambiar Contraseña</span>
@@ -228,6 +233,10 @@ export function DashboardHeaderClient() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem onClick={() => router.push('/profile')}>
+                  <UserCircle className="mr-2 h-4 w-4" />
+                  <span>Mi Perfil</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleChangePassword}>
                   <Key className="mr-2 h-4 w-4" />
                   <span>Cambiar Contraseña</span>

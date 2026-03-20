@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
+import { createAuditLog } from '@/features/audit-log/actions';
 
 import {
   createCreditorSchema,
@@ -379,7 +380,28 @@ export async function createCreditor(input: unknown): Promise<{
       prisma,
       tenantId,
       creditor.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'created',
+      entityType: 'creditor',
+      entityId: creditor.id,
+      entityName: creditor.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = creditorSummarySchema.parse(creditor);
     return {
@@ -438,7 +460,28 @@ export async function updateCreditor(input: unknown): Promise<{
       prisma,
       tenantId,
       updatedCreditor.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'updated',
+      entityType: 'creditor',
+      entityId: updatedCreditor.id,
+      entityName: updatedCreditor.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = creditorSummarySchema.parse(updatedCreditor);
     return {
@@ -497,7 +540,28 @@ export async function deleteCreditor(input: unknown): Promise<{
       prisma,
       tenantId,
       deletedCreditor.id,
+      undefined,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
     );
+
+    createAuditLog({
+      action: 'deleted',
+      entityType: 'creditor',
+      entityId: deletedCreditor.id,
+      entityName: deletedCreditor.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
 
     const validated = creditorSummarySchema.parse(deletedCreditor);
     return {
