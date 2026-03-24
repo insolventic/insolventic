@@ -6,9 +6,16 @@ import { z } from 'zod';
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
+import { getValidTransitions } from '@/lib/case-phases';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
-import { generateDocumentsForNewCase } from '@/features/document/generate-documents';
+import {
+  generateDocumentsForNewCase,
+  generateDocumentsForAdmission,
+  generateDocumentsForAgreement,
+  generateDocumentsForFailure,
+} from '@/features/document/generate-documents';
+import { generatePaymentSchedule } from '@/features/payment/actions';
 import type { CaseWithRelations } from './schemas';
 
 import {
@@ -35,6 +42,7 @@ import {
   getCaseByIdSchema,
   deleteCaseSchema,
   caseStatsSchema,
+  dashboardStatsSchema,
   type DebtData,
   type AssetData,
   type LibranzaData,
@@ -1839,6 +1847,394 @@ export async function getCaseStats(): Promise<{
         error instanceof Error
           ? error.message
           : 'Error al obtener estadísticas de casos',
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// getDashboardStats — real-time stats for the dashboard
+// ---------------------------------------------------------------------------
+
+export async function getDashboardStats(): Promise<{
+  success: boolean;
+  data?: z.infer<typeof dashboardStatsSchema>;
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    const hasPermission = user.permissions.includes(P.VER_CASOS);
+    if (!hasPermission) {
+      return { success: false, error: 'No tienes permisos para ver casos' };
+    }
+
+    // Build where clause based on visibility permissions
+    let whereClause: {
+      operatorId?: string;
+      debtorId?: string;
+      tenantId: string;
+    } = { tenantId };
+
+    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
+    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
+    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
+
+    if (canViewAllCases) {
+      // No additional filtering
+    } else if (canViewOwnCases) {
+      whereClause = { ...whereClause, operatorId: user.id };
+    } else if (canViewAsClient) {
+      const userDebtor = await prisma.debtor.findFirst({
+        where: { email: user.email, tenantId },
+        select: { id: true },
+      });
+      if (userDebtor) {
+        whereClause = { ...whereClause, debtorId: userDebtor.id };
+      } else {
+        const emptyStats = dashboardStatsSchema.parse({
+          totalCases: 0,
+          casesThisMonth: 0,
+          upcomingHearings: 0,
+          totalDebt: null,
+          totalCreditors: null,
+          casesByPhase: [],
+          casesByType: [],
+          casesOverTime: [],
+          overduePayments: 0,
+        });
+        return { success: true, data: emptyStats };
+      }
+    } else {
+      const emptyStats = dashboardStatsSchema.parse({
+        totalCases: 0,
+        casesThisMonth: 0,
+        upcomingHearings: 0,
+        totalDebt: null,
+        totalCreditors: null,
+        casesByPhase: [],
+        casesByType: [],
+        casesOverTime: [],
+        overduePayments: 0,
+      });
+      return { success: true, data: emptyStats };
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    const [
+      totalCases,
+      casesThisMonth,
+      upcomingHearings,
+      totalDebtResult,
+      totalCreditorsResult,
+      casesByPhaseRaw,
+      casesByTypeRaw,
+      casesLast6Months,
+      overduePayments,
+    ] = await Promise.all([
+      prisma.case.count({ where: whereClause }),
+      prisma.case.count({
+        where: { ...whereClause, createdDate: { gte: startOfMonth } },
+      }),
+      prisma.case.count({
+        where: {
+          ...whereClause,
+          OR: [
+            { hearingDate: { gte: now, lte: in7Days } },
+            { firstHearingDate: { gte: now, lte: in7Days } },
+          ],
+        },
+      }),
+      prisma.case.aggregate({
+        where: whereClause,
+        _sum: { totalDebt: true },
+      }),
+      prisma.case.aggregate({
+        where: whereClause,
+        _sum: { creditors: true },
+      }),
+      prisma.case.groupBy({
+        by: ['phase'],
+        where: whereClause,
+        _count: { id: true },
+      }),
+      prisma.case.groupBy({
+        by: ['type'],
+        where: whereClause,
+        _count: { id: true },
+      }),
+      prisma.case.findMany({
+        where: { ...whereClause, createdDate: { gte: sixMonthsAgo } },
+        select: { createdDate: true },
+      }),
+      prisma.payment.count({
+        where: {
+          tenantId,
+          status: 'pendiente',
+          dueDate: { lt: now },
+        },
+      }),
+    ]);
+
+    // Aggregate cases by month for the last 6 months
+    const monthCounts: Record<string, number> = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthCounts[key] = 0;
+    }
+    for (const c of casesLast6Months) {
+      const d = new Date(c.createdDate);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (key in monthCounts) monthCounts[key]++;
+    }
+
+    const monthNames = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
+    const casesOverTime = Object.entries(monthCounts).map(([key, count]) => {
+      const [, m] = key.split('-');
+      return { month: monthNames[parseInt(m, 10) - 1], count };
+    });
+
+    const typeMap: Record<string, string> = {
+      INSOLVENCY: 'Insolvencia',
+      CONCILIATION: 'Conciliación',
+      SUPPORT_AGREEMENT: 'Acuerdo de Apoyo',
+    };
+
+    const result = dashboardStatsSchema.parse({
+      totalCases,
+      casesThisMonth,
+      upcomingHearings,
+      totalDebt: totalDebtResult._sum.totalDebt,
+      totalCreditors: totalCreditorsResult._sum.creditors,
+      casesByPhase: casesByPhaseRaw.map((g) => ({
+        phase: g.phase ?? 'Inicial',
+        count: g._count.id,
+      })),
+      casesByType: casesByTypeRaw.map((g) => ({
+        type: typeMap[g.type] ?? g.type,
+        count: g._count.id,
+      })),
+      casesOverTime,
+      overduePayments,
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error getting dashboard stats:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al obtener estadísticas del dashboard',
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// updateCasePhase — change case phase with validation
+// ---------------------------------------------------------------------------
+
+const updateCasePhaseSchema = z.object({
+  caseId: z.string().min(1),
+  newPhase: z.string().min(1),
+});
+
+export async function updateCasePhase(input: {
+  caseId: string;
+  newPhase: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
+
+    const { caseId, newPhase } = updateCasePhaseSchema.parse(input);
+
+    const existingCase = await prisma.case.findUnique({
+      where: { id: caseId, tenantId },
+      select: { id: true, phase: true, caseNumber: true, debtorName: true },
+    });
+
+    if (!existingCase) {
+      return { success: false, error: 'Caso no encontrado' };
+    }
+
+    const currentPhase = existingCase.phase ?? 'Inicial';
+    const allowed = getValidTransitions(currentPhase);
+
+    if (!allowed.includes(newPhase)) {
+      return {
+        success: false,
+        error: `Transición no permitida: ${currentPhase} → ${newPhase}`,
+      };
+    }
+
+    await prisma.case.update({
+      where: { id: caseId },
+      data: { phase: newPhase },
+    });
+
+    revalidateTag('cases');
+
+    // Fire-and-forget audit log
+    createAuditLog({
+      action: 'updated',
+      entityType: 'case',
+      entityId: caseId,
+      entityName: `${existingCase.caseNumber} - ${existingCase.debtorName}`,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: {
+        field: 'phase',
+        previousPhase: currentPhase,
+        newPhase,
+      },
+    });
+
+    // Fire-and-forget notification
+    createNotificationForAction(
+      'case_updated',
+      `${existingCase.caseNumber} - ${existingCase.debtorName}`,
+      prisma,
+      tenantId,
+      caseId,
+      caseId,
+      undefined,
+      {
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        professionalCard: user.professionalCard,
+      },
+    );
+
+    // ---------------------------------------------------------------
+    // Phase-specific side effects (async, non-blocking)
+    // ---------------------------------------------------------------
+    const PHASES_WITH_DOCUMENTS = ['Admisión', 'Acuerdo aprobado', 'Fracaso'];
+    if (PHASES_WITH_DOCUMENTS.includes(newPhase)) {
+      // Fetch full case with relations for document generation
+      const fullCase = await prisma.case.findUnique({
+        where: { id: caseId, tenantId },
+        include: {
+          debtor: true,
+          operator: { select: { id: true, name: true, email: true } },
+          documents: true,
+          debts: { include: { creditor: { select: { name: true } } } },
+          assets: true,
+          libranzas: true,
+          suspendedServices: true,
+          dependents: true,
+          legalProcesses: true,
+          acreedores: true,
+          bienes: true,
+          procesosJudiciales: true,
+          _count: { select: { documents: true } },
+        },
+      });
+
+      if (fullCase?.driveFolderId) {
+        const caseForDocs = fullCase as unknown as CaseWithRelations;
+        const folderId = fullCase.driveFolderId;
+
+        // Choose the correct document generator per phase
+        const generateFn =
+          newPhase === 'Admisión'
+            ? () => generateDocumentsForAdmission(caseForDocs, folderId)
+            : newPhase === 'Acuerdo aprobado'
+              ? () => generateDocumentsForAgreement(caseForDocs, folderId)
+              : () =>
+                  generateDocumentsForFailure(
+                    caseForDocs,
+                    folderId,
+                    fullCase.failureType ?? 'general',
+                  );
+
+        // Generate documents in background
+        generateFn()
+          .then(async (documents) => {
+            for (const doc of documents) {
+              if (doc.status === 'success' && doc.googleDriveId) {
+                await prisma.document.create({
+                  data: {
+                    name: doc.templateName,
+                    type: 'generated',
+                    status: 'completed',
+                    url: doc.googleDriveUrl,
+                    caseId,
+                    tenantId,
+                    googleDriveId: doc.googleDriveId,
+                    fileName: doc.fileName,
+                    mimeType: 'application/pdf',
+                    isGenerated: true,
+                  },
+                });
+              }
+            }
+            console.log(
+              `[Phase → ${newPhase}] Generated ${documents.length} documents for case ${existingCase.caseNumber}`,
+            );
+          })
+          .catch((err) => {
+            console.error(
+              `[Phase → ${newPhase}] Error generating documents for case ${existingCase.caseNumber}:`,
+              err,
+            );
+          });
+      }
+    }
+
+    // Auto-generate payment schedule when entering Post-acuerdo
+    if (newPhase === 'Post-acuerdo') {
+      generatePaymentSchedule(caseId)
+        .then((result) => {
+          if (result.success) {
+            console.log(
+              `[Phase → Post-acuerdo] Payment schedule generated for case ${existingCase.caseNumber}`,
+            );
+          }
+        })
+        .catch((err) => {
+          console.error(
+            `[Phase → Post-acuerdo] Error generating payment schedule for case ${existingCase.caseNumber}:`,
+            err,
+          );
+        });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating case phase:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al actualizar la fase del caso',
     };
   }
 }

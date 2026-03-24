@@ -24,6 +24,7 @@ export const notificationSchema = z.object({
   userId: z.string(),
   caseId: z.string().nullable(),
   relatedId: z.string().nullable(),
+  read: z.boolean().default(false),
   createdDate: z.date(),
 });
 

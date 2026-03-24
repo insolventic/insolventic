@@ -415,36 +415,38 @@ export function CreditorDetailsDialog({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID Caso</TableHead>
-                        <TableHead>Deudor</TableHead>
-                        <TableHead>Monto</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead>Fecha</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentCases.map((case_) => (
-                        <TableRow key={case_.id}>
-                          <TableCell className="font-medium">
-                            {case_.id}
-                          </TableCell>
-                          <TableCell>{case_.debtorName}</TableCell>
-                          <TableCell>
-                            ${case_.totalDebt.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{case_.status}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {case_.createdDate.toLocaleDateString('es-CO')}
-                          </TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID Caso</TableHead>
+                          <TableHead>Deudor</TableHead>
+                          <TableHead>Monto</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Fecha</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {recentCases.map((case_) => (
+                          <TableRow key={case_.id}>
+                            <TableCell className="font-medium">
+                              {case_.id}
+                            </TableCell>
+                            <TableCell>{case_.debtorName}</TableCell>
+                            <TableCell>
+                              ${case_.totalDebt.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{case_.status}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              {case_.createdDate.toLocaleDateString('es-CO')}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -458,26 +460,28 @@ export function CreditorDetailsDialog({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead>Acción</TableHead>
-                        <TableHead>Usuario</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {activityLog.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell>
-                            {log.timestamp.toLocaleDateString('es-CO')}
-                          </TableCell>
-                          <TableCell>{log.action}</TableCell>
-                          <TableCell>{log.userName}</TableCell>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Acción</TableHead>
+                          <TableHead>Usuario</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {activityLog.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              {log.timestamp.toLocaleDateString('es-CO')}
+                            </TableCell>
+                            <TableCell>{log.action}</TableCell>
+                            <TableCell>{log.userName}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

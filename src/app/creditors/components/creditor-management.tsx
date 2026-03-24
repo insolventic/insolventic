@@ -12,6 +12,7 @@ import {
   Download,
   Trash2,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -52,7 +53,10 @@ interface CreditorManagementProps {
 export function CreditorManagement({
   creditors,
 }: Readonly<CreditorManagementProps>) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get('search') ?? '',
+  );
   const [typeFilter, setTypeFilter] = useState('all');
   const [viewingCreditor, setViewingCreditor] = useState<Creditor | null>(null);
   const [editingCreditor, setEditingCreditor] = useState<Creditor | null>(null);

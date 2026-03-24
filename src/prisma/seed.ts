@@ -164,6 +164,18 @@ async function createPermissions(prisma: PrismaClient, tenantId: string) {
       name: 'Ver casos como cliente',
       category: 'Casos',
     },
+    {
+      name: 'Ver auditoría',
+      category: 'Auditoría',
+    },
+    {
+      name: 'Ver calendario',
+      category: 'Calendario',
+    },
+    {
+      name: 'Ver reportes',
+      category: 'Reportes',
+    },
   ];
 
   const createdPermissions = [];
@@ -243,6 +255,9 @@ async function createRoles(
     'Ver notificaciones',
     'Editar notificaciones',
     'Gestionar notificaciones',
+    'Ver auditoría',
+    'Ver calendario',
+    'Ver reportes',
   ];
 
   for (const permissionName of adminPermissions) {

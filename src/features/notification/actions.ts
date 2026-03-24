@@ -168,6 +168,85 @@ export async function deleteNotification(
   }
 }
 
+export async function getUnreadCount(): Promise<{
+  success: boolean;
+  data?: number;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+    const count = await prisma.notification.count({
+      where: { userId: user.id, tenantId, read: false },
+    });
+    return { success: true, data: count };
+  } catch {
+    return { success: true, data: 0 };
+  }
+}
+
+export async function markAsRead(notificationId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    const notification = await prisma.notification.findUnique({
+      where: { id: notificationId, tenantId },
+    });
+
+    if (!notification || notification.userId !== user.id) {
+      return { success: false, error: 'Notificación no encontrada' };
+    }
+
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { read: true },
+    });
+
+    revalidatePath('/notifications');
+    revalidatePath('/dashboard');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al marcar notificación como leída',
+    };
+  }
+}
+
+export async function markAllAsRead(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    await prisma.notification.updateMany({
+      where: { userId: user.id, tenantId, read: false },
+      data: { read: true },
+    });
+
+    revalidatePath('/notifications');
+    revalidatePath('/dashboard');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al marcar notificaciones como leídas',
+    };
+  }
+}
+
 export async function getNotificationStats(
   input: z.infer<typeof getNotificationStatsInputSchema> = {},
 ): Promise<{

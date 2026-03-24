@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
+import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
 import {
   generateInitialDocuments,
   generateAdmissionDocuments,
@@ -192,8 +193,33 @@ export function DocumentsSection({
     }
   };
 
+  const phaseDocumentHint = (() => {
+    const phase = caseData.phase ?? 'Inicial';
+    if (['Inicial'].includes(phase))
+      return 'Genere los documentos iniciales para esta fase.';
+    if (['Admisión'].includes(phase))
+      return 'Genere los documentos de admisión para avanzar.';
+    if (['En negociación', 'Audiencia programada'].includes(phase))
+      return 'Documentos de negociación y audiencia disponibles.';
+    if (['Acuerdo aprobado', 'Post-acuerdo'].includes(phase))
+      return 'Genere los documentos del acuerdo.';
+    if (['Fracaso'].includes(phase)) return 'Genere los documentos de fracaso.';
+    return 'Documentos del caso.';
+  })();
+
   return (
     <div className="space-y-6">
+      {/* Phase context indicator */}
+      <div className="bg-muted/50 flex items-center gap-2 rounded-lg p-3">
+        <span className="text-muted-foreground text-sm">Fase actual:</span>
+        <Badge className={getPhaseBadgeClass(caseData.phase)}>
+          {getPhaseLabel(caseData.phase)}
+        </Badge>
+        <span className="text-muted-foreground text-sm">
+          {phaseDocumentHint}
+        </span>
+      </div>
+
       {/* Estado actual */}
       <Card>
         <CardHeader>

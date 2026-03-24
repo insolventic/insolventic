@@ -179,7 +179,7 @@ export function CreditorsSection({
             </p>
           </div>
         ) : (
-          <div className="mt-4 rounded-md border">
+          <div className="mt-4 overflow-x-auto rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -2,8 +2,11 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { verifyToken } from '@/lib/auth';
+import { getDashboardStats } from '@/features/case/actions';
 
 import { DashboardHeader } from './components/dashboard-header';
+import { DashboardCharts } from './components/dashboard-charts';
+import { DashboardStatsCards } from './components/dashboard-stats';
 import { NotificationPanel } from './components/notification-panel';
 import { RecentCases } from './components/recent-cases';
 import { TaskSelector } from './components/task-selector';
@@ -22,6 +25,9 @@ export default async function DashboardPage() {
     redirect('/login?redirect=/dashboard');
   }
 
+  // Fetch dashboard stats server-side
+  const statsResult = await getDashboardStats();
+
   return (
     <div className="bg-background min-h-screen">
       <DashboardHeader />
@@ -29,6 +35,12 @@ export default async function DashboardPage() {
       <main className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="space-y-6 lg:col-span-3">
+            {statsResult.success && statsResult.data && (
+              <>
+                <DashboardStatsCards stats={statsResult.data} />
+                <DashboardCharts stats={statsResult.data} />
+              </>
+            )}
             <TaskSelector />
             <RecentCases />
           </div>

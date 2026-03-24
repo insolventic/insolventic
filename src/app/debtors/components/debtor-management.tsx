@@ -11,6 +11,7 @@ import {
   Mail,
   Phone,
 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -48,7 +49,10 @@ interface DebtorManagementProps {
 }
 
 export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const searchParams = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get('search') ?? '',
+  );
   const [occupationFilter, setOccupationFilter] = useState('all');
 
   const { checkPermission } = useAuth();

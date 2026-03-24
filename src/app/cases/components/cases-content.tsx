@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -26,6 +27,7 @@ import { CaseTable } from './case-table';
 import { CreateCaseDialog } from './create-case-dialog';
 import { DeleteCaseDialog } from './delete-case-dialog';
 import { EditCaseDialog } from './edit-case-dialog';
+import { PhaseTransitionDialog } from './phase-transition-dialog';
 
 import type {
   Case,
@@ -39,6 +41,7 @@ interface CasesContentProps {
 }
 
 export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
+  const searchParams = useSearchParams();
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [selectedCaseWithRelations, setSelectedCaseWithRelations] =
     useState<CaseWithRelations | null>(null);
@@ -46,7 +49,11 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [showPhaseDialog, setShowPhaseDialog] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(
+    searchParams.get('search') ?? '',
+  );
+  const [selectedPhase, setSelectedPhase] = useState('all');
 
   const { checkPermission } = useAuth();
   const canCreateCases = checkPermission(P.CREAR_CASOS);
@@ -57,7 +64,10 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
       caseItem.debtorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       caseItem.caseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       caseItem.debtor.idNumber.includes(searchTerm);
-    return matchesSearch;
+    const matchesPhase =
+      selectedPhase === 'all' ||
+      (caseItem.phase ?? 'Inicial') === selectedPhase;
+    return matchesSearch && matchesPhase;
   });
 
   const openCaseDetails = async (caseItem: Case) => {
@@ -88,6 +98,11 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   const deleteCase = (caseItem: Case) => {
     setSelectedCase(caseItem);
     setShowDeleteDialog(true);
+  };
+
+  const changePhase = (caseItem: Case) => {
+    setSelectedCase(caseItem);
+    setShowPhaseDialog(true);
   };
 
   const handleCreateDialogChange = (open: boolean) => {
@@ -164,6 +179,8 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
                 <CaseFilters
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
+                  selectedPhase={selectedPhase}
+                  onPhaseChange={setSelectedPhase}
                 />
               </div>
             </CardHeader>
@@ -173,6 +190,7 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
                 onViewDetails={openCaseDetails}
                 onEdit={editCase}
                 onDelete={deleteCase}
+                onChangePhase={changePhase}
               />
             </CardContent>
           </Card>
@@ -209,6 +227,16 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
           open={showDeleteDialog}
           onOpenChange={handleDeleteDialogChange}
           onCaseDeleted={handleCaseDeleted}
+        />
+      )}
+
+      {selectedCase && (
+        <PhaseTransitionDialog
+          open={showPhaseDialog}
+          onOpenChange={setShowPhaseDialog}
+          caseId={selectedCase.id}
+          caseNumber={selectedCase.caseNumber}
+          currentPhase={selectedCase.phase}
         />
       )}
     </div>

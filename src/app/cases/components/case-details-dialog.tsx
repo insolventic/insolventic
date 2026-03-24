@@ -9,6 +9,12 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+import { Badge } from '@/components/ui/badge';
+import {
+  CASE_PHASES,
+  getPhaseBadgeClass,
+  getPhaseOrder,
+} from '@/lib/case-phases';
 import type { CaseWithRelations } from '@/features/case/schemas';
 
 import { DebtorInfoSection } from './case-details-dialog/debtor-info-section';
@@ -20,6 +26,8 @@ import { IncomeSection } from './case-details-dialog/income-section';
 import { PaymentSection } from './case-details-dialog/payment-section';
 import { LegalFoundationsSection } from './case-details-dialog/legal-foundations-section';
 import { DocumentsSection } from './case-details-dialog/documents-section';
+import { PaymentTrackingSection } from './case-details-dialog/payment-tracking-section';
+import { ActivitySection } from './case-details-dialog/activity-section';
 import { DefinitivoSection } from './case-details-dialog/definitivo-section';
 
 interface CaseDetailsDialogProps {
@@ -62,6 +70,36 @@ export function CaseDetailsDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Phase stepper */}
+        <div className="flex flex-wrap items-center gap-1 border-b pb-3">
+          {CASE_PHASES.map((phase, idx) => {
+            const currentOrder = getPhaseOrder(caseData.phase);
+            const isActive = phase.order === currentOrder;
+            const isPast = phase.order < currentOrder;
+            return (
+              <div key={phase.value} className="flex items-center gap-1">
+                {idx > 0 && (
+                  <div
+                    className={`h-px w-3 ${isPast ? 'bg-primary' : 'bg-muted'}`}
+                  />
+                )}
+                <Badge
+                  variant={isActive ? 'default' : 'outline'}
+                  className={
+                    isActive
+                      ? getPhaseBadgeClass(phase.value)
+                      : isPast
+                        ? 'border-primary/50 text-primary bg-primary/5 text-xs'
+                        : 'text-muted-foreground text-xs opacity-50'
+                  }
+                >
+                  {phase.label}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
+
         <Tabs defaultValue="debtor" className="space-y-4">
           <TabsList className="flex w-full flex-wrap gap-1">
             <TabsTrigger value="debtor">1. Solicitante</TabsTrigger>
@@ -75,6 +113,12 @@ export function CaseDetailsDialog({
             <TabsTrigger value="documents">9. Documentos</TabsTrigger>
             <TabsTrigger value="definitivo" className="text-xs">
               10. Definitivo
+            </TabsTrigger>
+            <TabsTrigger value="payment-tracking" className="text-xs">
+              11. Pagos
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="text-xs">
+              12. Actividad
             </TabsTrigger>
           </TabsList>
 
@@ -116,6 +160,14 @@ export function CaseDetailsDialog({
 
           <TabsContent value="definitivo" className="space-y-4">
             <DefinitivoSection caseData={caseData} />
+          </TabsContent>
+
+          <TabsContent value="payment-tracking" className="space-y-4">
+            <PaymentTrackingSection caseData={caseData} />
+          </TabsContent>
+
+          <TabsContent value="activity" className="space-y-4">
+            <ActivitySection caseData={caseData} />
           </TabsContent>
         </Tabs>
       </DialogContent>

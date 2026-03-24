@@ -42,6 +42,7 @@ model Tenant {
   bienes              Bien[]
   procesosJudiciales  ProcesoJudicial[]
   auditLogs           AuditLog[]
+  payments            Payment[]
 }
 
 model Case {
@@ -287,6 +288,7 @@ model Case {
   acreedores              Acreedor[]
   bienes                  Bien[]
   procesosJudiciales      ProcesoJudicial[]
+  payments                Payment[]
 
   @@unique([caseNumber, tenantId])
 }
@@ -717,6 +719,7 @@ model Notification {
   userId      String
   caseId      String?
   relatedId   String?
+  read        Boolean  @default(false)
   createdDate DateTime @default(now())
   tenantId    String
 
@@ -724,6 +727,7 @@ model Notification {
   case   Case?  @relation(fields: [caseId], references: [id], onDelete: Cascade)
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
+  @@index([userId, read])
   @@map("notifications")
 }
 
@@ -799,4 +803,22 @@ model Dependent {
   tenantId     String
   case         Case   @relation(fields: [caseId], references: [id])
   tenant       Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  caseId        String
+  amount        Decimal
+  dueDate       DateTime
+  paidDate      DateTime?
+  status        String    @default("pendiente") // pendiente, pagado, vencido
+  paymentNumber Int
+  tenantId      String
+  createdAt     DateTime  @default(now())
+  case          Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+
+  @@index([caseId])
+  @@index([tenantId, status])
+  @@map("payments")
 }

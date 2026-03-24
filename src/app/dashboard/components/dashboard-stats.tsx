@@ -1,76 +1,132 @@
+'use client';
+
 import {
   FileText,
   Users,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
+  Calendar,
   TrendingUp,
+  DollarSign,
+  BarChart3,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { getPhaseBadgeClass } from '@/lib/case-phases';
+import type { DashboardStats } from '@/features/case/schemas';
 
-export function DashboardStats() {
-  const stats = [
+interface DashboardStatsProps {
+  stats: DashboardStats;
+}
+
+export function DashboardStatsCards({ stats }: Readonly<DashboardStatsProps>) {
+  const formatCurrency = (value: number | null) => {
+    if (value === null || value === undefined) return '$0';
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const cards = [
     {
-      title: 'Casos de Insolvencia Activos',
-      value: '24',
-      change: '+3 nuevos este mes',
+      title: 'Total Casos',
+      value: stats.totalCases.toString(),
+      subtitle: `${stats.casesByType.length} tipos diferentes`,
       icon: FileText,
       color: 'text-primary',
     },
     {
-      title: 'Acreedores Registrados',
-      value: '156',
-      change: '+12 registros nuevos',
-      icon: Users,
-      color: 'text-green-600 dark:text-green-400',
-    },
-    {
-      title: 'Documentos Pendientes',
-      value: '8',
-      change: 'Requieren revisión urgente',
-      icon: Clock,
-      color: 'text-orange-600',
-    },
-    {
-      title: 'Casos Resueltos',
-      value: '42',
-      change: '+5 finalizados esta semana',
-      icon: CheckCircle,
-      color: 'text-emerald-600',
-    },
-    {
-      title: 'Audiencias Programadas Hoy',
-      value: '3',
-      change: 'Próximas en 2 horas',
-      icon: AlertTriangle,
-      color: 'text-red-600',
-    },
-    {
-      title: 'Eficiencia en Resolución',
-      value: '94%',
-      change: 'Casos resueltos a tiempo (+2%)',
+      title: 'Casos este Mes',
+      value: stats.casesThisMonth.toString(),
+      subtitle: 'Nuevos casos ingresados',
       icon: TrendingUp,
-      color: 'text-purple-600',
+      color: 'text-emerald-600 dark:text-emerald-400',
     },
+    {
+      title: 'Audiencias Próximas',
+      value: stats.upcomingHearings.toString(),
+      subtitle: 'En los próximos 7 días',
+      icon: Calendar,
+      color: 'text-violet-600 dark:text-violet-400',
+    },
+    {
+      title: 'Deuda Total',
+      value: formatCurrency(stats.totalDebt),
+      subtitle: 'Suma de todos los casos',
+      icon: DollarSign,
+      color: 'text-orange-600 dark:text-orange-400',
+    },
+    {
+      title: 'Acreedores Totales',
+      value: (stats.totalCreditors ?? 0).toString(),
+      subtitle: 'Registrados en casos',
+      icon: Users,
+      color: 'text-blue-600 dark:text-blue-400',
+    },
+    ...(stats.overduePayments > 0
+      ? [
+          {
+            title: 'Pagos Vencidos',
+            value: stats.overduePayments.toString(),
+            subtitle: 'Cuotas sin pagar',
+            icon: AlertTriangle,
+            color: 'text-red-600 dark:text-red-400',
+          },
+        ]
+      : []),
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {stats.map((stat, index) => (
-        <Card key={index} className="border">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-muted-foreground text-sm font-medium">
-              {stat.title}
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {cards.map((card, index) => (
+          <Card key={index} className="border">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-muted-foreground text-sm font-medium">
+                {card.title}
+              </CardTitle>
+              <card.icon className={`h-4 w-4 shrink-0 ${card.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div
+                className="truncate text-xl font-bold sm:text-2xl"
+                title={card.value}
+              >
+                {card.value}
+              </div>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {card.subtitle}
+              </p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {stats.casesByPhase.length > 0 && (
+        <Card className="border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Casos por Fase
             </CardTitle>
-            <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            <BarChart3 className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="text-muted-foreground mt-1 text-xs">{stat.change}</p>
+            <div className="flex flex-wrap gap-2">
+              {stats.casesByPhase.map((item) => (
+                <Badge
+                  key={item.phase}
+                  className={`${getPhaseBadgeClass(item.phase)} text-xs`}
+                >
+                  {item.phase}: {item.count}
+                </Badge>
+              ))}
+            </div>
           </CardContent>
         </Card>
-      ))}
+      )}
     </div>
   );
 }

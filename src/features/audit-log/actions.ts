@@ -106,6 +106,7 @@ const getAuditLogsInputSchema = z.object({
   page: z.number().min(1).default(1),
   pageSize: z.number().min(1).max(100).default(20),
   entityType: z.string().optional(),
+  entityId: z.string().optional(),
   action: z.string().optional(),
   userId: z.string().optional(),
   search: z.string().optional(),
@@ -133,6 +134,7 @@ export async function getAuditLogs(
       page,
       pageSize,
       entityType,
+      entityId,
       action,
       userId,
       search,
@@ -143,6 +145,7 @@ export async function getAuditLogs(
     const where: Record<string, unknown> = { tenantId };
 
     if (entityType) where.entityType = entityType;
+    if (entityId) where.entityId = entityId;
     if (action) where.action = action;
     if (userId) where.userId = userId;
 
@@ -188,6 +191,7 @@ export async function getAuditLogs(
           userName: log.userName,
           userCedula: log.userCedula,
           description: log.description,
+          metadata: log.metadata as Record<string, string> | null,
           createdAt: log.createdAt.toISOString(),
         })),
         total,
@@ -233,5 +237,103 @@ export async function getAuditLogUsers() {
   } catch (error) {
     console.error('Error getting audit log users:', error);
     return { success: false, error: 'Error al obtener usuarios' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Export: exportAuditLogToExcel
+// ---------------------------------------------------------------------------
+
+export async function exportAuditLogToExcel(
+  input: GetAuditLogsInput = { page: 1, pageSize: 10000 },
+): Promise<{ success: boolean; data?: string; error?: string }> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.VER_AUDITORIA)) {
+      return { success: false, error: 'No tienes permisos para exportar' };
+    }
+
+    const validated = getAuditLogsInputSchema.parse({
+      ...input,
+      page: 1,
+      pageSize: 10000,
+    });
+
+    const where: Record<string, unknown> = { tenantId };
+    if (validated.entityType) where.entityType = validated.entityType;
+    if (validated.action) where.action = validated.action;
+    if (validated.userId) where.userId = validated.userId;
+
+    if (validated.dateFrom || validated.dateTo) {
+      const createdAt: Record<string, Date> = {};
+      if (validated.dateFrom) createdAt.gte = new Date(validated.dateFrom);
+      if (validated.dateTo) {
+        const endDate = new Date(validated.dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        createdAt.lte = endDate;
+      }
+      where.createdAt = createdAt;
+    }
+
+    if (validated.search) {
+      where.OR = [
+        { entityName: { contains: validated.search, mode: 'insensitive' } },
+        { userName: { contains: validated.search, mode: 'insensitive' } },
+        { description: { contains: validated.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const logs = await prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 10000,
+    });
+
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Auditoría');
+
+    sheet.columns = [
+      { header: 'Fecha', key: 'createdAt', width: 20 },
+      { header: 'Acción', key: 'action', width: 12 },
+      { header: 'Entidad', key: 'entityType', width: 12 },
+      { header: 'Nombre Entidad', key: 'entityName', width: 25 },
+      { header: 'Descripción', key: 'description', width: 50 },
+      { header: 'Usuario', key: 'userName', width: 25 },
+      { header: 'Cédula', key: 'userCedula', width: 15 },
+    ];
+
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1F2937' },
+    };
+
+    for (const log of logs) {
+      sheet.addRow({
+        createdAt: log.createdAt.toLocaleString('es-CO'),
+        action: log.action,
+        entityType: log.entityType,
+        entityName: log.entityName,
+        description: log.description,
+        userName: log.userName,
+        userCedula: log.userCedula,
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+
+    return { success: true, data: base64 };
+  } catch (error) {
+    console.error('Error exporting audit log:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Error al exportar auditoría',
+    };
   }
 }

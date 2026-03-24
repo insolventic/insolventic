@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   Bell,
@@ -33,6 +33,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 
 import { ChangePasswordDialog } from '@/components/auth/change-password-dialog';
+import { GlobalSearch } from '@/components/global-search';
+import { getUnreadCount } from '@/features/notification/actions';
 import { DashboardHeaderSkeleton } from './dashboard-header-skeleton';
 
 export function DashboardHeaderClient() {
@@ -42,7 +44,16 @@ export function DashboardHeaderClient() {
     useAuth();
   const { theme, setTheme } = useTheme();
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const isDark = theme === 'dark';
+
+  useEffect(() => {
+    if (user) {
+      getUnreadCount().then((r) => {
+        if (r.success && r.data !== undefined) setUnreadCount(r.data);
+      });
+    }
+  }, [user]);
 
   const getUserInitials = (name: string): string => {
     const nameParts = name.trim().split(' ').filter(Boolean);
@@ -124,6 +135,8 @@ export function DashboardHeaderClient() {
           </Link>
         </div>
 
+        <GlobalSearch />
+
         <div className="flex items-center space-x-6">
           {/* Desktop Layout - Show expanded user info with notifications */}
           <div className="hidden items-center space-x-6 lg:flex">
@@ -134,9 +147,14 @@ export function DashboardHeaderClient() {
               onClick={handleNotificationsClick}
               disabled={!checkPermission(P.VER_NOTIFICACIONES)}
               aria-label="Notificaciones"
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground relative"
             >
               <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Button>
 
             {/* User Info Section with Dropdown - Better grouped */}
@@ -213,9 +231,14 @@ export function DashboardHeaderClient() {
               onClick={handleNotificationsClick}
               disabled={!checkPermission(P.VER_NOTIFICACIONES)}
               aria-label="Notificaciones"
-              className="text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground relative"
             >
               <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Button>
 
             <DropdownMenu>

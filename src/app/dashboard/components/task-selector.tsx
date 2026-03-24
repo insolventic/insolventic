@@ -7,6 +7,8 @@ import {
   Building,
   FileSearch,
   Shield,
+  Calendar,
+  BarChart3,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -42,7 +44,7 @@ export function TaskSelector() {
       href: '/cases',
       color: 'bg-primary/10',
       iconColor: 'text-primary',
-      stats: { active: 41, pending: 5, total: 46 },
+
       permission: P.VER_CASOS,
       helpText:
         'Administra los procesos de insolvencia, crea nuevos casos, consulta su estado y realiza el seguimiento completo de cada expediente.',
@@ -55,7 +57,7 @@ export function TaskSelector() {
       href: '/users',
       color: 'bg-purple-100',
       iconColor: 'text-purple-600',
-      stats: { total: 4, active: 3 },
+
       permission: P.VER_USUARIOS,
       helpText:
         'Crea usuarios, asigna roles y controla los permisos de acceso dentro del sistema según su función.',
@@ -68,7 +70,7 @@ export function TaskSelector() {
       href: '/creditors',
       color: 'bg-green-100',
       iconColor: 'text-green-600 dark:text-green-400',
-      stats: { total: 4, active: 3 },
+
       permission: P.VER_ACREEDORES,
       helpText:
         'Registra y administra la información de los acreedores asociados a cada caso de insolvencia.',
@@ -94,7 +96,7 @@ export function TaskSelector() {
       href: '/documents',
       color: 'bg-red-100',
       iconColor: 'text-red-600',
-      stats: { total: 156, recent: 12 },
+
       permission: P.VER_DOCUMENTOS,
       helpText:
         'Genera, consulta y administra los documentos legales asociados a cada proceso de insolvencia.',
@@ -107,10 +109,34 @@ export function TaskSelector() {
       href: '/notifications',
       color: 'bg-yellow-100',
       iconColor: 'text-yellow-600',
-      stats: { unread: 7, total: 45 },
+
       permission: P.VER_NOTIFICACIONES,
       helpText:
         'Recibe alertas y notificaciones importantes sobre cambios, eventos y estados de los casos.',
+    },
+    {
+      id: 10,
+      title: 'Calendario',
+      description: 'Calendario de audiencias programadas',
+      icon: Calendar,
+      href: '/calendar',
+      color: 'bg-cyan-100',
+      iconColor: 'text-cyan-600 dark:text-cyan-400',
+      permission: P.VER_CALENDARIO,
+      helpText:
+        'Visualice las audiencias programadas en un calendario mensual con acceso directo a los casos y enlaces de Zoom.',
+    },
+    {
+      id: 11,
+      title: 'Reportes',
+      description: 'Reportes y exportación de datos',
+      icon: BarChart3,
+      href: '/reports',
+      color: 'bg-indigo-100',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      permission: P.VER_REPORTES,
+      helpText:
+        'Genere reportes de estado de casos, financieros y exporte datos a Excel.',
     },
     {
       id: 9,
@@ -120,7 +146,7 @@ export function TaskSelector() {
       href: '/audit-log',
       color: 'bg-slate-100',
       iconColor: 'text-slate-600 dark:text-slate-400',
-      stats: {},
+
       permission: P.VER_AUDITORIA,
       helpText:
         'Consulta el historial inmutable de todas las acciones realizadas en el sistema: quién hizo qué, cuándo y sobre qué entidad.',

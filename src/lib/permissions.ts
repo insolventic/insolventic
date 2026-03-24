@@ -57,6 +57,12 @@ export const P = {
 
   // Auditoría
   VER_AUDITORIA: 'Ver auditoría',
+
+  // Calendario
+  VER_CALENDARIO: 'Ver calendario',
+
+  // Reportes
+  VER_REPORTES: 'Ver reportes',
 } as const;
 
 export type PermissionString = (typeof P)[keyof typeof P];
@@ -169,6 +175,24 @@ export const MODULES = {
     icon: 'Shield',
     gatePermission: P.VER_AUDITORIA,
     permissions: [P.VER_AUDITORIA],
+  },
+  calendar: {
+    key: 'calendar',
+    label: 'Calendario',
+    description: 'Calendario de audiencias programadas',
+    route: '/calendar',
+    icon: 'Calendar',
+    gatePermission: P.VER_CALENDARIO,
+    permissions: [P.VER_CALENDARIO],
+  },
+  reports: {
+    key: 'reports',
+    label: 'Reportes',
+    description: 'Reportes y exportación de datos',
+    route: '/reports',
+    icon: 'BarChart3',
+    gatePermission: P.VER_REPORTES,
+    permissions: [P.VER_REPORTES],
   },
 } as const satisfies Record<string, ModuleDefinition>;
 

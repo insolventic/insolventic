@@ -19,6 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { getAllCases } from '@/features/case/actions';
+import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
 import type { Case } from '@/features/case/schemas';
 
 export function RecentCases() {
@@ -76,7 +77,7 @@ export function RecentCases() {
                 <TableHead>ID Caso</TableHead>
                 <TableHead>Deudor</TableHead>
                 <TableHead>Tipo</TableHead>
-                <TableHead>Estado</TableHead>
+                <TableHead>Fase</TableHead>
                 <TableHead>Monto</TableHead>
                 <TableHead>Acreedores</TableHead>
                 <TableHead>Fecha</TableHead>
@@ -85,13 +86,13 @@ export function RecentCases() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center">
+                  <TableCell colSpan={7} className="py-8 text-center">
                     Cargando casos...
                   </TableCell>
                 </TableRow>
               ) : cases.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-8 text-center">
+                  <TableCell colSpan={7} className="py-8 text-center">
                     No hay casos recientes
                   </TableCell>
                 </TableRow>
@@ -108,8 +109,8 @@ export function RecentCases() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getTypeColor(case_.type)}>
-                        {case_.type}
+                      <Badge className={getPhaseBadgeClass(case_.phase)}>
+                        {getPhaseLabel(case_.phase)}
                       </Badge>
                     </TableCell>
                     <TableCell>

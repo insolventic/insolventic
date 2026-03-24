@@ -17,6 +17,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Download,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ import { DashboardHeader } from '../../dashboard/components/dashboard-header';
 import {
   getAuditLogs,
   getAuditLogUsers,
+  exportAuditLogToExcel,
   type GetAuditLogsInput,
 } from '@/features/audit-log/actions';
 
@@ -189,6 +191,40 @@ export function AuditLogManagement() {
     setCurrentPage(1);
   };
 
+  const handleExport = async () => {
+    try {
+      const result = await exportAuditLogToExcel({
+        page: 1,
+        pageSize: 10000,
+        entityType: entityType !== 'all' ? entityType : undefined,
+        action: action !== 'all' ? action : undefined,
+        userId: userId !== 'all' ? userId : undefined,
+        search: search || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+      });
+      if (result.success && result.data) {
+        const byteCharacters = atob(result.data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `auditoria-${new Date().toISOString().slice(0, 10)}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch {
+      console.error('Error exporting audit log');
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleString('es-CO', {
@@ -316,13 +352,13 @@ export function AuditLogManagement() {
                   onChange={(e) => setDateTo(e.target.value)}
                 />
               </div>
-              <div className="flex items-end">
-                <Button
-                  variant="outline"
-                  onClick={handleClearFilters}
-                  className="w-full"
-                >
+              <div className="flex items-end gap-2">
+                <Button variant="outline" onClick={handleClearFilters}>
                   Limpiar filtros
+                </Button>
+                <Button variant="outline" onClick={handleExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Exportar
                 </Button>
               </div>
             </div>

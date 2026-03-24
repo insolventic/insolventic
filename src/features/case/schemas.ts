@@ -281,7 +281,9 @@ export const acreedorFormSchema = z.object({
   id: z.string().optional(),
   // 5.1 Identificación del acreedor
   acreedorTipo: z.string().optional(),
-  acreedorNombreRazonSocial: z.string().min(1, 'El nombre o razón social es requerido'),
+  acreedorNombreRazonSocial: z
+    .string()
+    .min(1, 'El nombre o razón social es requerido'),
   acreedorTipoIdentificacion: z.string().optional(),
   acreedorIdentificacion: z.string().optional(),
   acreedorDireccion: z.string().optional(),
@@ -926,22 +928,182 @@ export const createCaseSchema = z.object({
   deudorTipoVinculacion: z.string().optional(),
   deudorNombreEmpleador: z.string().optional(),
   deudorNitEmpleador: z.string().optional(),
-  ingresoPrincipalMensual: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  otrosIngresosMensuales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  totalIngresosMensuales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  ingresosVariablesPromedio: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  ingresosNoOperacionales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosVivienda: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosAlimentacion: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosServiciosPublicos: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosTransporte: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosEducacion: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosSalud: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  otrosGastos: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  totalGastosMensuales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  capacidadPagoEstimada: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  patrimonioTotalEstimado: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  pasivoTotalEstimado: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
+  ingresoPrincipalMensual: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  otrosIngresosMensuales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  totalIngresosMensuales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  ingresosVariablesPromedio: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  ingresosNoOperacionales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosVivienda: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosAlimentacion: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosServiciosPublicos: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosTransporte: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosEducacion: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosSalud: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  otrosGastos: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  totalGastosMensuales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  capacidadPagoEstimada: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  patrimonioTotalEstimado: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  pasivoTotalEstimado: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IV: Declaración de Cesación de Pagos
@@ -949,7 +1111,17 @@ export const createCaseSchema = z.object({
   cesacionPagos: z.boolean().optional(),
   fechaCesacionPagos: z.string().optional(),
   numeroAcreedoresActual: z.number().optional(),
-  porcentajePasivoEnMora: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
+  porcentajePasivoEnMora: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
   obligacionesEnMora90Dias: z.boolean().optional(),
   procesosEjecutivosVigentes: z.boolean().optional(),
 
@@ -968,8 +1140,28 @@ export const createCaseSchema = z.object({
   // ============================================================
   propuestaPlazoMeses: z.number().optional(),
   propuestaPeriodicidadPago: z.string().optional(),
-  propuestaTasaInteres: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  propuestaQuitaPromedio: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
+  propuestaTasaInteres: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  propuestaQuitaPromedio: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
   propuestaFechaInicioPago: z.string().optional(),
   propuestaObservaciones: z.string().optional(),
 
@@ -1250,22 +1442,182 @@ export const updateCaseSchema = z.object({
   deudorTipoVinculacion: z.string().optional(),
   deudorNombreEmpleador: z.string().optional(),
   deudorNitEmpleador: z.string().optional(),
-  ingresoPrincipalMensual: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  otrosIngresosMensuales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  totalIngresosMensuales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  ingresosVariablesPromedio: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  ingresosNoOperacionales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosVivienda: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosAlimentacion: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosServiciosPublicos: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosTransporte: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosEducacion: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  gastosSalud: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  otrosGastos: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  totalGastosMensuales: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  capacidadPagoEstimada: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  patrimonioTotalEstimado: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  pasivoTotalEstimado: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
+  ingresoPrincipalMensual: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  otrosIngresosMensuales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  totalIngresosMensuales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  ingresosVariablesPromedio: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  ingresosNoOperacionales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosVivienda: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosAlimentacion: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosServiciosPublicos: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosTransporte: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosEducacion: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  gastosSalud: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  otrosGastos: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  totalGastosMensuales: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  capacidadPagoEstimada: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  patrimonioTotalEstimado: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  pasivoTotalEstimado: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IV: Declaración de Cesación de Pagos
@@ -1273,7 +1625,17 @@ export const updateCaseSchema = z.object({
   cesacionPagos: z.boolean().optional(),
   fechaCesacionPagos: z.string().optional(),
   numeroAcreedoresActual: z.number().optional(),
-  porcentajePasivoEnMora: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
+  porcentajePasivoEnMora: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
   obligacionesEnMora90Dias: z.boolean().optional(),
   procesosEjecutivosVigentes: z.boolean().optional(),
 
@@ -1292,8 +1654,28 @@ export const updateCaseSchema = z.object({
   // ============================================================
   propuestaPlazoMeses: z.number().optional(),
   propuestaPeriodicidadPago: z.string().optional(),
-  propuestaTasaInteres: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
-  propuestaQuitaPromedio: z.union([z.number().min(0).optional(), z.string().transform((val) => val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined).optional()]).optional(),
+  propuestaTasaInteres: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
+  propuestaQuitaPromedio: z
+    .union([
+      z.number().min(0).optional(),
+      z
+        .string()
+        .transform((val) =>
+          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
+        )
+        .optional(),
+    ])
+    .optional(),
   propuestaFechaInicioPago: z.string().optional(),
   propuestaObservaciones: z.string().optional(),
 
@@ -1519,6 +1901,40 @@ export const caseStatsSchema = z.object({
 });
 
 export type CaseStats = z.infer<typeof caseStatsSchema>;
+
+// ---------------------------------------------------------------------------
+// Dashboard Stats Schema
+// ---------------------------------------------------------------------------
+
+export const dashboardStatsSchema = z.object({
+  totalCases: z.coerce.number(),
+  casesThisMonth: z.coerce.number(),
+  upcomingHearings: z.coerce.number(),
+  totalDebt: decimalToNumber.nullable(),
+  totalCreditors: z.coerce.number().nullable(),
+  casesByPhase: z.array(
+    z.object({
+      phase: z.string(),
+      count: z.coerce.number(),
+    }),
+  ),
+  casesByType: z.array(
+    z.object({
+      type: z.string(),
+      count: z.coerce.number(),
+    }),
+  ),
+  casesOverTime: z.array(
+    z.object({
+      month: z.string(),
+      count: z.coerce.number(),
+    }),
+  ),
+  overduePayments: z.coerce.number().default(0),
+});
+
+export type DashboardStats = z.infer<typeof dashboardStatsSchema>;
+
 export const creditorOptionSchema = z.object({
   id: z.string(),
   name: z.string(),

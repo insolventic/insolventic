@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Edit, Trash2 } from 'lucide-react';
+import { Eye, Edit, Trash2, ArrowRightLeft } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
+import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
 
 import type { Case } from '@/features/case/schemas';
 
@@ -24,6 +25,7 @@ interface CaseTableProps {
   onViewDetails: (caseItem: Case) => void;
   onEdit: (caseItem: Case) => void;
   onDelete: (caseItem: Case) => void;
+  onChangePhase?: (caseItem: Case) => void;
   isLoading?: boolean;
 }
 
@@ -32,6 +34,7 @@ export function CaseTable({
   onViewDetails,
   onEdit,
   onDelete,
+  onChangePhase,
   isLoading = false,
 }: Readonly<CaseTableProps>) {
   const { checkPermission } = useAuth();
@@ -72,6 +75,7 @@ export function CaseTable({
               <TableHead>Deudor</TableHead>
               <TableHead>Cédula</TableHead>
               <TableHead>Tipo</TableHead>
+              <TableHead>Fase</TableHead>
               <TableHead>Monto Total</TableHead>
               <TableHead>Acreedores</TableHead>
               <TableHead>Próxima Audiencia</TableHead>
@@ -86,6 +90,9 @@ export function CaseTable({
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-4 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-24" />
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-4 w-24" />
@@ -127,6 +134,7 @@ export function CaseTable({
             <TableHead>Deudor</TableHead>
             <TableHead>Cédula</TableHead>
             <TableHead>Tipo</TableHead>
+            <TableHead>Fase</TableHead>
             <TableHead>Monto Total</TableHead>
             <TableHead>Acreedores</TableHead>
             <TableHead>Próxima Audiencia</TableHead>
@@ -144,6 +152,11 @@ export function CaseTable({
               <TableCell>
                 <Badge className={getTypeColor(caseItem.type)}>
                   {caseItem.type}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge className={getPhaseBadgeClass(caseItem.phase)}>
+                  {getPhaseLabel(caseItem.phase)}
                 </Badge>
               </TableCell>
               <TableCell>{formatCurrency(caseItem.totalDebt)}</TableCell>
@@ -173,6 +186,17 @@ export function CaseTable({
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  {onChangePhase && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onChangePhase(caseItem)}
+                      title="Cambiar fase"
+                      disabled={!canEditCases}
+                    >
+                      <ArrowRightLeft className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"

@@ -14,6 +14,7 @@ interface NotificationItemProps {
   notification: NotificationWithCase;
   variant?: 'dashboard' | 'full';
   className?: string;
+  onMarkRead?: (id: string) => void;
 }
 
 const getNotificationTypeIcon = (type: string) => {
@@ -95,14 +96,23 @@ export function NotificationItem({
   notification,
   variant = 'full',
   className = '',
+  onMarkRead,
 }: Readonly<NotificationItemProps>) {
   const IconComponent = getNotificationTypeIcon(notification.type);
   const colors = getNotificationTypeColor(notification.type);
   const isDashboard = variant === 'dashboard';
+  const isUnread = !notification.read;
+
+  const handleClick = () => {
+    if (isUnread && onMarkRead) {
+      onMarkRead(notification.id);
+    }
+  };
 
   return (
     <div
-      className={`flex items-start ${isDashboard ? 'space-x-3' : 'space-x-4'} bg-card rounded-lg border ${isDashboard ? 'p-3' : 'p-4'} transition-colors ${isDashboard ? 'hover:bg-muted' : 'border-border'} ${className}`}
+      onClick={handleClick}
+      className={`flex items-start ${isDashboard ? 'space-x-3' : 'space-x-4'} bg-card rounded-lg border ${isDashboard ? 'p-3' : 'p-4'} transition-colors ${isDashboard ? 'hover:bg-muted' : 'border-border'} ${isUnread ? 'border-primary/30 bg-primary/5' : 'opacity-75'} ${onMarkRead && isUnread ? 'cursor-pointer' : ''} ${className}`}
     >
       <div className="shrink-0">
         <div

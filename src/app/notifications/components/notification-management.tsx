@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
+import { CheckCheck, ChevronLeft, ChevronRight, Inbox } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +16,8 @@ import { NotificationItem } from '@/components/notifications/notification-item';
 import {
   getNotifications,
   getNotificationStats,
+  markAsRead,
+  markAllAsRead,
 } from '@/features/notification/actions';
 import { NotificationWithCase } from '@/features/notification/schemas';
 
@@ -104,6 +106,26 @@ export function NotificationManagement() {
     return pages;
   };
 
+  const handleMarkRead = async (id: string) => {
+    const result = await markAsRead(id);
+    if (result.success) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+      );
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    const result = await markAllAsRead();
+    if (result.success) {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      toast.success('Todas las notificaciones marcadas como leídas');
+    } else {
+      toast.error(result.error || 'Error al marcar notificaciones');
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
   const rangeStart = (currentPage - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(currentPage * PAGE_SIZE, total);
 
@@ -122,6 +144,12 @@ export function NotificationManagement() {
                 Gestione alertas y notificaciones del sistema
               </p>
             </div>
+            {unreadCount > 0 && (
+              <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
+                <CheckCheck className="mr-2 h-4 w-4" />
+                Marcar todas como leídas
+              </Button>
+            )}
           </div>
 
           <Card>
@@ -152,6 +180,7 @@ export function NotificationManagement() {
                         key={notification.id}
                         notification={notification}
                         variant="full"
+                        onMarkRead={handleMarkRead}
                       />
                     ))}
                   </div>
