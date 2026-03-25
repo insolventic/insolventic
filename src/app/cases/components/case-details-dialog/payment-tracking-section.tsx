@@ -1,11 +1,35 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { CheckCircle, Clock, AlertTriangle, CalendarPlus } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  CalendarPlus,
+  Upload,
+  ExternalLink,
+  Plus,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -14,14 +38,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
 import {
   getPaymentSchedule,
   generatePaymentSchedule,
   markPaymentPaid,
+  registerPayment,
   type Payment,
 } from '@/features/payment/actions';
+import { PAYMENT_METHODS } from '@/features/payment/constants';
 
 interface PaymentTrackingSectionProps {
   caseData: CaseWithRelations;
@@ -51,6 +78,7 @@ function getEffectiveStatus(payment: Payment): keyof typeof STATUS_CONFIG {
   if (payment.status === 'pagado') return 'pagado';
   if (
     payment.status === 'pendiente' &&
+    payment.dueDate &&
     new Date(payment.dueDate) < new Date()
   ) {
     return 'vencido';
@@ -64,8 +92,21 @@ export function PaymentTrackingSection({
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
-  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Payment dialog state
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [isManualPayment, setIsManualPayment] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form fields
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentDate, setPaymentDate] = useState('');
+  const [observations, setObservations] = useState('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadPayments = useCallback(async () => {
     setLoading(true);
@@ -105,11 +146,88 @@ export function PaymentTrackingSection({
     }
   };
 
-  const handleMarkPaid = async (paymentId: string) => {
-    setMarkingPaid(paymentId);
+  const resetForm = () => {
+    setPaymentAmount('');
+    setPaymentMethod('');
+    setPaymentDate('');
+    setObservations('');
+    setReceiptFile(null);
+    setSelectedPayment(null);
+    setIsManualPayment(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const openPayDialog = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsManualPayment(false);
+    setPaymentAmount(payment.amount.toString());
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setShowPaymentDialog(true);
+  };
+
+  const openManualPayDialog = () => {
+    resetForm();
+    setIsManualPayment(true);
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setShowPaymentDialog(true);
+  };
+
+  const readFileAsBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Strip the data URL prefix: "data:...;base64,"
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleSubmitPayment = async () => {
+    setSubmitting(true);
+    setError(null);
     try {
-      const result = await markPaymentPaid(paymentId);
+      let receipt:
+        | { fileName: string; mimeType: string; dataBase64: string }
+        | undefined;
+
+      if (receiptFile) {
+        const dataBase64 = await readFileAsBase64(receiptFile);
+        receipt = {
+          fileName: receiptFile.name,
+          mimeType: receiptFile.type,
+          dataBase64,
+        };
+      }
+
+      let result: { success: boolean; error?: string };
+
+      if (isManualPayment) {
+        result = await registerPayment({
+          caseId: caseData.id,
+          amount: parseFloat(paymentAmount),
+          paymentDate,
+          paymentMethod: paymentMethod || undefined,
+          observations: observations || undefined,
+          receipt,
+        });
+      } else if (selectedPayment) {
+        result = await markPaymentPaid({
+          paymentId: selectedPayment.id,
+          amount: parseFloat(paymentAmount) || undefined,
+          paymentMethod: paymentMethod || undefined,
+          observations: observations || undefined,
+          receipt,
+        });
+      } else {
+        result = { success: false, error: 'No se seleccionó un pago' };
+      }
+
       if (result.success) {
+        setShowPaymentDialog(false);
+        resetForm();
         await loadPayments();
       } else {
         setError(result.error || 'Error al registrar pago');
@@ -117,7 +235,7 @@ export function PaymentTrackingSection({
     } catch {
       setError('Error al registrar pago');
     } finally {
-      setMarkingPaid(null);
+      setSubmitting(false);
     }
   };
 
@@ -129,12 +247,14 @@ export function PaymentTrackingSection({
       maximumFractionDigits: 0,
     }).format(value);
 
-  const formatDate = (date: Date | string) =>
-    new Date(date).toLocaleDateString('es-CO', {
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return '—';
+    return new Date(date).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
+  };
 
   if (loading) {
     return (
@@ -169,14 +289,44 @@ export function PaymentTrackingSection({
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
           )}
-          <Button onClick={handleGenerate} disabled={generating}>
-            <CalendarPlus className="mr-2 h-4 w-4" />
-            {generating ? 'Generando...' : 'Generar Cronograma de Pagos'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={handleGenerate} disabled={generating}>
+              <CalendarPlus className="mr-2 h-4 w-4" />
+              {generating ? 'Generando...' : 'Generar Cronograma de Pagos'}
+            </Button>
+            <Button variant="outline" onClick={openManualPayDialog}>
+              <Plus className="mr-2 h-4 w-4" />
+              Registrar Pago Manual
+            </Button>
+          </div>
           <p className="text-muted-foreground text-xs">
             Se generará basado en la propuesta de pago del caso (plazo,
             periodicidad y fecha de inicio).
           </p>
+
+          {/* Payment Dialog */}
+          <PaymentDialog
+            open={showPaymentDialog}
+            onOpenChange={(open) => {
+              setShowPaymentDialog(open);
+              if (!open) resetForm();
+            }}
+            isManual={isManualPayment}
+            paymentAmount={paymentAmount}
+            setPaymentAmount={setPaymentAmount}
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            paymentDate={paymentDate}
+            setPaymentDate={setPaymentDate}
+            observations={observations}
+            setObservations={setObservations}
+            receiptFile={receiptFile}
+            setReceiptFile={setReceiptFile}
+            fileInputRef={fileInputRef}
+            submitting={submitting}
+            error={error}
+            onSubmit={handleSubmitPayment}
+          />
         </CardContent>
       </Card>
     );
@@ -232,6 +382,14 @@ export function PaymentTrackingSection({
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       )}
 
+      {/* Action bar */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={openManualPayDialog}>
+          <Plus className="mr-1 h-4 w-4" />
+          Registrar Pago Manual
+        </Button>
+      </div>
+
       {/* Payments table */}
       <Card>
         <CardHeader>
@@ -242,11 +400,13 @@ export function PaymentTrackingSection({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">#</TableHead>
+                  <TableHead className="w-12">#</TableHead>
                   <TableHead>Monto</TableHead>
                   <TableHead>Vencimiento</TableHead>
                   <TableHead>Fecha Pago</TableHead>
+                  <TableHead>Método</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Comprobante</TableHead>
                   <TableHead className="w-28">Acción</TableHead>
                 </TableRow>
               </TableHeader>
@@ -258,12 +418,17 @@ export function PaymentTrackingSection({
                   return (
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium">
-                        {payment.paymentNumber}
+                        {payment.paymentNumber ?? '—'}
                       </TableCell>
                       <TableCell>{formatCurrency(payment.amount)}</TableCell>
                       <TableCell>{formatDate(payment.dueDate)}</TableCell>
                       <TableCell>
-                        {payment.paidDate ? formatDate(payment.paidDate) : '—'}
+                        {payment.paymentDate
+                          ? formatDate(payment.paymentDate)
+                          : '—'}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {payment.paymentMethod ?? '—'}
                       </TableCell>
                       <TableCell>
                         <Badge className={config.badgeClass}>
@@ -272,21 +437,31 @@ export function PaymentTrackingSection({
                         </Badge>
                       </TableCell>
                       <TableCell>
+                        {payment.receiptFileUrl ? (
+                          <a
+                            href={payment.receiptFileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary inline-flex items-center gap-1 text-sm hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            Ver
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {effectiveStatus !== 'pagado' && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleMarkPaid(payment.id)}
-                            disabled={markingPaid === payment.id}
+                            onClick={() => openPayDialog(payment)}
                           >
-                            {markingPaid === payment.id ? (
-                              <div className="border-primary h-3 w-3 animate-spin rounded-full border-b-2" />
-                            ) : (
-                              <>
-                                <CheckCircle className="mr-1 h-3 w-3" />
-                                Pagar
-                              </>
-                            )}
+                            <CheckCircle className="mr-1 h-3 w-3" />
+                            Pagar
                           </Button>
                         )}
                       </TableCell>
@@ -298,6 +473,211 @@ export function PaymentTrackingSection({
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        open={showPaymentDialog}
+        onOpenChange={(open) => {
+          setShowPaymentDialog(open);
+          if (!open) resetForm();
+        }}
+        isManual={isManualPayment}
+        paymentAmount={paymentAmount}
+        setPaymentAmount={setPaymentAmount}
+        paymentMethod={paymentMethod}
+        setPaymentMethod={setPaymentMethod}
+        paymentDate={paymentDate}
+        setPaymentDate={setPaymentDate}
+        observations={observations}
+        setObservations={setObservations}
+        receiptFile={receiptFile}
+        setReceiptFile={setReceiptFile}
+        fileInputRef={fileInputRef}
+        submitting={submitting}
+        error={error}
+        onSubmit={handleSubmitPayment}
+      />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Payment Dialog Component
+// ---------------------------------------------------------------------------
+
+function PaymentDialog({
+  open,
+  onOpenChange,
+  isManual,
+  paymentAmount,
+  setPaymentAmount,
+  paymentMethod,
+  setPaymentMethod,
+  paymentDate,
+  setPaymentDate,
+  observations,
+  setObservations,
+  receiptFile,
+  setReceiptFile,
+  fileInputRef,
+  submitting,
+  error,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  isManual: boolean;
+  paymentAmount: string;
+  setPaymentAmount: (v: string) => void;
+  paymentMethod: string;
+  setPaymentMethod: (v: string) => void;
+  paymentDate: string;
+  setPaymentDate: (v: string) => void;
+  observations: string;
+  setObservations: (v: string) => void;
+  receiptFile: File | null;
+  setReceiptFile: (v: File | null) => void;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
+  submitting: boolean;
+  error: string | null;
+  onSubmit: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {isManual ? 'Registrar Pago Manual' : 'Registrar Pago'}
+          </DialogTitle>
+          <DialogDescription>
+            {isManual
+              ? 'Registra un pago no asociado a una cuota programada.'
+              : 'Completa la información del pago.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Monto <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="number"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              placeholder="0"
+              min="0"
+              step="1"
+            />
+          </div>
+
+          {isManual && (
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Fecha de pago <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Método de pago
+            </label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar..." />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_METHODS.map((method) => (
+                  <SelectItem key={method} value={method}>
+                    {method}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Observaciones
+            </label>
+            <Textarea
+              value={observations}
+              onChange={(e) => setObservations(e.target.value)}
+              placeholder="Notas sobre el pago..."
+              rows={2}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Comprobante de pago
+            </label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="mr-1 h-4 w-4" />
+                {receiptFile ? 'Cambiar archivo' : 'Adjuntar comprobante'}
+              </Button>
+              {receiptFile && (
+                <span className="text-muted-foreground max-w-[200px] truncate text-sm">
+                  {receiptFile.name}
+                </span>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    if (file.size > 10 * 1024 * 1024) {
+                      alert('El archivo no puede superar los 10MB');
+                      return;
+                    }
+                    setReceiptFile(file);
+                  }
+                }}
+              />
+            </div>
+            <p className="text-muted-foreground mt-1 text-xs">
+              PDF, JPG o PNG. Máximo 10MB.
+            </p>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={onSubmit}
+            disabled={
+              submitting || !paymentAmount || parseFloat(paymentAmount) <= 0
+            }
+          >
+            {submitting ? 'Registrando...' : 'Registrar Pago'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

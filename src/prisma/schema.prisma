@@ -412,6 +412,7 @@ model Debtor {
   assets           Asset[]
   cases            Case[]
   debts            Debt[]
+  payments         Payment[]
 
   @@unique([idNumber, tenantId])
   @@unique([email, tenantId])
@@ -665,10 +666,11 @@ model User {
   roleId           String
   password         String?
   tenantId         String
-  assignedCases    Case[]
-  role             Role           @relation(fields: [roleId], references: [id])
-  tenant           Tenant         @relation(fields: [tenantId], references: [id])
-  Notification     Notification[]
+  assignedCases      Case[]
+  role               Role           @relation(fields: [roleId], references: [id])
+  tenant             Tenant         @relation(fields: [tenantId], references: [id])
+  Notification       Notification[]
+  registeredPayments Payment[]
 
   @@unique([email, tenantId])
 }
@@ -806,19 +808,32 @@ model Dependent {
 }
 
 model Payment {
-  id            String    @id @default(cuid())
-  caseId        String
-  amount        Decimal
-  dueDate       DateTime
-  paidDate      DateTime?
-  status        String    @default("pendiente") // pendiente, pagado, vencido
-  paymentNumber Int
-  tenantId      String
-  createdAt     DateTime  @default(now())
-  case          Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  id              String    @id @default(cuid())
+  caseId          String
+  debtorId        String
+  tenantId        String
+  amount          Decimal
+  paymentDate     DateTime?
+  dueDate         DateTime?
+  paymentMethod   String?
+  observations    String?   @db.Text
+  registeredById  String?
+  status          String    @default("pendiente") // pendiente, pagado, parcial, vencido
+  receiptFileId   String?
+  receiptFileName String?
+  receiptFileUrl  String?
+  paymentNumber   Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  case         Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  debtor       Debtor  @relation(fields: [debtorId], references: [id])
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  registeredBy User?   @relation(fields: [registeredById], references: [id])
 
   @@index([caseId])
   @@index([tenantId, status])
+  @@index([tenantId, debtorId])
+  @@index([tenantId, paymentDate])
   @@map("payments")
 }

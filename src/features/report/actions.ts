@@ -93,29 +93,34 @@ export async function getCaseStatusReport(
       where.createdDate = createdDate;
     }
 
-    const [byPhase, byType, aggregate, totalCases] = await Promise.all([
-      prisma.case.groupBy({
-        by: ['phase'],
-        where,
-        _count: { id: true },
-        _sum: { totalDebt: true },
-      }),
-      prisma.case.groupBy({
-        by: ['type'],
-        where,
-        _count: { id: true },
-        _sum: { totalDebt: true },
-      }),
-      prisma.case.aggregate({ where, _sum: { totalDebt: true } }),
-      prisma.case.count({ where }),
-    ]);
+    const [byPhase, byType, insolvencyAggregate, totalCases] =
+      await Promise.all([
+        prisma.case.groupBy({
+          by: ['phase'],
+          where,
+          _count: { id: true },
+          _sum: { totalDebt: true },
+        }),
+        prisma.case.groupBy({
+          by: ['type'],
+          where,
+          _count: { id: true },
+          _sum: { totalDebt: true },
+        }),
+        // Only sum debt for Insolvencia cases
+        prisma.case.aggregate({
+          where: { ...where, type: 'INSOLVENCY' },
+          _sum: { totalDebt: true },
+        }),
+        prisma.case.count({ where }),
+      ]);
 
     return {
       success: true,
       data: {
         totalCases,
-        totalAmount: aggregate._sum.totalDebt
-          ? Number(aggregate._sum.totalDebt)
+        totalAmount: insolvencyAggregate._sum.totalDebt
+          ? Number(insolvencyAggregate._sum.totalDebt)
           : 0,
         byPhase: byPhase.map((g) => ({
           phase: g.phase ?? 'Inicial',
@@ -125,10 +130,16 @@ export async function getCaseStatusReport(
         byType: byType.map((g) => {
           const typeName = TYPE_MAP[g.type] ?? g.type;
           const ctx = getTypeContext(typeName);
+          const showMonetary = g.type === 'INSOLVENCY';
           return {
             type: typeName,
             count: g._count.id,
-            amount: g._sum.totalDebt ? Number(g._sum.totalDebt) : 0,
+            amount: showMonetary
+              ? g._sum.totalDebt
+                ? Number(g._sum.totalDebt)
+                : 0
+              : 0,
+            showMonetary,
             monetaryLabel: ctx.monetaryLabel,
             entityLabel: ctx.entityLabel,
             description: ctx.description,

@@ -36,6 +36,7 @@ interface ReportData {
     type: string;
     count: number;
     amount: number;
+    showMonetary: boolean;
     monetaryLabel: string;
     entityLabel: string;
     description: string;
@@ -171,14 +172,16 @@ export function CaseStatusReport() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Monto Total Gestionado</CardTitle>
+            <CardTitle className="text-base">
+              Monto Total (Insolvencia)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="truncate text-2xl font-bold sm:text-3xl">
               {formatCurrency(data.totalAmount)}
             </p>
             <p className="text-muted-foreground text-sm">
-              Suma de montos de todos los servicios
+              Suma de deuda en procesos de insolvencia
             </p>
           </CardContent>
         </Card>
@@ -252,10 +255,18 @@ export function CaseStatusReport() {
                     </TableCell>
                     <TableCell className="text-right">{item.count}</TableCell>
                     <TableCell className="text-right">
-                      <div>{formatCurrency(item.amount)}</div>
-                      <span className="text-muted-foreground text-xs">
-                        {item.monetaryLabel}
-                      </span>
+                      {item.showMonetary ? (
+                        <>
+                          <div>{formatCurrency(item.amount)}</div>
+                          <span className="text-muted-foreground text-xs">
+                            {item.monetaryLabel}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          N/A
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

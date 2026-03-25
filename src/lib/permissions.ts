@@ -63,6 +63,9 @@ export const P = {
 
   // Reportes
   VER_REPORTES: 'Ver reportes',
+
+  // Pagos
+  REGISTRAR_PAGOS: 'Registrar pagos',
 } as const;
 
 export type PermissionString = (typeof P)[keyof typeof P];
@@ -97,6 +100,7 @@ export const MODULES = {
       P.VER_TODOS_CASOS,
       P.VER_CASOS_PROPIOS,
       P.VER_CASOS_CLIENTE,
+      P.REGISTRAR_PAGOS,
     ],
   },
   users: {
