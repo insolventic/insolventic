@@ -35,7 +35,6 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form';
-import { parseCurrencyInput } from '@/lib/utils';
 import { useFormContext } from 'react-hook-form';
 import type { DebtorOption } from '@/features/case/schemas';
 
@@ -236,7 +235,7 @@ export function DebtorSection({
             name="totalDebt"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Deuda Total</FormLabel>
+                <FormLabel>Deuda Total (calculada)</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2">
@@ -247,17 +246,19 @@ export function DebtorSection({
                       value={
                         field.value
                           ? Number(field.value).toLocaleString('es-CO')
-                          : ''
+                          : '0'
                       }
-                      onChange={(e) => {
-                        const value = parseCurrencyInput(e.target.value);
-                        field.onChange(value);
-                      }}
-                      placeholder="0"
-                      className="pl-8"
+                      readOnly
+                      disabled
+                      placeholder="Se calcula de los acreedores"
+                      className="bg-muted cursor-not-allowed pl-8"
                     />
                   </div>
                 </FormControl>
+                <p className="text-muted-foreground text-xs">
+                  Suma automática del capital e intereses de todos los
+                  acreedores
+                </p>
                 <FormMessage />
               </FormItem>
             )}
@@ -287,6 +288,26 @@ export function DebtorSection({
                   </div>
                 ))}
               </div>
+              {field.value?.includes('Otros') && (
+                <div className="mt-3">
+                  <FormField
+                    control={form.control}
+                    name="otherCauseDetail"
+                    render={({ field: otherField }) => (
+                      <FormItem>
+                        <FormLabel>Especifique la otra causa</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Describa la causa de insolvencia"
+                            {...otherField}
+                            value={otherField.value || ''}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
               <FormMessage />
             </FormItem>
           )}

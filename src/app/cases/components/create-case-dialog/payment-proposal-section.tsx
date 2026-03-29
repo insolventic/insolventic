@@ -56,15 +56,22 @@ export function PaymentProposalSection() {
         <h3 className="mb-4 text-lg font-medium">Resumen Financiero</h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="totalDebt">
-              Total Obligaciones a Capital Únicamente
-            </Label>
+            <Label htmlFor="totalDebt">Total Obligaciones (calculado)</Label>
             <Input
               id="totalDebt"
-              type="number"
-              step="0.01"
-              {...form.register('totalDebt')}
+              type="text"
+              value={
+                form.getValues('totalDebt')
+                  ? `$${Number(form.getValues('totalDebt')).toLocaleString('es-CO')}`
+                  : '$0'
+              }
+              readOnly
+              disabled
+              className="bg-muted cursor-not-allowed"
             />
+            <p className="text-muted-foreground text-xs">
+              Suma automática del capital e intereses de todos los acreedores
+            </p>
           </div>
         </div>
       </div>
@@ -76,7 +83,7 @@ export function PaymentProposalSection() {
           control={form.control}
           name="gracePeriodRequested"
           render={({ field }) => (
-            <FormItem className="flex items-center space-x-2 space-y-0">
+            <FormItem className="flex items-center space-y-0 space-x-2">
               <FormControl>
                 <Checkbox
                   id="gracePeriodRequested"
@@ -84,7 +91,10 @@ export function PaymentProposalSection() {
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel htmlFor="gracePeriodRequested" className="cursor-pointer font-normal">
+              <FormLabel
+                htmlFor="gracePeriodRequested"
+                className="cursor-pointer font-normal"
+              >
                 ¿Solicita Período de Gracia?
               </FormLabel>
             </FormItem>
@@ -111,7 +121,7 @@ export function PaymentProposalSection() {
           control={form.control}
           name="paymentInKind"
           render={({ field }) => (
-            <FormItem className="flex items-center space-x-2 space-y-0">
+            <FormItem className="flex items-center space-y-0 space-x-2">
               <FormControl>
                 <Checkbox
                   id="paymentInKind"
@@ -119,7 +129,10 @@ export function PaymentProposalSection() {
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel htmlFor="paymentInKind" className="cursor-pointer font-normal">
+              <FormLabel
+                htmlFor="paymentInKind"
+                className="cursor-pointer font-normal"
+              >
                 ¿Ofrece Dación en Pago?
               </FormLabel>
             </FormItem>
@@ -146,7 +159,7 @@ export function PaymentProposalSection() {
           control={form.control}
           name="assetSaleAuthorized"
           render={({ field }) => (
-            <FormItem className="flex items-center space-x-2 space-y-0">
+            <FormItem className="flex items-center space-y-0 space-x-2">
               <FormControl>
                 <Checkbox
                   id="assetSaleAuthorized"
@@ -154,7 +167,10 @@ export function PaymentProposalSection() {
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel htmlFor="assetSaleAuthorized" className="cursor-pointer font-normal">
+              <FormLabel
+                htmlFor="assetSaleAuthorized"
+                className="cursor-pointer font-normal"
+              >
                 ¿Autoriza Venta de Bien?
               </FormLabel>
             </FormItem>
@@ -179,7 +195,7 @@ export function PaymentProposalSection() {
           control={form.control}
           name="cashFlowPayment"
           render={({ field }) => (
-            <FormItem className="flex items-center space-x-2 space-y-0">
+            <FormItem className="flex items-center space-y-0 space-x-2">
               <FormControl>
                 <Checkbox
                   id="cashFlowPayment"
@@ -187,7 +203,10 @@ export function PaymentProposalSection() {
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel htmlFor="cashFlowPayment" className="cursor-pointer font-normal">
+              <FormLabel
+                htmlFor="cashFlowPayment"
+                className="cursor-pointer font-normal"
+              >
                 ¿Pago con Flujo de Caja?
               </FormLabel>
             </FormItem>
@@ -231,7 +250,7 @@ export function PaymentProposalSection() {
               control={form.control}
               name="extraordinaryPayment"
               render={({ field }) => (
-                <FormItem className="flex items-center space-x-2 space-y-0">
+                <FormItem className="flex items-center space-y-0 space-x-2">
                   <FormControl>
                     <Checkbox
                       id="extraordinaryPayment"
@@ -239,7 +258,10 @@ export function PaymentProposalSection() {
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
-                  <FormLabel htmlFor="extraordinaryPayment" className="cursor-pointer font-normal">
+                  <FormLabel
+                    htmlFor="extraordinaryPayment"
+                    className="cursor-pointer font-normal"
+                  >
                     ¿Cuota Extraordinaria?
                   </FormLabel>
                 </FormItem>
@@ -268,7 +290,7 @@ export function PaymentProposalSection() {
           control={form.control}
           name="capitalReduction"
           render={({ field }) => (
-            <FormItem className="flex items-center space-x-2 space-y-0">
+            <FormItem className="flex items-center space-y-0 space-x-2">
               <FormControl>
                 <Checkbox
                   id="capitalReduction"
@@ -276,7 +298,10 @@ export function PaymentProposalSection() {
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel htmlFor="capitalReduction" className="cursor-pointer font-normal">
+              <FormLabel
+                htmlFor="capitalReduction"
+                className="cursor-pointer font-normal"
+              >
                 ¿Solicita Quitas de Capital?
               </FormLabel>
             </FormItem>
@@ -318,7 +343,7 @@ export function PaymentProposalSection() {
             control={form.control}
             name="forgiveAccruedInterest"
             render={({ field }) => (
-              <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormItem className="flex items-center space-y-0 space-x-2">
                 <FormControl>
                   <Checkbox
                     id="forgiveAccruedInterest"
@@ -326,7 +351,10 @@ export function PaymentProposalSection() {
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormLabel htmlFor="forgiveAccruedInterest" className="cursor-pointer font-normal">
+                <FormLabel
+                  htmlFor="forgiveAccruedInterest"
+                  className="cursor-pointer font-normal"
+                >
                   Condonación Intereses Causados
                 </FormLabel>
               </FormItem>
@@ -336,7 +364,7 @@ export function PaymentProposalSection() {
             control={form.control}
             name="forgiveFutureInterest"
             render={({ field }) => (
-              <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormItem className="flex items-center space-y-0 space-x-2">
                 <FormControl>
                   <Checkbox
                     id="forgiveFutureInterest"
@@ -344,7 +372,10 @@ export function PaymentProposalSection() {
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormLabel htmlFor="forgiveFutureInterest" className="cursor-pointer font-normal">
+                <FormLabel
+                  htmlFor="forgiveFutureInterest"
+                  className="cursor-pointer font-normal"
+                >
                   Condonación Intereses Futuros
                 </FormLabel>
               </FormItem>
@@ -365,7 +396,10 @@ export function PaymentProposalSection() {
                 name={`paymentOrder.${order}`}
                 render={({ field }) => (
                   <FormItem className="space-y-2">
-                    <FormLabel htmlFor={`paymentOrder.${order}`} className="capitalize">
+                    <FormLabel
+                      htmlFor={`paymentOrder.${order}`}
+                      className="capitalize"
+                    >
                       {order} - Valor $:
                     </FormLabel>
                     <FormControl>
@@ -391,7 +425,7 @@ export function PaymentProposalSection() {
           control={form.control}
           name="hasClassPrivileges"
           render={({ field }) => (
-            <FormItem className="flex items-center space-x-2 space-y-0">
+            <FormItem className="flex items-center space-y-0 space-x-2">
               <FormControl>
                 <Checkbox
                   id="hasClassPrivileges"
@@ -399,7 +433,10 @@ export function PaymentProposalSection() {
                   onCheckedChange={field.onChange}
                 />
               </FormControl>
-              <FormLabel htmlFor="hasClassPrivileges" className="cursor-pointer font-normal">
+              <FormLabel
+                htmlFor="hasClassPrivileges"
+                className="cursor-pointer font-normal"
+              >
                 ¿Hay Privilegios entre Clases?
               </FormLabel>
             </FormItem>
@@ -427,7 +464,7 @@ export function PaymentProposalSection() {
             control={form.control}
             name="thirdPartyPaymentAuth"
             render={({ field }) => (
-              <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormItem className="flex items-center space-y-0 space-x-2">
                 <FormControl>
                   <Checkbox
                     id="thirdPartyPaymentAuth"
@@ -435,7 +472,10 @@ export function PaymentProposalSection() {
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormLabel htmlFor="thirdPartyPaymentAuth" className="cursor-pointer font-normal">
+                <FormLabel
+                  htmlFor="thirdPartyPaymentAuth"
+                  className="cursor-pointer font-normal"
+                >
                   Autorización de Pago por Terceros
                 </FormLabel>
               </FormItem>
@@ -445,7 +485,7 @@ export function PaymentProposalSection() {
             control={form.control}
             name="guaranteeSubstitution"
             render={({ field }) => (
-              <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormItem className="flex items-center space-y-0 space-x-2">
                 <FormControl>
                   <Checkbox
                     id="guaranteeSubstitution"
@@ -453,7 +493,10 @@ export function PaymentProposalSection() {
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <FormLabel htmlFor="guaranteeSubstitution" className="cursor-pointer font-normal">
+                <FormLabel
+                  htmlFor="guaranteeSubstitution"
+                  className="cursor-pointer font-normal"
+                >
                   Sustitución o Disminución de Garantías
                 </FormLabel>
               </FormItem>

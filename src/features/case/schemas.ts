@@ -713,6 +713,7 @@ export const createCaseSchema = z.object({
   operatorId: z.string().min(1, 'El operador es requerido'),
   caseNumber: z.string().optional(),
   causes: z.array(z.string()).default([]),
+  otherCauseDetail: z.string().optional(),
 
   tramite: z.string().optional(),
   filingDate: z.string().optional(),

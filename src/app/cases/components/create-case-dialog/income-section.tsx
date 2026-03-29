@@ -1,27 +1,37 @@
 'use client';
 
+import { useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useMemo } from 'react';
+import { FileText } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  FormField,
-  FormItem,
-  FormControl,
-} from '@/components/ui/form';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FormField, FormItem, FormControl } from '@/components/ui/form';
 
 export function IncomeSection() {
   const form = useFormContext();
+  const [showIncomeDeclaration, setShowIncomeDeclaration] = useState(false);
 
   // useWatch es más eficiente que form.watch() porque solo re-renderiza cuando estos campos cambian
-  const monthlyIncome = useWatch({ control: form.control, name: 'monthlyIncome' }) || 0;
-  const otherIncomeAmount = useWatch({ control: form.control, name: 'otherIncomeAmount' }) || 0;
-  const monthlyExpenses = useWatch({ control: form.control, name: 'monthlyExpenses' }) || 0;
+  const monthlyIncome =
+    useWatch({ control: form.control, name: 'monthlyIncome' }) || 0;
+  const otherIncomeAmount =
+    useWatch({ control: form.control, name: 'otherIncomeAmount' }) || 0;
+  const monthlyExpenses =
+    useWatch({ control: form.control, name: 'monthlyExpenses' }) || 0;
 
   // Valores calculados con useMemo - NO usar setValue para valores derivados
-  const totalIncome = useMemo(() => Number(monthlyIncome) + Number(otherIncomeAmount), [monthlyIncome, otherIncomeAmount]);
-  const availableIncome = useMemo(() => totalIncome - Number(monthlyExpenses), [totalIncome, monthlyExpenses]);
+  const totalIncome = useMemo(
+    () => Number(monthlyIncome) + Number(otherIncomeAmount),
+    [monthlyIncome, otherIncomeAmount],
+  );
+  const availableIncome = useMemo(
+    () => totalIncome - Number(monthlyExpenses),
+    [totalIncome, monthlyExpenses],
+  );
 
   return (
     <div className="space-y-6">
@@ -80,7 +90,7 @@ export function IncomeSection() {
             control={form.control}
             name="hasEmployerCertification"
             render={({ field }) => (
-              <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormItem className="flex items-center space-y-0 space-x-2">
                 <FormControl>
                   <Checkbox
                     id="hasEmployerCertification"
@@ -88,13 +98,42 @@ export function IncomeSection() {
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <Label htmlFor="hasEmployerCertification" className="cursor-pointer">
+                <Label
+                  htmlFor="hasEmployerCertification"
+                  className="cursor-pointer"
+                >
                   Certificación de Empleador (Obligatorio si aplica)
                 </Label>
               </FormItem>
             )}
           />
         </div>
+      </div>
+
+      <div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setShowIncomeDeclaration(!showIncomeDeclaration)}
+          className="mb-2"
+        >
+          <FileText className="mr-2 h-4 w-4" />
+          Manifestación de Ingresos
+        </Button>
+        {showIncomeDeclaration && (
+          <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+            <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>MANIFESTACIÓN BAJO JURAMENTO:</strong> Declaro bajo la
+              gravedad del juramento que los ingresos aquí relacionados
+              corresponden a la totalidad de mis ingresos mensuales,
+              provenientes de cualquier fuente lícita, y que no he omitido ni
+              ocultado información alguna sobre mi situación económica real.
+              Esta declaración se realiza en cumplimiento de lo establecido en
+              la Ley 1564 de 2012 y el Decreto 2677 de 2012.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <div>

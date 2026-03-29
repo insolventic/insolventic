@@ -29,8 +29,13 @@ export function LegalFoundationsSection() {
           <Textarea
             id="legalFoundations"
             rows={6}
+            placeholder="Ley 1564 de 2012 (CGP, Arts. 531-576), Ley 2445 de 2025, Decreto 2677 de 2012, Decreto 1069 de 2015."
             {...form.register('legalFoundations')}
           />
+          <p className="text-muted-foreground text-xs">
+            Normativa base: Ley 1564/2012 (CGP), Ley 2445/2025, Decreto
+            2677/2012, Decreto 1069/2015
+          </p>
         </div>
       </div>
     </div>

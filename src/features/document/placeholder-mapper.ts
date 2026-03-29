@@ -36,7 +36,9 @@ function formatDate(date: Date | string | null | undefined): string {
 // Helper to format short date
 function formatShortDate(date: Date | string | null | undefined): string {
   if (!date) return '';
+  if (String(date) === 'DESCONOZCO') return 'Desconoce';
   const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
   return d.toLocaleDateString('es-CO', {
     day: '2-digit',
     month: '2-digit',
@@ -57,10 +59,38 @@ function getDayInWords(date: Date | string | null | undefined): string {
   const d = new Date(date);
   const day = d.getDate();
   const words = [
-    '', 'uno', 'dos', 'tres', 'cuatro', 'cinco', 'seis', 'siete', 'ocho', 'nueve', 'diez',
-    'once', 'doce', 'trece', 'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho',
-    'diecinueve', 'veinte', 'veintiuno', 'veintidos', 'veintitres', 'veinticuatro',
-    'veinticinco', 'veintiseis', 'veintisiete', 'veintiocho', 'veintinueve', 'treinta', 'treinta y uno',
+    '',
+    'uno',
+    'dos',
+    'tres',
+    'cuatro',
+    'cinco',
+    'seis',
+    'siete',
+    'ocho',
+    'nueve',
+    'diez',
+    'once',
+    'doce',
+    'trece',
+    'catorce',
+    'quince',
+    'dieciseis',
+    'diecisiete',
+    'dieciocho',
+    'diecinueve',
+    'veinte',
+    'veintiuno',
+    'veintidos',
+    'veintitres',
+    'veinticuatro',
+    'veinticinco',
+    'veintiseis',
+    'veintisiete',
+    'veintiocho',
+    'veintinueve',
+    'treinta',
+    'treinta y uno',
   ];
   return words[day] || day.toString();
 }
@@ -108,7 +138,10 @@ function getGenderPrefix(name: string): string {
 }
 
 // Map causes to individual placeholders
-function mapCauses(causes: string[]): PlaceholderMap {
+function mapCauses(
+  causes: string[],
+  otherCauseDetail?: string | null,
+): PlaceholderMap {
   const causeLabels = [
     'SOBREENDEUDAMIENTO POR FALTA DE RECURSOS',
     'PERDIDA DE EMPLEO',
@@ -129,15 +162,26 @@ function mapCauses(causes: string[]): PlaceholderMap {
     const causeKey = `CAUSA_${i + 1}`;
     result[causeKey] = causes.includes(causeLabels[i]) ? 'SI' : 'NO';
   }
-  result['CAUSA_12_DETALLE'] = causes.find(c => !causeLabels.includes(c)) || '';
+  result['CAUSA_12_DETALLE'] =
+    otherCauseDetail || causes.find((c) => !causeLabels.includes(c)) || '';
   return result;
 }
 
 // Map applicant scope
 function mapApplicantScope(scope: string[]): PlaceholderMap {
+  const isNonMerchant =
+    scope.includes('PERSONA_NATURAL_NO_COMERCIANTE') ||
+    scope.some((s) => s.toLowerCase().includes('no comerciante'));
+  const isSmallMerchant =
+    scope.includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE') ||
+    scope.some((s) => s.toLowerCase().includes('pequeño comerciante'));
+
   return {
-    APLICACION_NO_COMERCIANTE: scope.includes('PERSONA_NATURAL_NO_COMERCIANTE') ? 'SI' : 'NO',
-    APLICACION_PEQUENA_COMERCIANTE: scope.includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE') ? 'SI' : 'NO',
+    APLICACION_NO_COMERCIANTE: isNonMerchant ? 'SI' : 'NO',
+    APLICACION_PEQUENA_COMERCIANTE: isSmallMerchant ? 'SI' : 'NO',
+    TIPO_SOLICITANTE: isSmallMerchant
+      ? 'Persona Natural Pequeño Comerciante'
+      : 'Persona Natural No Comerciante',
   };
 }
 
@@ -147,7 +191,10 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
 
   // Calculate total for percentages
   const totalDebt = debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-  const totalCapitalAll = debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
+  const totalCapitalAll = debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
 
   // Summary table (up to 11 creditors - CYG template has 11 rows)
   for (let i = 0; i < 11; i++) {
@@ -157,13 +204,17 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
     if (debt) {
       const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
       const interest = Number(debt.interestAmount) || 0;
-      const percentage = totalCapitalAll > 0 ? ((capital / totalCapitalAll) * 100).toFixed(2) : '0.00';
+      const percentage =
+        totalCapitalAll > 0
+          ? ((capital / totalCapitalAll) * 100).toFixed(2)
+          : '0.00';
 
       result[`ACREEDOR_${idx}`] = debt.creditor.name;
       result[`VALOR_${idx}`] = formatCurrency(Number(debt.amount));
       result[`LIBRANZA_${idx}`] = boolToSiNo(debt.hasActiveLibranza);
       result[`CLASE_${idx}`] = debt.creditorClass || '';
-      result[`PORCENTAJE_${idx}`] = debt.percentageOfTotal?.toString() || `${percentage}%`;
+      result[`PORCENTAJE_${idx}`] =
+        debt.percentageOfTotal?.toString() || `${percentage}%`;
       result[`DIAS_${idx}`] = debt.daysOverdue?.toString() || '';
     } else {
       result[`ACREEDOR_${idx}`] = '';
@@ -191,7 +242,10 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
       result[`AC${idx}_CAPITAL`] = formatCurrency(capital);
       result[`AC${idx}_INTERESES`] = formatCurrency(interest);
       result[`AC${idx}_POSTERGADO`] = boolToSiNo(debt.isDeferred);
-      result[`AC${idx}_TASA`] = `${Number(debt.interestRate) || 0}%`;
+      result[`AC${idx}_TASA`] =
+        String(debt.interestRate) === 'DESCONOZCO'
+          ? 'Desconoce'
+          : `${Number(debt.interestRate) || 0}%`;
       result[`AC${idx}_DOCUMENTO`] = debt.documentType || '';
       result[`AC${idx}_FECHA_OTORGAMIENTO`] = formatShortDate(debt.grantDate);
       result[`AC${idx}_FECHA_VENCIMIENTO`] = formatShortDate(debt.dueDate);
@@ -224,8 +278,12 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
   const result: PlaceholderMap = {};
 
   // Separate real estate from personal property
-  const realEstate = assets.filter(a => a.type === 'INMUEBLE' || a.type === 'REAL_ESTATE');
-  const personalProperty = assets.filter(a => a.type !== 'INMUEBLE' && a.type !== 'REAL_ESTATE');
+  const realEstate = assets.filter(
+    (a) => a.type === 'INMUEBLE' || a.type === 'REAL_ESTATE',
+  );
+  const personalProperty = assets.filter(
+    (a) => a.type !== 'INMUEBLE' && a.type !== 'REAL_ESTATE',
+  );
 
   // Map ALL real estate properties (up to 5)
   for (let i = 0; i < 5; i++) {
@@ -233,15 +291,20 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
     const idx = i + 1;
 
     if (immueble) {
-      result[`INMUEBLE_${idx}_TIPO`] = immueble.propertyType || immueble.name || '';
+      result[`INMUEBLE_${idx}_TIPO`] =
+        immueble.propertyType || immueble.name || '';
       result[`INMUEBLE_${idx}_DIRECCION`] = immueble.address || '';
       result[`INMUEBLE_${idx}_MATRICULA`] = immueble.registrationNumber || '';
       result[`INMUEBLE_${idx}_VALOR`] = formatCurrency(immueble.value);
       result[`INMUEBLE_${idx}_GRAVAMEN`] = immueble.encumbrance || '';
       result[`INMUEBLE_${idx}_AFECTACION`] = immueble.affectation || '';
       result[`INMUEBLE_${idx}_MEDIDA`] = immueble.precautionaryMeasure || '';
-      result[`INMUEBLE_${idx}_VIVIENDA_FAMILIAR`] = boolToSiNo(immueble.isFamilyHome);
-      result[`INMUEBLE_${idx}_PATRIMONIO_FAMILIA`] = boolToSiNo(immueble.isInalienablePatrimony);
+      result[`INMUEBLE_${idx}_VIVIENDA_FAMILIAR`] = boolToSiNo(
+        immueble.isFamilyHome,
+      );
+      result[`INMUEBLE_${idx}_PATRIMONIO_FAMILIA`] = boolToSiNo(
+        immueble.isInalienablePatrimony,
+      );
       result[`INMUEBLE_${idx}_DOCUMENTO`] = immueble.proofDocument || '';
     }
   }
@@ -249,15 +312,20 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
   // Keep backward compatibility with single INMUEBLE_ variables
   const firstImmueble = realEstate[0];
   if (firstImmueble) {
-    result['INMUEBLE_TIPO'] = firstImmueble.propertyType || firstImmueble.name || '';
+    result['INMUEBLE_TIPO'] =
+      firstImmueble.propertyType || firstImmueble.name || '';
     result['INMUEBLE_DIRECCION'] = firstImmueble.address || '';
     result['INMUEBLE_MATRICULA'] = firstImmueble.registrationNumber || '';
     result['INMUEBLE_VALOR'] = formatCurrency(firstImmueble.value);
     result['INMUEBLE_GRAVAMEN'] = firstImmueble.encumbrance || '';
     result['INMUEBLE_AFECTACION'] = firstImmueble.affectation || '';
     result['INMUEBLE_MEDIDA'] = firstImmueble.precautionaryMeasure || '';
-    result['INMUEBLE_VIVIENDA_FAMILIAR'] = boolToSiNo(firstImmueble.isFamilyHome);
-    result['INMUEBLE_PATRIMONIO_FAMILIA'] = boolToSiNo(firstImmueble.isInalienablePatrimony);
+    result['INMUEBLE_VIVIENDA_FAMILIAR'] = boolToSiNo(
+      firstImmueble.isFamilyHome,
+    );
+    result['INMUEBLE_PATRIMONIO_FAMILIA'] = boolToSiNo(
+      firstImmueble.isInalienablePatrimony,
+    );
     result['INMUEBLE_DOCUMENTO'] = firstImmueble.proofDocument || '';
   } else {
     result['INMUEBLE_TIPO'] = 'No declara bienes inmuebles';
@@ -274,11 +342,22 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
 
   // Personal property by category - get ALL items, not just first
   const filterAssetsByType = (types: string[]) =>
-    personalProperty.filter(a => types.some(t => a.type?.toLowerCase().includes(t.toLowerCase())));
+    personalProperty.filter((a) =>
+      types.some((t) => a.type?.toLowerCase().includes(t.toLowerCase())),
+    );
 
-  const allElectronics = filterAssetsByType(['electronico', 'electronic', 'electrodomestico']);
+  const allElectronics = filterAssetsByType([
+    'electronico',
+    'electronic',
+    'electrodomestico',
+  ]);
   const allFurniture = filterAssetsByType(['mueble', 'enseres', 'furniture']);
-  const allVehicles = filterAssetsByType(['vehiculo', 'vehicle', 'carro', 'moto']);
+  const allVehicles = filterAssetsByType([
+    'vehiculo',
+    'vehicle',
+    'carro',
+    'moto',
+  ]);
   const allJewelry = filterAssetsByType(['joya', 'jewelry']);
   const allCash = filterAssetsByType(['efectivo', 'cash', 'dinero']);
   const allStocks = filterAssetsByType(['accion', 'stock', 'inversion']);
@@ -287,7 +366,7 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
   // Generate consolidated descriptions for each category
   const formatAssetList = (items: typeof personalProperty) => {
     if (items.length === 0) return 'No declara';
-    return items.map(a => a.description || a.name || a.type).join('; ');
+    return items.map((a) => a.description || a.name || a.type).join('; ');
   };
 
   const sumValues = (items: typeof personalProperty) =>
@@ -296,29 +375,48 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
   // Format vehicles with full details
   const formatVehicleList = (vehicles: typeof personalProperty) => {
     if (vehicles.length === 0) return 'No declara';
-    return vehicles.map(v =>
-      `${v.brand || ''} ${v.model || ''} - Placa: ${v.licensePlate || 'N/A'}`.trim()
-    ).join('; ');
+    return vehicles
+      .map((v) =>
+        `${v.brand || ''} ${v.model || ''} - Placa: ${v.licensePlate || 'N/A'}`.trim(),
+      )
+      .join('; ');
   };
 
   result['MUEBLE_ELECTRONICO_DESC'] = formatAssetList(allElectronics);
-  result['MUEBLE_ELECTRONICO_VALOR'] = allElectronics.length > 0 ? formatCurrency(sumValues(allElectronics)) : 'N/A';
+  result['MUEBLE_ELECTRONICO_VALOR'] =
+    allElectronics.length > 0
+      ? formatCurrency(sumValues(allElectronics))
+      : 'N/A';
   result['MUEBLE_ENSERES_DESC'] = formatAssetList(allFurniture);
-  result['MUEBLE_ENSERES_VALOR'] = allFurniture.length > 0 ? formatCurrency(sumValues(allFurniture)) : 'N/A';
+  result['MUEBLE_ENSERES_VALOR'] =
+    allFurniture.length > 0 ? formatCurrency(sumValues(allFurniture)) : 'N/A';
   result['MUEBLE_VEHICULO_DESC'] = formatVehicleList(allVehicles);
-  result['MUEBLE_VEHICULO_VALOR'] = allVehicles.length > 0 ? formatCurrency(sumValues(allVehicles)) : 'N/A';
+  result['MUEBLE_VEHICULO_VALOR'] =
+    allVehicles.length > 0 ? formatCurrency(sumValues(allVehicles)) : 'N/A';
   result['MUEBLE_JOYAS_DESC'] = formatAssetList(allJewelry);
-  result['MUEBLE_JOYAS_VALOR'] = allJewelry.length > 0 ? formatCurrency(sumValues(allJewelry)) : 'N/A';
+  result['MUEBLE_JOYAS_VALOR'] =
+    allJewelry.length > 0 ? formatCurrency(sumValues(allJewelry)) : 'N/A';
   result['MUEBLE_EFECTIVO_DESC'] = formatAssetList(allCash);
-  result['MUEBLE_EFECTIVO_VALOR'] = allCash.length > 0 ? formatCurrency(sumValues(allCash)) : 'N/A';
+  result['MUEBLE_EFECTIVO_VALOR'] =
+    allCash.length > 0 ? formatCurrency(sumValues(allCash)) : 'N/A';
   result['MUEBLE_ACCIONES_DESC'] = formatAssetList(allStocks);
-  result['MUEBLE_ACCIONES_VALOR'] = allStocks.length > 0 ? formatCurrency(sumValues(allStocks)) : 'N/A';
+  result['MUEBLE_ACCIONES_VALOR'] =
+    allStocks.length > 0 ? formatCurrency(sumValues(allStocks)) : 'N/A';
   result['MUEBLE_CUENTAS_DESC'] = formatAssetList(allReceivables);
-  result['MUEBLE_CUENTAS_VALOR'] = allReceivables.length > 0 ? formatCurrency(sumValues(allReceivables)) : 'N/A';
+  result['MUEBLE_CUENTAS_VALOR'] =
+    allReceivables.length > 0
+      ? formatCurrency(sumValues(allReceivables))
+      : 'N/A';
 
   // Totals
-  const totalRealEstate = realEstate.reduce((sum, a) => sum + (a.value || 0), 0);
-  const totalPersonal = personalProperty.reduce((sum, a) => sum + (a.value || 0), 0);
+  const totalRealEstate = realEstate.reduce(
+    (sum, a) => sum + (a.value || 0),
+    0,
+  );
+  const totalPersonal = personalProperty.reduce(
+    (sum, a) => sum + (a.value || 0),
+    0,
+  );
   result['TOTAL_INMUEBLES'] = formatCurrency(totalRealEstate);
   result['TOTAL_MUEBLES'] = formatCurrency(totalPersonal);
   result['TOTAL_BIENES'] = formatCurrency(totalRealEstate + totalPersonal);
@@ -332,7 +430,9 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
 }
 
 // Map legal processes
-function mapLegalProcesses(processes: CaseWithRelations['legalProcesses']): PlaceholderMap {
+function mapLegalProcesses(
+  processes: CaseWithRelations['legalProcesses'],
+): PlaceholderMap {
   const result: PlaceholderMap = {};
 
   for (let i = 0; i < 5; i++) {
@@ -358,7 +458,9 @@ function mapLegalProcesses(processes: CaseWithRelations['legalProcesses']): Plac
 }
 
 // Map libranzas
-function mapLibranzas(libranzas: CaseWithRelations['libranzas']): PlaceholderMap {
+function mapLibranzas(
+  libranzas: CaseWithRelations['libranzas'],
+): PlaceholderMap {
   const lib = libranzas?.[0];
   return {
     LIBRANZA_PAGADOR: lib?.payerName || 'N/A',
@@ -371,7 +473,9 @@ function mapLibranzas(libranzas: CaseWithRelations['libranzas']): PlaceholderMap
 }
 
 // Map suspended services
-function mapSuspendedServices(services: CaseWithRelations['suspendedServices']): PlaceholderMap {
+function mapSuspendedServices(
+  services: CaseWithRelations['suspendedServices'],
+): PlaceholderMap {
   const svc = services?.[0];
   return {
     SERVICIOS_ACREEDOR: svc?.creditorName || 'N/A',
@@ -384,7 +488,9 @@ function mapSuspendedServices(services: CaseWithRelations['suspendedServices']):
 }
 
 // Map dependents (alimentary obligations)
-function mapDependents(dependents: CaseWithRelations['dependents']): PlaceholderMap {
+function mapDependents(
+  dependents: CaseWithRelations['dependents'],
+): PlaceholderMap {
   const result: PlaceholderMap = {};
 
   for (let i = 0; i < 5; i++) {
@@ -402,25 +508,35 @@ function mapDependents(dependents: CaseWithRelations['dependents']): Placeholder
 // Map check list variables (SI/NO validations)
 function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
   const debtor = caseData.debtor;
-  const totalDebt = caseData.debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  const totalDebt = caseData.debts.reduce(
+    (sum, d) => sum + (Number(d.amount) || 0),
+    0,
+  );
   const SMMLV = 1300000; // Salario mínimo 2025 Colombia
 
   // Calculate total assets value
-  const totalAssets = caseData.assets.reduce((sum, a) => sum + (Number(a.value) || 0), 0);
+  const totalAssets = caseData.assets.reduce(
+    (sum, a) => sum + (Number(a.value) || 0),
+    0,
+  );
 
   const hasCreditors = caseData.debts.length > 0;
   const hasAssets = caseData.assets.length > 0;
-  const hasIncome = (Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0) > 0;
+  const hasIncome =
+    (Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0) > 0;
   const hasCauses = (caseData.causes || []).length > 0;
-  const hasProposal = caseData.paymentTermMonths != null && caseData.paymentTermMonths > 0;
+  const hasProposal =
+    caseData.paymentTermMonths != null && caseData.paymentTermMonths > 0;
   const hasAlimentaryObligations = (caseData.dependents || []).length > 0;
   const hasLegalProcesses = (caseData.legalProcesses || []).length > 0;
-  const isSmallMerchant = (caseData.applicantScope || []).includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE');
+  const isSmallMerchant = (caseData.applicantScope || []).includes(
+    'PERSONA_NATURAL_PEQUENA_COMERCIANTE',
+  );
   const hasSpouse = !!caseData.spouseName;
   const hasAttorney = false; // TODO: Add attorney field to case model
   const moreThan150Creditors = caseData.debts.length > 150;
-  const lessThan40SMMLV = totalDebt < (40 * SMMLV);
-  const moreThan150SMMLV = totalDebt > (150 * SMMLV);
+  const lessThan40SMMLV = totalDebt < 40 * SMMLV;
+  const moreThan150SMMLV = totalDebt > 150 * SMMLV;
 
   return {
     // Check list SI/NO pairs
@@ -466,7 +582,8 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
 // Map certificate of income variables (Certificado de Ingresos)
 function mapIncomeDeclaration(caseData: CaseWithRelations): PlaceholderMap {
   const debtor = caseData.debtor;
-  const monthlyIncome = Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
+  const monthlyIncome =
+    Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
 
   return {
     NOMBRE_DECLARANTE: debtor.name,
@@ -541,22 +658,32 @@ function mapExternalEntities(caseData: CaseWithRelations): PlaceholderMap {
 function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
   // Calculate voting results
   const totalCreditors = caseData.debts.length;
-  const totalDebt = caseData.debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
+  const totalDebt = caseData.debts.reduce(
+    (sum, d) => sum + (Number(d.amount) || 0),
+    0,
+  );
+  const totalCapital = caseData.debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
 
   // Find majority creditor (largest debt)
-  const sortedDebts = [...caseData.debts].sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
+  const sortedDebts = [...caseData.debts].sort(
+    (a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0),
+  );
   const majorityCreditor = sortedDebts[0];
   const majorityCreditorName = majorityCreditor?.creditor?.name || '';
   const majorityCreditorAmount = Number(majorityCreditor?.amount) || 0;
-  const majorityPercentage = totalDebt > 0 ? (majorityCreditorAmount / totalDebt) * 100 : 0;
+  const majorityPercentage =
+    totalDebt > 0 ? (majorityCreditorAmount / totalDebt) * 100 : 0;
 
   // Approval percentage from database or calculate
   const approvalPercentage = caseData.approvalPercentage || 0;
 
   // These would come from actual voting data - placeholders for now
   const negativeVotes = 0;
-  const negativePercentage = totalCreditors > 0 ? (negativeVotes / totalCreditors) * 100 : 0;
+  const negativePercentage =
+    totalCreditors > 0 ? (negativeVotes / totalCreditors) * 100 : 0;
 
   return {
     // Voting results
@@ -578,7 +705,9 @@ function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
     VALOR_PAGO: formatCurrency(Number(caseData.monthlyPaymentAmount) || 0),
 
     // Applicant type
-    TIPO_SOLICITANTE: (caseData.applicantScope || []).includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE')
+    TIPO_SOLICITANTE: (caseData.applicantScope || []).includes(
+      'PERSONA_NATURAL_PEQUENA_COMERCIANTE',
+    )
       ? 'Persona Natural Pequeño Comerciante'
       : 'Persona Natural No Comerciante',
 
@@ -623,13 +752,17 @@ function formatIdNumber(idNumber: string): string {
 // Map fracaso (failure) specific variables
 function mapFracasoVariables(caseData: CaseWithRelations): PlaceholderMap {
   // Failure date - now comes from database field
-  const failureDate = caseData.failureDate ? new Date(caseData.failureDate) : null;
+  const failureDate = caseData.failureDate
+    ? new Date(caseData.failureDate)
+    : null;
   const firstProcess = caseData.legalProcesses?.[0];
 
   // Get bilateral creditor - if isBilateral is true, use bilateralCreditorId to find creditor name
   let bilateralCreditorName = '';
   if (caseData.isBilateral && caseData.bilateralCreditorId) {
-    const bilateralDebt = caseData.debts?.find(d => d.creditorId === caseData.bilateralCreditorId);
+    const bilateralDebt = caseData.debts?.find(
+      (d) => d.creditorId === caseData.bilateralCreditorId,
+    );
     bilateralCreditorName = bilateralDebt?.creditor?.name || '';
   }
   // Fallback to first creditor if no bilateral creditor specified
@@ -650,7 +783,8 @@ function mapFracasoVariables(caseData: CaseWithRelations): PlaceholderMap {
     NUMERO_JUZGADO_FINAL: firstProcess?.fileNumber || '____',
 
     // Acuerdo bilateral - Ahora viene de la BD
-    NOMBRE_ACREEDOR_BILATERAL: bilateralCreditorName || '________________________________',
+    NOMBRE_ACREEDOR_BILATERAL:
+      bilateralCreditorName || '________________________________',
     RADICADO_BILATERAL: caseData.bilateralAgreementNumber || '________________',
     ANO_BILATERAL: getYear(new Date()),
     ES_BILATERAL: caseData.isBilateral ? 'SI' : 'NO',
@@ -684,20 +818,32 @@ function mapAcreedoresDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
       result[`acr_${idx}_telefono`] = a.acreedorTelefono || '';
       result[`acr_${idx}_tipo_obligacion`] = a.tipoObligacion || '';
       result[`acr_${idx}_numero_obligacion`] = a.numeroObligacion || '';
-      result[`acr_${idx}_fecha_otorgamiento`] = a.fechaOtorgamiento ? formatShortDate(a.fechaOtorgamiento) : '';
-      result[`acr_${idx}_fecha_vencimiento`] = a.fechaVencimiento ? formatShortDate(a.fechaVencimiento) : '';
+      result[`acr_${idx}_fecha_otorgamiento`] = a.fechaOtorgamiento
+        ? formatShortDate(a.fechaOtorgamiento)
+        : '';
+      result[`acr_${idx}_fecha_vencimiento`] = a.fechaVencimiento
+        ? formatShortDate(a.fechaVencimiento)
+        : '';
       result[`acr_${idx}_dias_mora`] = a.diasMora?.toString() || '';
       result[`acr_${idx}_capital`] = formatCurrency(a.valorCapital);
-      result[`acr_${idx}_intereses_corrientes`] = formatCurrency(a.valorInteresesCorrientes);
-      result[`acr_${idx}_intereses_mora`] = formatCurrency(a.valorInteresesMora);
-      result[`acr_${idx}_gastos_cobranza`] = formatCurrency(a.valorGastosCobranza);
+      result[`acr_${idx}_intereses_corrientes`] = formatCurrency(
+        a.valorInteresesCorrientes,
+      );
+      result[`acr_${idx}_intereses_mora`] = formatCurrency(
+        a.valorInteresesMora,
+      );
+      result[`acr_${idx}_gastos_cobranza`] = formatCurrency(
+        a.valorGastosCobranza,
+      );
       result[`acr_${idx}_total`] = formatCurrency(a.valorTotalObligacion);
       result[`acr_${idx}_naturaleza`] = a.naturalezaCredito || '';
       result[`acr_${idx}_codeudores`] = boolToSiNo(a.obligacionCodeudores);
       result[`acr_${idx}_nombre_codeudores`] = a.nombreCodeudores || '';
       result[`acr_${idx}_garantia`] = boolToSiNo(a.garantiaAsociada);
       result[`acr_${idx}_tipo_garantia`] = a.tipoGarantia || '';
-      result[`acr_${idx}_proceso_judicial`] = boolToSiNo(a.procesoJudicialEnCurso);
+      result[`acr_${idx}_proceso_judicial`] = boolToSiNo(
+        a.procesoJudicialEnCurso,
+      );
       result[`acr_${idx}_juzgado`] = a.juzgadoNombre || '';
       result[`acr_${idx}_radicado`] = a.procesoJudicialRadicado || '';
     } else {
@@ -708,8 +854,14 @@ function mapAcreedoresDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
   }
 
   // Totals
-  const totalCapitalAcr = acreedores.reduce((sum, a) => sum + (Number(a.valorCapital) || 0), 0);
-  const totalObligaciones = acreedores.reduce((sum, a) => sum + (Number(a.valorTotalObligacion) || 0), 0);
+  const totalCapitalAcr = acreedores.reduce(
+    (sum, a) => sum + (Number(a.valorCapital) || 0),
+    0,
+  );
+  const totalObligaciones = acreedores.reduce(
+    (sum, a) => sum + (Number(a.valorTotalObligacion) || 0),
+    0,
+  );
   result['total_capital_acreedores'] = formatCurrency(totalCapitalAcr);
   result['total_obligaciones_acreedores'] = formatCurrency(totalObligaciones);
   result['numero_acreedores_definitivo'] = acreedores.length.toString();
@@ -733,11 +885,17 @@ function mapBienesDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
       result[`bien_${idx}_matricula`] = b.bienMatriculaInmobiliaria || '';
       result[`bien_${idx}_placa`] = b.bienPlaca || '';
       result[`bien_${idx}_entidad`] = b.bienEntidadFinanciera || '';
-      result[`bien_${idx}_valor_comercial`] = formatCurrency(b.bienValorComercial);
-      result[`bien_${idx}_valor_catastral`] = formatCurrency(b.bienValorCatastral);
+      result[`bien_${idx}_valor_comercial`] = formatCurrency(
+        b.bienValorComercial,
+      );
+      result[`bien_${idx}_valor_catastral`] = formatCurrency(
+        b.bienValorCatastral,
+      );
       result[`bien_${idx}_gravamenes`] = boolToSiNo(b.bienGravamenes);
       result[`bien_${idx}_embargado`] = boolToSiNo(b.bienEmbargado);
-      result[`bien_${idx}_vivienda_familiar`] = boolToSiNo(b.bienAfectadoViviendaFamiliar);
+      result[`bien_${idx}_vivienda_familiar`] = boolToSiNo(
+        b.bienAfectadoViviendaFamiliar,
+      );
       result[`bien_${idx}_leasing`] = boolToSiNo(b.bienEnLeasing);
     } else {
       result[`bien_${idx}_tipo`] = '';
@@ -745,7 +903,10 @@ function mapBienesDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
     }
   }
 
-  const totalBienes = bienes.reduce((sum, b) => sum + (Number(b.bienValorComercial) || 0), 0);
+  const totalBienes = bienes.reduce(
+    (sum, b) => sum + (Number(b.bienValorComercial) || 0),
+    0,
+  );
   result['total_bienes_definitivo'] = formatCurrency(totalBienes);
   result['numero_bienes_definitivo'] = bienes.length.toString();
 
@@ -753,7 +914,9 @@ function mapBienesDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
 }
 
 // Map Procesos Judiciales (formulario definitivo)
-function mapProcesosJudicialesDefinitivo(caseData: CaseWithRelations): PlaceholderMap {
+function mapProcesosJudicialesDefinitivo(
+  caseData: CaseWithRelations,
+): PlaceholderMap {
   const result: PlaceholderMap = {};
   const procesos = caseData.procesosJudiciales || [];
 
@@ -781,32 +944,40 @@ function mapProcesosJudicialesDefinitivo(caseData: CaseWithRelations): Placehold
 }
 
 // Map Formulario Definitivo Case fields (cónyuge, laboral, cesación, declaraciones, propuesta, apoderado, radicación)
-function mapFormularioDefinitivoFields(caseData: CaseWithRelations): PlaceholderMap {
+function mapFormularioDefinitivoFields(
+  caseData: CaseWithRelations,
+): PlaceholderMap {
   const debtor = caseData.debtor;
 
   return {
     // Sección I: Deudor (campos extendidos)
-    deudor_tipo_identificacion: debtor.deudorTipoIdentificacion || debtor.idType || '',
+    deudor_tipo_identificacion:
+      debtor.deudorTipoIdentificacion || debtor.idType || '',
     deudor_identificacion: debtor.deudorIdentificacion || debtor.idNumber || '',
     deudor_primer_nombre: debtor.deudorPrimerNombre || '',
     deudor_segundo_nombre: debtor.deudorSegundoNombre || '',
     deudor_primer_apellido: debtor.deudorPrimerApellido || '',
     deudor_segundo_apellido: debtor.deudorSegundoApellido || '',
     deudor_nombre_completo: debtor.deudorNombreCompleto || debtor.name || '',
-    deudor_fecha_nacimiento: debtor.deudorFechaNacimiento ? formatShortDate(debtor.deudorFechaNacimiento) : '',
+    deudor_fecha_nacimiento: debtor.deudorFechaNacimiento
+      ? formatShortDate(debtor.deudorFechaNacimiento)
+      : '',
     deudor_lugar_nacimiento: debtor.deudorLugarNacimiento || '',
     deudor_nacionalidad: debtor.deudorNacionalidad || '',
     deudor_estado_civil: debtor.deudorEstadoCivil || debtor.maritalStatus || '',
     deudor_regimen_matrimonial: debtor.deudorRegimenMatrimonial || '',
     sociedad_conyugal_vigente: boolToSiNo(debtor.sociedadConyugalVigente),
     existe_capitulaciones: boolToSiNo(debtor.existeCapitulaciones),
-    deudor_direccion_residencia: debtor.deudorDireccionResidencia || debtor.address || '',
+    deudor_direccion_residencia:
+      debtor.deudorDireccionResidencia || debtor.address || '',
     deudor_ciudad_form: debtor.deudorCiudad || debtor.city || '',
-    deudor_departamento_form: debtor.deudorDepartamento || debtor.department || '',
+    deudor_departamento_form:
+      debtor.deudorDepartamento || debtor.department || '',
     deudor_codigo_postal: debtor.deudorCodigoPostal || '',
     deudor_telefono_fijo: debtor.deudorTelefonoFijo || '',
     deudor_telefono_celular: debtor.deudorTelefonoCelular || debtor.phone || '',
-    deudor_correo_electronico: debtor.deudorCorreoElectronico || debtor.email || '',
+    deudor_correo_electronico:
+      debtor.deudorCorreoElectronico || debtor.email || '',
 
     // Sección II: Cónyuge
     conyuge_tipo_identificacion: caseData.conyugeTipoIdentificacion || '',
@@ -830,7 +1001,9 @@ function mapFormularioDefinitivoFields(caseData: CaseWithRelations): Placeholder
     ingreso_principal_mensual: formatCurrency(caseData.ingresoPrincipalMensual),
     otros_ingresos_mensuales: formatCurrency(caseData.otrosIngresosMensuales),
     total_ingresos_mensuales: formatCurrency(caseData.totalIngresosMensuales),
-    ingresos_variables_promedio: formatCurrency(caseData.ingresosVariablesPromedio),
+    ingresos_variables_promedio: formatCurrency(
+      caseData.ingresosVariablesPromedio,
+    ),
     ingresos_no_operacionales: formatCurrency(caseData.ingresosNoOperacionales),
     gastos_vivienda: formatCurrency(caseData.gastosVivienda),
     gastos_alimentacion: formatCurrency(caseData.gastosAlimentacion),
@@ -846,26 +1019,41 @@ function mapFormularioDefinitivoFields(caseData: CaseWithRelations): Placeholder
 
     // Sección IV: Cesación de Pagos
     cesacion_pagos: boolToSiNo(caseData.cesacionPagos),
-    fecha_cesacion_pagos: caseData.fechaCesacionPagos ? formatShortDate(caseData.fechaCesacionPagos) : '',
+    fecha_cesacion_pagos: caseData.fechaCesacionPagos
+      ? formatShortDate(caseData.fechaCesacionPagos)
+      : '',
     numero_acreedores_actual: caseData.numeroAcreedoresActual?.toString() || '',
-    porcentaje_pasivo_en_mora: caseData.porcentajePasivoEnMora?.toString() || '',
+    porcentaje_pasivo_en_mora:
+      caseData.porcentajePasivoEnMora?.toString() || '',
     obligaciones_en_mora_90_dias: boolToSiNo(caseData.obligacionesEnMora90Dias),
-    procesos_ejecutivos_vigentes: boolToSiNo(caseData.procesosEjecutivosVigentes),
+    procesos_ejecutivos_vigentes: boolToSiNo(
+      caseData.procesosEjecutivosVigentes,
+    ),
 
     // Sección VIII: Declaraciones
     declaracion_veracidad: boolToSiNo(caseData.declaracionVeracidadInformacion),
     manifestacion_buena_fe: boolToSiNo(caseData.manifestacionBuenaFe),
-    manifestacion_no_ocultamiento: boolToSiNo(caseData.manifestacionNoOcultamientoBienes),
-    autorizacion_notificaciones_correo: boolToSiNo(caseData.autorizacionNotificacionesCorreo),
-    autorizacion_centrales_riesgo: boolToSiNo(caseData.autorizacionConsultaCentralesRiesgo),
-    autorizacion_tratamiento_datos: boolToSiNo(caseData.autorizacionTratamientoDatos),
+    manifestacion_no_ocultamiento: boolToSiNo(
+      caseData.manifestacionNoOcultamientoBienes,
+    ),
+    autorizacion_notificaciones_correo: boolToSiNo(
+      caseData.autorizacionNotificacionesCorreo,
+    ),
+    autorizacion_centrales_riesgo: boolToSiNo(
+      caseData.autorizacionConsultaCentralesRiesgo,
+    ),
+    autorizacion_tratamiento_datos: boolToSiNo(
+      caseData.autorizacionTratamientoDatos,
+    ),
 
     // Sección IX: Propuesta Inicial
     propuesta_plazo_meses: caseData.propuestaPlazoMeses?.toString() || '',
     propuesta_periodicidad: caseData.propuestaPeriodicidadPago || '',
     propuesta_tasa_interes: caseData.propuestaTasaInteres?.toString() || '',
     propuesta_quita_promedio: caseData.propuestaQuitaPromedio?.toString() || '',
-    propuesta_fecha_inicio: caseData.propuestaFechaInicioPago ? formatShortDate(caseData.propuestaFechaInicioPago) : '',
+    propuesta_fecha_inicio: caseData.propuestaFechaInicioPago
+      ? formatShortDate(caseData.propuestaFechaInicioPago)
+      : '',
     propuesta_observaciones: caseData.propuestaObservaciones || '',
 
     // Sección X: Documentos Anexos
@@ -890,7 +1078,9 @@ function mapFormularioDefinitivoFields(caseData: CaseWithRelations): Placeholder
     // Sección XII: Radicación Interna
     expediente_numero: caseData.expedienteNumero || '',
     expediente_anio: caseData.expedienteAnio?.toString() || '',
-    fecha_radicacion_interna: caseData.fechaRadicacion ? formatShortDate(caseData.fechaRadicacion) : '',
+    fecha_radicacion_interna: caseData.fechaRadicacion
+      ? formatShortDate(caseData.fechaRadicacion)
+      : '',
     centro_conciliacion: caseData.centroConciliacionNombre || '',
     conciliador_asignado: caseData.conciliadorAsignado || '',
     ciudad_radicacion: caseData.ciudadRadicacion || '',
@@ -927,39 +1117,55 @@ function generateDetalleBienes(assets: CaseWithRelations['assets']): string {
     return 'El deudor manifiesta no tener bienes a su nombre.';
   }
 
-  const inmuebles = assets.filter(a => a.type === 'INMUEBLE' || a.type === 'REAL_ESTATE');
-  const muebles = assets.filter(a => a.type !== 'INMUEBLE' && a.type !== 'REAL_ESTATE');
+  const inmuebles = assets.filter(
+    (a) => a.type === 'INMUEBLE' || a.type === 'REAL_ESTATE',
+  );
+  const muebles = assets.filter(
+    (a) => a.type !== 'INMUEBLE' && a.type !== 'REAL_ESTATE',
+  );
 
   let html = '';
 
   if (inmuebles.length > 0) {
     html += '<strong>Bienes Inmuebles:</strong><br>';
-    html += inmuebles.map((a, i) =>
-      `${i + 1}. ${a.propertyType || a.type}: ${a.address || a.name || 'Sin dirección'} - Matrícula: ${a.registrationNumber || 'N/A'} - Valor: ${formatCurrency(a.value)}`
-    ).join('<br>');
+    html += inmuebles
+      .map(
+        (a, i) =>
+          `${i + 1}. ${a.propertyType || a.type}: ${a.address || a.name || 'Sin dirección'} - Matrícula: ${a.registrationNumber || 'N/A'} - Valor: ${formatCurrency(a.value)}`,
+      )
+      .join('<br>');
     html += '<br><br>';
   }
 
   if (muebles.length > 0) {
     html += '<strong>Bienes Muebles:</strong><br>';
-    html += muebles.map((a, i) =>
-      `${i + 1}. ${a.type}: ${a.name || a.description || 'Sin descripción'} - Valor: ${formatCurrency(a.value)}`
-    ).join('<br>');
+    html += muebles
+      .map(
+        (a, i) =>
+          `${i + 1}. ${a.type}: ${a.name || a.description || 'Sin descripción'} - Valor: ${formatCurrency(a.value)}`,
+      )
+      .join('<br>');
   }
 
   return html;
 }
 
 // Generate Detalle de Pago de Capital HTML
-function generateDetallePagoCapital(debts: CaseWithRelations['debts'], monthlyAmount: number, totalCapital: number): string {
+function generateDetallePagoCapital(
+  debts: CaseWithRelations['debts'],
+  monthlyAmount: number,
+  totalCapital: number,
+): string {
   if (!debts || debts.length === 0) {
     return '<em>Pendiente de registrar acreedores para calcular distribución de pagos.</em>';
   }
 
-  let html = '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:11px;">';
-  html += '<tr style="background-color:#f0f0f0;"><th>Acreedor</th><th>Capital</th><th>% Participación</th><th>Cuota Mensual</th></tr>';
+  let html =
+    '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:11px;">';
+  html +=
+    '<tr style="background-color:#f0f0f0;"><th>Acreedor</th><th>Capital</th><th>% Participación</th><th>Cuota Mensual</th></tr>';
 
-  debts.forEach(debt => {
+  debts.forEach((debt) => {
     const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
     const percentage = totalCapital > 0 ? (capital / totalCapital) * 100 : 0;
     const monthlyPayment = (percentage / 100) * monthlyAmount;
@@ -984,25 +1190,37 @@ function generateDetallePagoCapital(debts: CaseWithRelations['debts'], monthlyAm
 }
 
 // Generate Forma de Pago a Acreedores HTML
-function generateFormaPagoAcreedores(debts: CaseWithRelations['debts']): string {
+function generateFormaPagoAcreedores(
+  debts: CaseWithRelations['debts'],
+): string {
   if (!debts || debts.length === 0) {
     return '<em>Pendiente de registrar acreedores.</em>';
   }
 
-  return debts.map(debt =>
-    `• <strong>${debt.creditor?.name || 'N/A'}:</strong> Consignación a cuenta bancaria o medio de pago acordado con el acreedor.`
-  ).join('<br>');
+  return debts
+    .map(
+      (debt) =>
+        `• <strong>${debt.creditor?.name || 'N/A'}:</strong> Consignación a cuenta bancaria o medio de pago acordado con el acreedor.`,
+    )
+    .join('<br>');
 }
 
 // Generate Proyección de Pagos HTML
-function generateProyeccionPagos(totalCapital: number, months: number, monthlyAmount: number, startDate?: Date): string {
+function generateProyeccionPagos(
+  totalCapital: number,
+  months: number,
+  monthlyAmount: number,
+  startDate?: Date,
+): string {
   if (!months || months <= 0 || !monthlyAmount) {
     return 'Proyección pendiente de definir.';
   }
 
   const start = startDate || new Date();
-  let html = '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:10px;">';
-  html += '<tr style="background-color:#f0f0f0;"><th>#</th><th>Fecha</th><th>Cuota</th><th>Abono Capital</th><th>Saldo</th></tr>';
+  let html =
+    '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:10px;">';
+  html +=
+    '<tr style="background-color:#f0f0f0;"><th>#</th><th>Fecha</th><th>Cuota</th><th>Abono Capital</th><th>Saldo</th></tr>';
 
   let balance = totalCapital;
 
@@ -1044,10 +1262,12 @@ function generateInventarioBienes(assets: CaseWithRelations['assets']): string {
 
   const totalValue = assets.reduce((sum, a) => sum + (Number(a.value) || 0), 0);
 
-  let html = '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:11px;">';
-  html += '<tr style="background-color:#f0f0f0;"><th>Tipo</th><th>Descripción</th><th>Valor</th></tr>';
+  let html =
+    '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:11px;">';
+  html +=
+    '<tr style="background-color:#f0f0f0;"><th>Tipo</th><th>Descripción</th><th>Valor</th></tr>';
 
-  assets.forEach(asset => {
+  assets.forEach((asset) => {
     html += `<tr>
       <td style="padding:5px;">${asset.type || 'N/A'}</td>
       <td style="padding:5px;">${asset.name || asset.description || asset.address || 'Sin descripción'}</td>
@@ -1067,27 +1287,47 @@ function generateInventarioBienes(assets: CaseWithRelations['assets']): string {
 // Map dynamic tables (these generate HTML content)
 function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
   // Build creditors list for edicto
-  const creditorsList = caseData.debts.map((d, i) =>
-    `${i + 1}. ${d.creditor.name} - ${formatCurrency(Number(d.amount) || 0)}`
-  ).join('<br>');
+  const creditorsList = caseData.debts
+    .map(
+      (d, i) =>
+        `${i + 1}. ${d.creditor.name} - ${formatCurrency(Number(d.amount) || 0)}`,
+    )
+    .join('<br>');
 
   // Build total creditors table
   const totalCreditors = caseData.debts.length;
-  const totalDebt = caseData.debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
+  const totalDebt = caseData.debts.reduce(
+    (sum, d) => sum + (Number(d.amount) || 0),
+    0,
+  );
+  const totalCapital = caseData.debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
   const monthlyAmount = Number(caseData.monthlyPaymentAmount) || 0;
 
   // Build Calificación y Graduación table
-  const calificacionTable = generateCalificacionGraduacionTable(caseData.debts, totalCapital);
+  const calificacionTable = generateCalificacionGraduacionTable(
+    caseData.debts,
+    totalCapital,
+  );
 
   // Build propuesta de pago HTML
   const propuestaPago = generatePropuestaPagoHtml(caseData);
 
   // Build new dynamic content
   const detalleBienes = generateDetalleBienes(caseData.assets);
-  const detallePagoCapital = generateDetallePagoCapital(caseData.debts, monthlyAmount, totalCapital);
+  const detallePagoCapital = generateDetallePagoCapital(
+    caseData.debts,
+    monthlyAmount,
+    totalCapital,
+  );
   const formaPagoAcreedores = generateFormaPagoAcreedores(caseData.debts);
-  const proyeccionPagos = generateProyeccionPagos(totalCapital, caseData.paymentTermMonths || 0, monthlyAmount);
+  const proyeccionPagos = generateProyeccionPagos(
+    totalCapital,
+    caseData.paymentTermMonths || 0,
+    monthlyAmount,
+  );
   const inventarioBienes = generateInventarioBienes(caseData.assets);
 
   return {
@@ -1132,7 +1372,10 @@ function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
 }
 
 // Generate Calificación y Graduación table HTML
-function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], totalCapital: number): string {
+function generateCalificacionGraduacionTable(
+  debts: CaseWithRelations['debts'],
+  totalCapital: number,
+): string {
   if (!debts || debts.length === 0) {
     // Return empty table structure instead of error message
     // The validation layer will prevent document generation if required
@@ -1155,13 +1398,15 @@ function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], 
     `;
   }
 
-  const tableRows = debts.map((debt, index) => {
-    const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
-    const interest = Number(debt.interestAmount) || 0;
-    const percentage = totalCapital > 0 ? ((capital / totalCapital) * 100).toFixed(2) : '0.00';
-    const prelacion = debt.creditorClass || 'Quirografario';
+  const tableRows = debts
+    .map((debt, index) => {
+      const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
+      const interest = Number(debt.interestAmount) || 0;
+      const percentage =
+        totalCapital > 0 ? ((capital / totalCapital) * 100).toFixed(2) : '0.00';
+      const prelacion = debt.creditorClass || 'Quirografario';
 
-    return `
+      return `
       <tr>
         <td style="padding:5px; border:1px solid #000;">${debt.creditor?.name || 'N/A'}</td>
         <td style="padding:5px; border:1px solid #000; text-align:center;">${index + 1}</td>
@@ -1171,9 +1416,13 @@ function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], 
         <td style="padding:5px; border:1px solid #000; text-align:center;">${percentage}%</td>
       </tr>
     `;
-  }).join('');
+    })
+    .join('');
 
-  const totalInterest = debts.reduce((sum, d) => sum + (Number(d.interestAmount) || 0), 0);
+  const totalInterest = debts.reduce(
+    (sum, d) => sum + (Number(d.interestAmount) || 0),
+    0,
+  );
 
   return `
     <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:12px;">
@@ -1204,10 +1453,19 @@ function generateCalificacionGraduacionTable(debts: CaseWithRelations['debts'], 
 
 // Generate Propuesta de Pago HTML
 function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
-  const monthlyIncome = Number(caseData.monthlyIncome) || Number(caseData.debtor.monthlyIncome) || 0;
-  const monthlyExpenses = Number(caseData.monthlyExpenses) || Number(caseData.debtor.monthlyExpenses) || 0;
+  const monthlyIncome =
+    Number(caseData.monthlyIncome) ||
+    Number(caseData.debtor.monthlyIncome) ||
+    0;
+  const monthlyExpenses =
+    Number(caseData.monthlyExpenses) ||
+    Number(caseData.debtor.monthlyExpenses) ||
+    0;
   const available = monthlyIncome - monthlyExpenses;
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
+  const totalCapital = caseData.debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
 
   return `
     <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:12px;">
@@ -1249,15 +1507,25 @@ function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
 
 // Map payment proposal
 function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
-  const monthlyIncome = Number(caseData.monthlyIncome) || Number(caseData.debtor.monthlyIncome) || 0;
-  const monthlyExpenses = Number(caseData.monthlyExpenses) || Number(caseData.debtor.monthlyExpenses) || 0;
+  const monthlyIncome =
+    Number(caseData.monthlyIncome) ||
+    Number(caseData.debtor.monthlyIncome) ||
+    0;
+  const monthlyExpenses =
+    Number(caseData.monthlyExpenses) ||
+    Number(caseData.debtor.monthlyExpenses) ||
+    0;
   const available = monthlyIncome - monthlyExpenses;
 
   // Calculate total capital from debts (Number() prevents Decimal string concatenation)
-  const totalCapital = caseData.debts.reduce((sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0), 0);
+  const totalCapital = caseData.debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
 
   // Parse payment order
-  const paymentOrder = (caseData.paymentOrder as Record<string, string | null>) || {};
+  const paymentOrder =
+    (caseData.paymentOrder as Record<string, string | null>) || {};
 
   return {
     // Income/Expenses summary
@@ -1287,7 +1555,9 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
 
     // Term
     PROP_PLAZO: caseData.paymentTermMonths?.toString() || '',
-    PROP_CUOTA_MENSUAL: formatCurrency(Number(caseData.monthlyPaymentAmount) || 0),
+    PROP_CUOTA_MENSUAL: formatCurrency(
+      Number(caseData.monthlyPaymentAmount) || 0,
+    ),
     PROP_CUOTA_VARIABLE: formatCurrency(Number(caseData.variablePayment) || 0),
 
     // Extraordinary payment
@@ -1304,10 +1574,14 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
     PROP_QUITAS_SI: caseData.capitalReduction ? 'X' : '',
     PROP_QUITAS_NO: !caseData.capitalReduction ? 'X' : '',
     PROP_QUITAS_PORCENTAJE: caseData.capitalReductionPercent?.toString() || '',
-    PROP_QUITAS_VALOR: formatCurrency(totalCapital * (1 - (caseData.capitalReductionPercent || 0) / 100)),
+    PROP_QUITAS_VALOR: formatCurrency(
+      totalCapital * (1 - (caseData.capitalReductionPercent || 0) / 100),
+    ),
 
     // Insurance
-    PROP_SEGURO_INCENDIO: caseData.insuranceOffering?.includes('incendio') ? 'X' : '',
+    PROP_SEGURO_INCENDIO: caseData.insuranceOffering?.includes('incendio')
+      ? 'X'
+      : '',
     PROP_SEGURO_VIDA: caseData.insuranceOffering?.includes('vida') ? 'X' : '',
 
     // Interest forgiveness
@@ -1339,11 +1613,15 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
 /**
  * Main function to map all case data to placeholders
  */
-export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderMap {
+export function mapCaseToPlaceholders(
+  caseData: CaseWithRelations,
+): PlaceholderMap {
   const debtor = caseData.debtor;
   // Ensure all Decimal fields are converted to Number to prevent string concatenation in reduce()
-  const monthlyIncome = Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
-  const monthlyExpenses = Number(caseData.monthlyExpenses) || Number(debtor.monthlyExpenses) || 0;
+  const monthlyIncome =
+    Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
+  const monthlyExpenses =
+    Number(caseData.monthlyExpenses) || Number(debtor.monthlyExpenses) || 0;
   const available = monthlyIncome - monthlyExpenses;
   const genderPrefix = getGenderPrefix(debtor.name);
 
@@ -1377,17 +1655,34 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
 
     // Dates - MANUAL: Estas fechas las ingresa el operador manualmente, no se auto-generan
     // Solo se muestran si ya fueron ingresadas por el operador
-    FECHA_RADICACION: caseData.filingDate ? formatDate(caseData.filingDate) : '________________',
-    FECHA_DESIGNACION: caseData.designationDate ? formatDate(caseData.designationDate) : '________________',
-    FECHA_ACEPTACION: caseData.positionAcceptanceDate ? formatDate(caseData.positionAcceptanceDate) : '________________',
-    FECHA_ADMISION: caseData.admissionDate ? formatDate(caseData.admissionDate) : '________________',
-    FECHA_AUDIENCIA: (caseData.firstHearingDate || caseData.hearingDate) ? formatDate(caseData.firstHearingDate || caseData.hearingDate) : '________________',
+    FECHA_RADICACION: caseData.filingDate
+      ? formatDate(caseData.filingDate)
+      : '________________',
+    FECHA_DESIGNACION: caseData.designationDate
+      ? formatDate(caseData.designationDate)
+      : '________________',
+    FECHA_ACEPTACION: caseData.positionAcceptanceDate
+      ? formatDate(caseData.positionAcceptanceDate)
+      : '________________',
+    FECHA_ADMISION: caseData.admissionDate
+      ? formatDate(caseData.admissionDate)
+      : '________________',
+    FECHA_AUDIENCIA:
+      caseData.firstHearingDate || caseData.hearingDate
+        ? formatDate(caseData.firstHearingDate || caseData.hearingDate)
+        : '________________',
     HORA_AUDIENCIA: caseData.firstHearingTime || '____:____',
 
     // Auto de admision (para Edicto Emplazatorio)
-    DIA_AUTO: caseData.admissionDate ? getDayNumber(caseData.admissionDate) : '____',
-    MES_AUTO: caseData.admissionDate ? getMonthName(caseData.admissionDate) : '____________',
-    ANO_AUTO: caseData.admissionDate ? getYear(caseData.admissionDate) : '______',
+    DIA_AUTO: caseData.admissionDate
+      ? getDayNumber(caseData.admissionDate)
+      : '____',
+    MES_AUTO: caseData.admissionDate
+      ? getMonthName(caseData.admissionDate)
+      : '____________',
+    ANO_AUTO: caseData.admissionDate
+      ? getYear(caseData.admissionDate)
+      : '______',
 
     // Date components for current date
     NUMERO_DIA: getDayNumber(new Date()),
@@ -1412,10 +1707,22 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
 
     // Income/Expenses
     INGRESO_PRINCIPAL: formatCurrency(monthlyIncome),
-    OTROS_INGRESOS_DETALLE: caseData.otherIncomeDescription || debtor.otherIncomeDescription || '',
-    OTROS_INGRESOS_VALOR: formatCurrency(Number(caseData.otherIncomeAmount) || Number(debtor.otherIncomeAmount) || 0),
-    TOTAL_INGRESOS: formatCurrency(monthlyIncome + (Number(caseData.otherIncomeAmount) || Number(debtor.otherIncomeAmount) || 0)),
-    CERTIFICACION_EMPLEADOR: boolToSiNo(caseData.hasEmployerCertification || debtor.hasEmployerCertification),
+    OTROS_INGRESOS_DETALLE:
+      caseData.otherIncomeDescription || debtor.otherIncomeDescription || '',
+    OTROS_INGRESOS_VALOR: formatCurrency(
+      Number(caseData.otherIncomeAmount) ||
+        Number(debtor.otherIncomeAmount) ||
+        0,
+    ),
+    TOTAL_INGRESOS: formatCurrency(
+      monthlyIncome +
+        (Number(caseData.otherIncomeAmount) ||
+          Number(debtor.otherIncomeAmount) ||
+          0),
+    ),
+    CERTIFICACION_EMPLEADOR: boolToSiNo(
+      caseData.hasEmployerCertification || debtor.hasEmployerCertification,
+    ),
     GASTOS_MENSUALES: formatCurrency(monthlyExpenses),
 
     // Resources
@@ -1448,34 +1755,73 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     DESCRIPCION_PRUEBAS: '',
 
     // Agreement specific - MANUAL: Solo mostrar si ya fueron ingresadas
-    DIA_ACEPTACION: caseData.admissionDate ? getDayNumber(caseData.admissionDate) : '____',
-    MES_ACEPTACION: caseData.admissionDate ? getMonthName(caseData.admissionDate) : '____________',
-    ANO_ACEPTACION: caseData.admissionDate ? new Date(caseData.admissionDate).getFullYear().toString() : '______',
-    DIA_AUDIENCIA: (caseData.firstHearingDate || caseData.hearingDate) ? getDayNumber(caseData.firstHearingDate || caseData.hearingDate) : '____',
-    MES_AUDIENCIA: (caseData.firstHearingDate || caseData.hearingDate) ? getMonthName(caseData.firstHearingDate || caseData.hearingDate) : '____________',
-    ANO_AUDIENCIA: (caseData.firstHearingDate || caseData.hearingDate)
-      ? new Date(caseData.firstHearingDate || caseData.hearingDate!).getFullYear().toString()
+    DIA_ACEPTACION: caseData.admissionDate
+      ? getDayNumber(caseData.admissionDate)
+      : '____',
+    MES_ACEPTACION: caseData.admissionDate
+      ? getMonthName(caseData.admissionDate)
+      : '____________',
+    ANO_ACEPTACION: caseData.admissionDate
+      ? new Date(caseData.admissionDate).getFullYear().toString()
       : '______',
+    DIA_AUDIENCIA:
+      caseData.firstHearingDate || caseData.hearingDate
+        ? getDayNumber(caseData.firstHearingDate || caseData.hearingDate)
+        : '____',
+    MES_AUDIENCIA:
+      caseData.firstHearingDate || caseData.hearingDate
+        ? getMonthName(caseData.firstHearingDate || caseData.hearingDate)
+        : '____________',
+    ANO_AUDIENCIA:
+      caseData.firstHearingDate || caseData.hearingDate
+        ? new Date(caseData.firstHearingDate || caseData.hearingDate!)
+            .getFullYear()
+            .toString()
+        : '______',
 
     // Payment terms - Ahora con campos de BD
     NUMERO_MESES: caseData.paymentTermMonths?.toString() || '____',
-    DIA_INICIO_PAGO: caseData.paymentStartDate ? getDayNumber(caseData.paymentStartDate) : '____',
-    MES_INICIO_PAGO: caseData.paymentStartDate ? getMonthName(caseData.paymentStartDate) : '____________',
-    ANO_INICIO_PAGO: caseData.paymentStartDate ? getYear(caseData.paymentStartDate) : '______',
-    FECHA_INICIO_PAGO: caseData.paymentStartDate ? formatDate(caseData.paymentStartDate) : '________________',
-    DIA_VIGENCIA: caseData.agreementValidityDate ? getDayNumber(caseData.agreementValidityDate) : '____',
-    MES_VIGENCIA: caseData.agreementValidityDate ? getMonthName(caseData.agreementValidityDate) : '____________',
-    ANO_VIGENCIA: caseData.agreementValidityDate ? getYear(caseData.agreementValidityDate) : '______',
-    FECHA_VIGENCIA: caseData.agreementValidityDate ? formatDate(caseData.agreementValidityDate) : '________________',
+    DIA_INICIO_PAGO: caseData.paymentStartDate
+      ? getDayNumber(caseData.paymentStartDate)
+      : '____',
+    MES_INICIO_PAGO: caseData.paymentStartDate
+      ? getMonthName(caseData.paymentStartDate)
+      : '____________',
+    ANO_INICIO_PAGO: caseData.paymentStartDate
+      ? getYear(caseData.paymentStartDate)
+      : '______',
+    FECHA_INICIO_PAGO: caseData.paymentStartDate
+      ? formatDate(caseData.paymentStartDate)
+      : '________________',
+    DIA_VIGENCIA: caseData.agreementValidityDate
+      ? getDayNumber(caseData.agreementValidityDate)
+      : '____',
+    MES_VIGENCIA: caseData.agreementValidityDate
+      ? getMonthName(caseData.agreementValidityDate)
+      : '____________',
+    ANO_VIGENCIA: caseData.agreementValidityDate
+      ? getYear(caseData.agreementValidityDate)
+      : '______',
+    FECHA_VIGENCIA: caseData.agreementValidityDate
+      ? formatDate(caseData.agreementValidityDate)
+      : '________________',
     PORCENTAJE_APROBACION: caseData.approvalPercentage?.toString() || '____',
 
     // Aliases for Reforma Acuerdo and Acuerdo Bilateral templates
-    NOMBRE_ACREEDOR: caseData.debts?.[0]?.creditor?.name || '________________________________',
+    NOMBRE_ACREEDOR:
+      caseData.debts?.[0]?.creditor?.name || '________________________________',
     NUMERO_CUOTAS: caseData.paymentTermMonths?.toString() || '____',
-    PORCENTAJE_RECONOCIMIENTO: caseData.approvalPercentage?.toString() || '____',
-    DIA_INICIO: caseData.paymentStartDate ? getDayNumber(caseData.paymentStartDate) : '____',
-    MES_INICIO: caseData.paymentStartDate ? getMonthName(caseData.paymentStartDate) : '____________',
-    ANO_INICIO: caseData.paymentStartDate ? getYear(caseData.paymentStartDate) : '______',
+    PORCENTAJE_RECONOCIMIENTO:
+      caseData.approvalPercentage?.toString() || '____',
+    DIA_INICIO: caseData.paymentStartDate
+      ? getDayNumber(caseData.paymentStartDate)
+      : '____',
+    MES_INICIO: caseData.paymentStartDate
+      ? getMonthName(caseData.paymentStartDate)
+      : '____________',
+    ANO_INICIO: caseData.paymentStartDate
+      ? getYear(caseData.paymentStartDate)
+      : '______',
 
     // Control de Legalidad - MANUAL
     FECHA_CONTROL_LEGALIDAD: '________________', // MANUAL
@@ -1501,9 +1847,10 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
     CARGO_JUEZ: '', // MANUAL
 
     // Bienes declaration
-    DECLARACION_BIENES: caseData.assets.length > 0
-      ? 'que posee los siguientes bienes:'
-      : 'que no posee bienes a su nombre.',
+    DECLARACION_BIENES:
+      caseData.assets.length > 0
+        ? 'que posee los siguientes bienes:'
+        : 'que no posee bienes a su nombre.',
     DETALLE_BIENES: '',
 
     // Placeholders for tables (to be filled dynamically)
@@ -1523,7 +1870,10 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
   return {
     ...basePlaceholders,
     ...mapApplicantScope(caseData.applicantScope || []),
-    ...mapCauses(caseData.causes || []),
+    ...mapCauses(
+      caseData.causes || [],
+      (caseData as Record<string, unknown>).otherCauseDetail as string,
+    ),
     ...mapDebts(caseData.debts || []),
     ...mapAssets(caseData.assets || []),
     ...mapLegalProcesses(caseData.legalProcesses),
@@ -1552,7 +1902,10 @@ export function mapCaseToPlaceholders(caseData: CaseWithRelations): PlaceholderM
 /**
  * Replace placeholders in HTML content
  */
-export function replacePlaceholders(html: string, placeholders: PlaceholderMap): string {
+export function replacePlaceholders(
+  html: string,
+  placeholders: PlaceholderMap,
+): string {
   let result = html;
 
   for (const [key, value] of Object.entries(placeholders)) {
@@ -1592,12 +1945,12 @@ export interface PlaceholderCoverageResult {
  */
 export function validatePlaceholderCoverage(
   html: string,
-  placeholders: PlaceholderMap
+  placeholders: PlaceholderMap,
 ): PlaceholderCoverageResult {
   // Find all {{VARIABLE}} patterns in the HTML
   const regex = /\{\{([A-Za-z0-9_]+)\}\}/g;
   const matches = [...html.matchAll(regex)];
-  const foundVariables = [...new Set(matches.map(m => m[1]))]; // Unique variables
+  const foundVariables = [...new Set(matches.map((m) => m[1]))]; // Unique variables
 
   // Categorize variables
   const missing: string[] = [];
@@ -1634,9 +1987,10 @@ export function validatePlaceholderCoverage(
 
   const totalPlaceholders = foundVariables.length;
   const coveredCount = filled.length;
-  const coveragePercentage = totalPlaceholders > 0
-    ? Math.round((coveredCount / totalPlaceholders) * 100)
-    : 100;
+  const coveragePercentage =
+    totalPlaceholders > 0
+      ? Math.round((coveredCount / totalPlaceholders) * 100)
+      : 100;
 
   return {
     complete: missing.length === 0 && empty.length === 0,
@@ -1657,7 +2011,7 @@ export function validatePlaceholderCoverage(
  */
 export function getPlaceholderCoverageReport(
   html: string,
-  placeholders: PlaceholderMap
+  placeholders: PlaceholderMap,
 ): string {
   const result = validatePlaceholderCoverage(html, placeholders);
 
@@ -1667,19 +2021,22 @@ export function getPlaceholderCoverageReport(
 
   if (result.missing.length > 0) {
     report += `❌ Missing (${result.missing.length}):\n`;
-    result.missing.forEach(v => report += `   - ${v}\n`);
+    result.missing.forEach((v) => (report += `   - ${v}\n`));
     report += '\n';
   }
 
   if (result.empty.length > 0) {
     report += `⚪ Empty/Manual (${result.empty.length}):\n`;
-    result.empty.forEach(v => report += `   - ${v}\n`);
+    result.empty.forEach((v) => (report += `   - ${v}\n`));
     report += '\n';
   }
 
   if (result.filled.length > 0 && result.filled.length <= 20) {
     report += `✅ Filled (${result.filled.length}):\n`;
-    result.filled.forEach(v => report += `   - ${v}: "${placeholders[v]?.substring(0, 50)}${(placeholders[v]?.length || 0) > 50 ? '...' : ''}"\n`);
+    result.filled.forEach(
+      (v) =>
+        (report += `   - ${v}: "${placeholders[v]?.substring(0, 50)}${(placeholders[v]?.length || 0) > 50 ? '...' : ''}"\n`),
+    );
   } else if (result.filled.length > 20) {
     report += `✅ Filled: ${result.filled.length} variables (not listing all)\n`;
   }

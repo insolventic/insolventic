@@ -31,6 +31,7 @@ interface DocumentsSectionProps {
     selections: Array<{ docName: string; docKey: string; files: File[] }>,
   ) => void;
   applicantScope?: string[];
+  assets?: Array<{ type?: string; name?: string }>;
 }
 
 type DocConfig = { key: string; label: string; multiple?: boolean };
@@ -45,13 +46,17 @@ function isAllowedFile(file: File): boolean {
 export function DocumentsSection({
   onFilesSelected,
   applicantScope = [],
+  assets = [],
 }: Readonly<DocumentsSectionProps>) {
   // Build mandatory docs list based on case data
-  const caseDataPartial: Partial<CreateCaseFormInput> = { applicantScope };
+  const caseDataPartial: Partial<CreateCaseFormInput> = {
+    applicantScope,
+    assets: assets as CreateCaseFormInput['assets'],
+  };
   const requiredIds = useMemo(
     () => getRequiredDocuments(caseDataPartial),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(applicantScope)],
+    [JSON.stringify(applicantScope), JSON.stringify(assets.map((a) => a.type))],
   );
 
   const mandatoryDocs: DocConfig[] = useMemo(() => {

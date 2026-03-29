@@ -208,23 +208,43 @@ export function CreditorsDetailedSection() {
                   <FormField
                     control={form.control}
                     name={`debts.${index}.interestRate`}
-                    render={({ field: formField }) => (
-                      <FormItem>
-                        <FormLabel>
-                          Tasa de Interés (%){' '}
-                          <span className="text-red-500">*</span>
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...formField}
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field: formField }) => {
+                      const isUnknown = formField.value === 'DESCONOZCO';
+                      return (
+                        <FormItem>
+                          <FormLabel>
+                            Tasa de Interés (%){' '}
+                            <span className="text-red-500">*</span>
+                          </FormLabel>
+                          <FormControl>
+                            <div className="space-y-2">
+                              <Input
+                                {...formField}
+                                type={isUnknown ? 'text' : 'number'}
+                                step="0.01"
+                                placeholder="0.00"
+                                readOnly={isUnknown}
+                                className={isUnknown ? 'bg-muted' : ''}
+                              />
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={isUnknown}
+                                  onCheckedChange={(checked) => {
+                                    formField.onChange(
+                                      checked ? 'DESCONOZCO' : '',
+                                    );
+                                  }}
+                                />
+                                <span className="text-muted-foreground text-xs">
+                                  Desconozco la tasa
+                                </span>
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField
@@ -270,7 +290,10 @@ export function CreditorsDetailedSection() {
                         <FormControl>
                           <Input
                             {...formField}
-                            placeholder="Ej: Primera Clase"
+                            readOnly
+                            disabled
+                            placeholder="Se calcula del tipo de deuda"
+                            className="bg-muted cursor-not-allowed"
                           />
                         </FormControl>
                         <FormMessage />
@@ -285,7 +308,13 @@ export function CreditorsDetailedSection() {
                       <FormItem>
                         <FormLabel>Clase</FormLabel>
                         <FormControl>
-                          <Input {...formField} placeholder="Clase" />
+                          <Input
+                            {...formField}
+                            readOnly
+                            disabled
+                            placeholder="Automática"
+                            className="bg-muted cursor-not-allowed"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -301,9 +330,14 @@ export function CreditorsDetailedSection() {
                         <FormControl>
                           <Input
                             {...formField}
-                            type="number"
-                            step="0.01"
+                            type="text"
+                            readOnly
+                            disabled
                             placeholder="0.00"
+                            className="bg-muted cursor-not-allowed"
+                            value={
+                              formField.value ? `${formField.value}%` : '0%'
+                            }
                           />
                         </FormControl>
                         <FormMessage />
@@ -352,29 +386,75 @@ export function CreditorsDetailedSection() {
                   <FormField
                     control={form.control}
                     name={`debts.${index}.grantDate`}
-                    render={({ field: formField }) => (
-                      <FormItem>
-                        <FormLabel>Fecha Otorgamiento</FormLabel>
-                        <FormControl>
-                          <Input {...formField} type="date" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field: formField }) => {
+                      const isUnknown = formField.value === 'DESCONOZCO';
+                      return (
+                        <FormItem>
+                          <FormLabel>Fecha Otorgamiento</FormLabel>
+                          <FormControl>
+                            <div className="space-y-2">
+                              <Input
+                                {...formField}
+                                type={isUnknown ? 'text' : 'date'}
+                                readOnly={isUnknown}
+                                className={isUnknown ? 'bg-muted' : ''}
+                              />
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={isUnknown}
+                                  onCheckedChange={(checked) => {
+                                    formField.onChange(
+                                      checked ? 'DESCONOZCO' : '',
+                                    );
+                                  }}
+                                />
+                                <span className="text-muted-foreground text-xs">
+                                  Desconozco
+                                </span>
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField
                     control={form.control}
                     name={`debts.${index}.dueDate`}
-                    render={({ field: formField }) => (
-                      <FormItem>
-                        <FormLabel>Fecha Vencimiento</FormLabel>
-                        <FormControl>
-                          <Input {...formField} type="date" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field: formField }) => {
+                      const isUnknown = formField.value === 'DESCONOZCO';
+                      return (
+                        <FormItem>
+                          <FormLabel>Fecha Vencimiento</FormLabel>
+                          <FormControl>
+                            <div className="space-y-2">
+                              <Input
+                                {...formField}
+                                type={isUnknown ? 'text' : 'date'}
+                                readOnly={isUnknown}
+                                className={isUnknown ? 'bg-muted' : ''}
+                              />
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  checked={isUnknown}
+                                  onCheckedChange={(checked) => {
+                                    formField.onChange(
+                                      checked ? 'DESCONOZCO' : '',
+                                    );
+                                  }}
+                                />
+                                <span className="text-muted-foreground text-xs">
+                                  Desconozco
+                                </span>
+                              </div>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </div>
 

@@ -363,9 +363,26 @@ export async function createCase(
       });
     }
 
+    // Auto-generate tramite based on case type if not provided
+    const autoTramite =
+      rest.tramite ||
+      (() => {
+        switch (rest.type) {
+          case 'INSOLVENCY':
+            return 'Negociación de deudas';
+          case 'CONCILIATION':
+            return 'Conciliación';
+          case 'SUPPORT_AGREEMENT':
+            return 'Acuerdo de apoyo';
+          default:
+            return 'Negociación de deudas';
+        }
+      })();
+
     const newCase = await prisma.case.create({
       data: {
         ...rest,
+        tramite: autoTramite,
         debtorId,
         caseNumber: finalCaseNumber,
         debtorName: debtor.name,

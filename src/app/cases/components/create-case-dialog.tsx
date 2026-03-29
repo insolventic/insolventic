@@ -33,6 +33,8 @@ import {
   validateIncomeExpenses,
   validatePaymentProposal,
   validateDocumentsComplete,
+  validateMinimaCuantia,
+  SMMLV_2025,
   type ValidationIssue,
 } from '@/features/case/validation-rules';
 
@@ -50,7 +52,6 @@ import { LibranzasSection } from './create-case-dialog/libranzas-section';
 import { SuspendedServicesSection } from './create-case-dialog/suspended-services-section';
 import { DependentsSection } from './create-case-dialog/dependents-section';
 import { PaymentProposalSection } from './create-case-dialog/payment-proposal-section';
-import { SpouseSection } from './create-case-dialog/spouse-section';
 import { LegalFoundationsSection } from './create-case-dialog/legal-foundations-section';
 import { NotificationsSection } from './create-case-dialog/notifications-section';
 import { SignatureSection } from './create-case-dialog/signature-section';
@@ -58,14 +59,8 @@ import { SignatureSection } from './create-case-dialog/signature-section';
 import { ConyugeDefinitivoSection } from './create-case-dialog/conyuge-definitivo-section';
 import { InfoLaboralSection } from './create-case-dialog/info-laboral-section';
 import { CesacionPagosSection } from './create-case-dialog/cesacion-pagos-section';
-import { AcreedoresSection } from './create-case-dialog/acreedores-section';
-import { BienesSection } from './create-case-dialog/bienes-section';
-import { ProcesosJudicialesSection } from './create-case-dialog/procesos-judiciales-section';
 import { DeclaracionesSection } from './create-case-dialog/declaraciones-section';
-import { PropuestaInicialSection } from './create-case-dialog/propuesta-inicial-section';
-import { DocumentosAnexosSection } from './create-case-dialog/documentos-anexos-section';
 import { ApoderadoSection } from './create-case-dialog/apoderado-section';
-import { RadicacionInternaSection } from './create-case-dialog/radicacion-interna-section';
 
 interface CreateCaseDialogProps {
   open: boolean;
@@ -75,17 +70,13 @@ interface CreateCaseDialogProps {
 
 const TAB_ORDER = [
   'debtor',
-  'case-details',
-  'legal-process',
+  'situation',
   'creditors',
   'assets',
   'income',
-  'payment',
+  'proposal',
   'legal',
-  'definitivo-acreedores',
-  'definitivo-bienes',
-  'definitivo-extra',
-  'definitivo-final',
+  'documents',
 ] as const;
 
 const LAST_TAB = TAB_ORDER[TAB_ORDER.length - 1];
@@ -166,24 +157,13 @@ export function CreateCaseDialog({
         phase: 'Inicial',
         hearingDate: null,
         caseNumber: '',
-        tramite: '',
         filingDate: '',
-        debtorIdNumber: '',
-        convened: '',
         attorney: '',
-        owedCapital: '',
-        designatedOperator: '',
-        designationDate: '',
-        positionAcceptanceDate: '',
-        inadmissionDate: '',
-        admissionDate: '',
-        firstHearingDate: '',
-        firstHearingTime: '',
         rejection: false,
         withdrawal: false,
         hasLegalProcesses: false,
         riskCenterCommunication: false,
-        // New fields from comprehensive form
+        // Applicant scope and income
         applicantScope: [],
         monthlyIncome: 0,
         monthlyExpenses: 0,
@@ -194,6 +174,7 @@ export function CreateCaseDialog({
         suspendedServices: [],
         dependents: [],
         legalProcesses: [],
+        // Payment proposal
         gracePeriodRequested: false,
         gracePeriodMonths: undefined,
         paymentInKind: false,
@@ -216,11 +197,13 @@ export function CreateCaseDialog({
         classPrivilegesDescription: '',
         thirdPartyPaymentAuth: false,
         guaranteeSubstitution: false,
+        // Spouse (synced from conyuge definitivo)
         spouseName: '',
         spouseIdNumber: '',
         spouseAddress: '',
         spousePhone: '',
         spouseEmail: '',
+        // Legal
         requestedFee: '',
         legalFoundations: '',
         notificationAddress: '',
@@ -229,10 +212,6 @@ export function CreateCaseDialog({
         applicantSignatureName: '',
         applicantSignatureId: '',
         applicantSignature: '',
-        // Zoom meeting info
-        zoomMeetingId: '',
-        zoomPassword: '',
-        zoomLink: '',
       });
 
       const loadData = async () => {
@@ -330,6 +309,7 @@ export function CreateCaseDialog({
     'Muerte de cónyuge',
     'Nuevos créditos para cubrir otros',
     'Mala inversión',
+    'Otros',
   ];
 
   const handleCauseChange = (cause: string) => {
@@ -360,15 +340,107 @@ export function CreateCaseDialog({
     const proposalWarnings = validatePaymentProposal(formData);
     warnings.push(...proposalWarnings.filter((w) => w.type === 'warning'));
 
+    // Validate mínima cuantía → abogado obligatorio
+    const totalDebt =
+      parseFloat(String(formData.totalDebt || '0').replace(/[^0-9.-]/g, '')) ||
+      0;
+    const hasAttorney = !!(
+      formData.attorney || formData.apoderadoNombreCompleto
+    );
+    if (totalDebt > 40 * SMMLV_2025 && !hasAttorney) {
+      warnings.push({
+        field: 'attorney',
+        message: `La deuda total ($${totalDebt.toLocaleString('es-CO')}) supera la mínima cuantía (40 SMMLV). Es obligatorio contar con apoderado judicial.`,
+        type: 'warning',
+      });
+    }
+
     setValidationWarnings(warnings);
   };
 
-  // Watch form changes to update warnings
-  // CORRECCIÓN: form.watch() retorna una función de suscripción estable
-  // No se debe usar form.watch como dependencia - causa bucle infinito
+  // Watch form changes to update warnings + auto-calculate totalDebt and credit fields
   useEffect(() => {
-    const subscription = form.watch(() => {
+    const subscription = form.watch((value, { name }) => {
       validateCoherence();
+
+      // Auto-calculate totalDebt and credit fields when debts change
+      if (name?.startsWith('debts') || name === 'debts') {
+        const debts = form.getValues('debts') || [];
+        let totalCapital = 0;
+        let totalInterest = 0;
+
+        debts.forEach((debt: Record<string, unknown>, index: number) => {
+          const capital =
+            parseFloat(
+              String(debt?.capitalAmount || '0').replace(/[^0-9.-]/g, ''),
+            ) || 0;
+          const interest =
+            parseFloat(
+              String(debt?.interestAmount || '0').replace(/[^0-9.-]/g, ''),
+            ) || 0;
+          totalCapital += capital;
+          totalInterest += interest;
+
+          // Auto-classify credit based on debt type
+          const debtType = String(debt?.type || '');
+          let classification = '';
+          let creditorClass = '';
+          if (debtType === 'HIPOTECARIA') {
+            classification = 'Crédito Garantizado';
+            creditorClass = 'Tercera';
+          } else if (debtType === 'VEHICULAR') {
+            classification = 'Crédito Garantizado';
+            creditorClass = 'Tercera';
+          } else if (
+            debtType === 'TARJETA_CREDITO' ||
+            debtType === 'PERSONAL' ||
+            debtType === 'OTRA'
+          ) {
+            classification = 'Crédito Quirografario';
+            creditorClass = 'Quinta';
+          }
+          if (classification && debt?.creditClassification !== classification) {
+            form.setValue(
+              `debts.${index}.creditClassification`,
+              classification,
+              { shouldDirty: false },
+            );
+          }
+          if (creditorClass && debt?.creditorClass !== creditorClass) {
+            form.setValue(`debts.${index}.creditorClass`, creditorClass, {
+              shouldDirty: false,
+            });
+          }
+        });
+
+        // Auto-calculate percentageOfTotal for each debt
+        const totalDebt = totalCapital + totalInterest;
+        debts.forEach((debt: Record<string, unknown>, index: number) => {
+          const capital =
+            parseFloat(
+              String(debt?.capitalAmount || '0').replace(/[^0-9.-]/g, ''),
+            ) || 0;
+          const interest =
+            parseFloat(
+              String(debt?.interestAmount || '0').replace(/[^0-9.-]/g, ''),
+            ) || 0;
+          const debtTotal = capital + interest;
+          const percentage =
+            totalDebt > 0 ? ((debtTotal / totalDebt) * 100).toFixed(2) : '0';
+          if (debt?.percentageOfTotal !== percentage) {
+            form.setValue(`debts.${index}.percentageOfTotal`, percentage, {
+              shouldDirty: false,
+            });
+          }
+        });
+
+        // Update totalDebt
+        const currentTotal = form.getValues('totalDebt');
+        const newTotal = String(totalDebt);
+        if (currentTotal !== newTotal) {
+          form.setValue('totalDebt', newTotal, { shouldDirty: false });
+        }
+      }
     });
     return () => subscription.unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -419,12 +491,43 @@ export function CreateCaseDialog({
     // Count creditors from debts array
     const creditorsCount = data.debts?.length ?? 0;
 
+    // --- SYNC: Cónyuge definitivo → legacy spouse fields ---
+    const syncedSpouseName =
+      [
+        data.conyugePrimerNombre,
+        data.conyugeSegundoNombre,
+        data.conyugePrimerApellido,
+        data.conyugeSegundoApellido,
+      ]
+        .filter(Boolean)
+        .join(' ') ||
+      data.spouseName ||
+      '';
+
+    // --- SYNC: Ingresos Tab 9 → legacy Tab 6 (si no fueron llenados en Tab 6) ---
+    const syncedIncome =
+      data.ingresoPrincipalMensual || data.monthlyIncome || 0;
+    const syncedExpenses =
+      data.totalGastosMensuales || data.monthlyExpenses || 0;
+
     // Send ALL form data to the server action, including arrays and formulario definitivo fields.
-    // Spread validated data first, then override computed fields.
+    // Spread validated data first, then override computed fields + synced values.
     const submitData = {
       ...data,
       creditors: creditorsCount,
       phase: data.phase ?? undefined,
+      // Sync spouse legacy from definitivo
+      spouseName: syncedSpouseName,
+      spouseIdNumber: data.conyugeIdentificacion || data.spouseIdNumber || '',
+      spouseAddress: data.spouseAddress || '',
+      spousePhone: data.conyugeTelefono || data.spousePhone || '',
+      spouseEmail: data.conyugeCorreo || data.spouseEmail || '',
+      // Sync cónyuge nombre completo
+      conyugeNombreCompleto:
+        syncedSpouseName || data.conyugeNombreCompleto || '',
+      // Sync income
+      monthlyIncome: syncedIncome,
+      monthlyExpenses: syncedExpenses,
     };
 
     startTransition(async () => {
@@ -616,39 +719,16 @@ export function CreateCaseDialog({
 
     // Fill all form fields with test data
     form.setValue('type', 'INSOLVENCY');
-    form.setValue('totalDebt', '50000000');
+    // totalDebt se calcula automáticamente de los acreedores
     form.setValue('causes', [
       'Sobreendeudamiento por falta de recursos',
       'Pérdida de empleo',
       'Disminución de ingresos',
     ]);
     form.setValue('phase', 'Inicial');
-    form.setValue('tramite', 'Negociación de deudas');
     form.setValue('filingDate', new Date().toISOString().split('T')[0]);
-    form.setValue('debtorIdNumber', '1234567890');
-    form.setValue('convened', 'Acreedores varios');
     form.setValue('attorney', 'Dr. Juan Pérez');
-    form.setValue('owedCapital', '45000000');
-    form.setValue('designatedOperator', 'María García');
-    form.setValue('designationDate', new Date().toISOString().split('T')[0]);
-    form.setValue(
-      'positionAcceptanceDate',
-      new Date().toISOString().split('T')[0],
-    );
-    form.setValue('admissionDate', new Date().toISOString().split('T')[0]);
-
-    // Hearing date 30 days from now
-    const hearingDate = new Date();
-    hearingDate.setDate(hearingDate.getDate() + 30);
-    form.setValue('firstHearingDate', hearingDate.toISOString().split('T')[0]);
-    form.setValue('firstHearingTime', '10:00');
-
     form.setValue('hasLegalProcesses', true);
-
-    // Zoom info
-    form.setValue('zoomMeetingId', '123 456 7890');
-    form.setValue('zoomPassword', 'abc123');
-    form.setValue('zoomLink', 'https://zoom.us/j/1234567890?pwd=abc123');
 
     // Applicant scope
     form.setValue('applicantScope', ['PERSONA_NATURAL_NO_COMERCIANTE']);
@@ -806,13 +886,6 @@ export function CreateCaseDialog({
     form.setValue('thirdPartyPaymentAuth', false);
     form.setValue('guaranteeSubstitution', false);
 
-    // Spouse
-    form.setValue('spouseName', 'Ana María López');
-    form.setValue('spouseIdNumber', '52987654');
-    form.setValue('spouseAddress', 'Calle 127 #20-45 Apto 302');
-    form.setValue('spousePhone', '3109876543');
-    form.setValue('spouseEmail', 'analopez@email.com');
-
     // Legal foundations
     form.setValue('requestedFee', '2 SMLMV');
     form.setValue(
@@ -830,10 +903,10 @@ export function CreateCaseDialog({
     form.setValue('applicantSignatureId', '1234567890');
 
     // =======================================
-    // SECCIONES 9-12: Formulario Definitivo
+    // Tab 2: Situación — Cónyuge + Info laboral + Cesación
     // =======================================
 
-    // Tab 9: Cónyuge Definitivo
+    // Cónyuge Definitivo
     form.setValue('conyugeTipoIdentificacion', 'CC');
     form.setValue('conyugeIdentificacion', '52987654');
     form.setValue('conyugePrimerNombre', 'Ana');
@@ -844,7 +917,7 @@ export function CreateCaseDialog({
     form.setValue('conyugeCorreo', 'analopez@email.com');
     form.setValue('sociedadConyugalDisuelta', false);
 
-    // Tab 9: Información Laboral y Económica
+    // Información Laboral y Económica
     form.setValue('deudorOcupacion', 'Empleado');
     form.setValue('deudorProfesion', 'Administrador de Empresas');
     form.setValue('deudorActividadEconomica', 'Servicios administrativos');
@@ -868,7 +941,7 @@ export function CreateCaseDialog({
     form.setValue('patrimonioTotalEstimado', 215000000);
     form.setValue('pasivoTotalEstimado', 50000000);
 
-    // Tab 9: Cesación de Pagos
+    // Cesación de Pagos
     form.setValue('cesacionPagos', true);
     form.setValue('fechaCesacionPagos', '2024-06-15');
     form.setValue('numeroAcreedoresActual', 3);
@@ -876,7 +949,7 @@ export function CreateCaseDialog({
     form.setValue('obligacionesEnMora90Dias', true);
     form.setValue('procesosEjecutivosVigentes', true);
 
-    // Tab 9: Acreedores Definitivo
+    // Tab 3: Acreedores Definitivo
     form.setValue('acreedores', [
       {
         acreedorTipo: 'Persona jurídica',
@@ -948,7 +1021,7 @@ export function CreateCaseDialog({
       },
     ]);
 
-    // Tab 10: Bienes Definitivo
+    // Tab 4: Bienes Definitivo
     form.setValue('bienes', [
       {
         bienTipo: 'Inmueble',
@@ -987,7 +1060,7 @@ export function CreateCaseDialog({
       },
     ]);
 
-    // Tab 10: Procesos Judiciales Definitivo
+    // Procesos Judiciales
     form.setValue('procesosJudiciales', [
       {
         tipoProceso: 'Ejecutivo singular',
@@ -1001,7 +1074,7 @@ export function CreateCaseDialog({
       },
     ]);
 
-    // Tab 11: Declaraciones
+    // Tab 7: Declaraciones y Legal
     form.setValue('declaracionVeracidadInformacion', true);
     form.setValue('manifestacionBuenaFe', true);
     form.setValue('manifestacionNoOcultamientoBienes', true);
@@ -1009,7 +1082,7 @@ export function CreateCaseDialog({
     form.setValue('autorizacionConsultaCentralesRiesgo', true);
     form.setValue('autorizacionTratamientoDatos', true);
 
-    // Tab 11: Propuesta Inicial de Pago
+    // Propuesta Inicial de Pago (also in Tab 6)
     form.setValue('propuestaPlazoMeses', 60);
     form.setValue('propuestaPeriodicidadPago', 'Mensual');
     form.setValue('propuestaTasaInteres', 0);
@@ -1027,16 +1100,7 @@ export function CreateCaseDialog({
       'Se solicita condonación total de intereses causados y futuros. Pago mensual con recursos provenientes de salario y arriendos.',
     );
 
-    // Tab 12: Documentos Anexos
-    form.setValue('anexaSoporteIngresos', true);
-    form.setValue('anexaExtractosBancarios', true);
-    form.setValue('anexaCertificadosDeuda', true);
-    form.setValue('anexaCertificadoTradicion', true);
-    form.setValue('anexaRelacionProcesos', true);
-    form.setValue('anexaDeclaracionRenta', false);
-    form.setValue('anexaDocumentoIdentidad', true);
-
-    // Tab 12: Apoderado
+    // Tab 7: Apoderado
     form.setValue('apoderadoNombreCompleto', 'Dr. María Fernanda Torres Ruiz');
     form.setValue('apoderadoTipoIdentificacion', 'CC');
     form.setValue('apoderadoIdentificacion', '51876543');
@@ -1046,18 +1110,7 @@ export function CreateCaseDialog({
     form.setValue('apoderadoCorreo', 'mftorres@abogados.com');
     form.setValue('existePoderOtorgado', true);
 
-    // Tab 12: Radicación Interna
-    form.setValue('expedienteNumero', 'EXP-2025-0042');
-    form.setValue('expedienteAnio', new Date().getFullYear());
-    form.setValue('fechaRadicacion', new Date().toISOString().split('T')[0]);
-    form.setValue(
-      'centroConciliacionNombre',
-      'Centro de Conciliación Constructores de Paz',
-    );
-    form.setValue('conciliadorAsignado', 'María García');
-    form.setValue('ciudadRadicacion', 'Bogotá D.C.');
-
-    toast.success('Datos de prueba cargados (Tabs 1-12)');
+    toast.success('Datos de prueba cargados (Tabs 1-8)');
   };
 
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -1084,45 +1137,30 @@ export function CreateCaseDialog({
                   <TabsTrigger value="debtor" className="text-xs">
                     1. Solicitante
                   </TabsTrigger>
-                  <TabsTrigger value="case-details" className="text-xs">
-                    2. Detalles
-                  </TabsTrigger>
-                  <TabsTrigger value="legal-process" className="text-xs">
-                    3. Proceso
+                  <TabsTrigger value="situation" className="text-xs">
+                    2. Situación
                   </TabsTrigger>
                   <TabsTrigger value="creditors" className="text-xs">
-                    4. Acreedores
+                    3. Acreedores
                   </TabsTrigger>
                   <TabsTrigger value="assets" className="text-xs">
-                    5. Bienes
+                    4. Bienes
                   </TabsTrigger>
                   <TabsTrigger value="income" className="text-xs">
-                    6. Ingresos
+                    5. Ingresos
                   </TabsTrigger>
-                  <TabsTrigger value="payment" className="text-xs">
-                    7. Propuesta
+                  <TabsTrigger value="proposal" className="text-xs">
+                    6. Propuesta
                   </TabsTrigger>
                   <TabsTrigger value="legal" className="text-xs">
-                    8. Legal
+                    7. Legal
                   </TabsTrigger>
-                  <TabsTrigger
-                    value="definitivo-acreedores"
-                    className="text-xs"
-                  >
-                    9. Acr. Def.
-                  </TabsTrigger>
-                  <TabsTrigger value="definitivo-bienes" className="text-xs">
-                    10. Bienes Def.
-                  </TabsTrigger>
-                  <TabsTrigger value="definitivo-extra" className="text-xs">
-                    11. Declaraciones
-                  </TabsTrigger>
-                  <TabsTrigger value="definitivo-final" className="text-xs">
-                    12. Final
+                  <TabsTrigger value="documents" className="text-xs">
+                    8. Documentos
                   </TabsTrigger>
                 </TabsList>
 
-                {/* Tab 1: Deudor + Ámbito de Aplicación */}
+                {/* Tab 1: Solicitante — Deudor + Ámbito + Causas + Datos básicos */}
                 <TabsContent value="debtor" className="space-y-6">
                   <DebtorSection
                     debtors={debtors}
@@ -1134,114 +1172,59 @@ export function CreateCaseDialog({
                     onCauseChange={handleCauseChange}
                     loading={dataLoading}
                   />
-                  <div className="border-t pt-6">
-                    <ApplicantScopeSection />
-                  </div>
-                </TabsContent>
-
-                {/* Tab 2: Detalles del Caso */}
-                <TabsContent value="case-details" className="space-y-4">
+                  <ApplicantScopeSection />
                   <CaseDetailsSection />
                 </TabsContent>
 
-                {/* Tab 3: Proceso Legal */}
-                <TabsContent value="legal-process" className="space-y-4">
+                {/* Tab 2: Situación — Cónyuge + Info laboral + Cesación + Procesos */}
+                <TabsContent value="situation" className="space-y-6">
+                  <ConyugeDefinitivoSection />
+                  <InfoLaboralSection />
+                  <CesacionPagosSection />
                   <LegalProcessSection />
                 </TabsContent>
 
-                {/* Tab 4: Acreedores + Libranzas + Servicios Suspendidos */}
+                {/* Tab 3: Acreedores + Libranzas + Servicios Suspendidos */}
                 <TabsContent value="creditors" className="space-y-6">
                   <CreditorsDetailedSection />
-                  <div className="border-t pt-6">
-                    <LibranzasSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <SuspendedServicesSection />
-                  </div>
+                  <LibranzasSection />
+                  <SuspendedServicesSection />
                 </TabsContent>
 
-                {/* Tab 5: Bienes + Documentos */}
+                {/* Tab 4: Bienes */}
                 <TabsContent value="assets" className="space-y-6">
                   <AssetsSection />
-                  <div className="border-t pt-6">
-                    <DocumentsSection
-                      applicantScope={form.watch('applicantScope') ?? []}
-                      onFilesSelected={(sel) => {
-                        documentsToUploadRef.current = sel;
-                      }}
-                    />
-                  </div>
                 </TabsContent>
 
-                {/* Tab 6: Ingresos + Gastos + Dependientes */}
+                {/* Tab 5: Ingresos + Gastos + Dependientes */}
                 <TabsContent value="income" className="space-y-6">
                   <IncomeSection />
-                  <div className="border-t pt-6">
-                    <DependentsSection />
-                  </div>
+                  <DependentsSection />
                 </TabsContent>
 
-                {/* Tab 7: Propuesta de Pago + Cónyuge */}
-                <TabsContent value="payment" className="space-y-6">
+                {/* Tab 6: Propuesta de Pago */}
+                <TabsContent value="proposal" className="space-y-6">
                   <PaymentProposalSection />
-                  <div className="border-t pt-6">
-                    <SpouseSection />
-                  </div>
                 </TabsContent>
 
-                {/* Tab 8: Legal + Notificaciones + Firma */}
+                {/* Tab 7: Legal — Declaraciones + Notificaciones + Firma + Apoderado */}
                 <TabsContent value="legal" className="space-y-6">
-                  <LegalFoundationsSection />
-                  <div className="border-t pt-6">
-                    <NotificationsSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <SignatureSection />
-                  </div>
-                </TabsContent>
-
-                {/* Tab 9: Formulario Definitivo - Acreedores + Cónyuge + Info Laboral */}
-                <TabsContent
-                  value="definitivo-acreedores"
-                  className="space-y-6"
-                >
-                  <ConyugeDefinitivoSection />
-                  <div className="border-t pt-6">
-                    <InfoLaboralSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <CesacionPagosSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <AcreedoresSection />
-                  </div>
-                </TabsContent>
-
-                {/* Tab 10: Formulario Definitivo - Bienes + Procesos Judiciales */}
-                <TabsContent value="definitivo-bienes" className="space-y-6">
-                  <BienesSection />
-                  <div className="border-t pt-6">
-                    <ProcesosJudicialesSection />
-                  </div>
-                </TabsContent>
-
-                {/* Tab 11: Formulario Definitivo - Declaraciones + Propuesta Inicial */}
-                <TabsContent value="definitivo-extra" className="space-y-6">
                   <DeclaracionesSection />
-                  <div className="border-t pt-6">
-                    <PropuestaInicialSection />
-                  </div>
+                  <LegalFoundationsSection />
+                  <NotificationsSection />
+                  <ApoderadoSection />
+                  <SignatureSection />
                 </TabsContent>
 
-                {/* Tab 12: Formulario Definitivo - Docs Anexos + Apoderado + Radicación */}
-                <TabsContent value="definitivo-final" className="space-y-6">
-                  <DocumentosAnexosSection />
-                  <div className="border-t pt-6">
-                    <ApoderadoSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <RadicacionInternaSection />
-                  </div>
+                {/* Tab 8: Documentos — Carga de archivos */}
+                <TabsContent value="documents" className="space-y-6">
+                  <DocumentsSection
+                    applicantScope={form.watch('applicantScope') ?? []}
+                    assets={form.watch('assets') ?? []}
+                    onFilesSelected={(sel) => {
+                      documentsToUploadRef.current = sel;
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
 
