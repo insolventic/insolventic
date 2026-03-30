@@ -15,6 +15,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  TablePagination,
+  usePagination,
+} from '@/components/ui/table-pagination';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
 
@@ -69,6 +73,11 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
       (caseItem.phase ?? 'Inicial') === selectedPhase;
     return matchesSearch && matchesPhase;
   });
+
+  const { paginatedItems: paginatedCases, paginationProps } = usePagination(
+    filteredCases,
+    20,
+  );
 
   const openCaseDetails = async (caseItem: Case) => {
     setSelectedCase(caseItem);
@@ -186,12 +195,13 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
             </CardHeader>
             <CardContent>
               <CaseTable
-                cases={filteredCases}
+                cases={paginatedCases}
                 onViewDetails={openCaseDetails}
                 onEdit={editCase}
                 onDelete={deleteCase}
                 onChangePhase={changePhase}
               />
+              <TablePagination {...paginationProps} itemLabel="casos" />
             </CardContent>
           </Card>
         </div>

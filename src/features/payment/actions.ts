@@ -263,11 +263,22 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
     }
 
     const months = caseData.propuestaPlazoMeses ?? 12;
+    if (months < 1 || months > 120) {
+      return {
+        success: false,
+        error: 'El plazo debe estar entre 1 y 120 meses',
+      };
+    }
+
     const startDate =
       caseData.propuestaFechaInicioPago ??
       caseData.paymentStartDate ??
       new Date();
     const totalDebt = Number(caseData.totalDebt);
+
+    if (!totalDebt || totalDebt <= 0) {
+      return { success: false, error: 'La deuda total debe ser mayor a 0' };
+    }
 
     const periodicity = caseData.propuestaPeriodicidadPago ?? 'Mensual';
     let intervalMonths = 1;
@@ -276,6 +287,14 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
     else if (periodicity === 'Semestral') intervalMonths = 6;
 
     const numberOfPayments = Math.ceil(months / intervalMonths);
+
+    if (numberOfPayments > 120) {
+      return {
+        success: false,
+        error: 'El número de cuotas no puede exceder 120',
+      };
+    }
+
     const paymentAmount = totalDebt / numberOfPayments;
 
     const paymentsData = Array.from({ length: numberOfPayments }, (_, i) => {
@@ -676,6 +695,24 @@ export async function getPaymentHistory(caseId: string): Promise<{
       return { success: false, error: 'No tienes permisos' };
     }
 
+    // Ownership check: users with VER_CASOS_PROPIOS can only see their own cases
+    if (!user.permissions.includes(P.VER_TODOS_CASOS)) {
+      const caseCheck = await prisma.case.findUnique({
+        where: { id: caseId, tenantId },
+        select: { operatorId: true, debtorId: true },
+      });
+      if (!caseCheck) return { success: false, error: 'Caso no encontrado' };
+
+      const isOperator =
+        user.permissions.includes(P.VER_CASOS_PROPIOS) &&
+        caseCheck.operatorId === user.id;
+      const isClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
+
+      if (!isOperator && !isClient) {
+        return { success: false, error: 'No tienes acceso a este caso' };
+      }
+    }
+
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
       select: { totalDebt: true },
@@ -822,9 +859,9 @@ export async function getPaymentTrackingReport(
       registeredByName: p.registeredBy?.name ?? undefined,
     }));
 
-    // Summaries
+    // Summaries – use the same visibility-scoped `where` clause
     const allPayments = await prisma.payment.findMany({
-      where: { tenantId },
+      where,
       select: { amount: true, status: true, caseId: true, dueDate: true },
     });
 

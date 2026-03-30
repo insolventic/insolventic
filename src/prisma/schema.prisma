@@ -835,5 +835,8 @@ model Payment {
   @@index([tenantId, status])
   @@index([tenantId, debtorId])
   @@index([tenantId, paymentDate])
+  @@index([tenantId, registeredById])
+  @@index([tenantId, dueDate, status])
+  @@index([tenantId, caseId, status])
   @@map("payments")
 }

@@ -35,6 +35,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  TablePagination,
+  usePagination,
+} from '@/components/ui/table-pagination';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
 
@@ -94,6 +98,11 @@ export function CreditorManagement({
     const matchesType = typeFilter === 'all' || creditor.type === typeFilter;
     return matchesSearch && matchesType;
   });
+
+  const { paginatedItems: paginatedCreditors, paginationProps } = usePagination(
+    filteredCreditors,
+    20,
+  );
 
   const exportToCSV = (data: Creditor[], filename: string) => {
     if (!data || data.length === 0) {
@@ -287,7 +296,7 @@ export function CreditorManagement({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCreditors.map((creditor) => (
+                  {paginatedCreditors.map((creditor) => (
                     <TableRow key={creditor.id}>
                       <TableCell>
                         <div>
@@ -350,6 +359,7 @@ export function CreditorManagement({
                 </TableBody>
               </Table>
             </div>
+            <TablePagination {...paginationProps} itemLabel="acreedores" />
           </CardContent>
         </Card>
       </div>

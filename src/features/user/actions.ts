@@ -186,6 +186,14 @@ export async function updateUser(input: unknown): Promise<{
       ? await bcrypt.hash(password, 10)
       : undefined;
 
+    // Validate role belongs to the same tenant
+    if (roleId) {
+      const roleExists = await prisma.role.findFirst({
+        where: { id: roleId, tenantId },
+      });
+      if (!roleExists) return { success: false, error: 'Rol no encontrado' };
+    }
+
     const updatedUser = await prisma.user.update({
       where: {
         id,
@@ -255,6 +263,11 @@ export async function deleteUser(id: string): Promise<{
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_USUARIOS)) {
       throw new Error('No tiene permisos para: Eliminar usuarios');
+    }
+
+    // Prevent self-deletion
+    if (id === user.id) {
+      return { success: false, error: 'No puede eliminar su propia cuenta' };
     }
 
     const deletedUser = await prisma.user.delete({

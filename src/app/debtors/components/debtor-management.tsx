@@ -32,6 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  TablePagination,
+  usePagination,
+} from '@/components/ui/table-pagination';
 import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
@@ -110,6 +114,11 @@ export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
       occupationFilter === 'all' || debtor.occupation === occupationFilter;
     return matchesSearch && matchesOccupation;
   });
+
+  const { paginatedItems: paginatedDebtors, paginationProps } = usePagination(
+    filteredDebtors,
+    20,
+  );
 
   const exportToCSV = (data: Debtor[], filename: string) => {
     if (!data || data.length === 0) {
@@ -247,7 +256,7 @@ export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDebtors.map((debtor) => (
+                {paginatedDebtors.map((debtor) => (
                   <TableRow key={debtor.id}>
                     <TableCell>
                       <div>
@@ -309,6 +318,7 @@ export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
               </TableBody>
             </Table>
           </div>
+          <TablePagination {...paginationProps} itemLabel="deudores" />
         </CardContent>
       </Card>
 

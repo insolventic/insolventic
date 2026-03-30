@@ -34,11 +34,11 @@ export interface CentroConciliacionConfig {
  */
 const CENTRO_BY_TENANT: Record<TenantId, CentroConciliacionConfig> = {
   armonia: {
-    driveFolderName: 'Armonia',
+    driveFolderName: 'Armonía',
     displayName: 'Armonía',
   },
   'constructores-paz': {
-    driveFolderName: 'Construpaz',
+    driveFolderName: 'Constructores de Paz',
     displayName: 'Constructores de Paz',
   },
 };

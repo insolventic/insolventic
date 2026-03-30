@@ -1049,6 +1049,20 @@ export async function addDebtToCase(
       creditorId: debt.creditorId,
     });
 
+    void createAuditLog({
+      action: 'created',
+      entityType: 'case',
+      entityId: caseId,
+      entityName: 'Deuda en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'debt', subEntityId: result.id },
+    });
+
     return { success: true, data: result };
   } catch (error) {
     console.error('Error adding debt to case:', error);
@@ -1098,6 +1112,20 @@ export async function removeDebtFromCase(
       amount: deletedDebt.amount,
       type: deletedDebt.type,
       interestRate: deletedDebt.interestRate,
+    });
+
+    void createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: deletedDebt.caseId,
+      entityName: 'Deuda en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'debt', subEntityId: result.id },
     });
 
     return { success: true, data: result };
@@ -1174,6 +1202,20 @@ export async function addLibranzaToCase(
       productAndCreditor: libranza.productAndCreditor,
     });
 
+    void createAuditLog({
+      action: 'created',
+      entityType: 'case',
+      entityId: caseId,
+      entityName: 'Libranza en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'libranza', subEntityId: result.id },
+    });
+
     return { success: true, data: result };
   } catch (error) {
     console.error('Error adding libranza to case:', error);
@@ -1212,6 +1254,20 @@ export async function removeLibranzaFromCase(
     });
 
     revalidateTag('cases');
+
+    void createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: deletedLibranza.caseId,
+      entityName: 'Libranza en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'libranza', subEntityId: deletedLibranza.id },
+    });
 
     const result = libranzaResponseSchema.parse({
       id: deletedLibranza.id,
@@ -1287,6 +1343,23 @@ export async function addSuspendedServiceToCase(
 
     revalidateTag('cases');
 
+    void createAuditLog({
+      action: 'created',
+      entityType: 'case',
+      entityId: caseId,
+      entityName: 'Servicio suspendido en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: {
+        subEntity: 'suspendedService',
+        subEntityId: suspendedService.id,
+      },
+    });
+
     const result = suspendedServiceResponseSchema.parse({
       id: suspendedService.id,
       creditorName: suspendedService.creditorName,
@@ -1335,6 +1408,23 @@ export async function removeSuspendedServiceFromCase(
     });
 
     revalidateTag('cases');
+
+    void createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: deletedService.caseId,
+      entityName: 'Servicio suspendido en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: {
+        subEntity: 'suspendedService',
+        subEntityId: deletedService.id,
+      },
+    });
 
     const result = suspendedServiceResponseSchema.parse({
       id: deletedService.id,
@@ -1442,6 +1532,20 @@ export async function addAssetToCase(
 
     revalidateTag('cases');
 
+    void createAuditLog({
+      action: 'created',
+      entityType: 'case',
+      entityId: caseId,
+      entityName: 'Bien en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'asset', subEntityId: asset.id },
+    });
+
     const result = assetResponseSchema.parse({
       id: asset.id,
       name: asset.name,
@@ -1505,6 +1609,20 @@ export async function removeAssetFromCase(
     });
 
     revalidateTag('cases');
+
+    void createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: deletedAsset.caseId,
+      entityName: 'Bien en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'asset', subEntityId: deletedAsset.id },
+    });
 
     const result = assetResponseSchema.parse({
       id: deletedAsset.id,
@@ -1584,6 +1702,20 @@ export async function addDependentToCase(
 
     revalidateTag('cases');
 
+    void createAuditLog({
+      action: 'created',
+      entityType: 'case',
+      entityId: caseId,
+      entityName: 'Dependiente en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'dependent', subEntityId: dependent.id },
+    });
+
     const result = dependentResponseSchema.parse({
       id: dependent.id,
       name: dependent.name,
@@ -1629,6 +1761,20 @@ export async function removeDependentFromCase(
     });
 
     revalidateTag('cases');
+
+    void createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: deletedDependent.caseId,
+      entityName: 'Dependiente en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'dependent', subEntityId: deletedDependent.id },
+    });
 
     const result = dependentResponseSchema.parse({
       id: deletedDependent.id,
