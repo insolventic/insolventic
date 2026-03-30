@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
+import { PreGenerationForm } from './pre-generation-form';
 import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
 import {
   generateInitialDocuments,
@@ -76,6 +77,8 @@ export function DocumentsSection({
   const [generatingAgreement, setGeneratingAgreement] = useState(false);
   const [generatingFailure, setGeneratingFailure] = useState(false);
   const [selectedFailureType, setSelectedFailureType] = useState<string>('');
+  const [showPreGenForm, setShowPreGenForm] = useState(false);
+  const [preGenPackage, setPreGenPackage] = useState<2 | 3>(2);
 
   const generatedDocuments =
     caseData.documents?.filter((d) => d.isGenerated) || [];
@@ -107,6 +110,17 @@ export function DocumentsSection({
       return;
     }
 
+    const missingAdmissionData =
+      !caseData.filingDate ||
+      !caseData.designationDate ||
+      !caseData.positionAcceptanceDate;
+
+    if (missingAdmissionData) {
+      setPreGenPackage(2);
+      setShowPreGenForm(true);
+      return;
+    }
+
     setGeneratingAdmission(true);
     try {
       const result = await generateAdmissionDocuments(caseData.id);
@@ -129,6 +143,15 @@ export function DocumentsSection({
   const handleGenerateAgreement = async () => {
     if (!hasDriveFolder) {
       toast.error('Primero debe generar los documentos iniciales');
+      return;
+    }
+
+    const missingAgreementData =
+      caseData.approvalPercentage == null || !caseData.agreementValidityDate;
+
+    if (missingAgreementData) {
+      setPreGenPackage(3);
+      setShowPreGenForm(true);
       return;
     }
 
@@ -182,6 +205,11 @@ export function DocumentsSection({
     } finally {
       setGeneratingFailure(false);
     }
+  };
+
+  const handlePreGenSaved = () => {
+    setShowPreGenForm(false);
+    onDocumentsGenerated?.();
   };
 
   const openDriveFolder = () => {
@@ -262,6 +290,15 @@ export function DocumentsSection({
           </div>
         </CardContent>
       </Card>
+
+      {/* Pre-generation form */}
+      {showPreGenForm && (
+        <PreGenerationForm
+          caseData={caseData}
+          packageNumber={preGenPackage}
+          onDataSaved={handlePreGenSaved}
+        />
+      )}
 
       {/* Botones de generación por etapa */}
       <Card>

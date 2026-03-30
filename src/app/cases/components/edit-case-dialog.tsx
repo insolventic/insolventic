@@ -42,21 +42,14 @@ import { LibranzasTab } from './edit-case-dialog/libranzas-tab';
 import { SuspendedServicesTab } from './edit-case-dialog/suspended-services-tab';
 import { DependentsTab } from './edit-case-dialog/dependents-tab';
 import { PaymentProposalSection } from './create-case-dialog/payment-proposal-section';
-import { SpouseSection } from './create-case-dialog/spouse-section';
 import { LegalFoundationsSection } from './create-case-dialog/legal-foundations-section';
 import { NotificationsSection } from './create-case-dialog/notifications-section';
 import { SignatureSection } from './create-case-dialog/signature-section';
 import { ConyugeDefinitivoSection } from './create-case-dialog/conyuge-definitivo-section';
 import { InfoLaboralSection } from './create-case-dialog/info-laboral-section';
 import { CesacionPagosSection } from './create-case-dialog/cesacion-pagos-section';
-import { AcreedoresSection } from './create-case-dialog/acreedores-section';
-import { BienesSection } from './create-case-dialog/bienes-section';
-import { ProcesosJudicialesSection } from './create-case-dialog/procesos-judiciales-section';
 import { DeclaracionesSection } from './create-case-dialog/declaraciones-section';
-import { PropuestaInicialSection } from './create-case-dialog/propuesta-inicial-section';
-import { DocumentosAnexosSection } from './create-case-dialog/documentos-anexos-section';
 import { ApoderadoSection } from './create-case-dialog/apoderado-section';
-import { RadicacionInternaSection } from './create-case-dialog/radicacion-interna-section';
 
 interface EditCaseDialogProps {
   open: boolean;
@@ -676,20 +669,16 @@ export function EditCaseDialog({
               <Tabs defaultValue="debtor" className="space-y-4">
                 <TabsList className="flex w-full flex-wrap gap-1">
                   <TabsTrigger value="debtor">1. Solicitante</TabsTrigger>
-                  <TabsTrigger value="case-details">2. Detalles</TabsTrigger>
-                  <TabsTrigger value="legal-process">3. Proceso</TabsTrigger>
-                  <TabsTrigger value="creditors">4. Acreedores</TabsTrigger>
-                  <TabsTrigger value="assets">5. Bienes</TabsTrigger>
-                  <TabsTrigger value="income">6. Ingresos</TabsTrigger>
-                  <TabsTrigger value="payment">7. Propuesta</TabsTrigger>
-                  <TabsTrigger value="legal">8. Legal</TabsTrigger>
-                  <TabsTrigger value="definitivo-acreedores" className="text-xs">9. Acr. Def.</TabsTrigger>
-                  <TabsTrigger value="definitivo-bienes" className="text-xs">10. Bienes Def.</TabsTrigger>
-                  <TabsTrigger value="definitivo-extra" className="text-xs">11. Declaraciones</TabsTrigger>
-                  <TabsTrigger value="definitivo-final" className="text-xs">12. Final</TabsTrigger>
+                  <TabsTrigger value="situation">2. Situación</TabsTrigger>
+                  <TabsTrigger value="creditors">3. Acreedores</TabsTrigger>
+                  <TabsTrigger value="assets">4. Bienes</TabsTrigger>
+                  <TabsTrigger value="income">5. Ingresos</TabsTrigger>
+                  <TabsTrigger value="proposal">6. Propuesta</TabsTrigger>
+                  <TabsTrigger value="legal">7. Legal</TabsTrigger>
+                  <TabsTrigger value="documents">8. Documentos</TabsTrigger>
                 </TabsList>
 
-                {/* Tab 1: Deudor + Ámbito de Aplicación */}
+                {/* Tab 1: Solicitante — DebtorSection + ApplicantScopeSection + CaseDetailsSection */}
                 <TabsContent value="debtor" className="space-y-6">
                   <DebtorSection
                     debtors={debtors}
@@ -704,19 +693,26 @@ export function EditCaseDialog({
                   <div className="border-t pt-6">
                     <ApplicantScopeSection />
                   </div>
+                  <div className="border-t pt-6">
+                    <CaseDetailsSection />
+                  </div>
                 </TabsContent>
 
-                {/* Tab 2: Detalles del Caso */}
-                <TabsContent value="case-details" className="space-y-4">
-                  <CaseDetailsSection />
+                {/* Tab 2: Situación — ConyugeDefinitivoSection + InfoLaboralSection + CesacionPagosSection + LegalProcessSection */}
+                <TabsContent value="situation" className="space-y-6">
+                  <ConyugeDefinitivoSection />
+                  <div className="border-t pt-6">
+                    <InfoLaboralSection />
+                  </div>
+                  <div className="border-t pt-6">
+                    <CesacionPagosSection />
+                  </div>
+                  <div className="border-t pt-6">
+                    <LegalProcessSection />
+                  </div>
                 </TabsContent>
 
-                {/* Tab 3: Proceso Legal */}
-                <TabsContent value="legal-process" className="space-y-4">
-                  <LegalProcessSection />
-                </TabsContent>
-
-                {/* Tab 4: Acreedores + Libranzas + Servicios Suspendidos */}
+                {/* Tab 3: Acreedores — CreditorsTab + LibranzasTab + SuspendedServicesTab */}
                 <TabsContent value="creditors" className="space-y-6">
                   <CreditorsTab caseId={caseData.id} creditors={creditors} />
                   <div className="border-t pt-6">
@@ -727,19 +723,12 @@ export function EditCaseDialog({
                   </div>
                 </TabsContent>
 
-                {/* Tab 5: Bienes + Documentos */}
+                {/* Tab 4: Bienes — AssetsTab */}
                 <TabsContent value="assets" className="space-y-6">
                   <AssetsTab caseId={caseData.id} />
-                  <div className="border-t pt-6">
-                    <DocumentsSection
-                      onFilesSelected={(sel) => {
-                        documentsToUploadRef.current = sel;
-                      }}
-                    />
-                  </div>
                 </TabsContent>
 
-                {/* Tab 6: Ingresos + Gastos + Dependientes */}
+                {/* Tab 5: Ingresos — IncomeSection + DependentsTab */}
                 <TabsContent value="income" className="space-y-6">
                   <IncomeSection />
                   <div className="border-t pt-6">
@@ -747,64 +736,35 @@ export function EditCaseDialog({
                   </div>
                 </TabsContent>
 
-                {/* Tab 7: Propuesta de Pago + Cónyuge */}
-                <TabsContent value="payment" className="space-y-6">
+                {/* Tab 6: Propuesta — PaymentProposalSection */}
+                <TabsContent value="proposal" className="space-y-6">
                   <PaymentProposalSection />
-                  <div className="border-t pt-6">
-                    <SpouseSection />
-                  </div>
                 </TabsContent>
 
-                {/* Tab 8: Legal + Notificaciones + Firma */}
+                {/* Tab 7: Legal — DeclaracionesSection + LegalFoundationsSection + NotificationsSection + ApoderadoSection + SignatureSection */}
                 <TabsContent value="legal" className="space-y-6">
-                  <LegalFoundationsSection />
+                  <DeclaracionesSection />
+                  <div className="border-t pt-6">
+                    <LegalFoundationsSection />
+                  </div>
                   <div className="border-t pt-6">
                     <NotificationsSection />
+                  </div>
+                  <div className="border-t pt-6">
+                    <ApoderadoSection />
                   </div>
                   <div className="border-t pt-6">
                     <SignatureSection />
                   </div>
                 </TabsContent>
 
-                {/* Tab 9: Cónyuge Definitivo + Info Laboral + Cesación de Pagos + Acreedores Definitivo */}
-                <TabsContent value="definitivo-acreedores" className="space-y-6">
-                  <ConyugeDefinitivoSection />
-                  <div className="border-t pt-6">
-                    <InfoLaboralSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <CesacionPagosSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <AcreedoresSection />
-                  </div>
-                </TabsContent>
-
-                {/* Tab 10: Bienes Definitivo + Procesos Judiciales Definitivo */}
-                <TabsContent value="definitivo-bienes" className="space-y-6">
-                  <BienesSection />
-                  <div className="border-t pt-6">
-                    <ProcesosJudicialesSection />
-                  </div>
-                </TabsContent>
-
-                {/* Tab 11: Declaraciones + Propuesta Inicial */}
-                <TabsContent value="definitivo-extra" className="space-y-6">
-                  <DeclaracionesSection />
-                  <div className="border-t pt-6">
-                    <PropuestaInicialSection />
-                  </div>
-                </TabsContent>
-
-                {/* Tab 12: Documentos Anexos + Apoderado + Radicación */}
-                <TabsContent value="definitivo-final" className="space-y-6">
-                  <DocumentosAnexosSection />
-                  <div className="border-t pt-6">
-                    <ApoderadoSection />
-                  </div>
-                  <div className="border-t pt-6">
-                    <RadicacionInternaSection />
-                  </div>
+                {/* Tab 8: Documentos — DocumentsSection (file upload) */}
+                <TabsContent value="documents" className="space-y-6">
+                  <DocumentsSection
+                    onFilesSelected={(sel) => {
+                      documentsToUploadRef.current = sel;
+                    }}
+                  />
                 </TabsContent>
               </Tabs>
 

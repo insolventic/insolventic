@@ -691,7 +691,7 @@ export async function batchGenerateDocuments(input: {
   caseId: string;
   templateIds?: string[];
   packageNumber?: 1 | 2 | 3 | 4 | 5;
-  outputFormat?: 'docx' | 'pdf';
+  outputFormat?: 'pdf' | 'docx' | 'both';
 }) {
   try {
     const { user, tenantId } = await authenticateUser();
@@ -706,6 +706,7 @@ export async function batchGenerateDocuments(input: {
 
     const validatedInput = batchGenerateDocumentsInputSchema.parse(input);
     const { caseId, templateIds, packageNumber } = validatedInput;
+    const outputFormat = validatedInput.outputFormat || 'pdf';
 
     // Load case with ALL relations needed for placeholder mapping
     const caseData = await prisma.case.findUnique({
@@ -954,42 +955,91 @@ export async function batchGenerateDocuments(input: {
       `[batchGenerateDocuments] Phase 1 complete: ${htmlDocuments.length} templates read successfully, ${documents.length} failed`,
     );
 
-    // Phase 2: Generate all PDFs in a single Chromium instance
+    // Phase 2: Generate documents (PDF, DOCX, or both)
+    const generatePdf = outputFormat === 'pdf' || outputFormat === 'both';
+    const generateDocx = outputFormat === 'docx' || outputFormat === 'both';
+
     // Use template.id as unique filename key to avoid collisions
     // (multiple templates share the same fileName, e.g. "Remision Juzgado F.html" x12)
-    console.log(
-      `[batchGenerateDocuments] Phase 2: Generating ${htmlDocuments.length} PDFs via batchHtmlToPdf...`,
-    );
-    const pdfResults = await batchHtmlToPdf(
-      htmlDocuments.map((d) => ({
-        html: d.html,
-        filename: `${d.uniqueKey}.html`,
-      })),
-      {},
-      assetsBaseDir,
-    );
-    console.log(
-      `[batchGenerateDocuments] Phase 2 complete: ${pdfResults.length} PDFs generated out of ${htmlDocuments.length} templates`,
-    );
+    const htmlInputs = htmlDocuments.map((d) => ({
+      html: d.html,
+      filename: `${d.uniqueKey}.html`,
+    }));
 
-    // Log which PDFs were generated vs missing
-    const generatedKeys = new Set(pdfResults.map((r) => r.filename));
+    // Generate PDFs if requested
+    let pdfResults: Array<{ filename: string; buffer: Buffer }> = [];
+    if (generatePdf) {
+      console.log(
+        `[batchGenerateDocuments] Phase 2a: Generating ${htmlDocuments.length} PDFs via batchHtmlToPdf...`,
+      );
+      pdfResults = await batchHtmlToPdf(htmlInputs, {}, assetsBaseDir);
+      console.log(
+        `[batchGenerateDocuments] Phase 2a complete: ${pdfResults.length} PDFs generated`,
+      );
+    }
+
+    // Generate DOCX if requested
+    let docxResults: Array<{ filename: string; buffer: Buffer }> = [];
+    if (generateDocx) {
+      console.log(
+        `[batchGenerateDocuments] Phase 2b: Generating ${htmlDocuments.length} DOCX files...`,
+      );
+      const { batchHtmlToDocx } = await import('@/lib/html-to-docx');
+      docxResults = await batchHtmlToDocx(htmlInputs, {}, assetsBaseDir);
+      console.log(
+        `[batchGenerateDocuments] Phase 2b complete: ${docxResults.length} DOCX files generated`,
+      );
+    }
+
+    // Log which files were generated vs missing
+    const generatedPdfKeys = new Set(pdfResults.map((r) => r.filename));
+    const generatedDocxKeys = new Set(docxResults.map((r) => r.filename));
     for (const htmlDoc of htmlDocuments) {
-      const expectedFilename = `${htmlDoc.uniqueKey}.pdf`;
-      if (!generatedKeys.has(expectedFilename)) {
+      if (generatePdf && !generatedPdfKeys.has(`${htmlDoc.uniqueKey}.pdf`)) {
         console.error(
           `[batchGenerateDocuments] PDF MISSING for template: ${htmlDoc.template.name} (key: ${htmlDoc.uniqueKey})`,
+        );
+      }
+      if (generateDocx && !generatedDocxKeys.has(`${htmlDoc.uniqueKey}.docx`)) {
+        console.error(
+          `[batchGenerateDocuments] DOCX MISSING for template: ${htmlDoc.template.name} (key: ${htmlDoc.uniqueKey})`,
         );
       }
     }
 
     // Phase 3: Upload to Google Drive and save to DB
     for (const htmlDoc of htmlDocuments) {
-      const pdfResult = pdfResults.find(
-        (r) => r.filename === `${htmlDoc.uniqueKey}.pdf`,
-      );
+      // Gather generated file variants for this template
+      const variants: Array<{ ext: string; buffer: Buffer; mimeType: string }> =
+        [];
 
-      if (!pdfResult) {
+      if (generatePdf) {
+        const pdfResult = pdfResults.find(
+          (r) => r.filename === `${htmlDoc.uniqueKey}.pdf`,
+        );
+        if (pdfResult) {
+          variants.push({
+            ext: 'pdf',
+            buffer: pdfResult.buffer,
+            mimeType: 'application/pdf',
+          });
+        }
+      }
+      if (generateDocx) {
+        const docxResult = docxResults.find(
+          (r) => r.filename === `${htmlDoc.uniqueKey}.docx`,
+        );
+        if (docxResult) {
+          variants.push({
+            ext: 'docx',
+            buffer: docxResult.buffer,
+            mimeType:
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          });
+        }
+      }
+
+      if (variants.length === 0) {
         documents.push({
           templateId: htmlDoc.template.id,
           templateName: htmlDoc.template.name,
@@ -997,83 +1047,91 @@ export async function batchGenerateDocuments(input: {
           documentName: htmlDoc.documentName,
           documentUrl: '',
           status: 'error',
-          error: 'Error generando PDF',
+          error: `Error generando ${outputFormat === 'both' ? 'PDF/DOCX' : outputFormat.toUpperCase()}`,
         });
         continue;
       }
 
-      try {
-        let fileId = '';
-        let fileUrl = '';
+      // Upload and save each variant (PDF, DOCX, or both)
+      for (const variant of variants) {
+        const variantDocName = htmlDoc.documentName.replace(
+          /\.pdf$/,
+          `.${variant.ext}`,
+        );
+        try {
+          let fileId = '';
+          let fileUrl = '';
 
-        if (caseFolderId) {
-          try {
-            const { googleDriveService } = await import('@/lib/google-drive');
+          if (caseFolderId) {
+            try {
+              const { googleDriveService } = await import('@/lib/google-drive');
 
-            let targetFolderId = caseFolderId;
-            if (htmlDoc.template.folderPath.length > 0) {
-              targetFolderId = await googleDriveService.createFolderHierarchy(
-                htmlDoc.template.folderPath,
-                caseFolderId,
+              let targetFolderId = caseFolderId;
+              if (htmlDoc.template.folderPath.length > 0) {
+                targetFolderId = await googleDriveService.createFolderHierarchy(
+                  htmlDoc.template.folderPath,
+                  caseFolderId,
+                );
+              }
+
+              const uploadResult =
+                await googleDriveService.uploadDocumentToCase(
+                  variantDocName,
+                  variant.buffer,
+                  targetFolderId,
+                );
+              fileId = uploadResult.fileId;
+              fileUrl = uploadResult.fileUrl;
+            } catch (uploadError) {
+              console.warn(
+                `Drive upload failed for ${htmlDoc.template.name} (${variant.ext}):`,
+                uploadError,
               );
             }
-
-            const uploadResult = await googleDriveService.uploadDocumentToCase(
-              htmlDoc.documentName,
-              pdfResult.buffer,
-              targetFolderId,
-            );
-            fileId = uploadResult.fileId;
-            fileUrl = uploadResult.fileUrl;
-          } catch (uploadError) {
-            console.warn(
-              `Drive upload failed for ${htmlDoc.template.name}:`,
-              uploadError,
-            );
           }
+
+          const document = await prisma.document.create({
+            data: {
+              name: variantDocName,
+              type: 'generated',
+              status: 'Generado',
+              uploadDate: new Date(),
+              url: fileUrl || '',
+              googleDriveId: fileId || undefined,
+              caseId: caseData.id,
+              tenantId,
+              fileName: variantDocName,
+              mimeType: variant.mimeType,
+              isGenerated: true,
+            },
+          });
+
+          documents.push({
+            templateId: htmlDoc.template.id,
+            templateName: htmlDoc.template.name,
+            documentId: document.id,
+            documentName: variantDocName,
+            documentUrl: fileUrl,
+            status: 'success',
+          });
+        } catch (saveError) {
+          console.error(
+            `Error saving document ${htmlDoc.template.name} (${variant.ext}):`,
+            saveError,
+          );
+          documents.push({
+            templateId: htmlDoc.template.id,
+            templateName: htmlDoc.template.name,
+            documentId: '',
+            documentName: variantDocName,
+            documentUrl: '',
+            status: 'error',
+            error:
+              saveError instanceof Error
+                ? saveError.message
+                : 'Error guardando documento',
+          });
         }
-
-        const document = await prisma.document.create({
-          data: {
-            name: htmlDoc.documentName,
-            type: 'generated',
-            status: 'Generado',
-            uploadDate: new Date(),
-            url: fileUrl || '',
-            googleDriveId: fileId || undefined,
-            caseId: caseData.id,
-            tenantId,
-            fileName: htmlDoc.documentName,
-            mimeType: 'application/pdf',
-            isGenerated: true,
-          },
-        });
-
-        documents.push({
-          templateId: htmlDoc.template.id,
-          templateName: htmlDoc.template.name,
-          documentId: document.id,
-          documentName: htmlDoc.documentName,
-          documentUrl: fileUrl,
-          status: 'success',
-        });
-      } catch (saveError) {
-        console.error(
-          `Error saving document ${htmlDoc.template.name}:`,
-          saveError,
-        );
-        documents.push({
-          templateId: htmlDoc.template.id,
-          templateName: htmlDoc.template.name,
-          documentId: '',
-          documentName: htmlDoc.documentName,
-          documentUrl: '',
-          status: 'error',
-          error:
-            saveError instanceof Error
-              ? saveError.message
-              : 'Error guardando documento',
-        });
       }
     }
 

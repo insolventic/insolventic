@@ -208,12 +208,14 @@ function validateDocumentRequirements(
  */
 export interface GenerationOptions {
   generatePdf?: boolean; // If false, saves as HTML
+  generateDocx?: boolean; // If true, also generates DOCX
   uploadToGoogleDrive?: boolean;
   caseFolderId?: string; // Google Drive folder ID for the case
 }
 
 const defaultOptions: GenerationOptions = {
   generatePdf: true,
+  generateDocx: false,
   uploadToGoogleDrive: true,
 };
 

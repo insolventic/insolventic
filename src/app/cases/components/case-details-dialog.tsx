@@ -103,35 +103,25 @@ export function CaseDetailsDialog({
         <Tabs defaultValue="debtor" className="space-y-4">
           <TabsList className="flex w-full flex-wrap gap-1">
             <TabsTrigger value="debtor">1. Solicitante</TabsTrigger>
-            <TabsTrigger value="case-details">2. Detalles</TabsTrigger>
-            <TabsTrigger value="legal-process">3. Proceso</TabsTrigger>
-            <TabsTrigger value="creditors">4. Acreedores</TabsTrigger>
-            <TabsTrigger value="assets">5. Bienes</TabsTrigger>
-            <TabsTrigger value="income">6. Ingresos</TabsTrigger>
-            <TabsTrigger value="payment">7. Propuesta</TabsTrigger>
-            <TabsTrigger value="legal">8. Legal</TabsTrigger>
-            <TabsTrigger value="documents">9. Documentos</TabsTrigger>
-            <TabsTrigger value="definitivo" className="text-xs">
-              10. Definitivo
-            </TabsTrigger>
-            <TabsTrigger value="payment-tracking" className="text-xs">
-              11. Pagos
-            </TabsTrigger>
-            <TabsTrigger value="activity" className="text-xs">
-              12. Actividad
-            </TabsTrigger>
+            <TabsTrigger value="situation">2. Situación</TabsTrigger>
+            <TabsTrigger value="creditors">3. Acreedores</TabsTrigger>
+            <TabsTrigger value="assets">4. Bienes</TabsTrigger>
+            <TabsTrigger value="income">5. Ingresos</TabsTrigger>
+            <TabsTrigger value="payment">6. Propuesta</TabsTrigger>
+            <TabsTrigger value="legal">7. Legal</TabsTrigger>
+            <TabsTrigger value="documents">8. Documentos</TabsTrigger>
+            <TabsTrigger value="payment-tracking">9. Pagos</TabsTrigger>
+            <TabsTrigger value="activity">10. Actividad</TabsTrigger>
           </TabsList>
 
           <TabsContent value="debtor" className="space-y-4">
             <DebtorInfoSection caseData={caseData} />
-          </TabsContent>
-
-          <TabsContent value="case-details" className="space-y-4">
             <CaseDetailsSection caseData={caseData} />
           </TabsContent>
 
-          <TabsContent value="legal-process" className="space-y-4">
+          <TabsContent value="situation" className="space-y-4">
             <LegalProcessSection caseData={caseData} />
+            <DefinitivoSection caseData={caseData} />
           </TabsContent>
 
           <TabsContent value="creditors" className="space-y-4">
@@ -156,10 +146,6 @@ export function CaseDetailsDialog({
 
           <TabsContent value="documents" className="space-y-4">
             <DocumentsSection caseData={caseData} />
-          </TabsContent>
-
-          <TabsContent value="definitivo" className="space-y-4">
-            <DefinitivoSection caseData={caseData} />
           </TabsContent>
 
           <TabsContent value="payment-tracking" className="space-y-4">

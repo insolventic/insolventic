@@ -256,7 +256,7 @@ export const batchGenerateDocumentsInputSchema = z.object({
       z.literal(5),
     ])
     .optional(),
-  outputFormat: z.enum(['docx', 'pdf']).default('pdf'),
+  outputFormat: z.enum(['pdf', 'docx', 'both']).default('pdf'),
 });
 
 export const batchGenerateDocumentsOutputSchema = z.object({

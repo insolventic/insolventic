@@ -57,6 +57,7 @@
     "docxtemplater": "^3.66.7",
     "exceljs": "^4.4.0",
     "googleapis": "^162.0.0",
+    "html-to-docx": "^1.8.0",
     "jose": "^6.1.0",
     "libreoffice-convert": "^1.7.0",
     "lucide-react": "^0.545.0",

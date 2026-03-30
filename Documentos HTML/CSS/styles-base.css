@@ -18,6 +18,23 @@ body {
   background-color: #fff;
 }
 
+/* ---- TABLAS: prevención global de overflow ---- */
+table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+table td,
+table th {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
 /* ---- CONTENEDOR PRINCIPAL ---- */
 .container {
   max-width: 21cm;
@@ -355,6 +372,8 @@ p.justified {
 @media print {
   body {
     background-color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .container {
@@ -412,6 +431,10 @@ p.justified {
   }
 
   /* Prevenir cortes de página */
+  table {
+    page-break-inside: avoid;
+  }
+
   .info-table,
   .fechas-table,
   .tabla-referencia {
@@ -427,7 +450,15 @@ p.justified {
 
   .section-title,
   .subsection-title {
+    page-break-inside: avoid;
     page-break-after: avoid;
+  }
+
+  .parrafo-justified,
+  .parrafo-advertencia,
+  .parrafo-importante,
+  .parrafo-principal {
+    page-break-inside: avoid;
   }
 
   .parrafo-justified {
@@ -436,6 +467,12 @@ p.justified {
   }
 
   p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  td,
+  li {
     orphans: 3;
     widows: 3;
   }

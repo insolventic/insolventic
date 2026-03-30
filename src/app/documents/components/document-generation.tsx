@@ -113,6 +113,9 @@ export function DocumentGeneration({
   const canGenerateDocuments = checkPermission(P.GENERAR_DOCUMENTOS);
   const [selectedCaseId, setSelectedCaseId] = useState('');
   const [selectedPackage, setSelectedPackage] = useState('all');
+  const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'docx' | 'both'>(
+    'pdf',
+  );
   const [open, setOpen] = useState(false);
   const [generationResult, setGenerationResult] =
     useState<GenerationResultData | null>(null);
@@ -154,6 +157,7 @@ export function DocumentGeneration({
       const { success, data, message } = await batchGenerateDocuments({
         caseId: selectedCaseId,
         packageNumber,
+        outputFormat: selectedFormat,
       });
 
       if (success && data) {
@@ -206,14 +210,13 @@ export function DocumentGeneration({
           Generación de Documentos
         </CardTitle>
         <CardDescription>
-          Selecciona un caso y un paquete para generar documentos PDF a partir
-          de las plantillas HTML. Los documentos se guardan automáticamente en
-          Google Drive.
+          Selecciona un caso, paquete y formato para generar documentos. Los
+          documentos se guardan automáticamente en Google Drive.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Case & Package selectors */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto_auto] lg:items-end">
           {/* Case selector */}
           <div className="space-y-2">
             <Label htmlFor="case-select">Caso</Label>
@@ -301,6 +304,27 @@ export function DocumentGeneration({
                     {pkg.label} ({pkg.count} doc.)
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Format selector */}
+          <div className="space-y-2">
+            <Label htmlFor="format-select">Formato</Label>
+            <Select
+              value={selectedFormat}
+              onValueChange={(v) =>
+                setSelectedFormat(v as 'pdf' | 'docx' | 'both')
+              }
+              disabled={isPending}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Formato" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pdf">Solo PDF</SelectItem>
+                <SelectItem value="docx">Solo Word (.docx)</SelectItem>
+                <SelectItem value="both">Ambos (PDF + Word)</SelectItem>
               </SelectContent>
             </Select>
           </div>
