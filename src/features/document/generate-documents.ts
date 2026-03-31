@@ -364,7 +364,7 @@ async function generateDocument(
 
     if (options.generatePdf) {
       const projectRoot = process.cwd();
-      const assetsBaseDir = path.join(projectRoot, 'Documentos HTML');
+      const assetsBaseDir = path.join(projectRoot, 'templates/insolvency');
       fileBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir);
       mimeType = 'application/pdf';
     } else {
@@ -660,7 +660,7 @@ export async function previewDocument(
 
   if (format === 'pdf') {
     const projectRoot = process.cwd();
-    const assetsBaseDir = path.join(projectRoot, 'Documentos HTML');
+    const assetsBaseDir = path.join(projectRoot, 'templates/insolvency');
     const pdfBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir);
     return { content: pdfBuffer, mimeType: 'application/pdf' };
   }

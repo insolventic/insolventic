@@ -1,6 +1,12 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import {
+  ChevronDown,
+  FileText,
+  Handshake,
+  HeartHandshake,
+  Plus,
+} from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -15,6 +21,19 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   TablePagination,
   usePagination,
@@ -50,6 +69,9 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   const [selectedCaseWithRelations, setSelectedCaseWithRelations] =
     useState<CaseWithRelations | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showComingSoonDialog, setShowComingSoonDialog] = useState<
+    'conciliation' | 'support_agreement' | null
+  >(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -165,13 +187,38 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
                 apoyo
               </p>
             </div>
-            <Button
-              onClick={() => setShowCreateDialog(true)}
-              disabled={!canCreateCases}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Caso
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button disabled={!canCreateCases}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear nuevo caso
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={() => setShowCreateDialog(true)}
+                  className="cursor-pointer"
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Insolvencia
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setShowComingSoonDialog('conciliation')}
+                  className="cursor-pointer"
+                >
+                  <Handshake className="mr-2 h-4 w-4" />
+                  Conciliación
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setShowComingSoonDialog('support_agreement')}
+                  className="cursor-pointer"
+                >
+                  <HeartHandshake className="mr-2 h-4 w-4" />
+                  Acuerdos de apoyo
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <CaseStats stats={stats} />
@@ -249,6 +296,34 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
           currentPhase={selectedCase.phase}
         />
       )}
+
+      <Dialog
+        open={showComingSoonDialog !== null}
+        onOpenChange={(open) => !open && setShowComingSoonDialog(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {showComingSoonDialog === 'conciliation'
+                ? 'Conciliación'
+                : 'Acuerdos de apoyo'}
+            </DialogTitle>
+            <DialogDescription>
+              Este tipo de caso estará disponible próximamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center py-12">
+            {showComingSoonDialog === 'conciliation' ? (
+              <Handshake className="text-muted-foreground mb-4 h-16 w-16" />
+            ) : (
+              <HeartHandshake className="text-muted-foreground mb-4 h-16 w-16" />
+            )}
+            <p className="text-muted-foreground text-lg font-medium">
+              Próximamente...
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

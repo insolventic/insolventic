@@ -852,7 +852,7 @@ export async function batchGenerateDocuments(input: {
     const { batchHtmlToPdf } = await import('@/lib/html-to-pdf');
 
     const projectRoot = process.cwd();
-    const assetsBaseDir = path.join(projectRoot, 'Documentos HTML');
+    const assetsBaseDir = path.join(projectRoot, 'templates/insolvency');
 
     // Resolve center folder name from case data or tenant
     const centerFolderName = resolveCenterFolderName(

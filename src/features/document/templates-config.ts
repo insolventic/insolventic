@@ -9,7 +9,14 @@ export interface DocumentTemplate {
   id: string;
   name: string;
   fileName: string;
-  category: 'solicitud' | 'admision' | 'audiencia' | 'acuerdo' | 'fracaso' | 'rechazo' | 'otros';
+  category:
+    | 'solicitud'
+    | 'admision'
+    | 'audiencia'
+    | 'acuerdo'
+    | 'fracaso'
+    | 'rechazo'
+    | 'otros';
   packageNumber: PackageNumber;
   packageName: string;
   subPackage?: string;
@@ -24,12 +31,30 @@ export interface DocumentTemplate {
 /**
  * Package definitions
  */
-export const PACKAGES: Record<PackageNumber, { name: string; description: string }> = {
-  1: { name: 'Solicitud', description: 'Documentos de solicitud inicial de insolvencia' },
-  2: { name: 'Admisión y Apertura', description: 'Documentos de admisión y apertura del trámite' },
-  3: { name: 'Negociación y Acuerdo', description: 'Documentos de negociación, audiencia y acuerdo' },
-  4: { name: 'Terminación Normal', description: 'Documentos de terminación normal del trámite' },
-  5: { name: 'Fracaso', description: 'Documentos de fracaso de la negociación' },
+export const PACKAGES: Record<
+  PackageNumber,
+  { name: string; description: string }
+> = {
+  1: {
+    name: 'Solicitud',
+    description: 'Documentos de solicitud inicial de insolvencia',
+  },
+  2: {
+    name: 'Admisión y Apertura',
+    description: 'Documentos de admisión y apertura del trámite',
+  },
+  3: {
+    name: 'Negociación y Acuerdo',
+    description: 'Documentos de negociación, audiencia y acuerdo',
+  },
+  4: {
+    name: 'Terminación Normal',
+    description: 'Documentos de terminación normal del trámite',
+  },
+  5: {
+    name: 'Fracaso',
+    description: 'Documentos de fracaso de la negociación',
+  },
 };
 
 /**
@@ -334,7 +359,8 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
   {
     id: 'remision-resultado',
     name: 'Remision Resultado',
-    fileName: 'Remision Resultado de la Negociacion Cuando Termina Tramite.html',
+    fileName:
+      'Remision Resultado de la Negociacion Cuando Termina Tramite.html',
     category: 'otros',
     packageNumber: 4,
     packageName: 'Terminación Normal',
@@ -473,7 +499,10 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     generateOnAdmission: false,
     generateOnAgreement: false,
     generateOnFailure: true,
-    folderPath: ['Tipos De Fracaso', 'Fracaso por inasistencia y vencimiento de terminos'],
+    folderPath: [
+      'Tipos De Fracaso',
+      'Fracaso por inasistencia y vencimiento de terminos',
+    ],
     description: 'Fracaso por inasistencia y vencimiento de terminos',
   },
   {
@@ -488,8 +517,12 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     generateOnAdmission: false,
     generateOnAgreement: false,
     generateOnFailure: true,
-    folderPath: ['Tipos De Fracaso', 'Fracaso por inasistencia y vencimiento de terminos'],
-    description: 'Remision al juzgado por inasistencia y vencimiento de terminos',
+    folderPath: [
+      'Tipos De Fracaso',
+      'Fracaso por inasistencia y vencimiento de terminos',
+    ],
+    description:
+      'Remision al juzgado por inasistencia y vencimiento de terminos',
   },
 
   // --- 5.5 Fracaso por inasistencia - animo de conciliar ---
@@ -505,7 +538,10 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     generateOnAdmission: false,
     generateOnAgreement: false,
     generateOnFailure: true,
-    folderPath: ['Tipos De Fracaso', 'Fracaso por inasistencia-Animo de conciliar'],
+    folderPath: [
+      'Tipos De Fracaso',
+      'Fracaso por inasistencia-Animo de conciliar',
+    ],
     description: 'Fracaso por inasistencia sin animo de conciliar',
   },
   {
@@ -520,7 +556,10 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     generateOnAdmission: false,
     generateOnAgreement: false,
     generateOnFailure: true,
-    folderPath: ['Tipos De Fracaso', 'Fracaso por inasistencia-Animo de conciliar'],
+    folderPath: [
+      'Tipos De Fracaso',
+      'Fracaso por inasistencia-Animo de conciliar',
+    ],
     description: 'Remision al juzgado por inasistencia sin animo de conciliar',
   },
 
@@ -633,7 +672,10 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     generateOnAdmission: false,
     generateOnAgreement: false,
     generateOnFailure: true,
-    folderPath: ['Tipos De Fracaso', 'Fracaso por propuesta mala y vencimiento de terminos'],
+    folderPath: [
+      'Tipos De Fracaso',
+      'Fracaso por propuesta mala y vencimiento de terminos',
+    ],
     description: 'Fracaso por propuesta mala y vencimiento de terminos',
   },
   {
@@ -648,8 +690,12 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     generateOnAdmission: false,
     generateOnAgreement: false,
     generateOnFailure: true,
-    folderPath: ['Tipos De Fracaso', 'Fracaso por propuesta mala y vencimiento de terminos'],
-    description: 'Remision al juzgado por propuesta mala y vencimiento de terminos',
+    folderPath: [
+      'Tipos De Fracaso',
+      'Fracaso por propuesta mala y vencimiento de terminos',
+    ],
+    description:
+      'Remision al juzgado por propuesta mala y vencimiento de terminos',
   },
 
   // --- 5.10 Fracaso por propuesta mala y quorum ---
@@ -799,12 +845,12 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
 
 /** @deprecated Use ALL_TEMPLATES instead */
 export const DOCUMENT_TEMPLATES: DocumentTemplate[] = ALL_TEMPLATES.filter(
-  t => t.category !== 'fracaso'
+  (t) => t.category !== 'fracaso',
 );
 
 /** @deprecated Use ALL_TEMPLATES.filter(t => t.category === 'fracaso') instead */
 export const FRACASO_TEMPLATES: DocumentTemplate[] = ALL_TEMPLATES.filter(
-  t => t.category === 'fracaso'
+  (t) => t.category === 'fracaso',
 );
 
 // =============================================
@@ -814,14 +860,19 @@ export const FRACASO_TEMPLATES: DocumentTemplate[] = ALL_TEMPLATES.filter(
 /**
  * Get templates by package number
  */
-export function getTemplatesByPackage(packageNumber: PackageNumber): DocumentTemplate[] {
-  return ALL_TEMPLATES.filter(t => t.packageNumber === packageNumber);
+export function getTemplatesByPackage(
+  packageNumber: PackageNumber,
+): DocumentTemplate[] {
+  return ALL_TEMPLATES.filter((t) => t.packageNumber === packageNumber);
 }
 
 /**
  * Get templates grouped by package
  */
-export function getTemplatesGroupedByPackage(): Record<PackageNumber, DocumentTemplate[]> {
+export function getTemplatesGroupedByPackage(): Record<
+  PackageNumber,
+  DocumentTemplate[]
+> {
   return {
     1: getTemplatesByPackage(1),
     2: getTemplatesByPackage(2),
@@ -840,7 +891,7 @@ export function getPackageInfo(): Array<{
   description: string;
   templateCount: number;
 }> {
-  return ([1, 2, 3, 4, 5] as PackageNumber[]).map(num => ({
+  return ([1, 2, 3, 4, 5] as PackageNumber[]).map((num) => ({
     packageNumber: num,
     ...PACKAGES[num],
     templateCount: getTemplatesByPackage(num).length,
@@ -852,19 +903,21 @@ export function getPackageInfo(): Array<{
 // =============================================
 
 export function getTemplatesForCaseCreation(): DocumentTemplate[] {
-  return ALL_TEMPLATES.filter(t => t.generateOnCreate);
+  return ALL_TEMPLATES.filter((t) => t.generateOnCreate);
 }
 
 export function getTemplatesForAdmission(): DocumentTemplate[] {
-  return ALL_TEMPLATES.filter(t => t.generateOnAdmission);
+  return ALL_TEMPLATES.filter((t) => t.generateOnAdmission);
 }
 
 export function getTemplatesForAgreement(): DocumentTemplate[] {
-  return ALL_TEMPLATES.filter(t => t.generateOnAgreement);
+  return ALL_TEMPLATES.filter((t) => t.generateOnAgreement);
 }
 
-export function getTemplatesForFailure(failureType?: string): DocumentTemplate[] {
-  const failureTemplates = ALL_TEMPLATES.filter(t => t.generateOnFailure);
+export function getTemplatesForFailure(
+  failureType?: string,
+): DocumentTemplate[] {
+  const failureTemplates = ALL_TEMPLATES.filter((t) => t.generateOnFailure);
 
   if (!failureType) {
     return failureTemplates;
@@ -873,13 +926,15 @@ export function getTemplatesForFailure(failureType?: string): DocumentTemplate[]
   const failureTypeMap: Record<string, string> = {
     'acuerdo-bilateral': 'Fracaso por acuerdo bilateral',
     'falta-pago-gastos': 'Fracaso por falta de pago gastos',
-    'impugnacion': 'Fracaso por impugnacion del acuerdo',
-    'inasistencia-vencimiento': 'Fracaso por inasistencia y vencimiento de terminos',
+    impugnacion: 'Fracaso por impugnacion del acuerdo',
+    'inasistencia-vencimiento':
+      'Fracaso por inasistencia y vencimiento de terminos',
     'inasistencia-animo': 'Fracaso por inasistencia-Animo de conciliar',
-    'incumplimiento': 'Fracaso por incumplimiento',
+    incumplimiento: 'Fracaso por incumplimiento',
     'muerte-deudor': 'Fracaso por muerte del deudor',
     'propuesta-mala': 'Fracaso por propuesta mala',
-    'propuesta-vencimiento': 'Fracaso por propuesta mala y vencimiento de terminos',
+    'propuesta-vencimiento':
+      'Fracaso por propuesta mala y vencimiento de terminos',
     'propuesta-quorum': 'Fracaso por propuestsa mala y Quorum',
     'reforma-acuerdo': 'Fracaso por reforma del acuerdo',
     'vencimiento-terminos': 'Fracaso por vencimiento de terminos',
@@ -890,25 +945,75 @@ export function getTemplatesForFailure(failureType?: string): DocumentTemplate[]
     return [];
   }
 
-  return failureTemplates.filter(t =>
-    t.folderPath.includes(folderName)
-  );
+  return failureTemplates.filter((t) => t.folderPath.includes(folderName));
 }
 
-export function getFailureTypes(): Array<{ id: string; name: string; description: string }> {
+export function getFailureTypes(): Array<{
+  id: string;
+  name: string;
+  description: string;
+}> {
   return [
-    { id: 'acuerdo-bilateral', name: 'Acuerdo Bilateral', description: 'Fracaso por celebración de acuerdo bilateral' },
-    { id: 'falta-pago-gastos', name: 'Falta de Pago de Gastos', description: 'Fracaso por falta de pago de gastos de administración' },
-    { id: 'impugnacion', name: 'Impugnación del Acuerdo', description: 'Fracaso por impugnación del acuerdo' },
-    { id: 'inasistencia-vencimiento', name: 'Inasistencia y Vencimiento', description: 'Fracaso por inasistencia y vencimiento de términos' },
-    { id: 'inasistencia-animo', name: 'Inasistencia sin Ánimo', description: 'Fracaso por inasistencia sin ánimo de conciliar' },
-    { id: 'incumplimiento', name: 'Incumplimiento', description: 'Fracaso por incumplimiento del acuerdo' },
-    { id: 'muerte-deudor', name: 'Muerte del Deudor', description: 'Fracaso por fallecimiento del deudor' },
-    { id: 'propuesta-mala', name: 'Propuesta Inadecuada', description: 'Fracaso por propuesta de pago inadecuada' },
-    { id: 'propuesta-vencimiento', name: 'Propuesta y Vencimiento', description: 'Fracaso por propuesta mala y vencimiento de términos' },
-    { id: 'propuesta-quorum', name: 'Propuesta y Quórum', description: 'Fracaso por propuesta mala y falta de quórum' },
-    { id: 'reforma-acuerdo', name: 'Reforma del Acuerdo', description: 'Fracaso por reforma del acuerdo' },
-    { id: 'vencimiento-terminos', name: 'Vencimiento de Términos', description: 'Fracaso por vencimiento de términos' },
+    {
+      id: 'acuerdo-bilateral',
+      name: 'Acuerdo Bilateral',
+      description: 'Fracaso por celebración de acuerdo bilateral',
+    },
+    {
+      id: 'falta-pago-gastos',
+      name: 'Falta de Pago de Gastos',
+      description: 'Fracaso por falta de pago de gastos de administración',
+    },
+    {
+      id: 'impugnacion',
+      name: 'Impugnación del Acuerdo',
+      description: 'Fracaso por impugnación del acuerdo',
+    },
+    {
+      id: 'inasistencia-vencimiento',
+      name: 'Inasistencia y Vencimiento',
+      description: 'Fracaso por inasistencia y vencimiento de términos',
+    },
+    {
+      id: 'inasistencia-animo',
+      name: 'Inasistencia sin Ánimo',
+      description: 'Fracaso por inasistencia sin ánimo de conciliar',
+    },
+    {
+      id: 'incumplimiento',
+      name: 'Incumplimiento',
+      description: 'Fracaso por incumplimiento del acuerdo',
+    },
+    {
+      id: 'muerte-deudor',
+      name: 'Muerte del Deudor',
+      description: 'Fracaso por fallecimiento del deudor',
+    },
+    {
+      id: 'propuesta-mala',
+      name: 'Propuesta Inadecuada',
+      description: 'Fracaso por propuesta de pago inadecuada',
+    },
+    {
+      id: 'propuesta-vencimiento',
+      name: 'Propuesta y Vencimiento',
+      description: 'Fracaso por propuesta mala y vencimiento de términos',
+    },
+    {
+      id: 'propuesta-quorum',
+      name: 'Propuesta y Quórum',
+      description: 'Fracaso por propuesta mala y falta de quórum',
+    },
+    {
+      id: 'reforma-acuerdo',
+      name: 'Reforma del Acuerdo',
+      description: 'Fracaso por reforma del acuerdo',
+    },
+    {
+      id: 'vencimiento-terminos',
+      name: 'Vencimiento de Términos',
+      description: 'Fracaso por vencimiento de términos',
+    },
   ];
 }
 
@@ -917,7 +1022,7 @@ export function getFailureTypes(): Array<{ id: string; name: string; description
 // =============================================
 
 export function getTemplateById(id: string): DocumentTemplate | undefined {
-  return ALL_TEMPLATES.find(t => t.id === id);
+  return ALL_TEMPLATES.find((t) => t.id === id);
 }
 
 export function getAllTemplates(): DocumentTemplate[] {
@@ -927,12 +1032,16 @@ export function getAllTemplates(): DocumentTemplate[] {
 /**
  * Base path to HTML templates folder
  */
-export const TEMPLATES_BASE_PATH = 'Documentos HTML';
+export const TEMPLATES_BASE_PATH = 'templates/insolvency';
 
 /**
  * Get full path to template file
  */
 export function getTemplatePath(template: DocumentTemplate): string {
-  const parts = [TEMPLATES_BASE_PATH, ...template.folderPath, template.fileName];
+  const parts = [
+    TEMPLATES_BASE_PATH,
+    ...template.folderPath,
+    template.fileName,
+  ];
   return parts.join('/');
 }

@@ -208,30 +208,6 @@ export function DebtorSection({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo de Caso</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar tipo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="INSOLVENCY">Insolvencia</SelectItem>
-                    <SelectItem value="CONCILIATION">Conciliación</SelectItem>
-                    <SelectItem value="SUPPORT_AGREEMENT">
-                      Acuerdo de Apoyo
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
             name="totalDebt"
             render={({ field }) => (
               <FormItem>
