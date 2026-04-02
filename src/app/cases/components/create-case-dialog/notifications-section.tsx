@@ -1,18 +1,11 @@
 'use client';
 
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
 
 export function NotificationsSection() {
   const form = useFormContext();
-
-  const fueraDeBogota = useWatch({
-    control: form.control,
-    name: 'notificationOutsideBogota',
-  });
 
   return (
     <div className="space-y-6">
@@ -58,38 +51,6 @@ export function NotificationsSection() {
             {...form.register('notificationEmail')}
           />
         </div>
-      </div>
-
-      {/* Fuera de Bogotá */}
-      <div className="space-y-3 rounded-lg border p-4">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="notificationOutsideBogota"
-            checked={fueraDeBogota || false}
-            onCheckedChange={(checked) =>
-              form.setValue('notificationOutsideBogota', checked)
-            }
-          />
-          <Label
-            htmlFor="notificationOutsideBogota"
-            className="cursor-pointer font-normal"
-          >
-            El trámite se realiza fuera de Bogotá D.C.
-          </Label>
-        </div>
-        {fueraDeBogota && (
-          <div className="space-y-2">
-            <Label htmlFor="outsideBogotaReason">
-              Motivo / Centro de conciliación
-            </Label>
-            <Textarea
-              id="outsideBogotaReason"
-              rows={2}
-              placeholder="Indique el centro de conciliación y la ciudad donde se adelantará el trámite"
-              {...form.register('outsideBogotaReason')}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@
 
 import type { CaseWithRelations } from '../case/schemas';
 import { nowColombia, COLOMBIA_TZ } from '@/lib/date-colombia';
+import { getDebtClass } from '../case/validation-rules';
 
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
@@ -1673,22 +1674,9 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
     const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
     const interest = Number(debt.interestAmount) || 0;
     const total = capital + interest;
-    const type = (debt as Record<string, unknown>).type as string | undefined;
-    switch (type) {
-      case 'LABORAL':
-        classTotals.primera += total;
-        break;
-      case 'HIPOTECARIA':
-      case 'PRENDARIA':
-        classTotals.segunda += total;
-        break;
-      case 'IMPUESTOS':
-        classTotals.cuarta += total;
-        break;
-      default:
-        classTotals.quinta += total;
-        break;
-    }
+    const type = ((debt as Record<string, unknown>).type as string) || '';
+    const cls = getDebtClass(type);
+    classTotals[cls] += total;
   }
 
   // Apply quitas percentage to calculate post-reduction values
@@ -1768,7 +1756,10 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
       classTotals.segunda > 0
         ? `${formatCurrency(classTotals.segunda)} → ${formatCurrency(classTotals.segunda * quitasFactor)}`
         : '$0',
-    PROP_PRELACION_3: '$0',
+    PROP_PRELACION_3:
+      classTotals.tercera > 0
+        ? `${formatCurrency(classTotals.tercera)} → ${formatCurrency(classTotals.tercera * quitasFactor)}`
+        : '$0',
     PROP_PRELACION_4:
       classTotals.cuarta > 0
         ? `${formatCurrency(classTotals.cuarta)} → ${formatCurrency(classTotals.cuarta * quitasFactor)}`

@@ -226,6 +226,8 @@ model Case {
   autorizacionNotificacionesCorreo     Boolean @default(false) @map("autorizacion_notificaciones_correo")
   autorizacionConsultaCentralesRiesgo  Boolean @default(false) @map("autorizacion_consulta_centrales_riesgo")
   autorizacionTratamientoDatos         Boolean @default(false) @map("autorizacion_tratamiento_datos")
+  declaracionNoOmisiones               Boolean @default(false) @map("declaracion_no_omisiones")
+  declaracionConocimientoNorma         Boolean @default(false) @map("declaracion_conocimiento_norma")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago

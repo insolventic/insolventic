@@ -1,7 +1,15 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
-import { Upload, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
+import { useMemo, useRef, useState, useCallback } from 'react';
+import {
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  Car,
+  Home,
+  FileWarning,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -51,7 +59,6 @@ export function DocumentsSection({
   assets = [],
   hasAttorney = false,
 }: Readonly<DocumentsSectionProps>) {
-  // Build mandatory docs list based on case data
   const caseDataPartial: Partial<CreateCaseFormInput> & {
     hasAttorney?: boolean;
   } = {
@@ -61,6 +68,19 @@ export function DocumentsSection({
   };
 
   const noAssets = assets.length === 0;
+
+  // Count asset types for dynamic alerts
+  const vehicleCount = useMemo(
+    () => assets.filter((a) => a.type === 'VEHICULO').length,
+    [assets],
+  );
+  const inmuebleCount = useMemo(
+    () =>
+      assets.filter((a) => a.type === 'INMUEBLE' || a.type === 'REAL_ESTATE')
+        .length,
+    [assets],
+  );
+
   const requiredIds = useMemo(
     () => getRequiredDocuments(caseDataPartial),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -69,11 +89,31 @@ export function DocumentsSection({
 
   const mandatoryDocs: DocConfig[] = useMemo(() => {
     const allRequiredDocs = [...REQUIRED_DOCUMENTS, ...CONDITIONAL_DOCUMENTS];
-    return requiredIds.map((id) => {
+    const docs = requiredIds.map((id) => {
       const doc = allRequiredDocs.find((d) => d.id === id);
       return { key: id, label: doc?.name ?? id };
     });
-  }, [requiredIds]);
+
+    // Add dynamic per-asset docs
+    if (inmuebleCount > 1) {
+      for (let i = 1; i < inmuebleCount; i++) {
+        docs.push({
+          key: `tradicion_libertad_${i + 1}`,
+          label: `Certificado de tradición y libertad — Inmueble #${i + 1}`,
+        });
+      }
+    }
+    if (vehicleCount > 1) {
+      for (let i = 1; i < vehicleCount; i++) {
+        docs.push({
+          key: `tarjeta_propiedad_${i + 1}`,
+          label: `Tarjeta de propiedad — Vehículo #${i + 1}`,
+        });
+      }
+    }
+
+    return docs;
+  }, [requiredIds, inmuebleCount, vehicleCount]);
 
   const optionalDocs: DocConfig[] = useMemo(
     () =>
@@ -86,6 +126,8 @@ export function DocumentsSection({
   );
 
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
+  // Use ref-backed state to persist files across tab switches
+  const filesMapRef = useRef<Record<string, File[]>>({});
   const [selectedMap, setSelectedMap] = useState<Record<string, File[]>>({});
 
   const allDocs = [...mandatoryDocs, ...optionalDocs];
@@ -97,17 +139,21 @@ export function DocumentsSection({
     inputsRef.current[key]?.click();
   };
 
-  const notifyParent = (newMap: Record<string, File[]>) => {
-    onFilesSelected?.(
-      Object.entries(newMap)
-        .filter(([, fs]) => fs && fs.length > 0)
-        .map(([docKey, fs]) => ({
-          docName: allDocs.find((d) => d.key === docKey)?.label || docKey,
-          docKey,
-          files: fs!,
-        })),
-    );
-  };
+  const notifyParent = useCallback(
+    (newMap: Record<string, File[]>) => {
+      onFilesSelected?.(
+        Object.entries(newMap)
+          .filter(([, fs]) => fs && fs.length > 0)
+          .map(([docKey, fs]) => ({
+            docName: allDocs.find((d) => d.key === docKey)?.label || docKey,
+            docKey,
+            files: fs!,
+          })),
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [allDocs.length],
+  );
 
   const handleChange = (key: string, files: FileList | null) => {
     const fileArray = files ? Array.from(files) : [];
@@ -126,8 +172,9 @@ export function DocumentsSection({
       (f) => isAllowedFile(f) && f.size <= MAX_FILE_SIZE,
     );
 
-    const newMap = { ...selectedMap, [key]: validFiles };
-    setSelectedMap(newMap);
+    const newMap = { ...filesMapRef.current, [key]: validFiles };
+    filesMapRef.current = newMap;
+    setSelectedMap({ ...newMap });
     notifyParent(newMap);
   };
 
@@ -191,17 +238,47 @@ export function DocumentsSection({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Dynamic context alerts */}
         {noAssets && (
           <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-sm text-amber-800 dark:text-amber-200">
               No se han registrado bienes en la Página 4. Si el deudor posee
               bienes, regrese y agréguelos para que se generen los documentos
-              condicionales correspondientes (certificado de tradición, tarjeta
-              de propiedad).
+              condicionales correspondientes.
             </AlertDescription>
           </Alert>
         )}
+
+        {inmuebleCount > 0 && (
+          <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+            <Home className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
+              Se registraron <strong>{inmuebleCount} inmueble(s)</strong>. Se
+              requiere un certificado de tradición y libertad por cada uno.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {vehicleCount > 0 && (
+          <Alert className="border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950">
+            <Car className="h-4 w-4 text-purple-600" />
+            <AlertDescription className="text-sm text-purple-800 dark:text-purple-200">
+              Se registraron <strong>{vehicleCount} vehículo(s)</strong>. Se
+              requiere tarjeta de propiedad por cada uno.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {hasAttorney && (
+          <Alert className="border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950">
+            <FileWarning className="h-4 w-4 text-indigo-600" />
+            <AlertDescription className="text-sm text-indigo-800 dark:text-indigo-200">
+              El caso tiene apoderado. Se requiere copia del poder otorgado.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label className="font-semibold text-red-700">

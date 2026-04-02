@@ -85,6 +85,13 @@ export function ProcesosJudicialesSection() {
                   <SelectItem value="Otro">Otro</SelectItem>
                 </SelectContent>
               </Select>
+              {watch(`procesosJudiciales.${index}.tipoProceso`) === 'Otro' && (
+                <Input
+                  className="mt-2"
+                  placeholder="Especifique el tipo de proceso"
+                  {...register(`procesosJudiciales.${index}.tipoProcesoOtro`)}
+                />
+              )}
             </div>
 
             <div className="space-y-2">

@@ -14,12 +14,53 @@ import type { CreateCaseFormData, CreateCaseFormInput } from './schemas';
 export const SMMLV_2025 = 1300000; // Salario mínimo Colombia 2025
 
 export const CREDITOR_CLASSES = {
-  PRIMERA: 'Primera Clase - Laborales y Alimentos',
-  SEGUNDA: 'Segunda Clase - Fiscales',
-  TERCERA: 'Tercera Clase - Garantizados',
-  CUARTA: 'Cuarta Clase - Quirografarios',
-  QUINTA: 'Quinta Clase - Otros',
+  PRIMERA: '1ª Clase – Tributarias',
+  SEGUNDA: '2ª Clase – Vehiculares',
+  TERCERA: '3ª Clase – Hipotecarios',
+  CUARTA: '4ª Clase – Prendarios',
+  QUINTA: '5ª Clase – Quirografarias (Laboral y otros)',
 } as const;
+
+/**
+ * Maps a debt type to its creditor class.
+ * Centralized rule used in both frontend (proposal) and backend (placeholder-mapper).
+ */
+export function getDebtClass(
+  debtType: string,
+): 'primera' | 'segunda' | 'tercera' | 'cuarta' | 'quinta' {
+  switch (debtType) {
+    case 'IMPUESTOS':
+      return 'primera';
+    case 'VEHICULAR':
+      return 'segunda';
+    case 'HIPOTECARIA':
+      return 'tercera';
+    case 'PRENDARIA':
+      return 'cuarta';
+    case 'LABORAL':
+    case 'PERSONAL':
+    case 'TARJETA_CREDITO':
+    case 'OTRA':
+    default:
+      return 'quinta';
+  }
+}
+
+/**
+ * Returns the display label for a class key.
+ */
+export function getClassLabel(
+  key: 'primera' | 'segunda' | 'tercera' | 'cuarta' | 'quinta',
+): string {
+  const labels: Record<string, string> = {
+    primera: CREDITOR_CLASSES.PRIMERA,
+    segunda: CREDITOR_CLASSES.SEGUNDA,
+    tercera: CREDITOR_CLASSES.TERCERA,
+    cuarta: CREDITOR_CLASSES.CUARTA,
+    quinta: CREDITOR_CLASSES.QUINTA,
+  };
+  return labels[key] || key;
+}
 
 export const CREDIT_CLASSIFICATIONS = {
   GARANTIZADO: 'Crédito Garantizado',

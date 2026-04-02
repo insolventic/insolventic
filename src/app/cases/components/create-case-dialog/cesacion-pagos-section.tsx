@@ -1,13 +1,56 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch } from 'react-hook-form';
+import { useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
 
 export function CesacionPagosSection() {
-  const { register, watch, setValue } = useFormContext<CreateCaseFormInput>();
+  const { watch, setValue, control } = useFormContext<CreateCaseFormInput>();
+
+  // Auto-calculate from debts array
+  const debts = useWatch({ control, name: 'debts' }) || [];
+
+  const { numAcreedores, porcentajeMora } = useMemo(() => {
+    const total = debts.length;
+    const totalDebt = debts.reduce(
+      (sum: number, d: Record<string, unknown>) =>
+        sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+      0,
+    );
+    const overdueDebt = debts
+      .filter((d: Record<string, unknown>) => Number(d.daysOverdue) > 0)
+      .reduce(
+        (sum: number, d: Record<string, unknown>) =>
+          sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+        0,
+      );
+    const pct = totalDebt > 0 ? (overdueDebt / totalDebt) * 100 : 0;
+    return {
+      numAcreedores: total,
+      porcentajeMora: Math.round(pct * 100) / 100,
+    };
+  }, [debts]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+    }).format(value);
+
+  // Calculate total debt for display
+  const totalDeuda = useMemo(
+    () =>
+      debts.reduce(
+        (sum: number, d: Record<string, unknown>) =>
+          sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+        0,
+      ),
+    [debts],
+  );
 
   return (
     <div className="space-y-6">
@@ -34,33 +77,44 @@ export function CesacionPagosSection() {
       </div>
 
       {watch('cesacionPagos') && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="space-y-2">
-            <Label>Fecha de cesación de pagos</Label>
-            <Input type="date" {...register('fechaCesacionPagos')} />
-            <p className="text-muted-foreground text-xs">
-              Fecha aproximada en que dejó de pagar sus obligaciones
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Número de acreedores actual</Label>
+            <Label>Número de acreedores</Label>
             <Input
-              type="number"
-              min={0}
-              {...register('numeroAcreedoresActual', { valueAsNumber: true })}
+              type="text"
+              readOnly
+              className="bg-muted cursor-not-allowed font-semibold"
+              value={numAcreedores}
             />
+            <p className="text-muted-foreground text-xs">
+              Calculado desde los acreedores registrados (Pág. 3)
+            </p>
           </div>
 
           <div className="space-y-2">
             <Label>Porcentaje de pasivo en mora (%)</Label>
             <Input
-              type="number"
-              step="0.01"
-              min={0}
-              max={100}
-              {...register('porcentajePasivoEnMora')}
+              type="text"
+              readOnly
+              className="bg-muted cursor-not-allowed font-semibold"
+              value={`${porcentajeMora}%`}
             />
+            <p className="text-muted-foreground text-xs">
+              Calculado según días de mora de cada acreedor
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Total deuda registrada</Label>
+            <Input
+              type="text"
+              readOnly
+              className="bg-muted cursor-not-allowed font-semibold"
+              value={formatCurrency(totalDeuda)}
+            />
+            <p className="text-muted-foreground text-xs">
+              Suma de capital de todos los acreedores
+            </p>
           </div>
         </div>
       )}

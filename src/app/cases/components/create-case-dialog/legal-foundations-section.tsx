@@ -1,9 +1,13 @@
 'use client';
 
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 
-const TARIFA_FIJA = '25 SMLMV';
+const TEXTO_TARIFA =
+  'Atendiendo las tarifas contenidas en el Decreto 2677 de 2012, por las condiciones ' +
+  'de insolvencia económica en que me encuentro, con el debido respeto con fundamento ' +
+  'en Artículo 536 de la ley 1564 de 2012 y su Decreto reglamentario, le solicito ' +
+  'fijar una tarifa que me permita tener acceso a este mecanismo de negociación de ' +
+  'mis obligaciones.';
 
 const FUNDAMENTOS_DERECHO =
   'Ley 1564 de 2012 (Código General del Proceso, Arts. 531-576), ' +
@@ -18,16 +22,10 @@ export function LegalFoundationsSection() {
 
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label>Tarifa Solicitada</Label>
-          <Input
-            type="text"
-            readOnly
-            className="bg-muted cursor-not-allowed font-semibold"
-            value={TARIFA_FIJA}
-          />
-          <p className="text-muted-foreground text-xs">
-            Tarifa fija establecida por normativa vigente
-          </p>
+          <Label>Sobre la tarifa</Label>
+          <div className="bg-muted text-muted-foreground rounded-md border p-3 text-sm leading-relaxed">
+            {TEXTO_TARIFA}
+          </div>
         </div>
 
         <div className="space-y-2">

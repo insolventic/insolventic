@@ -2,46 +2,54 @@
 
 import { useFormContext, useWatch } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+
+const SCOPE_OPTIONS = [
+  {
+    value: 'PERSONA_NATURAL_NO_COMERCIANTE',
+    label: 'Persona natural no comerciante',
+  },
+  {
+    value: 'PERSONA_NATURAL_PEQUENA_COMERCIANTE',
+    label: 'Persona natural pequeño comerciante',
+  },
+] as const;
 
 export function ApplicantScopeSection() {
   const form = useFormContext();
-  // useWatch es más eficiente que form.watch() - suscripción estable
-  const applicantScope = useWatch({ control: form.control, name: 'applicantScope' }) || [];
+  const applicantScope =
+    useWatch({ control: form.control, name: 'applicantScope' }) || [];
 
-  const scopeOptions = [
-    { id: 'non-merchant', label: 'Persona natural no comerciante' },
-    { id: 'small-merchant', label: 'Persona natural pequeño comerciante' },
-  ];
+  // Current single value — take first element or empty
+  const currentValue =
+    typeof applicantScope === 'string'
+      ? applicantScope
+      : Array.isArray(applicantScope) && applicantScope.length > 0
+        ? applicantScope[0]
+        : '';
 
-  const handleScopeChange = (value: string, checked: boolean) => {
-    const current = form.getValues('applicantScope') || [];
-    const updated = checked
-      ? [...current, value]
-      : current.filter((item: string) => item !== value);
-    form.setValue('applicantScope', updated);
+  const handleChange = (value: string) => {
+    // Store as array for backward compatibility with existing logic
+    form.setValue('applicantScope', [value]);
   };
 
   return (
     <div className="space-y-4">
       <div>
         <h3 className="mb-4 text-lg font-medium">Ámbito de Aplicación</h3>
-        <div className="space-y-3">
-          {scopeOptions.map((option) => (
-            <div key={option.id} className="flex items-center space-x-2">
-              <Checkbox
-                id={option.id}
-                checked={applicantScope.includes(option.label)}
-                onCheckedChange={(checked) =>
-                  handleScopeChange(option.label, checked as boolean)
-                }
-              />
-              <Label htmlFor={option.id} className="cursor-pointer">
+        <p className="text-muted-foreground mb-3 text-sm">
+          Seleccione la categoría del solicitante
+        </p>
+        <RadioGroup value={currentValue} onValueChange={handleChange}>
+          {SCOPE_OPTIONS.map((option) => (
+            <div key={option.value} className="flex items-center space-x-2">
+              <RadioGroupItem value={option.value} id={option.value} />
+              <Label htmlFor={option.value} className="cursor-pointer">
                 {option.label}
               </Label>
             </div>
           ))}
-        </div>
+        </RadioGroup>
       </div>
     </div>
   );

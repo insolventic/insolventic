@@ -3,6 +3,7 @@
 import { useFormContext } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Scale } from 'lucide-react';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
@@ -92,15 +93,60 @@ export function DeclaracionesSection() {
       {/* Declaración de veracidad */}
       <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
         <AlertDescription className="text-sm text-amber-800 dark:text-amber-200">
-          <strong>DECLARACI&Oacute;N DE VERACIDAD:</strong> El solicitante
-          declara bajo la gravedad del juramento que toda la información
-          consignada en esta solicitud y sus anexos es veraz, completa y
-          fidedigna. Cualquier omisión o falsedad en los datos suministrados
-          podrá dar lugar a la terminación del procedimiento y a las sanciones
-          legales correspondientes, conforme al artículo 564 del Código General
-          del Proceso.
+          <strong>DECLARACIÓN DE VERACIDAD:</strong> El solicitante declara bajo
+          la gravedad del juramento que toda la información consignada en esta
+          solicitud y sus anexos es veraz, completa y fidedigna. Cualquier
+          omisión o falsedad en los datos suministrados podrá dar lugar a la
+          terminación del procedimiento y a las sanciones legales
+          correspondientes, conforme al artículo 564 del Código General del
+          Proceso.
         </AlertDescription>
       </Alert>
+
+      {/* Checks obligatorios */}
+      <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950">
+        <h4 className="text-sm font-semibold text-red-700 dark:text-red-300">
+          Declaraciones obligatorias
+        </h4>
+        <div className="space-y-3">
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="declaracionNoOmisiones"
+              checked={watch('declaracionNoOmisiones') || false}
+              onCheckedChange={(checked) =>
+                setValue('declaracionNoOmisiones', checked as boolean)
+              }
+            />
+            <Label
+              htmlFor="declaracionNoOmisiones"
+              className="cursor-pointer text-sm leading-relaxed"
+            >
+              No he incurrido en omisiones, imprecisiones o datos incorrectos en
+              la información reportada a los acreedores, ni he actuado con culpa
+              o dolo en la generación de mis obligaciones.
+            </Label>
+          </div>
+
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id="declaracionConocimientoNorma"
+              checked={watch('declaracionConocimientoNorma') || false}
+              onCheckedChange={(checked) =>
+                setValue('declaracionConocimientoNorma', checked as boolean)
+              }
+            />
+            <Label
+              htmlFor="declaracionConocimientoNorma"
+              className="cursor-pointer text-sm leading-relaxed"
+            >
+              Manifiesto que conozco la norma aplicable al procedimiento de
+              insolvencia de la persona natural no comerciante y de la pequeña
+              comerciante, y acepto someterme a las condiciones y obligaciones
+              que de ella se derivan.
+            </Label>
+          </div>
+        </div>
+      </div>
 
       <div className="space-y-3">
         {declaraciones.map((decl) => (

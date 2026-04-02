@@ -174,9 +174,12 @@ export const debtSchema = z.object({
   daysOverdue: z.number().optional(),
 
   // Co-debtor/Guarantor info
+  noCoDebtor: z.boolean().optional(),
   coDebtorName: z.string().optional(),
   coDebtorCity: z.string().optional(),
   coDebtorAddress: z.string().optional(),
+  // Dynamic "Otra" debt type detail
+  otherDebtTypeDetail: z.string().optional(),
 });
 
 export const assetSchema = z.object({
@@ -348,6 +351,7 @@ export type BienFormData = z.infer<typeof bienFormSchema>;
 export const procesoJudicialFormSchema = z.object({
   id: z.string().optional(),
   tipoProceso: z.string().optional(),
+  tipoProcesoOtro: z.string().optional(),
   juzgadoNombre: z.string().optional(),
   juzgadoCiudad: z.string().optional(),
   procesoJudicialRadicado: z.string().optional(),
@@ -605,6 +609,8 @@ export const caseSchema = z.object({
   autorizacionNotificacionesCorreo: z.boolean().optional(),
   autorizacionConsultaCentralesRiesgo: z.boolean().optional(),
   autorizacionTratamientoDatos: z.boolean().optional(),
+  declaracionNoOmisiones: z.boolean().optional(),
+  declaracionConocimientoNorma: z.boolean().optional(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
@@ -1141,6 +1147,8 @@ export const createCaseSchema = z.object({
   autorizacionNotificacionesCorreo: z.boolean().optional(),
   autorizacionConsultaCentralesRiesgo: z.boolean().optional(),
   autorizacionTratamientoDatos: z.boolean().optional(),
+  declaracionNoOmisiones: z.boolean().optional(),
+  declaracionConocimientoNorma: z.boolean().optional(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
@@ -1658,6 +1666,8 @@ export const updateCaseSchema = z.object({
   autorizacionNotificacionesCorreo: z.boolean().optional(),
   autorizacionConsultaCentralesRiesgo: z.boolean().optional(),
   autorizacionTratamientoDatos: z.boolean().optional(),
+  declaracionNoOmisiones: z.boolean().optional(),
+  declaracionConocimientoNorma: z.boolean().optional(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
@@ -2023,6 +2033,20 @@ export const getAllCasesSchema = z.array(caseSchema);
 export const getCaseByIdSchema = z.string();
 export const deleteCaseSchema = z.object({ id: z.string() });
 
+// Apoderado (attorney) form schema for dynamic array
+const apoderadoFormSchema = z.object({
+  nombreCompleto: z.string().optional(),
+  tipoIdentificacion: z.string().optional(),
+  identificacion: z.string().optional(),
+  tarjetaProfesional: z.string().optional(),
+  direccion: z.string().optional(),
+  telefono: z.string().optional(),
+  correo: z.string().optional(),
+  existePoderOtorgado: z.boolean().optional(),
+});
+
+export type ApoderadoFormData = z.infer<typeof apoderadoFormSchema>;
+
 export const createCaseFormSchema = createCaseSchema.extend({
   debts: z.array(debtSchema).default([]).optional(),
   assets: z.array(assetSchema).default([]).optional(),
@@ -2034,6 +2058,7 @@ export const createCaseFormSchema = createCaseSchema.extend({
   acreedores: z.array(acreedorFormSchema).default([]).optional(),
   bienes: z.array(bienFormSchema).default([]).optional(),
   procesosJudiciales: z.array(procesoJudicialFormSchema).default([]).optional(),
+  apoderados: z.array(apoderadoFormSchema).default([]).optional(),
 });
 
 export const updateCaseFormSchema = updateCaseSchema.extend({
@@ -2047,6 +2072,7 @@ export const updateCaseFormSchema = updateCaseSchema.extend({
   acreedores: z.array(acreedorFormSchema).default([]).optional(),
   bienes: z.array(bienFormSchema).default([]).optional(),
   procesosJudiciales: z.array(procesoJudicialFormSchema).default([]).optional(),
+  apoderados: z.array(apoderadoFormSchema).default([]).optional(),
 });
 
 export type CreateCaseFormData = z.infer<typeof createCaseFormSchema>;

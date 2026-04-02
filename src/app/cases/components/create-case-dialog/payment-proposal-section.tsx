@@ -12,20 +12,24 @@ import {
   FormControl,
   FormLabel,
 } from '@/components/ui/form';
+import { getDebtClass } from '@/features/case/validation-rules';
 
 /**
- * PaymentProposalSection - Optimized version
+ * PaymentProposalSection
  *
- * CAMBIOS PRINCIPALES para eliminar "Maximum update depth exceeded":
- * 1. Usar useWatch en lugar de form.watch() - useWatch usa una suscripción estable
- * 2. Usar FormField para checkboxes en lugar de checked={form.watch()}
- * 3. FormField maneja el estado internamente sin causar re-renders del padre
+ * Clases de prelación (Ley 1564 de 2012):
+ *  1ª Clase — Tributarias (IMPUESTOS)
+ *  2ª Clase — Vehiculares (VEHICULAR)
+ *  3ª Clase — Hipotecarios (HIPOTECARIA)
+ *  4ª Clase — Prendarios (PRENDARIA)
+ *  5ª Clase — Quirografarias (LABORAL, PERSONAL, TARJETA_CREDITO, OTRA)
+ *
+ * Cuota mensual y plazo se calculan automáticamente desde recursos disponibles (Pág 2).
+ * Quitas se aplican al orden de prelación.
  */
 export function PaymentProposalSection() {
   const form = useFormContext();
 
-  // useWatch con un array de nombres es más eficiente que múltiples form.watch()
-  // Solo causa un re-render cuando CUALQUIERA de estos valores cambia
   const watchedValues = useWatch({
     control: form.control,
     name: [
@@ -36,10 +40,10 @@ export function PaymentProposalSection() {
       'extraordinaryPayment',
       'capitalReduction',
       'hasClassPrivileges',
+      'capitalReductionPercent',
     ],
   });
 
-  // Destructurar para legibilidad
   const [
     gracePeriodRequested,
     paymentInKind,
@@ -48,36 +52,109 @@ export function PaymentProposalSection() {
     extraordinaryPayment,
     capitalReduction,
     hasClassPrivileges,
+    capitalReductionPercent,
   ] = watchedValues;
 
-  // Watch debts array to auto-calculate class totals
+  // Watch debts for class totals
   const debts = useWatch({ control: form.control, name: 'debts' }) || [];
 
+  // Watch income/expenses from Pág 2 for auto cuota
+  const ingresoPrincipal =
+    useWatch({ control: form.control, name: 'ingresoPrincipalMensual' }) || 0;
+  const otrosIngresos =
+    useWatch({ control: form.control, name: 'otrosIngresosMensuales' }) || 0;
+  const ingresosVariables =
+    useWatch({ control: form.control, name: 'ingresosVariablesPromedio' }) || 0;
+  const ingresosNoOp =
+    useWatch({ control: form.control, name: 'ingresosNoOperacionales' }) || 0;
+  const gastosVivienda =
+    useWatch({ control: form.control, name: 'gastosVivienda' }) || 0;
+  const gastosAlimentacion =
+    useWatch({ control: form.control, name: 'gastosAlimentacion' }) || 0;
+  const gastosServicios =
+    useWatch({ control: form.control, name: 'gastosServiciosPublicos' }) || 0;
+  const gastosTransporte =
+    useWatch({ control: form.control, name: 'gastosTransporte' }) || 0;
+  const gastosEducacion =
+    useWatch({ control: form.control, name: 'gastosEducacion' }) || 0;
+  const gastosSalud =
+    useWatch({ control: form.control, name: 'gastosSalud' }) || 0;
+  const otrosGastos =
+    useWatch({ control: form.control, name: 'otrosGastos' }) || 0;
+
+  const totalIngresos = useMemo(
+    () =>
+      Number(ingresoPrincipal) +
+      Number(otrosIngresos) +
+      Number(ingresosVariables) +
+      Number(ingresosNoOp),
+    [ingresoPrincipal, otrosIngresos, ingresosVariables, ingresosNoOp],
+  );
+
+  const totalGastos = useMemo(
+    () =>
+      Number(gastosVivienda) +
+      Number(gastosAlimentacion) +
+      Number(gastosServicios) +
+      Number(gastosTransporte) +
+      Number(gastosEducacion) +
+      Number(gastosSalud) +
+      Number(otrosGastos),
+    [
+      gastosVivienda,
+      gastosAlimentacion,
+      gastosServicios,
+      gastosTransporte,
+      gastosEducacion,
+      gastosSalud,
+      otrosGastos,
+    ],
+  );
+
+  const recursosDisponibles = useMemo(
+    () => Math.max(0, totalIngresos - totalGastos),
+    [totalIngresos, totalGastos],
+  );
+
+  // Class totals using centralized getDebtClass
   const classTotals = useMemo(() => {
-    const totals = { primera: 0, segunda: 0, tercera: 0, cuarta: 0, quinta: 0 };
+    const totals = {
+      primera: 0,
+      segunda: 0,
+      tercera: 0,
+      cuarta: 0,
+      quinta: 0,
+    };
     for (const debt of debts) {
       if (!debt?.type) continue;
       const capital = Number(debt.capitalAmount) || 0;
       const interest = Number(debt.interestAmount) || 0;
       const total = capital + interest;
-      switch (debt.type) {
-        case 'LABORAL':
-          totals.primera += total;
-          break;
-        case 'HIPOTECARIA':
-        case 'PRENDARIA':
-          totals.segunda += total;
-          break;
-        case 'IMPUESTOS':
-          totals.cuarta += total;
-          break;
-        default: // PERSONAL, VEHICULAR, TARJETA_CREDITO, OTRA
-          totals.quinta += total;
-          break;
-      }
+      const cls = getDebtClass(debt.type);
+      totals[cls] += total;
     }
     return totals;
   }, [debts]);
+
+  const totalObligaciones =
+    classTotals.primera +
+    classTotals.segunda +
+    classTotals.tercera +
+    classTotals.cuarta +
+    classTotals.quinta;
+
+  // Quitas factor
+  const quitasPct = Number(capitalReductionPercent) || 0;
+  const quitasFactor = capitalReduction ? 1 - quitasPct / 100 : 1;
+  const totalConQuitas = totalObligaciones * quitasFactor;
+
+  // Auto cuota mensual = recursos disponibles (no editable por el usuario)
+  // Plazo auto = total con quitas / cuota mensual
+  const cuotaMensual = recursosDisponibles;
+  const plazoMeses = useMemo(
+    () => (cuotaMensual > 0 ? Math.ceil(totalConQuitas / cuotaMensual) : 0),
+    [totalConQuitas, cuotaMensual],
+  );
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CO', {
@@ -86,12 +163,38 @@ export function PaymentProposalSection() {
       minimumFractionDigits: 0,
     }).format(value);
 
-  const totalObligaciones =
-    classTotals.primera +
-    classTotals.segunda +
-    classTotals.tercera +
-    classTotals.cuarta +
-    classTotals.quinta;
+  const classConfig = [
+    {
+      key: 'primera' as const,
+      label: '1ª Clase — Tributarias',
+      color: 'bg-red-50 dark:bg-red-950',
+      text: 'text-red-700 dark:text-red-300',
+    },
+    {
+      key: 'segunda' as const,
+      label: '2ª Clase — Vehiculares',
+      color: 'bg-blue-50 dark:bg-blue-950',
+      text: 'text-blue-700 dark:text-blue-300',
+    },
+    {
+      key: 'tercera' as const,
+      label: '3ª Clase — Hipotecarios',
+      color: 'bg-purple-50 dark:bg-purple-950',
+      text: 'text-purple-700 dark:text-purple-300',
+    },
+    {
+      key: 'cuarta' as const,
+      label: '4ª Clase — Prendarios',
+      color: 'bg-orange-50 dark:bg-orange-950',
+      text: 'text-orange-700 dark:text-orange-300',
+    },
+    {
+      key: 'quinta' as const,
+      label: '5ª Clase — Quirografarias',
+      color: 'bg-slate-50 dark:bg-slate-900',
+      text: 'text-slate-700 dark:text-slate-300',
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -105,38 +208,17 @@ export function PaymentProposalSection() {
           Página 3
         </p>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-1 rounded-lg border bg-blue-50 p-3 dark:bg-blue-950">
-            <Label className="text-xs text-blue-700 dark:text-blue-300">
-              1ª Clase — Laborales
-            </Label>
-            <p className="text-sm font-semibold">
-              {formatCurrency(classTotals.primera)}
-            </p>
-          </div>
-          <div className="space-y-1 rounded-lg border bg-purple-50 p-3 dark:bg-purple-950">
-            <Label className="text-xs text-purple-700 dark:text-purple-300">
-              2ª Clase — Con Garantía Real
-            </Label>
-            <p className="text-sm font-semibold">
-              {formatCurrency(classTotals.segunda)}
-            </p>
-          </div>
-          <div className="space-y-1 rounded-lg border bg-orange-50 p-3 dark:bg-orange-950">
-            <Label className="text-xs text-orange-700 dark:text-orange-300">
-              4ª Clase — Impuestos
-            </Label>
-            <p className="text-sm font-semibold">
-              {formatCurrency(classTotals.cuarta)}
-            </p>
-          </div>
-          <div className="space-y-1 rounded-lg border bg-slate-50 p-3 dark:bg-slate-900">
-            <Label className="text-xs text-slate-700 dark:text-slate-300">
-              5ª Clase — Quirografarias
-            </Label>
-            <p className="text-sm font-semibold">
-              {formatCurrency(classTotals.quinta)}
-            </p>
-          </div>
+          {classConfig.map((cls) => (
+            <div
+              key={cls.key}
+              className={`space-y-1 rounded-lg border p-3 ${cls.color}`}
+            >
+              <Label className={`text-xs ${cls.text}`}>{cls.label}</Label>
+              <p className="text-sm font-semibold">
+                {formatCurrency(classTotals[cls.key])}
+              </p>
+            </div>
+          ))}
           <div className="space-y-1 rounded-lg border bg-green-50 p-3 dark:bg-green-950">
             <Label className="text-xs font-semibold text-green-700 dark:text-green-300">
               Total Obligaciones
@@ -144,6 +226,44 @@ export function PaymentProposalSection() {
             <p className="text-base font-bold text-green-700 dark:text-green-300">
               {formatCurrency(totalObligaciones)}
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Flujo de Caja — Auto-calculado */}
+      <div className="space-y-4 rounded-lg border bg-blue-50 p-5 dark:bg-blue-950">
+        <h4 className="font-medium">Flujo de Caja (Auto-calculado)</h4>
+        <p className="text-muted-foreground text-xs">
+          La cuota mensual corresponde a los recursos disponibles calculados en
+          Página 2 (Ingresos − Gastos). El plazo se determina automáticamente.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label>Recursos disponibles (Pág 2)</Label>
+            <Input
+              type="text"
+              readOnly
+              className="bg-white font-semibold dark:bg-slate-800"
+              value={formatCurrency(recursosDisponibles)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Cuota mensual propuesta</Label>
+            <Input
+              type="text"
+              readOnly
+              className="bg-white font-semibold dark:bg-slate-800"
+              value={formatCurrency(cuotaMensual)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Plazo estimado (meses)</Label>
+            <Input
+              type="text"
+              readOnly
+              className="bg-white font-semibold dark:bg-slate-800"
+              value={plazoMeses > 0 ? `${plazoMeses} meses` : 'N/A'}
+            />
           </div>
         </div>
       </div>
@@ -260,7 +380,7 @@ export function PaymentProposalSection() {
         )}
       </div>
 
-      {/* Pago con Flujo de Caja */}
+      {/* Pago con Flujo de Caja — sección expandible para cuota extraordinaria */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Pago con Flujo de Caja</h4>
         <FormField
@@ -288,30 +408,8 @@ export function PaymentProposalSection() {
           <>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="paymentTermMonths">Plazo (Meses)</Label>
+                <Label>Cuota Variable (opcional)</Label>
                 <Input
-                  id="paymentTermMonths"
-                  type="number"
-                  {...form.register('paymentTermMonths', {
-                    valueAsNumber: true,
-                  })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="monthlyPaymentAmount">
-                  Valor Cuota Mensual
-                </Label>
-                <Input
-                  id="monthlyPaymentAmount"
-                  type="number"
-                  step="0.01"
-                  {...form.register('monthlyPaymentAmount')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="variablePayment">Cuota Variable</Label>
-                <Input
-                  id="variablePayment"
                   type="number"
                   step="0.01"
                   {...form.register('variablePayment')}
@@ -390,6 +488,12 @@ export function PaymentProposalSection() {
               step="0.01"
               {...form.register('capitalReductionPercent')}
             />
+            {quitasPct > 0 && (
+              <p className="text-muted-foreground text-xs">
+                Deuda original: {formatCurrency(totalObligaciones)} → Con quitas
+                ({quitasPct}%): {formatCurrency(totalConQuitas)}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -456,48 +560,46 @@ export function PaymentProposalSection() {
         </div>
       </div>
 
-      {/* Orden de Prelación — auto-calculado */}
+      {/* Orden de Prelación — con quitas aplicadas */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Orden de Prelación</h4>
         <p className="text-muted-foreground text-xs">
-          Los valores se calculan automáticamente según el tipo de deuda de cada
-          acreedor
+          Los valores se calculan automáticamente según el tipo de deuda.
+          {capitalReduction && quitasPct > 0
+            ? ` Se aplica quita del ${quitasPct}% sobre cada clase.`
+            : ''}
         </p>
         <div className="grid grid-cols-2 gap-4">
-          {(
-            [
-              {
-                key: 'primera',
-                label: '1ª Clase (Laborales)',
-                value: classTotals.primera,
-              },
-              {
-                key: 'segunda',
-                label: '2ª Clase (Garantía Real)',
-                value: classTotals.segunda,
-              },
-              {
-                key: 'cuarta',
-                label: '4ª Clase (Impuestos)',
-                value: classTotals.cuarta,
-              },
-              {
-                key: 'quinta',
-                label: '5ª Clase (Quirografarias)',
-                value: classTotals.quinta,
-              },
-            ] as const
-          ).map((item) => (
-            <div key={item.key} className="space-y-1">
-              <Label className="text-sm">{item.label}</Label>
+          {classConfig.map((cls) => {
+            const original = classTotals[cls.key];
+            const conQuitas = original * quitasFactor;
+            return (
+              <div key={cls.key} className="space-y-1">
+                <Label className="text-sm">{cls.label}</Label>
+                <Input
+                  type="text"
+                  readOnly
+                  className="bg-muted cursor-not-allowed"
+                  value={
+                    capitalReduction && quitasPct > 0
+                      ? `${formatCurrency(original)} → ${formatCurrency(conQuitas)}`
+                      : formatCurrency(original)
+                  }
+                />
+              </div>
+            );
+          })}
+          {capitalReduction && quitasPct > 0 && (
+            <div className="space-y-1">
+              <Label className="text-sm font-semibold">Total con Quitas</Label>
               <Input
                 type="text"
                 readOnly
-                className="bg-muted cursor-not-allowed"
-                value={formatCurrency(item.value)}
+                className="bg-muted cursor-not-allowed font-bold"
+                value={formatCurrency(totalConQuitas)}
               />
             </div>
-          ))}
+          )}
         </div>
       </div>
 

@@ -280,6 +280,15 @@ export function CreditorsDetailedSection() {
                             <SelectItem value="OTRA">Otra</SelectItem>
                           </SelectContent>
                         </Select>
+                        {formField.value === 'OTRA' && (
+                          <Input
+                            className="mt-2"
+                            placeholder="Especifique el tipo de deuda"
+                            {...form.register(
+                              `debts.${index}.otherDebtTypeDetail`,
+                            )}
+                          />
+                        )}
                         <FormMessage />
                       </FormItem>
                     )}

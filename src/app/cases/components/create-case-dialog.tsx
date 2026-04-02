@@ -113,6 +113,7 @@ export function CreateCaseDialog({
       debts: [],
       assets: [],
       legalProcesses: [],
+      apoderados: [],
       phase: 'Inicial',
       hearingDate: null,
       caseNumber: '',
@@ -169,6 +170,7 @@ export function CreateCaseDialog({
         suspendedServices: [],
         dependents: [],
         legalProcesses: [],
+        apoderados: [],
         // Payment proposal
         gracePeriodRequested: false,
         gracePeriodMonths: undefined,
