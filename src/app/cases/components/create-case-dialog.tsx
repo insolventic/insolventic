@@ -27,7 +27,6 @@ import {
   createCaseFormSchema,
   type CreateCaseFormData,
   type DebtorOption,
-  type NewDebtorForm,
 } from '@/features/case/schemas';
 import {
   validateIncomeExpenses,
@@ -39,7 +38,10 @@ import {
 } from '@/features/case/validation-rules';
 
 import { AssetsSection } from './create-case-dialog/assets-section';
-import { CreateDebtorDialog } from './create-case-dialog/create-debtor-dialog';
+import {
+  CreateDebtorDialog,
+  type QuickDebtorFormData,
+} from './create-case-dialog/create-debtor-dialog';
 import { CreditorsDetailedSection } from './create-case-dialog/creditors-detailed-section';
 import { DebtorSection } from './create-case-dialog/debtor-section';
 import { DocumentsSection } from './create-case-dialog/documents-section';
@@ -47,10 +49,8 @@ import { uploadCaseDocuments } from '@/features/document/actions';
 import { CaseDetailsSection } from './create-case-dialog/case-details-section';
 import { LegalProcessSection } from './create-case-dialog/legal-process-section';
 import { ApplicantScopeSection } from './create-case-dialog/applicant-scope-section';
-import { IncomeSection } from './create-case-dialog/income-section';
 import { LibranzasSection } from './create-case-dialog/libranzas-section';
 import { SuspendedServicesSection } from './create-case-dialog/suspended-services-section';
-import { DependentsSection } from './create-case-dialog/dependents-section';
 import { PaymentProposalSection } from './create-case-dialog/payment-proposal-section';
 import { LegalFoundationsSection } from './create-case-dialog/legal-foundations-section';
 import { NotificationsSection } from './create-case-dialog/notifications-section';
@@ -73,7 +73,6 @@ const TAB_ORDER = [
   'situation',
   'creditors',
   'assets',
-  'income',
   'proposal',
   'legal',
   'documents',
@@ -94,17 +93,6 @@ export function CreateCaseDialog({
     null,
   );
   const [showCreateDebtorDialog, setShowCreateDebtorDialog] = useState(false);
-  const [newDebtorForm, setNewDebtorForm] = useState<NewDebtorForm>({
-    name: '',
-    idNumber: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: 'Bogotá',
-    department: 'Cundinamarca',
-    monthlyIncome: 0,
-    monthlyExpenses: 0,
-  });
   const [creatingDebtor, setCreatingDebtor] = useState(false);
   const documentsToUploadRef = useRef<
     Array<{ docName: string; docKey: string; files: File[] }>
@@ -133,6 +121,8 @@ export function CreateCaseDialog({
 
   const [isPending, startTransition] = useTransition();
 
+  const dialogContentRef = useRef<HTMLDivElement>(null);
+
   const goToNextTab = () => {
     const currentIndex = TAB_ORDER.indexOf(
       activeTab as (typeof TAB_ORDER)[number],
@@ -141,6 +131,11 @@ export function CreateCaseDialog({
       setActiveTab(TAB_ORDER[currentIndex + 1]);
     }
   };
+
+  // Scroll to top when tab changes
+  useEffect(() => {
+    dialogContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
 
   useEffect(() => {
     if (open) {
@@ -204,11 +199,14 @@ export function CreateCaseDialog({
         spousePhone: '',
         spouseEmail: '',
         // Legal
-        requestedFee: '',
+        requestedFee: '25 SMLMV',
         legalFoundations: '',
         notificationAddress: '',
+        notificationCity: '',
         notificationPhone: '',
         notificationEmail: '',
+        notificationOutsideBogota: false,
+        outsideBogotaReason: '',
         applicantSignatureName: '',
         applicantSignatureId: '',
         applicantSignature: '',
@@ -484,7 +482,7 @@ export function CreateCaseDialog({
         duration: 8000,
       });
       // Navigate to documents tab
-      setActiveTab('assets');
+      setActiveTab('documents');
       return;
     }
 
@@ -614,17 +612,9 @@ export function CreateCaseDialog({
     });
   }
 
-  const handleCreateDebtor = async () => {
-    if (
-      !newDebtorForm.name ||
-      !newDebtorForm.idNumber ||
-      !newDebtorForm.email ||
-      !newDebtorForm.phone
-    ) {
-      toast.error('Por favor complete todos los campos requeridos');
-      return;
-    }
-
+  const handleCreateDebtor = async (
+    data: QuickDebtorFormData,
+  ): Promise<string | null> => {
     setCreatingDebtor(true);
     try {
       const {
@@ -632,7 +622,15 @@ export function CreateCaseDialog({
         data: result,
         error,
       } = await createDebtor({
-        ...newDebtorForm,
+        name: data.name,
+        idNumber: data.idNumber,
+        email: data.email,
+        phone: data.phone,
+        address: data.address ?? '',
+        city: data.city ?? 'Bogotá',
+        department: data.department ?? 'Cundinamarca',
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
         idType: 'CC',
         occupation: 'Empleado',
         birthDate: undefined,
@@ -648,42 +646,32 @@ export function CreateCaseDialog({
       });
 
       if (!success || error) {
-        toast.error(error ?? 'Error al crear el deudor');
-      } else {
-        toast.success('Deudor creado exitosamente');
-        setShowCreateDebtorDialog(false);
-        setNewDebtorForm({
-          name: '',
-          idNumber: '',
-          email: '',
-          phone: '',
-          address: '',
-          city: 'Bogotá',
-          department: 'Cundinamarca',
-          monthlyIncome: 0,
-          monthlyExpenses: 0,
-        });
-        const debtorsResult = await getAllDebtors();
-        setDebtors(
-          debtorsResult.data?.map((debtor) => ({
-            id: debtor.id,
-            name: debtor.name,
-            idNumber: debtor.idNumber,
-            email: debtor.email,
-            phone: debtor.phone,
-            address: debtor.address,
-            city: debtor.city,
-            department: debtor.department,
-            monthlyIncome: Number(debtor.monthlyIncome),
-            monthlyExpenses: Number(debtor.monthlyExpenses ?? 0),
-          })) || [],
-        );
-        if (result?.id) {
-          setSelectedDebtorId(result.id);
-        }
+        return error ?? 'Error al crear el deudor';
       }
+
+      toast.success('Deudor creado exitosamente');
+      setShowCreateDebtorDialog(false);
+      const debtorsResult = await getAllDebtors();
+      setDebtors(
+        debtorsResult.data?.map((debtor) => ({
+          id: debtor.id,
+          name: debtor.name,
+          idNumber: debtor.idNumber,
+          email: debtor.email,
+          phone: debtor.phone,
+          address: debtor.address,
+          city: debtor.city,
+          department: debtor.department,
+          monthlyIncome: Number(debtor.monthlyIncome),
+          monthlyExpenses: Number(debtor.monthlyExpenses ?? 0),
+        })) || [],
+      );
+      if (result?.id) {
+        setSelectedDebtorId(result.id);
+      }
+      return null;
     } catch {
-      toast.error('Error al crear el deudor');
+      return 'Error inesperado al crear el deudor. Intente de nuevo.';
     } finally {
       setCreatingDebtor(false);
     }
@@ -693,17 +681,6 @@ export function CreateCaseDialog({
     if (!open) {
       setSelectedDebtorId('');
       setSelectedDebtor(null);
-      setNewDebtorForm({
-        name: '',
-        idNumber: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: 'Bogotá',
-        department: 'Cundinamarca',
-        monthlyIncome: 0,
-        monthlyExpenses: 0,
-      });
     }
   }, [open]);
 
@@ -894,7 +871,8 @@ export function CreateCaseDialog({
     );
 
     // Notifications
-    form.setValue('notificationAddress', 'Calle 127 #20-45 Apto 302, Bogotá');
+    form.setValue('notificationAddress', 'Calle 127 #20-45 Apto 302');
+    form.setValue('notificationCity', 'Bogotá D.C.');
     form.setValue('notificationPhone', '3101234567');
     form.setValue('notificationEmail', 'juanrodriguez@email.com');
 
@@ -1118,7 +1096,10 @@ export function CreateCaseDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+        <DialogContent
+          ref={dialogContentRef}
+          className="max-h-[90vh] overflow-y-auto sm:max-w-6xl"
+        >
           <DialogHeader>
             <DialogTitle>Crear Nuevo Caso</DialogTitle>
             <DialogDescription>
@@ -1146,17 +1127,14 @@ export function CreateCaseDialog({
                   <TabsTrigger value="assets" className="text-xs">
                     4. Bienes
                   </TabsTrigger>
-                  <TabsTrigger value="income" className="text-xs">
-                    5. Ingresos
-                  </TabsTrigger>
                   <TabsTrigger value="proposal" className="text-xs">
-                    6. Propuesta
+                    5. Propuesta
                   </TabsTrigger>
                   <TabsTrigger value="legal" className="text-xs">
-                    7. Legal
+                    6. Legal
                   </TabsTrigger>
                   <TabsTrigger value="documents" className="text-xs">
-                    8. Documentos
+                    7. Documentos
                   </TabsTrigger>
                 </TabsList>
 
@@ -1196,18 +1174,12 @@ export function CreateCaseDialog({
                   <AssetsSection />
                 </TabsContent>
 
-                {/* Tab 5: Ingresos + Gastos + Dependientes */}
-                <TabsContent value="income" className="space-y-6">
-                  <IncomeSection />
-                  <DependentsSection />
-                </TabsContent>
-
-                {/* Tab 6: Propuesta de Pago */}
+                {/* Tab 5: Propuesta de Pago */}
                 <TabsContent value="proposal" className="space-y-6">
                   <PaymentProposalSection />
                 </TabsContent>
 
-                {/* Tab 7: Legal — Declaraciones + Notificaciones + Firma + Apoderado */}
+                {/* Tab 6: Legal — Declaraciones + Notificaciones + Firma + Apoderado */}
                 <TabsContent value="legal" className="space-y-6">
                   <DeclaracionesSection />
                   <LegalFoundationsSection />
@@ -1216,11 +1188,12 @@ export function CreateCaseDialog({
                   <SignatureSection />
                 </TabsContent>
 
-                {/* Tab 8: Documentos — Carga de archivos */}
+                {/* Tab 7: Documentos — Carga de archivos */}
                 <TabsContent value="documents" className="space-y-6">
                   <DocumentsSection
                     applicantScope={form.watch('applicantScope') ?? []}
                     assets={form.watch('assets') ?? []}
+                    hasAttorney={!!form.watch('apoderadoNombreCompleto')}
                     onFilesSelected={(sel) => {
                       documentsToUploadRef.current = sel;
                     }}
@@ -1290,9 +1263,7 @@ export function CreateCaseDialog({
       <CreateDebtorDialog
         open={showCreateDebtorDialog}
         onOpenChange={setShowCreateDebtorDialog}
-        newDebtorForm={newDebtorForm}
         creatingDebtor={creatingDebtor}
-        onFormChange={setNewDebtorForm}
         onSubmit={handleCreateDebtor}
       />
     </>

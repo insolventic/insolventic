@@ -21,6 +21,7 @@ export function SuspendedServicesSection() {
       email: '',
       phone: '',
       suspendedProduct: '',
+      suspensionDate: '',
       amountOwed: '',
     } as SuspendedServiceData);
   };
@@ -102,10 +103,11 @@ export function SuspendedServicesSection() {
 
             <div className="space-y-2">
               <Label htmlFor={`suspendedServices.${index}.suspendedProduct`}>
-                Producto Suspendido y Fecha
+                Producto suspendido
               </Label>
               <Input
                 id={`suspendedServices.${index}.suspendedProduct`}
+                placeholder="Ej: Energía, Agua, Gas"
                 {...form.register(
                   `suspendedServices.${index}.suspendedProduct`,
                 )}
@@ -113,14 +115,13 @@ export function SuspendedServicesSection() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`suspendedServices.${index}.amountOwed`}>
-                Valor Adeudado
+              <Label htmlFor={`suspendedServices.${index}.suspensionDate`}>
+                Fecha de suspensión
               </Label>
               <Input
-                id={`suspendedServices.${index}.amountOwed`}
-                type="number"
-                step="0.01"
-                {...form.register(`suspendedServices.${index}.amountOwed`)}
+                id={`suspendedServices.${index}.suspensionDate`}
+                type="date"
+                {...form.register(`suspendedServices.${index}.suspensionDate`)}
               />
             </div>
           </div>

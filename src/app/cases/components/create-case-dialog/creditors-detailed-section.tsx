@@ -55,6 +55,7 @@ export function CreditorsDetailedSection() {
       creditorClass: '',
       percentageOfTotal: '',
       daysOverdue: 0,
+      noCoDebtor: false,
       coDebtorName: '',
       coDebtorCity: '',
       coDebtorAddress: '',
@@ -270,9 +271,12 @@ export function CreditorsDetailedSection() {
                               Hipotecaria
                             </SelectItem>
                             <SelectItem value="VEHICULAR">Vehicular</SelectItem>
+                            <SelectItem value="PRENDARIA">Prendaria</SelectItem>
                             <SelectItem value="TARJETA_CREDITO">
                               Tarjeta de Crédito
                             </SelectItem>
+                            <SelectItem value="IMPUESTOS">Impuestos</SelectItem>
+                            <SelectItem value="LABORAL">Laboral</SelectItem>
                             <SelectItem value="OTRA">Otra</SelectItem>
                           </SelectContent>
                         </Select>
@@ -502,55 +506,76 @@ export function CreditorsDetailedSection() {
                 <h4 className="text-foreground border-b pb-2 text-sm font-medium">
                   Información Codeudor/Avalista
                 </h4>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <FormField
-                    control={form.control}
-                    name={`debts.${index}.coDebtorName`}
-                    render={({ field: formField }) => (
-                      <FormItem>
-                        <FormLabel>Nombre</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...formField}
-                            placeholder="Nombre del codeudor"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name={`debts.${index}.coDebtorCity`}
-                    render={({ field: formField }) => (
-                      <FormItem>
-                        <FormLabel>Domicilio</FormLabel>
-                        <FormControl>
-                          <Input {...formField} placeholder="Ciudad" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <FormField
+                  control={form.control}
+                  name={`debts.${index}.noCoDebtor`}
+                  render={({ field: formField }) => (
+                    <FormItem className="flex items-center space-y-0 space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={formField.value}
+                          onCheckedChange={formField.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="cursor-pointer font-normal">
+                        No tiene codeudor ni avalista
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
 
-                  <FormField
-                    control={form.control}
-                    name={`debts.${index}.coDebtorAddress`}
-                    render={({ field: formField }) => (
-                      <FormItem>
-                        <FormLabel>Dirección</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...formField}
-                            placeholder="Dirección completa"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {!form.watch(`debts.${index}.noCoDebtor`) && (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <FormField
+                      control={form.control}
+                      name={`debts.${index}.coDebtorName`}
+                      render={({ field: formField }) => (
+                        <FormItem>
+                          <FormLabel>Nombre</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...formField}
+                              placeholder="Nombre del codeudor"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name={`debts.${index}.coDebtorCity`}
+                      render={({ field: formField }) => (
+                        <FormItem>
+                          <FormLabel>Domicilio</FormLabel>
+                          <FormControl>
+                            <Input {...formField} placeholder="Ciudad" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name={`debts.${index}.coDebtorAddress`}
+                      render={({ field: formField }) => (
+                        <FormItem>
+                          <FormLabel>Dirección</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...formField}
+                              placeholder="Dirección completa"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
               </div>
             </div>
           );

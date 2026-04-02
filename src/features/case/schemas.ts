@@ -527,8 +527,11 @@ export const caseSchema = z.object({
 
   // Notificaciones
   notificationAddress: z.string().optional().nullable(),
+  notificationCity: z.string().optional().nullable(),
   notificationPhone: z.string().optional().nullable(),
   notificationEmail: z.string().optional().nullable(),
+  notificationOutsideBogota: z.boolean().optional().nullable(),
+  outsideBogotaReason: z.string().optional().nullable(),
 
   // Firma
   applicantSignatureName: z.string().optional().nullable(),
@@ -869,8 +872,11 @@ export const createCaseSchema = z.object({
 
   // Notificaciones
   notificationAddress: z.string().optional(),
+  notificationCity: z.string().optional(),
   notificationPhone: z.string().optional(),
   notificationEmail: z.string().optional(),
+  notificationOutsideBogota: z.boolean().optional(),
+  outsideBogotaReason: z.string().optional(),
 
   // Firma
   applicantSignatureName: z.string().optional(),
@@ -1383,8 +1389,11 @@ export const updateCaseSchema = z.object({
 
   // Notificaciones
   notificationAddress: z.string().optional(),
+  notificationCity: z.string().optional(),
   notificationPhone: z.string().optional(),
   notificationEmail: z.string().optional(),
+  notificationOutsideBogota: z.boolean().optional(),
+  outsideBogotaReason: z.string().optional(),
 
   // Firma
   applicantSignatureName: z.string().optional(),

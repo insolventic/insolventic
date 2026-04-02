@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -18,7 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { NewDebtorForm } from '@/features/case/schemas';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 // Validation schema with clear, specific Spanish messages
 const createDebtorQuickSchema = z.object({
@@ -44,68 +45,64 @@ const createDebtorQuickSchema = z.object({
   department: z.string().optional(),
 });
 
-type QuickDebtorFormData = z.infer<typeof createDebtorQuickSchema>;
+export type QuickDebtorFormData = z.infer<typeof createDebtorQuickSchema>;
 
 interface CreateDebtorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  newDebtorForm: NewDebtorForm;
   creatingDebtor: boolean;
-  onFormChange: (form: NewDebtorForm) => void;
-  onSubmit: () => Promise<void>;
+  onSubmit: (data: QuickDebtorFormData) => Promise<string | null>;
 }
 
 export function CreateDebtorDialog({
   open,
   onOpenChange,
-  newDebtorForm,
   creatingDebtor,
-  onFormChange,
   onSubmit,
 }: Readonly<CreateDebtorDialogProps>) {
+  const [serverError, setServerError] = useState<string | null>(null);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    setValue,
   } = useForm<QuickDebtorFormData>({
     resolver: zodResolver(createDebtorQuickSchema),
-    mode: 'onBlur', // Validate on blur — never before the user interacts
+    mode: 'onBlur',
     defaultValues: {
-      name: newDebtorForm.name,
-      idNumber: newDebtorForm.idNumber,
-      email: newDebtorForm.email,
-      phone: newDebtorForm.phone,
-      address: newDebtorForm.address,
-      city: newDebtorForm.city || 'Bogotá',
-      department: newDebtorForm.department || 'Cundinamarca',
+      name: '',
+      idNumber: '',
+      email: '',
+      phone: '',
+      address: '',
+      city: 'Bogotá',
+      department: 'Cundinamarca',
     },
   });
 
-  // Reset form when dialog opens/closes
+  // Reset form when dialog opens
   useEffect(() => {
     if (open) {
       reset({
-        name: newDebtorForm.name,
-        idNumber: newDebtorForm.idNumber,
-        email: newDebtorForm.email,
-        phone: newDebtorForm.phone,
-        address: newDebtorForm.address,
-        city: newDebtorForm.city || 'Bogotá',
-        department: newDebtorForm.department || 'Cundinamarca',
+        name: '',
+        idNumber: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: 'Bogotá',
+        department: 'Cundinamarca',
       });
+      setServerError(null);
     }
-  }, [open, newDebtorForm, reset]);
+  }, [open, reset]);
 
-  // Sync internal form → parent state on every change
-  const syncToParent = (field: keyof QuickDebtorFormData, value: string) => {
-    onFormChange({ ...newDebtorForm, [field]: value });
-  };
-
-  const onValid = async () => {
-    // When react-hook-form passes validation, call parent submit
-    await onSubmit();
+  const onValid = async (data: QuickDebtorFormData) => {
+    setServerError(null);
+    const error = await onSubmit(data);
+    if (error) {
+      setServerError(error);
+    }
   };
 
   return (
@@ -118,6 +115,13 @@ export function CreateDebtorDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onValid)} className="grid gap-4 py-4">
+          {serverError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{serverError}</AlertDescription>
+            </Alert>
+          )}
+
           {/* Nombre */}
           <div className="space-y-1.5">
             <Label htmlFor="newDebtorName">
@@ -129,9 +133,7 @@ export function CreateDebtorDialog({
               className={
                 errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''
               }
-              {...register('name', {
-                onChange: (e) => syncToParent('name', e.target.value),
-              })}
+              {...register('name')}
             />
             {errors.name && (
               <p className="text-sm text-red-500">{errors.name.message}</p>
@@ -152,9 +154,7 @@ export function CreateDebtorDialog({
                   ? 'border-red-500 focus-visible:ring-red-500'
                   : ''
               }
-              {...register('idNumber', {
-                onChange: (e) => syncToParent('idNumber', e.target.value),
-              })}
+              {...register('idNumber')}
             />
             {errors.idNumber && (
               <p className="text-sm text-red-500">{errors.idNumber.message}</p>
@@ -173,9 +173,7 @@ export function CreateDebtorDialog({
               className={
                 errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''
               }
-              {...register('email', {
-                onChange: (e) => syncToParent('email', e.target.value),
-              })}
+              {...register('email')}
             />
             {errors.email && (
               <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -194,9 +192,7 @@ export function CreateDebtorDialog({
               className={
                 errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''
               }
-              {...register('phone', {
-                onChange: (e) => syncToParent('phone', e.target.value),
-              })}
+              {...register('phone')}
             />
             {errors.phone && (
               <p className="text-sm text-red-500">{errors.phone.message}</p>
@@ -209,9 +205,7 @@ export function CreateDebtorDialog({
             <Input
               id="newDebtorAddress"
               placeholder="Calle 45 #12-34"
-              {...register('address', {
-                onChange: (e) => syncToParent('address', e.target.value),
-              })}
+              {...register('address')}
             />
           </div>
 
@@ -222,9 +216,7 @@ export function CreateDebtorDialog({
               <Input
                 id="newDebtorCity"
                 placeholder="Bogotá"
-                {...register('city', {
-                  onChange: (e) => syncToParent('city', e.target.value),
-                })}
+                {...register('city')}
               />
             </div>
             <div className="space-y-1.5">
@@ -232,9 +224,7 @@ export function CreateDebtorDialog({
               <Input
                 id="newDebtorDept"
                 placeholder="Cundinamarca"
-                {...register('department', {
-                  onChange: (e) => syncToParent('department', e.target.value),
-                })}
+                {...register('department')}
               />
             </div>
           </div>

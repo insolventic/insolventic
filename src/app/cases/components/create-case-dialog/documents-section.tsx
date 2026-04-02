@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Upload, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   REQUIRED_DOCUMENTS,
   CONDITIONAL_DOCUMENTS,
@@ -32,6 +33,7 @@ interface DocumentsSectionProps {
   ) => void;
   applicantScope?: string[];
   assets?: Array<{ type?: string; name?: string }>;
+  hasAttorney?: boolean;
 }
 
 type DocConfig = { key: string; label: string; multiple?: boolean };
@@ -47,12 +49,18 @@ export function DocumentsSection({
   onFilesSelected,
   applicantScope = [],
   assets = [],
+  hasAttorney = false,
 }: Readonly<DocumentsSectionProps>) {
   // Build mandatory docs list based on case data
-  const caseDataPartial: Partial<CreateCaseFormInput> = {
+  const caseDataPartial: Partial<CreateCaseFormInput> & {
+    hasAttorney?: boolean;
+  } = {
     applicantScope,
     assets: assets as CreateCaseFormInput['assets'],
+    hasAttorney,
   };
+
+  const noAssets = assets.length === 0;
   const requiredIds = useMemo(
     () => getRequiredDocuments(caseDataPartial),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -182,7 +190,18 @@ export function DocumentsSection({
           Suba los documentos necesarios para el caso (PDF, JPG, PNG — max 10MB)
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {noAssets && (
+          <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-sm text-amber-800 dark:text-amber-200">
+              No se han registrado bienes en la Página 4. Si el deudor posee
+              bienes, regrese y agréguelos para que se generen los documentos
+              condicionales correspondientes (certificado de tradición, tarjeta
+              de propiedad).
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label className="font-semibold text-red-700">

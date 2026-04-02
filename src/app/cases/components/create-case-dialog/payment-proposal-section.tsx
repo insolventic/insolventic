@@ -1,6 +1,7 @@
 'use client';
 
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,28 +50,99 @@ export function PaymentProposalSection() {
     hasClassPrivileges,
   ] = watchedValues;
 
+  // Watch debts array to auto-calculate class totals
+  const debts = useWatch({ control: form.control, name: 'debts' }) || [];
+
+  const classTotals = useMemo(() => {
+    const totals = { primera: 0, segunda: 0, tercera: 0, cuarta: 0, quinta: 0 };
+    for (const debt of debts) {
+      if (!debt?.type) continue;
+      const capital = Number(debt.capitalAmount) || 0;
+      const interest = Number(debt.interestAmount) || 0;
+      const total = capital + interest;
+      switch (debt.type) {
+        case 'LABORAL':
+          totals.primera += total;
+          break;
+        case 'HIPOTECARIA':
+        case 'PRENDARIA':
+          totals.segunda += total;
+          break;
+        case 'IMPUESTOS':
+          totals.cuarta += total;
+          break;
+        default: // PERSONAL, VEHICULAR, TARJETA_CREDITO, OTRA
+          totals.quinta += total;
+          break;
+      }
+    }
+    return totals;
+  }, [debts]);
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+    }).format(value);
+
+  const totalObligaciones =
+    classTotals.primera +
+    classTotals.segunda +
+    classTotals.tercera +
+    classTotals.cuarta +
+    classTotals.quinta;
+
   return (
     <div className="space-y-8">
-      {/* Resumen Financiero */}
+      {/* Resumen Financiero por Clase */}
       <div>
-        <h3 className="mb-4 text-lg font-medium">Resumen Financiero</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="totalDebt">Total Obligaciones (calculado)</Label>
-            <Input
-              id="totalDebt"
-              type="text"
-              value={
-                form.getValues('totalDebt')
-                  ? `$${Number(form.getValues('totalDebt')).toLocaleString('es-CO')}`
-                  : '$0'
-              }
-              readOnly
-              disabled
-              className="bg-muted cursor-not-allowed"
-            />
-            <p className="text-muted-foreground text-xs">
-              Suma automática del capital e intereses de todos los acreedores
+        <h3 className="mb-4 text-lg font-medium">
+          Resumen Financiero por Clase
+        </h3>
+        <p className="text-muted-foreground mb-4 text-sm">
+          Calculado automáticamente desde los acreedores registrados en la
+          Página 3
+        </p>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="space-y-1 rounded-lg border bg-blue-50 p-3 dark:bg-blue-950">
+            <Label className="text-xs text-blue-700 dark:text-blue-300">
+              1ª Clase — Laborales
+            </Label>
+            <p className="text-sm font-semibold">
+              {formatCurrency(classTotals.primera)}
+            </p>
+          </div>
+          <div className="space-y-1 rounded-lg border bg-purple-50 p-3 dark:bg-purple-950">
+            <Label className="text-xs text-purple-700 dark:text-purple-300">
+              2ª Clase — Con Garantía Real
+            </Label>
+            <p className="text-sm font-semibold">
+              {formatCurrency(classTotals.segunda)}
+            </p>
+          </div>
+          <div className="space-y-1 rounded-lg border bg-orange-50 p-3 dark:bg-orange-950">
+            <Label className="text-xs text-orange-700 dark:text-orange-300">
+              4ª Clase — Impuestos
+            </Label>
+            <p className="text-sm font-semibold">
+              {formatCurrency(classTotals.cuarta)}
+            </p>
+          </div>
+          <div className="space-y-1 rounded-lg border bg-slate-50 p-3 dark:bg-slate-900">
+            <Label className="text-xs text-slate-700 dark:text-slate-300">
+              5ª Clase — Quirografarias
+            </Label>
+            <p className="text-sm font-semibold">
+              {formatCurrency(classTotals.quinta)}
+            </p>
+          </div>
+          <div className="space-y-1 rounded-lg border bg-green-50 p-3 dark:bg-green-950">
+            <Label className="text-xs font-semibold text-green-700 dark:text-green-300">
+              Total Obligaciones
+            </Label>
+            <p className="text-base font-bold text-green-700 dark:text-green-300">
+              {formatCurrency(totalObligaciones)}
             </p>
           </div>
         </div>
@@ -384,37 +456,48 @@ export function PaymentProposalSection() {
         </div>
       </div>
 
-      {/* Orden de Prelación */}
+      {/* Orden de Prelación — auto-calculado */}
       <div className="bg-muted/50 space-y-4 rounded-lg border p-4">
         <h4 className="font-medium">Orden de Prelación</h4>
+        <p className="text-muted-foreground text-xs">
+          Los valores se calculan automáticamente según el tipo de deuda de cada
+          acreedor
+        </p>
         <div className="grid grid-cols-2 gap-4">
-          {(['primera', 'segunda', 'tercera', 'cuarta', 'quinta'] as const).map(
-            (order) => (
-              <FormField
-                key={order}
-                control={form.control}
-                name={`paymentOrder.${order}`}
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel
-                      htmlFor={`paymentOrder.${order}`}
-                      className="capitalize"
-                    >
-                      {order} - Valor $:
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        id={`paymentOrder.${order}`}
-                        type="text"
-                        {...field}
-                        value={field.value || ''}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
+          {(
+            [
+              {
+                key: 'primera',
+                label: '1ª Clase (Laborales)',
+                value: classTotals.primera,
+              },
+              {
+                key: 'segunda',
+                label: '2ª Clase (Garantía Real)',
+                value: classTotals.segunda,
+              },
+              {
+                key: 'cuarta',
+                label: '4ª Clase (Impuestos)',
+                value: classTotals.cuarta,
+              },
+              {
+                key: 'quinta',
+                label: '5ª Clase (Quirografarias)',
+                value: classTotals.quinta,
+              },
+            ] as const
+          ).map((item) => (
+            <div key={item.key} className="space-y-1">
+              <Label className="text-sm">{item.label}</Label>
+              <Input
+                type="text"
+                readOnly
+                className="bg-muted cursor-not-allowed"
+                value={formatCurrency(item.value)}
               />
-            ),
-          )}
+            </div>
+          ))}
         </div>
       </div>
 

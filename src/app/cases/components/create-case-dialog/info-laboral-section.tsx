@@ -1,8 +1,11 @@
 'use client';
 
-import { useFormContext } from 'react-hook-form';
+import { useFormContext, useWatch, useFieldArray } from 'react-hook-form';
+import { useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Plus, Trash2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -10,10 +13,87 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { CreateCaseFormInput } from '@/features/case/schemas';
+import type {
+  CreateCaseFormInput,
+  DependentData,
+} from '@/features/case/schemas';
 
 export function InfoLaboralSection() {
-  const { register, watch, setValue } = useFormContext<CreateCaseFormInput>();
+  const { register, watch, setValue, control } =
+    useFormContext<CreateCaseFormInput>();
+
+  // Watch income fields for auto-calculation
+  const ingresoPrincipal =
+    useWatch({ control, name: 'ingresoPrincipalMensual' }) || 0;
+  const otrosIngresos =
+    useWatch({ control, name: 'otrosIngresosMensuales' }) || 0;
+  const ingresosVariables =
+    useWatch({ control, name: 'ingresosVariablesPromedio' }) || 0;
+  const ingresosNoOp =
+    useWatch({ control, name: 'ingresosNoOperacionales' }) || 0;
+
+  // Watch expense fields for auto-calculation
+  const gastosVivienda = useWatch({ control, name: 'gastosVivienda' }) || 0;
+  const gastosAlimentacion =
+    useWatch({ control, name: 'gastosAlimentacion' }) || 0;
+  const gastosServicios =
+    useWatch({ control, name: 'gastosServiciosPublicos' }) || 0;
+  const gastosTransporte = useWatch({ control, name: 'gastosTransporte' }) || 0;
+  const gastosEducacion = useWatch({ control, name: 'gastosEducacion' }) || 0;
+  const gastosSalud = useWatch({ control, name: 'gastosSalud' }) || 0;
+  const otrosGastos = useWatch({ control, name: 'otrosGastos' }) || 0;
+
+  // Auto-calculated totals
+  const totalIngresos = useMemo(
+    () =>
+      Number(ingresoPrincipal) +
+      Number(otrosIngresos) +
+      Number(ingresosVariables) +
+      Number(ingresosNoOp),
+    [ingresoPrincipal, otrosIngresos, ingresosVariables, ingresosNoOp],
+  );
+
+  const totalGastos = useMemo(
+    () =>
+      Number(gastosVivienda) +
+      Number(gastosAlimentacion) +
+      Number(gastosServicios) +
+      Number(gastosTransporte) +
+      Number(gastosEducacion) +
+      Number(gastosSalud) +
+      Number(otrosGastos),
+    [
+      gastosVivienda,
+      gastosAlimentacion,
+      gastosServicios,
+      gastosTransporte,
+      gastosEducacion,
+      gastosSalud,
+      otrosGastos,
+    ],
+  );
+
+  const disponible = useMemo(
+    () => totalIngresos - totalGastos,
+    [totalIngresos, totalGastos],
+  );
+
+  // Dependents (Obligaciones Alimentarias)
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'dependents',
+  });
+
+  const addDependent = () => {
+    append({ name: '', age: 0, relationship: '' } as DependentData);
+  };
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      minimumFractionDigits: 0,
+    }).format(value);
 
   return (
     <div className="space-y-6">
@@ -21,14 +101,14 @@ export function InfoLaboralSection() {
         <h3 className="text-lg font-semibold">
           Sección III: Información Laboral y Económica
         </h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Datos laborales, de ingresos y gastos del deudor
         </p>
       </div>
 
       {/* Información laboral */}
       <div>
-        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+        <h4 className="text-muted-foreground mb-3 text-sm font-medium">
           Información laboral
         </h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -98,7 +178,7 @@ export function InfoLaboralSection() {
 
       {/* Ingresos */}
       <div>
-        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+        <h4 className="text-muted-foreground mb-3 text-sm font-medium">
           Ingresos mensuales
         </h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -125,17 +205,6 @@ export function InfoLaboralSection() {
           </div>
 
           <div className="space-y-2">
-            <Label>Total ingresos mensuales</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('totalIngresosMensuales')}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label>Ingresos variables (promedio)</Label>
             <Input
               type="number"
@@ -156,12 +225,22 @@ export function InfoLaboralSection() {
               {...register('ingresosNoOperacionales')}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label className="font-semibold">Total ingresos mensuales</Label>
+            <Input
+              type="text"
+              readOnly
+              className="bg-muted font-semibold"
+              value={formatCurrency(totalIngresos)}
+            />
+          </div>
         </div>
       </div>
 
       {/* Gastos */}
       <div>
-        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
+        <h4 className="text-muted-foreground mb-3 text-sm font-medium">
           Gastos mensuales
         </h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -243,57 +322,114 @@ export function InfoLaboralSection() {
           </div>
 
           <div className="space-y-2">
-            <Label>Total gastos mensuales</Label>
+            <Label className="font-semibold">Total gastos mensuales</Label>
             <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('totalGastosMensuales')}
+              type="text"
+              readOnly
+              className="bg-muted font-semibold"
+              value={formatCurrency(totalGastos)}
             />
           </div>
         </div>
       </div>
 
-      {/* Capacidad económica */}
-      <div>
-        <h4 className="mb-3 text-sm font-medium text-muted-foreground">
-          Capacidad económica
-        </h4>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Capacidad de pago estimada</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('capacidadPagoEstimada')}
-            />
+      {/* Recursos disponibles */}
+      <div className="rounded-lg border bg-blue-50 p-4 dark:bg-blue-950">
+        <h4 className="mb-3 text-sm font-semibold">Recursos disponibles</h4>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs">Ingresos</Label>
+            <p className="text-sm font-medium">
+              {formatCurrency(totalIngresos)}
+            </p>
           </div>
-
-          <div className="space-y-2">
-            <Label>Patrimonio total estimado</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('patrimonioTotalEstimado')}
-            />
+          <div className="space-y-1">
+            <Label className="text-xs">Gastos</Label>
+            <p className="text-sm font-medium">{formatCurrency(totalGastos)}</p>
           </div>
-
-          <div className="space-y-2">
-            <Label>Pasivo total estimado</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('pasivoTotalEstimado')}
-            />
+          <div className="space-y-1">
+            <Label className="text-xs">Disponible</Label>
+            <p
+              className={`text-sm font-bold ${disponible < 0 ? 'text-red-600' : 'text-green-600'}`}
+            >
+              {formatCurrency(disponible)}
+            </p>
           </div>
         </div>
+      </div>
+
+      {/* Obligaciones Alimentarias (moved from page 5) */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-muted-foreground text-sm font-medium">
+              Obligaciones alimentarias
+            </h4>
+            <p className="text-muted-foreground text-xs">
+              Personas que dependen económicamente del deudor
+            </p>
+          </div>
+          <Button type="button" onClick={addDependent} size="sm">
+            <Plus className="mr-2 h-4 w-4" />
+            Agregar Beneficiario
+          </Button>
+        </div>
+
+        {fields.length === 0 && (
+          <p className="text-muted-foreground mt-2 text-sm">
+            No hay beneficiarios. Haga clic en el botón para agregar.
+          </p>
+        )}
+
+        {fields.map((field, index) => (
+          <div
+            key={field.id}
+            className="bg-muted/50 mt-3 space-y-4 rounded-lg border p-4"
+          >
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium">Beneficiario #{index + 1}</h4>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => remove(index)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor={`dependents.${index}.name`}>Nombre</Label>
+                <Input
+                  id={`dependents.${index}.name`}
+                  {...register(`dependents.${index}.name`)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`dependents.${index}.age`}>Edad</Label>
+                <Input
+                  id={`dependents.${index}.age`}
+                  type="number"
+                  {...register(`dependents.${index}.age`, {
+                    valueAsNumber: true,
+                  })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`dependents.${index}.relationship`}>
+                  Parentesco
+                </Label>
+                <Input
+                  id={`dependents.${index}.relationship`}
+                  {...register(`dependents.${index}.relationship`)}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

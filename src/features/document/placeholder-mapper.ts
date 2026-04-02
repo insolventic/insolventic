@@ -4,6 +4,7 @@
  */
 
 import type { CaseWithRelations } from '../case/schemas';
+import { nowColombia, COLOMBIA_TZ } from '@/lib/date-colombia';
 
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
@@ -22,7 +23,7 @@ function formatCurrency(value: number | null | undefined): string {
   }).format(num);
 }
 
-// Helper to format date
+// Helper to format date (Colombia timezone)
 function formatDate(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
@@ -30,10 +31,11 @@ function formatDate(date: Date | string | null | undefined): string {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
+    timeZone: COLOMBIA_TZ,
   });
 }
 
-// Helper to format short date
+// Helper to format short date (Colombia timezone)
 function formatShortDate(date: Date | string | null | undefined): string {
   if (!date) return '';
   if (String(date) === 'DESCONOZCO') return 'Desconoce';
@@ -43,21 +45,27 @@ function formatShortDate(date: Date | string | null | undefined): string {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    timeZone: COLOMBIA_TZ,
   });
 }
 
-// Helper to get day number
+// Helper to get day number (Colombia timezone)
 function getDayNumber(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
-  return d.getDate().toString();
+  const colombiaDay = parseInt(
+    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
+  );
+  return colombiaDay.toString();
 }
 
-// Helper to get day in words
+// Helper to get day in words (Colombia timezone)
 function getDayInWords(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
-  const day = d.getDate();
+  const day = parseInt(
+    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
+  );
   const words = [
     '',
     'uno',
@@ -95,27 +103,41 @@ function getDayInWords(date: Date | string | null | undefined): string {
   return words[day] || day.toString();
 }
 
-// Helper to get month name
+// Helper to get month name (Colombia timezone)
 function getMonthName(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
-  return d.toLocaleDateString('es-CO', { month: 'long' });
+  return d.toLocaleDateString('es-CO', {
+    month: 'long',
+    timeZone: COLOMBIA_TZ,
+  });
 }
 
-// Helper to get year
+// Helper to get year (Colombia timezone)
 function getYear(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
-  return d.getFullYear().toString();
+  return d.toLocaleDateString('es-CO', {
+    year: 'numeric',
+    timeZone: COLOMBIA_TZ,
+  });
 }
 
-// Helper for complete date in words
+// Helper for complete date in words (Colombia timezone)
 function formatDateComplete(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
-  const day = d.getDate();
-  const month = d.toLocaleDateString('es-CO', { month: 'long' });
-  const year = d.getFullYear();
+  const day = parseInt(
+    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
+  );
+  const month = d.toLocaleDateString('es-CO', {
+    month: 'long',
+    timeZone: COLOMBIA_TZ,
+  });
+  const year = d.toLocaleDateString('es-CO', {
+    year: 'numeric',
+    timeZone: COLOMBIA_TZ,
+  });
   return `${day} de ${month} de ${year}`;
 }
 
@@ -598,7 +620,7 @@ function mapIncomeDeclaration(caseData: CaseWithRelations): PlaceholderMap {
 
 // Map additional date variables (ANO_*, DIA_*, MES_*)
 function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
-  const now = new Date();
+  const now = nowColombia();
   const filingDate = caseData.filingDate ? new Date(caseData.filingDate) : null;
 
   return {
@@ -715,7 +737,7 @@ function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
     GENERO_DEUDOR_SINGULAR: getGenderArticle(caseData.debtor.name),
 
     // Año de firma (usado en constancias)
-    ANO_FIRMA: getYear(new Date()),
+    ANO_FIRMA: getYear(nowColombia()),
 
     // Nombres en formatos adicionales
     NOMBRE_DEUDOR_MAYUSCULAS: caseData.debtor.name?.toUpperCase() || '',
@@ -786,12 +808,12 @@ function mapFracasoVariables(caseData: CaseWithRelations): PlaceholderMap {
     NOMBRE_ACREEDOR_BILATERAL:
       bilateralCreditorName || '________________________________',
     RADICADO_BILATERAL: caseData.bilateralAgreementNumber || '________________',
-    ANO_BILATERAL: getYear(new Date()),
+    ANO_BILATERAL: getYear(nowColombia()),
     ES_BILATERAL: caseData.isBilateral ? 'SI' : 'NO',
 
     // Constancia
     NUMERO_CONSTANCIA: caseData.caseNumber?.replace(/[^0-9]/g, '') || '',
-    ANO_CONSTANCIA: getYear(new Date()),
+    ANO_CONSTANCIA: getYear(nowColombia()),
   };
 }
 
@@ -1093,7 +1115,7 @@ function mapSentidoVotoVariables(caseData: CaseWithRelations): PlaceholderMap {
     // Variables en minúsculas como están en el template Sentido Del Voto.html
     deudor_nombre: caseData.debtor.name,
     deudor_cedula: caseData.debtor.idNumber,
-    fecha_documento: formatDate(new Date()),
+    fecha_documento: formatDate(nowColombia()),
     tramite_interno: caseData.caseNumber,
     entidad_representada: '', // MANUAL - lo llena el acreedor
     apoderado_nombre: '', // MANUAL
@@ -1216,7 +1238,7 @@ function generateProyeccionPagos(
     return 'Proyección pendiente de definir.';
   }
 
-  const start = startDate || new Date();
+  const start = startDate || nowColombia();
   let html =
     '<table border="1" cellpadding="5" style="width:100%; border-collapse: collapse; font-size:10px;">';
   html +=
@@ -1235,7 +1257,7 @@ function generateProyeccionPagos(
 
     html += `<tr>
       <td style="padding:3px; text-align:center;">${i}</td>
-      <td style="padding:3px; text-align:center;">${paymentDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+      <td style="padding:3px; text-align:center;">${paymentDate.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric', timeZone: COLOMBIA_TZ })}</td>
       <td style="padding:3px; text-align:right;">${formatCurrency(monthlyAmount)}</td>
       <td style="padding:3px; text-align:right;">${formatCurrency(capitalPayment)}</td>
       <td style="padding:3px; text-align:right;">${formatCurrency(balance)}</td>
@@ -1647,7 +1669,7 @@ export function mapCaseToPlaceholders(
     NUMERO_RADICADO: caseData.caseNumber.replace(/[^0-9]/g, ''),
     NUMERO_TRAMITE: caseData.caseNumber,
     NUMERO_ACUERDO: caseData.caseNumber.replace(/[^0-9]/g, ''),
-    ANO_ACUERDO: new Date().getFullYear().toString(),
+    ANO_ACUERDO: nowColombia().getFullYear().toString(),
     DIA_ACUERDO: '____', // MANUAL - día del acuerdo
     MES_ACUERDO: '____________', // MANUAL - mes del acuerdo
     CIUDAD: debtor.city || caseData.city || 'Bogotá',
@@ -1685,9 +1707,9 @@ export function mapCaseToPlaceholders(
       : '______',
 
     // Date components for current date
-    NUMERO_DIA: getDayNumber(new Date()),
-    NUMERO_DIA_LETRAS: getDayInWords(new Date()),
-    NOMBRE_MES: getMonthName(new Date()),
+    NUMERO_DIA: getDayNumber(nowColombia()),
+    NUMERO_DIA_LETRAS: getDayInWords(nowColombia()),
+    NOMBRE_MES: getMonthName(nowColombia()),
     NUMERO_DIAS: '20', // Default days for verification
 
     // Next hearing placeholders
@@ -1860,10 +1882,10 @@ export function mapCaseToPlaceholders(
     PROYECCION_PAGOS: '',
 
     // Signature and current year
-    DIA_FIRMA: getDayNumber(new Date()),
-    MES_FIRMA: getMonthName(new Date()),
-    ANO_FIRMA: new Date().getFullYear().toString(),
-    ANO_ACTUAL: new Date().getFullYear().toString(),
+    DIA_FIRMA: getDayNumber(nowColombia()),
+    MES_FIRMA: getMonthName(nowColombia()),
+    ANO_FIRMA: nowColombia().getFullYear().toString(),
+    ANO_ACTUAL: nowColombia().getFullYear().toString(),
   };
 
   // Merge all mappings

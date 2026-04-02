@@ -101,7 +101,7 @@ const AssetItem = memo(function AssetItem({
                   <SelectItem value="MUEBLE">Mueble</SelectItem>
                   <SelectItem value="JOYA">Joya</SelectItem>
                   <SelectItem value="DINERO">Dinero/Efectivo</SelectItem>
-                  <SelectItem value="ACCION">Acción/Título</SelectItem>
+                  <SelectItem value="ACCION">Acciones</SelectItem>
                   <SelectItem value="CUENTA_COBRAR">
                     Cuenta por Cobrar
                   </SelectItem>
@@ -278,10 +278,10 @@ export function AssetsSection() {
     name: 'assets',
   });
 
-  const addAsset = (type: 'INMUEBLE' | 'VEHICULO' | 'OTRO') => {
+  const addAsset = () => {
     append({
       name: '',
-      type,
+      type: '',
       value: '',
       description: '',
       propertyType: '',
@@ -321,33 +321,10 @@ export function AssetsSection() {
             onRemove={remove}
           />
         ))}
-        <div className="flex flex-wrap gap-2 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => addAsset('INMUEBLE')}
-          >
+        <div className="pt-4">
+          <Button type="button" variant="outline" size="sm" onClick={addAsset}>
             <Plus className="mr-2 h-4 w-4" />
-            Agregar Inmueble
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => addAsset('VEHICULO')}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Agregar Vehículo
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => addAsset('OTRO')}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Agregar Otro Bien
+            Agregar Bien
           </Button>
         </div>
         {fields.length === 0 && (

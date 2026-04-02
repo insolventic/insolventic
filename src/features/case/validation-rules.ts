@@ -468,19 +468,19 @@ export const REQUIRED_DOCUMENTS = [
   { id: 'cedula', name: 'Cédula de ciudadanía', always: true },
   { id: 'redam', name: 'Certificado REDAM', always: true },
   { id: 'cert_ingresos', name: 'Certificado de ingresos', always: true },
+];
+
+export const CONDITIONAL_DOCUMENTS = [
   {
     id: 'tradicion_libertad',
     name: 'Certificado de tradición y libertad de inmuebles',
-    always: true,
+    condition: 'hasRealEstate' as const,
   },
   {
     id: 'poder',
     name: 'Poder (notariado o prueba de envío desde correo del deudor)',
-    always: true,
+    condition: 'hasAttorney' as const,
   },
-];
-
-export const CONDITIONAL_DOCUMENTS = [
   {
     id: 'matricula',
     name: 'Registro de matrícula mercantil (Cámara de Comercio)',
@@ -519,20 +519,45 @@ export function getRequiredDocuments(
 ): string[] {
   const required = REQUIRED_DOCUMENTS.map((d) => d.id);
 
-  // Check conditional documents
+  const assets = (caseData.assets || []) as Array<{
+    type?: string;
+    name?: string;
+  }>;
+
+  // Real estate → certificado de tradición y libertad
+  const hasRealEstate = assets.some(
+    (a) =>
+      a.type === 'INMUEBLE' ||
+      a.type === 'Inmueble' ||
+      [
+        'CASA',
+        'APARTAMENTO',
+        'LOTE',
+        'LOCAL',
+        'BODEGA',
+        'OFICINA',
+        'FINCA',
+      ].includes(a.type || ''),
+  );
+  if (hasRealEstate) {
+    required.push('tradicion_libertad');
+  }
+
+  // Attorney → poder
+  const hasAttorney = !!(caseData as Record<string, unknown>).hasAttorney;
+  if (hasAttorney) {
+    required.push('poder');
+  }
+
+  // Small merchant → matrícula mercantil
   const isSmallMerchant =
     caseData.applicantScope?.includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE') ||
     caseData.applicantScope?.includes('Persona natural pequeño comerciante');
-
   if (isSmallMerchant) {
     required.push('matricula');
   }
 
   // Vehicle → tarjeta de propiedad
-  const assets = (caseData.assets || []) as Array<{
-    type?: string;
-    name?: string;
-  }>;
   const hasVehicle = assets.some(
     (a) =>
       a.type === 'VEHICULO' ||

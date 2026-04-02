@@ -321,6 +321,35 @@ export async function createDebtor(input: unknown): Promise<{
     return { success: true, data: validated };
   } catch (error) {
     console.error('Error in createDebtor:', error);
+
+    // Handle Prisma unique constraint violations
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === 'P2002'
+    ) {
+      const meta =
+        'meta' in error ? (error.meta as { target?: string[] }) : null;
+      const fields = meta?.target ?? [];
+      if (fields.includes('idNumber')) {
+        return {
+          success: false,
+          error: 'Ya existe un deudor con ese número de cédula.',
+        };
+      }
+      if (fields.includes('email')) {
+        return {
+          success: false,
+          error: 'Ya existe un deudor con ese correo electrónico.',
+        };
+      }
+      return {
+        success: false,
+        error: 'Ya existe un deudor con esos datos.',
+      };
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error al crear deudor',

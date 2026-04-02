@@ -29,7 +29,10 @@ import {
 import { getAllCreditors } from '@/features/creditor/actions';
 import { getAllDebtors, createDebtor } from '@/features/debtor/actions';
 
-import { CreateDebtorDialog } from './create-case-dialog/create-debtor-dialog';
+import {
+  CreateDebtorDialog,
+  type QuickDebtorFormData,
+} from './create-case-dialog/create-debtor-dialog';
 import { CreditorsTab } from './edit-case-dialog/creditors-tab';
 import { AssetsTab } from './edit-case-dialog/assets-tab';
 import { DebtorSection } from './create-case-dialog/debtor-section';
@@ -72,17 +75,6 @@ export function EditCaseDialog({
     null,
   );
   const [showCreateDebtorDialog, setShowCreateDebtorDialog] = useState(false);
-  const [newDebtorForm, setNewDebtorForm] = useState({
-    name: '',
-    idNumber: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: 'Bogotá',
-    department: 'Cundinamarca',
-    monthlyIncome: 0,
-    monthlyExpenses: 0,
-  });
   const [creatingDebtor, setCreatingDebtor] = useState(false);
   const [initializedCaseId, setInitializedCaseId] = useState<string | null>(
     null,
@@ -557,17 +549,9 @@ export function EditCaseDialog({
     });
   }
 
-  const handleCreateDebtor = async () => {
-    if (
-      !newDebtorForm.name ||
-      !newDebtorForm.idNumber ||
-      !newDebtorForm.email ||
-      !newDebtorForm.phone
-    ) {
-      toast.error('Por favor complete todos los campos requeridos');
-      return;
-    }
-
+  const handleCreateDebtor = async (
+    data: QuickDebtorFormData,
+  ): Promise<string | null> => {
     setCreatingDebtor(true);
     try {
       const {
@@ -575,7 +559,15 @@ export function EditCaseDialog({
         data: result,
         error,
       } = await createDebtor({
-        ...newDebtorForm,
+        name: data.name,
+        idNumber: data.idNumber,
+        email: data.email,
+        phone: data.phone,
+        address: data.address ?? '',
+        city: data.city ?? 'Bogotá',
+        department: data.department ?? 'Cundinamarca',
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
         idType: 'CC',
         occupation: 'Empleado',
         birthDate: undefined,
@@ -591,42 +583,32 @@ export function EditCaseDialog({
       });
 
       if (!success || error) {
-        toast.error(error ?? 'Error al crear el deudor');
-      } else {
-        toast.success('Deudor creado exitosamente');
-        setShowCreateDebtorDialog(false);
-        setNewDebtorForm({
-          name: '',
-          idNumber: '',
-          email: '',
-          phone: '',
-          address: '',
-          city: 'Bogotá',
-          department: 'Cundinamarca',
-          monthlyIncome: 0,
-          monthlyExpenses: 0,
-        });
-        const debtorsResult = await getAllDebtors();
-        setDebtors(
-          (debtorsResult.data || []).map((debtor) => ({
-            id: debtor.id,
-            name: debtor.name,
-            idNumber: debtor.idNumber,
-            email: debtor.email,
-            phone: debtor.phone,
-            address: debtor.address,
-            city: debtor.city,
-            department: debtor.department,
-            monthlyIncome: Number(debtor.monthlyIncome),
-            monthlyExpenses: Number(debtor.monthlyExpenses ?? 0),
-          })),
-        );
-        if (result?.id) {
-          setSelectedDebtorId(result.id);
-        }
+        return error ?? 'Error al crear el deudor';
       }
+
+      toast.success('Deudor creado exitosamente');
+      setShowCreateDebtorDialog(false);
+      const debtorsResult = await getAllDebtors();
+      setDebtors(
+        (debtorsResult.data || []).map((debtor) => ({
+          id: debtor.id,
+          name: debtor.name,
+          idNumber: debtor.idNumber,
+          email: debtor.email,
+          phone: debtor.phone,
+          address: debtor.address,
+          city: debtor.city,
+          department: debtor.department,
+          monthlyIncome: Number(debtor.monthlyIncome),
+          monthlyExpenses: Number(debtor.monthlyExpenses ?? 0),
+        })),
+      );
+      if (result?.id) {
+        setSelectedDebtorId(result.id);
+      }
+      return null;
     } catch {
-      toast.error('Error al crear el deudor');
+      return 'Error inesperado al crear el deudor. Intente de nuevo.';
     } finally {
       setCreatingDebtor(false);
     }
@@ -638,17 +620,6 @@ export function EditCaseDialog({
       setSelectedDebtor(null);
       form.reset();
       setInitializedCaseId(null);
-      setNewDebtorForm({
-        name: '',
-        idNumber: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: 'Bogotá',
-        department: 'Cundinamarca',
-        monthlyIncome: 0,
-        monthlyExpenses: 0,
-      });
     }
   }, [open, form]);
 
@@ -791,9 +762,7 @@ export function EditCaseDialog({
       <CreateDebtorDialog
         open={showCreateDebtorDialog}
         onOpenChange={setShowCreateDebtorDialog}
-        newDebtorForm={newDebtorForm}
         creatingDebtor={creatingDebtor}
-        onFormChange={setNewDebtorForm}
         onSubmit={handleCreateDebtor}
       />
     </>

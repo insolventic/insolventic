@@ -35,13 +35,13 @@ export default async function DashboardPage() {
       <main className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="space-y-6 lg:col-span-3">
+            <TaskSelector />
             {statsResult.success && statsResult.data && (
               <>
                 <DashboardStatsCards stats={statsResult.data} />
                 <DashboardCharts stats={statsResult.data} />
               </>
             )}
-            <TaskSelector />
             <RecentCases />
           </div>
 
