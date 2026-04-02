@@ -164,28 +164,30 @@ function mapCauses(
   causes: string[],
   otherCauseDetail?: string | null,
 ): PlaceholderMap {
-  const causeLabels = [
-    'SOBREENDEUDAMIENTO POR FALTA DE RECURSOS',
-    'PERDIDA DE EMPLEO',
+  // Match by DB value (SOBREENDEUDAMIENTO, PERDIDA_EMPLEO, etc.)
+  // The form stores enum values, not display labels
+  const causeValues = [
+    'SOBREENDEUDAMIENTO',
+    'PERDIDA_EMPLEO',
     'DIVORCIO',
     'ENFERMEDAD',
     'ACCIDENTE',
     'ESTAFA',
-    'DISMINUCIÓN DE INGRESOS',
-    'FALTA DE EDUCACIÓN FINANCIERA Y MALOS HÁBITOS FINANCIEROS',
-    'MUERTE DE CÓNYUGE',
-    'ACUDÍ A NUEVOS CRÉDITOS PARA CUBRIR OTROS',
-    'MALA INVERSIÓN',
+    'DISMINUCION_INGRESOS',
+    'MALA_EDUCACION_FINANCIERA',
+    'MUERTE_CONYUGE',
+    'NUEVOS_CREDITOS',
+    'MALA_INVERSION',
     'OTROS',
   ];
 
   const result: PlaceholderMap = {};
   for (let i = 0; i < 12; i++) {
     const causeKey = `CAUSA_${i + 1}`;
-    result[causeKey] = causes.includes(causeLabels[i]) ? 'SI' : 'NO';
+    result[causeKey] = causes.includes(causeValues[i]) ? 'SI' : 'NO';
   }
   result['CAUSA_12_DETALLE'] =
-    otherCauseDetail || causes.find((c) => !causeLabels.includes(c)) || '';
+    otherCauseDetail || causes.find((c) => !causeValues.includes(c)) || '';
   return result;
 }
 
@@ -272,9 +274,17 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
       result[`AC${idx}_FECHA_OTORGAMIENTO`] = formatShortDate(debt.grantDate);
       result[`AC${idx}_FECHA_VENCIMIENTO`] = formatShortDate(debt.dueDate);
       result[`AC${idx}_CLASIFICACION`] = debt.creditClassification || '';
-      result[`AC${idx}_CODEUDOR_NOMBRE`] = debt.coDebtorName || '';
-      result[`AC${idx}_CODEUDOR_DOMICILIO`] = debt.coDebtorCity || '';
-      result[`AC${idx}_CODEUDOR_DIRECCION`] = debt.coDebtorAddress || '';
+      // Codeudor/Avalista: if noCoDebtor flag is set, show N/A for all fields
+      const hasNoCoDebtor = (debt as Record<string, unknown>).noCoDebtor;
+      result[`AC${idx}_CODEUDOR_NOMBRE`] = hasNoCoDebtor
+        ? 'N/A'
+        : debt.coDebtorName || '';
+      result[`AC${idx}_CODEUDOR_DOMICILIO`] = hasNoCoDebtor
+        ? 'N/A'
+        : debt.coDebtorCity || '';
+      result[`AC${idx}_CODEUDOR_DIRECCION`] = hasNoCoDebtor
+        ? 'N/A'
+        : debt.coDebtorAddress || '';
       // RAW numeric values for CYG table JavaScript calculation
       result[`AC${idx}_CAPITAL_RAW`] = capital.toString();
       result[`AC${idx}_INTERESES_RAW`] = interest.toString();
@@ -327,7 +337,8 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
       result[`INMUEBLE_${idx}_PATRIMONIO_FAMILIA`] = boolToSiNo(
         immueble.isInalienablePatrimony,
       );
-      result[`INMUEBLE_${idx}_DOCUMENTO`] = immueble.proofDocument || '';
+      result[`INMUEBLE_${idx}_DOCUMENTO`] =
+        immueble.proofDocument || 'Certificado de tradición y libertad';
     }
   }
 
@@ -348,7 +359,8 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
     result['INMUEBLE_PATRIMONIO_FAMILIA'] = boolToSiNo(
       firstImmueble.isInalienablePatrimony,
     );
-    result['INMUEBLE_DOCUMENTO'] = firstImmueble.proofDocument || '';
+    result['INMUEBLE_DOCUMENTO'] =
+      firstImmueble.proofDocument || 'Certificado de tradición y libertad';
   } else {
     result['INMUEBLE_TIPO'] = 'No declara bienes inmuebles';
     result['INMUEBLE_DIRECCION'] = '';
@@ -1533,11 +1545,16 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
     Number(caseData.monthlyIncome) ||
     Number(caseData.debtor.monthlyIncome) ||
     0;
+  const otherIncome =
+    Number(caseData.otherIncomeAmount) ||
+    Number(caseData.debtor.otherIncomeAmount) ||
+    0;
+  const totalIncome = monthlyIncome + otherIncome;
   const monthlyExpenses =
     Number(caseData.monthlyExpenses) ||
     Number(caseData.debtor.monthlyExpenses) ||
     0;
-  const available = monthlyIncome - monthlyExpenses;
+  const available = totalIncome - monthlyExpenses;
 
   // Calculate total capital from debts (Number() prevents Decimal string concatenation)
   const totalCapital = caseData.debts.reduce(
@@ -1545,14 +1562,44 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
     0,
   );
 
-  // Parse payment order
-  const paymentOrder =
-    (caseData.paymentOrder as Record<string, string | null>) || {};
+  // Auto-calculate class totals from debts for prelación
+  const classTotals = {
+    primera: 0,
+    segunda: 0,
+    tercera: 0,
+    cuarta: 0,
+    quinta: 0,
+  };
+  for (const debt of caseData.debts) {
+    const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
+    const interest = Number(debt.interestAmount) || 0;
+    const total = capital + interest;
+    const type = (debt as Record<string, unknown>).type as string | undefined;
+    switch (type) {
+      case 'LABORAL':
+        classTotals.primera += total;
+        break;
+      case 'HIPOTECARIA':
+      case 'PRENDARIA':
+        classTotals.segunda += total;
+        break;
+      case 'IMPUESTOS':
+        classTotals.cuarta += total;
+        break;
+      default:
+        classTotals.quinta += total;
+        break;
+    }
+  }
+
+  // Apply quitas percentage to calculate post-reduction values
+  const quitasPercent = Number(caseData.capitalReductionPercent) || 0;
+  const quitasFactor = 1 - quitasPercent / 100;
 
   return {
-    // Income/Expenses summary
+    // Income/Expenses summary — uses TOTAL income (principal + otros)
     PROPUESTA_TOTAL_CAPITAL: formatCurrency(totalCapital),
-    PROPUESTA_INGRESOS: formatCurrency(monthlyIncome),
+    PROPUESTA_INGRESOS: formatCurrency(totalIncome),
     PROPUESTA_GASTOS: formatCurrency(monthlyExpenses),
     PROPUESTA_DISPONIBLE: formatCurrency(available),
 
@@ -1575,18 +1622,23 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
     PROP_FLUJO_SI: caseData.cashFlowPayment ? 'X' : '',
     PROP_FLUJO_NO: !caseData.cashFlowPayment ? 'X' : '',
 
-    // Term
+    // Term — cuota mensual: use manual value if set, otherwise calculate totalCapital / plazo
     PROP_PLAZO: caseData.paymentTermMonths?.toString() || '',
     PROP_CUOTA_MENSUAL: formatCurrency(
-      Number(caseData.monthlyPaymentAmount) || 0,
+      Number(caseData.monthlyPaymentAmount) ||
+        (caseData.paymentTermMonths && caseData.paymentTermMonths > 0
+          ? totalCapital / caseData.paymentTermMonths
+          : 0),
     ),
     PROP_CUOTA_VARIABLE: formatCurrency(Number(caseData.variablePayment) || 0),
 
-    // Extraordinary payment
+    // Extraordinary payment (cesantías, primas, horas extra, bonificaciones)
     PROP_EXTRAORDINARIA_SI: caseData.extraordinaryPayment ? 'X' : '',
     PROP_EXTRAORDINARIA_NO: !caseData.extraordinaryPayment ? 'X' : '',
     PROP_EXTRA_FECHA: caseData.extraordinaryPaymentDate || '',
-    PROP_EXTRA_MES: '',
+    PROP_EXTRA_MES: caseData.extraordinaryPaymentDate
+      ? getMonthName(new Date(caseData.extraordinaryPaymentDate))
+      : '',
 
     // Interest rate offered (placeholder - needs to be calculated based on business rules)
     PROP_TASA_MENSUAL: '0%',
@@ -1596,9 +1648,7 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
     PROP_QUITAS_SI: caseData.capitalReduction ? 'X' : '',
     PROP_QUITAS_NO: !caseData.capitalReduction ? 'X' : '',
     PROP_QUITAS_PORCENTAJE: caseData.capitalReductionPercent?.toString() || '',
-    PROP_QUITAS_VALOR: formatCurrency(
-      totalCapital * (1 - (caseData.capitalReductionPercent || 0) / 100),
-    ),
+    PROP_QUITAS_VALOR: formatCurrency(totalCapital * quitasFactor),
 
     // Insurance
     PROP_SEGURO_INCENDIO: caseData.insuranceOffering?.includes('incendio')
@@ -1610,12 +1660,24 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
     PROP_COND_CAUSADO: boolToSiNo(caseData.forgiveAccruedInterest),
     PROP_COND_FUTURO: boolToSiNo(caseData.forgiveFutureInterest),
 
-    // Payment order (prelation)
-    PROP_PRELACION_1: paymentOrder.primera || '',
-    PROP_PRELACION_2: paymentOrder.segunda || '',
-    PROP_PRELACION_3: paymentOrder.tercera || '',
-    PROP_PRELACION_4: paymentOrder.cuarta || '',
-    PROP_PRELACION_5: paymentOrder.quinta || '',
+    // Payment order (prelation) — auto-calculated from debt types, with quitas applied
+    PROP_PRELACION_1:
+      classTotals.primera > 0
+        ? `${formatCurrency(classTotals.primera)} → ${formatCurrency(classTotals.primera * quitasFactor)}`
+        : '$0',
+    PROP_PRELACION_2:
+      classTotals.segunda > 0
+        ? `${formatCurrency(classTotals.segunda)} → ${formatCurrency(classTotals.segunda * quitasFactor)}`
+        : '$0',
+    PROP_PRELACION_3: '$0',
+    PROP_PRELACION_4:
+      classTotals.cuarta > 0
+        ? `${formatCurrency(classTotals.cuarta)} → ${formatCurrency(classTotals.cuarta * quitasFactor)}`
+        : '$0',
+    PROP_PRELACION_5:
+      classTotals.quinta > 0
+        ? `${formatCurrency(classTotals.quinta)} → ${formatCurrency(classTotals.quinta * quitasFactor)}`
+        : '$0',
 
     // Class privileges
     PROP_PRIVILEGIOS_SI: caseData.hasClassPrivileges ? 'X' : '',
@@ -1747,10 +1809,21 @@ export function mapCaseToPlaceholders(
     ),
     GASTOS_MENSUALES: formatCurrency(monthlyExpenses),
 
-    // Resources
-    RECURSOS_INGRESOS: formatCurrency(monthlyIncome),
+    // Resources — must use TOTAL income (principal + otros), not just principal
+    RECURSOS_INGRESOS: formatCurrency(
+      monthlyIncome +
+        (Number(caseData.otherIncomeAmount) ||
+          Number(debtor.otherIncomeAmount) ||
+          0),
+    ),
     RECURSOS_GASTOS: formatCurrency(monthlyExpenses),
-    RECURSOS_DISPONIBLE: formatCurrency(available),
+    RECURSOS_DISPONIBLE: formatCurrency(
+      monthlyIncome +
+        (Number(caseData.otherIncomeAmount) ||
+          Number(debtor.otherIncomeAmount) ||
+          0) -
+        monthlyExpenses,
+    ),
 
     // Spouse
     CONYUGE_NOMBRE: caseData.spouseName || '',
@@ -1888,9 +1961,17 @@ export function mapCaseToPlaceholders(
     ANO_ACTUAL: nowColombia().getFullYear().toString(),
   };
 
+  // Build dynamic anexos list — only documents actually uploaded (not auto-generated)
+  const uploadedDocs = (caseData.documents || []).filter((d) => !d.isGenerated);
+  const listaAnexos =
+    uploadedDocs.length > 0
+      ? uploadedDocs.map((d) => `<li>${d.name}</li>`).join('\n            ')
+      : '<li>No se han adjuntado documentos aún</li>';
+
   // Merge all mappings
   return {
     ...basePlaceholders,
+    LISTA_ANEXOS: listaAnexos,
     ...mapApplicantScope(caseData.applicantScope || []),
     ...mapCauses(
       caseData.causes || [],
@@ -1922,7 +2003,7 @@ export function mapCaseToPlaceholders(
 }
 
 /**
- * Replace placeholders in HTML content
+ * Replace placeholders in HTML content and remove empty blocks
  */
 export function replacePlaceholders(
   html: string,
@@ -1935,6 +2016,18 @@ export function replacePlaceholders(
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
     result = result.replace(regex, value || '');
   }
+
+  // Clean up any remaining unreplaced placeholders (show empty instead of {{VAR}})
+  result = result.replace(/\{\{[A-Za-z0-9_]+\}\}/g, '');
+
+  // Remove empty table rows: <tr> where all <td> content is empty after placeholder replacement
+  result = result.replace(/<tr>\s*(?:<td[^>]*>\s*<\/td>\s*)+<\/tr>/g, '');
+
+  // Remove empty summary/creditor table rows (rows with only label and empty value)
+  result = result.replace(
+    /<tr>\s*<td[^>]*class="label-td"[^>]*>[^<]*<\/td>\s*<td>\s*<\/td>\s*<\/tr>/g,
+    '',
+  );
 
   return result;
 }
