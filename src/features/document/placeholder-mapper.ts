@@ -285,6 +285,8 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
       result[`AC${idx}_CODEUDOR_DIRECCION`] = hasNoCoDebtor
         ? 'N/A'
         : debt.coDebtorAddress || '';
+      // Apoderado info for CYG template (filled at hearing, empty by default)
+      result[`AC${idx}_APODERADO`] = '';
       // RAW numeric values for CYG table JavaScript calculation
       result[`AC${idx}_CAPITAL_RAW`] = capital.toString();
       result[`AC${idx}_INTERESES_RAW`] = interest.toString();
@@ -294,13 +296,24 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
       result[`AC${idx}_INTERESES`] = '';
       result[`AC${idx}_CLASIFICACION`] = '';
       result[`AC${idx}_DOCUMENTO`] = '';
+      result[`AC${idx}_APODERADO`] = '';
       result[`AC${idx}_CAPITAL_RAW`] = '';
       result[`AC${idx}_INTERESES_RAW`] = '';
     }
   }
 
-  // Total
+  // Totals for CYG template
+  const totalCapitalAll2 = debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
+  const totalInteresAll = debts.reduce(
+    (sum, d) => sum + (Number(d.interestAmount) || 0),
+    0,
+  );
   result['TOTAL_ACREENCIAS'] = formatCurrency(totalDebt);
+  result['TOTAL_CAPITAL'] = formatCurrency(totalCapitalAll2);
+  result['TOTAL_INTERESES'] = formatCurrency(totalInteresAll);
 
   return result;
 }
@@ -594,6 +607,9 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
     NO_PROCESOS: !hasLegalProcesses ? 'X' : '',
     SI_PC: isSmallMerchant ? 'X' : '',
     NO_PC: !isSmallMerchant ? 'X' : '',
+    TIPO_PERSONA: isSmallMerchant
+      ? 'Pequeño Comerciante (PC)'
+      : 'Persona Natural No Comerciante',
     SI_CONYUGAL: hasSpouse ? 'X' : '',
     NO_CONYUGAL: !hasSpouse ? 'X' : '',
     SI_APODERADO: hasAttorney ? 'X' : '',
@@ -613,11 +629,87 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
   };
 }
 
+// Build narrative paragraph for income certificate based on employment type
+function buildIncomeNarrative(caseData: CaseWithRelations): string {
+  const tipoVinculacion = (caseData as Record<string, unknown>)
+    .deudorTipoVinculacion as string | null;
+  const empleador = (caseData as Record<string, unknown>)
+    .deudorNombreEmpleador as string | null;
+  const actividad = (caseData as Record<string, unknown>)
+    .deudorActividadEconomica as string | null;
+  const ocupacion = caseData.debtor.occupation || 'No especificada';
+  const ingresoPrincipal =
+    Number((caseData as Record<string, unknown>).ingresoPrincipalMensual) ||
+    Number(caseData.monthlyIncome) ||
+    Number(caseData.debtor.monthlyIncome) ||
+    0;
+  const otrosIngresos =
+    Number((caseData as Record<string, unknown>).otrosIngresosMensuales) ||
+    Number(caseData.otherIncomeAmount) ||
+    Number(caseData.debtor.otherIncomeAmount) ||
+    0;
+  const otrosDesc =
+    ((caseData as Record<string, unknown>).otherIncomeDescription as string) ||
+    caseData.debtor.otherIncomeDescription ||
+    '';
+
+  const parts: string[] = [];
+
+  const tipo = (tipoVinculacion || '').toLowerCase();
+  if (
+    tipo === 'empleado' ||
+    tipo.includes('contrato') ||
+    tipo.includes('término')
+  ) {
+    parts.push(
+      `<p class="justified">Actualmente me encuentro vinculado(a) laboralmente como <strong>${ocupacion}</strong> en la empresa <strong>${empleador || 'No especificada'}</strong>, bajo modalidad de <strong>${tipoVinculacion}</strong>, devengando un ingreso principal mensual de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
+    );
+  } else if (tipo === 'independiente' || tipo === 'contratista') {
+    parts.push(
+      `<p class="justified">Me desempeño como trabajador(a) independiente en la actividad de <strong>${actividad || ocupacion}</strong>, de la cual derivo un ingreso principal mensual aproximado de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
+    );
+  } else if (tipo === 'pensionado') {
+    parts.push(
+      `<p class="justified">Actualmente soy pensionado(a), percibiendo una mesada pensional mensual de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
+    );
+  } else if (tipo === 'desempleado') {
+    parts.push(
+      `<p class="justified">Actualmente me encuentro desempleado(a). Mi sustento proviene de ${otrosDesc || 'apoyo familiar y otros recursos'}, con un ingreso aproximado mensual de <strong>${formatCurrency(ingresoPrincipal + otrosIngresos)}</strong>.</p>`,
+    );
+  } else {
+    // Fallback genérico
+    parts.push(
+      `<p class="justified">Mis ingresos mensuales provienen de la actividad vinculada con <strong>${actividad || ocupacion}</strong>, con un ingreso principal mensual de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
+    );
+  }
+
+  if (otrosIngresos > 0 && tipo !== 'desempleado') {
+    parts.push(
+      `<p class="justified">Adicionalmente, percibo otros ingresos mensuales por concepto de <strong>${otrosDesc || 'otras fuentes'}</strong> por valor de <strong>${formatCurrency(otrosIngresos)}</strong>.</p>`,
+    );
+  }
+
+  return parts.join('\n    ');
+}
+
 // Map certificate of income variables (Certificado de Ingresos)
 function mapIncomeDeclaration(caseData: CaseWithRelations): PlaceholderMap {
   const debtor = caseData.debtor;
   const monthlyIncome =
-    Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
+    Number((caseData as Record<string, unknown>).ingresoPrincipalMensual) ||
+    Number(caseData.monthlyIncome) ||
+    Number(debtor.monthlyIncome) ||
+    0;
+  const otrosIngresos =
+    Number((caseData as Record<string, unknown>).otrosIngresosMensuales) ||
+    Number(caseData.otherIncomeAmount) ||
+    Number(debtor.otherIncomeAmount) ||
+    0;
+  const otrosDesc =
+    ((caseData as Record<string, unknown>).otherIncomeDescription as string) ||
+    debtor.otherIncomeDescription ||
+    '';
+  const totalIngresos = monthlyIncome + otrosIngresos;
 
   return {
     NOMBRE_DECLARANTE: debtor.name,
@@ -627,6 +719,13 @@ function mapIncomeDeclaration(caseData: CaseWithRelations): PlaceholderMap {
     TELEFONO_DECLARANTE: debtor.phone,
     ACTIVIDAD_ECONOMICA: debtor.occupation || 'No especificada',
     INGRESO_MENSUAL: formatCurrency(monthlyIncome),
+    NARRATIVA_INGRESOS: buildIncomeNarrative(caseData),
+    OTROS_INGRESOS_LABEL:
+      otrosIngresos > 0
+        ? `Otros ingresos (${otrosDesc || 'otras fuentes'})`
+        : 'Otros ingresos',
+    OTROS_INGRESOS_MONTO: formatCurrency(otrosIngresos),
+    TOTAL_INGRESOS_CERTIFICADO: formatCurrency(totalIngresos),
   };
 }
 
@@ -1756,6 +1855,10 @@ export function mapCaseToPlaceholders(
         ? formatDate(caseData.firstHearingDate || caseData.hearingDate)
         : '________________',
     HORA_AUDIENCIA: caseData.firstHearingTime || '____:____',
+    FECHA_HORA_AUDIENCIA:
+      caseData.firstHearingDate || caseData.hearingDate
+        ? `${formatDate(caseData.firstHearingDate || caseData.hearingDate)} - ${caseData.firstHearingTime || '____:____'}`
+        : '________________',
 
     // Auto de admision (para Edicto Emplazatorio)
     DIA_AUTO: caseData.admissionDate

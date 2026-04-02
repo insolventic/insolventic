@@ -19,8 +19,28 @@
 
     <!-- Cuerpo -->
     <p class="justified">
-        {{NOMBRE_DECLARANTE}}, mayor de edad, con domicilio en la ciudad de {{CIUDAD_DOMICILIO}}, identificado como aparece al pie de mi firma, manifiesto bajo la gravedad de juramento que mis ingresos mensuales provienen de la actividad vinculada con {{ACTIVIDAD_ECONOMICA}}, con un ingreso base mensual de <strong>${{INGRESO_MENSUAL}}</strong>.
+        {{NOMBRE_DECLARANTE}}, mayor de edad, con domicilio en la ciudad de {{CIUDAD_DOMICILIO}}, identificado como aparece al pie de mi firma, manifiesto bajo la gravedad de juramento lo siguiente sobre mis ingresos:
     </p>
+
+    {{NARRATIVA_INGRESOS}}
+
+    <p class="justified">
+        <strong>Resumen de ingresos mensuales:</strong>
+    </p>
+    <table class="tabla-ingresos">
+        <tr>
+            <td>Ingreso principal mensual</td>
+            <td class="monto"><strong>{{INGRESO_MENSUAL}}</strong></td>
+        </tr>
+        <tr>
+            <td>{{OTROS_INGRESOS_LABEL}}</td>
+            <td class="monto"><strong>{{OTROS_INGRESOS_MONTO}}</strong></td>
+        </tr>
+        <tr class="total">
+            <td><strong>Total ingresos mensuales</strong></td>
+            <td class="monto"><strong>{{TOTAL_INGRESOS_CERTIFICADO}}</strong></td>
+        </tr>
+    </table>
 
     <p class="justified">
         La presente declaración se suscribe con el fin de adjuntarla a la solicitud para dar inicio al proceso de insolvencia de la persona natural no comerciante y de la pequeña comerciante, ante el Centro de Conciliación.

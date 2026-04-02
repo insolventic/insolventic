@@ -20,6 +20,7 @@ import {
   getTemplatePath,
   type DocumentTemplate,
 } from './templates-config';
+import { generateAndUploadExcel } from './generate-excel';
 import type { CaseWithRelations } from '../case/schemas';
 
 /**
@@ -459,6 +460,32 @@ export async function generateDocumentsForNewCase(
       mergedOptions,
     );
     documents.push(result);
+  }
+
+  // Generate consolidated Excel and upload
+  if (mergedOptions.uploadToGoogleDrive && caseFolderId) {
+    try {
+      const excelResult = await generateAndUploadExcel(caseData, caseFolderId);
+      documents.push({
+        templateId: 'consolidado-excel',
+        templateName: 'Consolidado Excel',
+        fileName: excelResult.fileName,
+        googleDriveId: excelResult.googleDriveId,
+        googleDriveUrl: excelResult.googleDriveUrl,
+        status: 'success',
+      });
+    } catch (error) {
+      console.error('Error generating Excel:', error);
+      documents.push({
+        templateId: 'consolidado-excel',
+        templateName: 'Consolidado Excel',
+        fileName: 'Consolidado.xlsx',
+        googleDriveId: '',
+        googleDriveUrl: '',
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Error generando Excel',
+      });
+    }
   }
 
   return {
