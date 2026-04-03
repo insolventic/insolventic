@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useTransition } from 'react';
+import { useState, useEffect, useRef, useTransition, useMemo } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, FlaskConical } from 'lucide-react';
+import { Loader2, FlaskConical, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -80,6 +80,112 @@ const TAB_ORDER = [
 
 const LAST_TAB = TAB_ORDER[TAB_ORDER.length - 1];
 
+// Mapping of field prefixes to their corresponding tab
+const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
+  debtorId: 'debtor',
+  type: 'debtor',
+  causes: 'debtor',
+  applicantScope: 'debtor',
+  monthlyIncome: 'debtor',
+  monthlyExpenses: 'debtor',
+  otherIncome: 'debtor',
+  hasEmployerCertification: 'debtor',
+  operatorId: 'debtor',
+  phase: 'debtor',
+  filingDate: 'debtor',
+  caseNumber: 'debtor',
+  // Tab 2 – Situación
+  conyuge: 'situation',
+  sociedad: 'situation',
+  deudor: 'situation',
+  ingreso: 'situation',
+  otrosIngresos: 'situation',
+  totalIngresos: 'situation',
+  ingresosVariables: 'situation',
+  ingresosNo: 'situation',
+  gastos: 'situation',
+  totalGastos: 'situation',
+  capacidadPago: 'situation',
+  patrimonio: 'situation',
+  pasivo: 'situation',
+  cesacionPagos: 'situation',
+  fechaCesacion: 'situation',
+  numeroAcreedores: 'situation',
+  porcentajePasivo: 'situation',
+  obligacionesEnMora: 'situation',
+  procesosEjecutivos: 'situation',
+  procesosJudiciales: 'situation',
+  legalProcesses: 'situation',
+  hasLegalProcesses: 'situation',
+  // Tab 3 – Acreedores
+  debts: 'creditors',
+  acreedores: 'creditors',
+  totalDebt: 'creditors',
+  creditors: 'creditors',
+  libranzas: 'creditors',
+  suspendedServices: 'creditors',
+  dependents: 'creditors',
+  // Tab 4 – Bienes
+  assets: 'assets',
+  bienes: 'assets',
+  // Tab 5 – Propuesta
+  gracePeriod: 'proposal',
+  paymentInKind: 'proposal',
+  assetSale: 'proposal',
+  cashFlow: 'proposal',
+  paymentTerm: 'proposal',
+  monthlyPayment: 'proposal',
+  variablePayment: 'proposal',
+  extraordinaryPayment: 'proposal',
+  capitalReduction: 'proposal',
+  insurance: 'proposal',
+  forgive: 'proposal',
+  paymentOrder: 'proposal',
+  hasClass: 'proposal',
+  classPrivileges: 'proposal',
+  thirdParty: 'proposal',
+  guaranteeSubstitution: 'proposal',
+  propuesta: 'proposal',
+  // Tab 6 – Legal
+  declaracion: 'legal',
+  manifestacion: 'legal',
+  autorizacion: 'legal',
+  requestedFee: 'legal',
+  legalFoundations: 'legal',
+  notification: 'legal',
+  applicantSignature: 'legal',
+  apoderado: 'legal',
+  existePoder: 'legal',
+  spouse: 'legal',
+  attorney: 'legal',
+};
+
+function getTabForField(fieldName: string): (typeof TAB_ORDER)[number] | null {
+  // Direct match
+  if (fieldName in FIELD_TAB_MAP) return FIELD_TAB_MAP[fieldName];
+  // Prefix match (e.g. "debts.0.creditor" → "debts" → creditors)
+  for (const prefix of Object.keys(FIELD_TAB_MAP)) {
+    if (fieldName.startsWith(prefix)) return FIELD_TAB_MAP[prefix];
+  }
+  return null;
+}
+
+// User-friendly error messages for common validation errors
+const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
+  debtorId: 'Debe seleccionar un deudor',
+  type: 'Debe seleccionar el tipo de caso',
+  operatorId: 'Debe asignar un operador',
+  applicantScope: 'Debe seleccionar el ámbito de aplicación',
+  debts: 'Revise la información de acreedores',
+  assets: 'Revise la información de bienes',
+  totalDebt: 'La deuda total es requerida',
+  notificationAddress: 'Dirección de notificación requerida',
+  notificationCity: 'Ciudad de notificación requerida',
+  notificationEmail: 'Correo de notificación requerido',
+  applicantSignatureName: 'Nombre del firmante requerido',
+  applicantSignatureId: 'Identificación del firmante requerida',
+};
+
 export function CreateCaseDialog({
   open,
   onOpenChange,
@@ -123,6 +229,18 @@ export function CreateCaseDialog({
   const [isPending, startTransition] = useTransition();
 
   const dialogContentRef = useRef<HTMLDivElement>(null);
+
+  // Determine which tabs have validation errors
+  const formErrors = form.formState.errors;
+  const tabsWithErrors = useMemo(() => {
+    const errorTabs = new Set<string>();
+    const errorKeys = Object.keys(formErrors);
+    for (const key of errorKeys) {
+      const tab = getTabForField(key);
+      if (tab) errorTabs.add(tab);
+    }
+    return errorTabs;
+  }, [formErrors]);
 
   const goToNextTab = () => {
     const currentIndex = TAB_ORDER.indexOf(
@@ -450,19 +568,34 @@ export function CreateCaseDialog({
   const onInvalid = (errors: Record<string, unknown>) => {
     console.error('[CreateCase] Validation errors:', errors);
 
-    // Collect first-level error messages
+    // Collect user-friendly error messages
     const errorMessages: string[] = [];
     for (const [key, value] of Object.entries(errors)) {
-      const err = value as { message?: string };
-      if (err?.message) {
-        errorMessages.push(`${key}: ${err.message}`);
+      const friendly = FRIENDLY_ERROR_MESSAGES[key];
+      if (friendly) {
+        errorMessages.push(friendly);
+      } else {
+        const err = value as { message?: string };
+        if (err?.message) {
+          errorMessages.push(err.message);
+        }
+      }
+    }
+
+    // Navigate to the first tab that has an error
+    const errorKeys = Object.keys(errors);
+    for (const tabId of TAB_ORDER) {
+      const hasError = errorKeys.some((key) => getTabForField(key) === tabId);
+      if (hasError) {
+        setActiveTab(tabId);
+        break;
       }
     }
 
     if (errorMessages.length > 0) {
-      toast.error('Error de validación', {
-        description: errorMessages.slice(0, 3).join(', '),
-        duration: 6000,
+      toast.error('Campos incompletos', {
+        description: errorMessages.slice(0, 4).join(' • '),
+        duration: 8000,
       });
     } else {
       toast.error(
@@ -577,26 +710,51 @@ export function CreateCaseDialog({
         onOpenChange(false);
         onCaseCreated?.();
       } else {
-        // Show specific error message from server or generic error
+        // Map server errors to clear, user-friendly messages
         const errorMessage = error ?? 'Error al crear el caso';
+        const errorMap: Array<{ match: string; msg: string }> = [
+          {
+            match: 'required',
+            msg: 'Por favor complete todos los campos requeridos.',
+          },
+          {
+            match: 'requerido',
+            msg: 'Por favor complete todos los campos requeridos.',
+          },
+          {
+            match: 'Deudor no encontrado',
+            msg: 'El deudor seleccionado no existe. Seleccione otro.',
+          },
+          {
+            match: 'Unknown argument',
+            msg: 'Error en los datos enviados. Verifique todos los campos.',
+          },
+          {
+            match: 'Unique constraint',
+            msg: 'Ya existe un caso con estos datos. Verifique la cédula o radicado.',
+          },
+          {
+            match: 'duplicate',
+            msg: 'Ya existe un registro duplicado. Verifique los datos ingresados.',
+          },
+          {
+            match: 'ECONNREFUSED',
+            msg: 'No se pudo conectar con el servidor. Intente de nuevo en unos segundos.',
+          },
+          {
+            match: 'timeout',
+            msg: 'La operación tardó demasiado. Intente de nuevo.',
+          },
+          {
+            match: 'Permission',
+            msg: 'No tiene permisos para crear casos. Contacte al administrador.',
+          },
+        ];
 
-        // Check if it's a validation error
-        if (
-          errorMessage.includes('required') ||
-          errorMessage.includes('requerido')
-        ) {
-          toast.error('Por favor complete todos los campos requeridos');
-        } else if (errorMessage.includes('Deudor no encontrado')) {
-          toast.error(
-            'El deudor seleccionado no existe. Por favor seleccione otro.',
-          );
-        } else if (errorMessage.includes('Unknown argument')) {
-          toast.error(
-            'Error en los datos enviados. Por favor verifique todos los campos.',
-          );
-        } else {
-          toast.error(errorMessage);
-        }
+        const mapped = errorMap.find((e) =>
+          errorMessage.toLowerCase().includes(e.match.toLowerCase()),
+        );
+        toast.error(mapped?.msg ?? errorMessage, { duration: 8000 });
       }
     });
   };
@@ -1117,27 +1275,28 @@ export function CreateCaseDialog({
                 className="space-y-4"
               >
                 <TabsList className="flex w-full flex-wrap gap-1">
-                  <TabsTrigger value="debtor" className="text-xs">
-                    1. Solicitante
-                  </TabsTrigger>
-                  <TabsTrigger value="situation" className="text-xs">
-                    2. Situación
-                  </TabsTrigger>
-                  <TabsTrigger value="creditors" className="text-xs">
-                    3. Acreedores
-                  </TabsTrigger>
-                  <TabsTrigger value="assets" className="text-xs">
-                    4. Bienes
-                  </TabsTrigger>
-                  <TabsTrigger value="proposal" className="text-xs">
-                    5. Propuesta
-                  </TabsTrigger>
-                  <TabsTrigger value="legal" className="text-xs">
-                    6. Legal
-                  </TabsTrigger>
-                  <TabsTrigger value="documents" className="text-xs">
-                    7. Documentos
-                  </TabsTrigger>
+                  {(
+                    [
+                      { value: 'debtor', label: '1. Solicitante' },
+                      { value: 'situation', label: '2. Situación' },
+                      { value: 'creditors', label: '3. Acreedores' },
+                      { value: 'assets', label: '4. Bienes' },
+                      { value: 'proposal', label: '5. Propuesta' },
+                      { value: 'legal', label: '6. Legal' },
+                      { value: 'documents', label: '7. Documentos' },
+                    ] as const
+                  ).map((tab) => (
+                    <TabsTrigger
+                      key={tab.value}
+                      value={tab.value}
+                      className={`relative text-xs ${tabsWithErrors.has(tab.value) ? 'text-red-600 dark:text-red-400' : ''}`}
+                    >
+                      {tab.label}
+                      {tabsWithErrors.has(tab.value) && (
+                        <AlertCircle className="ml-1 h-3 w-3 text-red-500" />
+                      )}
+                    </TabsTrigger>
+                  ))}
                 </TabsList>
 
                 {/* Tab 1: Solicitante — Deudor + Ámbito + Causas + Datos básicos */}
