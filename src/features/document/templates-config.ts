@@ -250,6 +250,21 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     folderPath: [],
     description: 'Comunicacion a pagadores de libranzas',
   },
+  {
+    id: 'restablecimiento-servicios',
+    name: 'Restablecimiento de Servicios Publicos',
+    fileName: 'Restablecimiento de Servicios Publicos.html',
+    category: 'admision',
+    packageNumber: 2,
+    packageName: 'Admisión y Apertura',
+    generateOnCreate: false,
+    generateOnAdmission: true,
+    generateOnAgreement: false,
+    generateOnFailure: false,
+    folderPath: [],
+    description:
+      'Solicitud de restablecimiento de servicios publicos suspendidos',
+  },
 
   // =============================================
   // PAQUETE 3 - NEGOCIACION Y ACUERDO (6 documentos)

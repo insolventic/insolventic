@@ -113,9 +113,27 @@
             </tr>
 
             <tr>
-                <td>Numeral 3 – Relación de acreedores completa</td>
+                <td>Numeral 3 – Relación de acreedores completa (Prelación / Nombre / Domicilio / Dirección / Correo / Cuantía capital e intereses / Naturaleza / Tasa / Documentos / Fechas / Codeudor)</td>
                 <td class="center">{{SI_ACREEDORES}}</td>
                 <td class="center">{{NO_ACREEDORES}}</td>
+            </tr>
+
+            <tr>
+                <td>Numeral 3 – Certificado de ahorros o valor de garantía mobiliaria</td>
+                <td class="center">{{SI_CERT_AHORROS}}</td>
+                <td class="center">{{NO_CERT_AHORROS}}</td>
+            </tr>
+
+            <tr>
+                <td>Numeral 3 – Verificar si incluye todos los acreedores de la lista de procesos o que estén mencionados en la solicitud</td>
+                <td class="center">{{SI_TODOS_ACREEDORES}}</td>
+                <td class="center">{{NO_TODOS_ACREEDORES}}</td>
+            </tr>
+
+            <tr>
+                <td>Numeral 3 inciso 2° – ¿De la anterior relación expresa que no conoce alguna información?</td>
+                <td class="center">{{SI_DESCONOCE_INFO}}</td>
+                <td class="center">{{NO_DESCONOCE_INFO}}</td>
             </tr>
 
             <tr>
@@ -154,6 +172,28 @@
                 <td class="center">{{NO_ALIMENTARIAS}}</td>
             </tr>
 
+            <tr class="section">
+                <td colspan="3">PARÁGRAFOS</td>
+            </tr>
+
+            <tr>
+                <td>Parágrafo 1. ¿Realiza manifestación de que no ha incurrido en omisiones, imprecisiones o errores?</td>
+                <td class="center">{{SI_PARAGRAFO_1}}</td>
+                <td class="center">{{NO_PARAGRAFO_1}}</td>
+            </tr>
+
+            <tr>
+                <td>Parágrafo 2. ¿Informa que la relación de acreedores la hace con corte al último día del mes anterior a la presentación de la solicitud?</td>
+                <td class="center">{{SI_PARAGRAFO_2}}</td>
+                <td class="center">{{NO_PARAGRAFO_2}}</td>
+            </tr>
+
+            <tr>
+                <td>Parágrafo 3. Informa si tiene soporte de obligaciones o manifestación de que no las posee</td>
+                <td class="center">{{SI_PARAGRAFO_3}}</td>
+                <td class="center">{{NO_PARAGRAFO_3}}</td>
+            </tr>
+
         </tbody>
     </table>
 
@@ -161,11 +201,95 @@
     <h3>Documentales</h3>
 
     <table class="table checklist">
-        <tr><td>Fotocopia de la cédula</td><td class="center">{{OK}}</td></tr>
-        <tr><td>Certificado REDAM</td><td class="center">{{OK}}</td></tr>
-        <tr><td>Constancia de matrícula mercantil</td><td class="center">{{OK}}</td></tr>
-        <tr><td>Certificados de tradición y libertad</td><td class="center">{{OK}}</td></tr>
-        <tr><td>Extractos bancarios</td><td class="center">{{OK}}</td></tr>
+        <thead>
+            <tr>
+                <th>Documento</th>
+                <th>SI</th>
+                <th>NO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Fotocopia de la cédula</td>
+                <td class="center">{{SI_DOC_CEDULA}}</td>
+                <td class="center">{{NO_DOC_CEDULA}}</td>
+            </tr>
+            <tr>
+                <td>Certificado REDAM</td>
+                <td class="center">{{SI_DOC_REDAM}}</td>
+                <td class="center">{{NO_DOC_REDAM}}</td>
+            </tr>
+            <tr>
+                <td>Constancia de matrícula mercantil (solo pequeños comerciantes)</td>
+                <td class="center">{{SI_DOC_MATRICULA}}</td>
+                <td class="center">{{NO_DOC_MATRICULA}}</td>
+            </tr>
+            <tr>
+                <td>Certificado de tradición y libertad (si es propietario de bienes inmuebles)</td>
+                <td class="center">{{SI_DOC_TRADICION}}</td>
+                <td class="center">{{NO_DOC_TRADICION}}</td>
+            </tr>
+            <tr>
+                <td>Pago de impuestos del año en curso si está incluyendo bienes sujetos a registro (inmuebles y vehículos) – porque son gastos de administración</td>
+                <td class="center">{{SI_DOC_IMPUESTOS}}</td>
+                <td class="center">{{NO_DOC_IMPUESTOS}}</td>
+            </tr>
+            <tr>
+                <td>Debe incluir un listado de bienes muebles para que los jueces acepten la liquidación (cama, televisor, nevera, estufa, etc.)</td>
+                <td class="center">{{SI_DOC_BIENES_MUEBLES}}</td>
+                <td class="center">{{NO_DOC_BIENES_MUEBLES}}</td>
+            </tr>
+            <tr>
+                <td>Poder debidamente conferido si va a actuar por intermedio de abogado. En caso de no estar notariado, debe existir evidencia desde el correo del deudor al correo del abogado</td>
+                <td class="center">{{SI_DOC_PODER}}</td>
+                <td class="center">{{NO_DOC_PODER}}</td>
+            </tr>
+            <tr>
+                <td>Fotocopia de gastos incluidos en su manutención mensual y de su familia</td>
+                <td class="center">{{SI_DOC_GASTOS}}</td>
+                <td class="center">{{NO_DOC_GASTOS}}</td>
+            </tr>
+            <tr>
+                <td>Extractos bancarios</td>
+                <td class="center">{{SI_DOC_EXTRACTOS}}</td>
+                <td class="center">{{NO_DOC_EXTRACTOS}}</td>
+            </tr>
+            <tr>
+                <td>Manifiesta que conoce la norma, sus efectos, consecuencias, los derechos que le otorga, las prohibiciones a las cuales está sujeto y toda la carga que le impone la Ley 1564 de 2012 en su título IV artículos 531 al 576</td>
+                <td class="center">{{SI_DOC_CONOCE_NORMA}}</td>
+                <td class="center">{{NO_DOC_CONOCE_NORMA}}</td>
+            </tr>
+            <tr>
+                <td>El deudor firma la solicitud de insolvencia</td>
+                <td class="center">{{SI_DOC_FIRMA}}</td>
+                <td class="center">{{NO_DOC_FIRMA}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Verificación de Notificación -->
+    <h3>Verificación de Notificación</h3>
+
+    <table class="table checklist">
+        <thead>
+            <tr>
+                <th>Ítem</th>
+                <th>SI</th>
+                <th>NO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Notificación al deudor realizada</td>
+                <td class="center">{{SI_NOTIF_DEUDOR}}</td>
+                <td class="center">{{NO_NOTIF_DEUDOR}}</td>
+            </tr>
+            <tr>
+                <td>Notificación a los acreedores realizada</td>
+                <td class="center">{{SI_NOTIF_ACREEDORES}}</td>
+                <td class="center">{{NO_NOTIF_ACREEDORES}}</td>
+            </tr>
+        </tbody>
     </table>
 
     <!-- Firma -->

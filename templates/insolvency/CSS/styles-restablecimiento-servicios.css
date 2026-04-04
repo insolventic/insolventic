@@ -1,0 +1,43 @@
+@import url('styles-suspension-juzgados.css');
+
+/* Estilos específicos para Restablecimiento de Servicios Públicos */
+
+/* Tabla de referencia con colores propios */
+.tabla-restablecimiento thead th {
+  background-color: #1a3a5c;
+}
+
+/* Párrafo de fundamento legal */
+.parrafo-fundamento {
+  text-align: justify;
+  margin-bottom: 20px;
+  line-height: 1.8;
+  font-size: 12px;
+  background-color: #e7f3ff;
+  padding: 15px;
+  border-left: 4px solid #007bff;
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+}
+
+/* Párrafo de solicitud concreta (resaltado) */
+.parrafo-solicitud {
+  text-align: justify;
+  margin: 20px 0;
+  line-height: 1.8;
+  font-size: 12px;
+  background-color: #fff3cd;
+  padding: 15px;
+  border-left: 4px solid #ffc107;
+  border-radius: 3px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2);
+}
+
+/* Párrafo normal de cuerpo */
+.parrafo-cuerpo {
+  text-align: justify;
+  margin-bottom: 18px;
+  line-height: 1.8;
+  font-size: 12px;
+}

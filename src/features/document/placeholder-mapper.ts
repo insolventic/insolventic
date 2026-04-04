@@ -532,6 +532,8 @@ function mapSuspendedServices(
     SERVICIOS_TELEFONO: svc?.phone || 'N/A',
     SERVICIOS_PRODUCTO: svc?.suspendedProduct || 'N/A',
     SERVICIOS_VALOR: svc ? formatCurrency(svc.amountOwed) : 'N/A',
+    // Alias for Restablecimiento de Servicios template
+    NOMBRE_EMPRESA_SERVICIOS: svc?.creditorName || '____',
   };
 }
 
@@ -581,7 +583,10 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
     'PERSONA_NATURAL_PEQUENA_COMERCIANTE',
   );
   const hasSpouse = !!caseData.spouseName;
-  const hasAttorney = false; // TODO: Add attorney field to case model
+  const hasAttorney =
+    !!(caseData as Record<string, unknown>).apoderadoNombreCompleto ||
+    (((caseData as Record<string, unknown>).apoderados as unknown[]) || [])
+      .length > 0;
   const moreThan150Creditors = caseData.debts.length > 150;
   const lessThan40SMMLV = totalDebt < 40 * SMMLV;
   const moreThan150SMMLV = totalDebt > 150 * SMMLV;
@@ -624,6 +629,44 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
     SI_SOLICITUD: 'X', // Always X when generating
     NO_SOLICITUD: '',
     OK: '✓',
+
+    // New checklist: certificate/acreedor verification
+    SI_CERT_AHORROS: '', // Manual: savings/guarantee certificate
+    NO_CERT_AHORROS: 'X',
+    SI_TODOS_ACREEDORES: hasCreditors ? 'X' : '',
+    NO_TODOS_ACREEDORES: !hasCreditors ? 'X' : '',
+    SI_DESCONOCE_INFO: '', // Manual: debtor declares unknown info
+    NO_DESCONOCE_INFO: 'X',
+
+    // Document verification SI/NO pairs
+    SI_DOC_CEDULA: 'X', // Assumed present when generating
+    NO_DOC_CEDULA: '',
+    SI_DOC_REDAM: '', // Manual verification
+    NO_DOC_REDAM: 'X',
+    SI_DOC_MATRICULA: isSmallMerchant ? '' : 'N/A',
+    NO_DOC_MATRICULA: isSmallMerchant ? 'X' : '',
+    SI_DOC_TRADICION: hasAssets ? '' : 'N/A',
+    NO_DOC_TRADICION: hasAssets ? 'X' : '',
+    SI_DOC_IMPUESTOS: '', // Manual verification
+    NO_DOC_IMPUESTOS: 'X',
+    SI_DOC_BIENES_MUEBLES: hasAssets ? 'X' : '',
+    NO_DOC_BIENES_MUEBLES: !hasAssets ? 'X' : '',
+    SI_DOC_PODER: hasAttorney ? '' : 'N/A',
+    NO_DOC_PODER: hasAttorney ? 'X' : '',
+    SI_DOC_GASTOS: '', // Manual verification
+    NO_DOC_GASTOS: 'X',
+    SI_DOC_EXTRACTOS: '', // Manual verification
+    NO_DOC_EXTRACTOS: 'X',
+    SI_DOC_CONOCE_NORMA: '', // Manual: manifestacion conocer norma
+    NO_DOC_CONOCE_NORMA: 'X',
+    SI_DOC_FIRMA: 'X', // Always present when generating
+    NO_DOC_FIRMA: '',
+
+    // Notification verification
+    SI_NOTIF_DEUDOR: '', // Manual: filled post-notification
+    NO_NOTIF_DEUDOR: 'X',
+    SI_NOTIF_ACREEDORES: '', // Manual: filled post-notification
+    NO_NOTIF_ACREEDORES: 'X',
 
     // SMMLV reference
     SMMLV_VALOR: formatCurrency(SMMLV),
@@ -1882,6 +1925,17 @@ export function mapCaseToPlaceholders(
 
     // Audiencia
     NUMERO_AUDIENCIA: '1',
+
+    // Audiencia — Objeciones (manual, filled per hearing)
+    NOMBRE_ACREEDOR_OBJETANTE: '____________________',
+    NOMBRE_ACREENCIA_OBJETADA: '____________________',
+    FECHA_LIMITE_OBJETANTES: '____________________',
+    FECHA_LIMITE_PRONUNCIAMIENTO: '____________________',
+    CORRECCION_LEGALIDAD: '____________________',
+    DESCRIPCION_ERROR_LEGALIDAD: '____________________',
+    FECHA_SOLICITUD_AMPLIACION: '____________________',
+    NOMBRE_COADYUVANTE: '____________________',
+    NOMBRES_APODERADOS_ACREEDORES: '____________________',
 
     // Income/Expenses
     INGRESO_PRINCIPAL: formatCurrency(monthlyIncome),

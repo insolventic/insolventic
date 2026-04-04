@@ -43,7 +43,10 @@
         <p class="bold section-spacing">DESARROLLO DE LA AUDIENCIA DE NEGOCIACIÓN DE DEUDAS<br>
         ARTÍCULO 550 CGP Modificado por el artículo 19 de la Ley 2445 de 2025</p>
 
-        <p class="italic">Se pregunta a los asistentes si tienen algún reparo jurídico que hacer contra la decisión de admisión de este procedimiento de negociación de pasivos.</p>
+        <!-- Aviso obligatorio Numeral 8 art. 550 CGP – Ley 2445/2025 -->
+        <p class="italic">Se informa a los asistentes que, conforme lo establece el numeral 8 del artículo 550 del CGP, modificado en la Ley 2445 de 2025, esta acta contiene un resumen ejecutivo, claro, conciso y detalla todos los puntos tratados en la audiencia de negociación.</p>
+
+        <p class="italic">Se da inicio a la audiencia y conforme al numeral 1 del Artículo 19 de la Ley 2445 de 2025, se pregunta a los asistentes si tienen algún reparo jurídico que hacer contra la decisión de admisión de este procedimiento de negociación de pasivos.</p>
 
         <!-- Opciones de desarrollo de audiencia -->
         <div class="indented">
@@ -74,6 +77,77 @@
             <p>{{GENERO_DEUDOR}} otorga poder amplio y suficiente al Abogado {{NOMBRE_ABOGADO}} C.C. {{CEDULA_ABOGADO}} y T.P. {{TARJETA_PROFESIONAL}} del C.S.J quien acepta el cargo, por lo tanto, se reconoce personería como apoderado {{GENERO_APODERADO}}.</p>
         </div>
 
+        <!-- ========================================================= -->
+        <!-- SECCIÓN: SUSPENSIÓN POR OBJECIONES – ART. 552 C.G.P.     -->
+        <!-- ========================================================= -->
+        <p class="bold section-spacing">SUSPENSIÓN DE AUDIENCIA POR OBJECIONES ART. 552 C.G.P.</p>
+
+        <p class="italic">Se informa a los asistentes que, conforme lo establece el numeral 8 del artículo 550 del CGP, modificado en la Ley 2445 de 2025, esta acta contiene un resumen ejecutivo, claro, conciso y detalla todos los puntos tratados en la audiencia de negociación.</p>
+
+        <div class="indented">
+            <p>De conformidad a lo establecido en el Artículo 551 del Código General del Proceso, se da inicio a la audiencia de negociación de deudas; dentro de las Facultades y Atribuciones del conciliador en insolvencia, se suspende esta audiencia con OBJECIONES.</p>
+
+            <p class="bold">RESUELVE</p>
+
+            <p>De acuerdo a lo establecido en el Artículo 20 de la Ley 2445 de 2025 que modifica el Artículo 552 del C.G.P., es presentada objeción por el acreedor <strong>{{NOMBRE_ACREEDOR_OBJETANTE}}</strong>; se trata de buscar un acercamiento, pero las partes tienen intereses totalmente opuestos, por lo que no es posible conciliar la objeción presentada sobre la cuantía, naturaleza y existencia de la acreencia de <strong>{{NOMBRE_ACREENCIA_OBJETADA}}</strong>.</p>
+
+            <p>Para el efecto, de acuerdo al Artículo 20 de la Ley 2445 de 2025 que modifica el Artículo 552 del Código General del Proceso, se suspende la audiencia por 10 días para que dentro de los 05 primeros días inmediatamente a la suspensión, los objetantes presenten por escrito la objeción junto con las pruebas que pretendan hacer valer (<strong>{{FECHA_LIMITE_OBJETANTES}}</strong>). Vencido este término correrá uno igual para que el deudor o los restantes acreedores se pronuncien por escrito (<strong>{{FECHA_LIMITE_PRONUNCIAMIENTO}}</strong>).</p>
+
+            <p>Dichos escritos serán remitidos al juzgado civil municipal de Bogotá (reparto) inmediatamente.</p>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- SECCIÓN: AUDIENCIA POST OBJECIONES                        -->
+        <!-- ========================================================= -->
+        <p class="bold section-spacing">AUDIENCIA POST OBJECIONES</p>
+
+        <p class="italic">Se informa a los asistentes que, conforme lo establece el numeral 8 del artículo 550 del CGP, modificado en la Ley 2445 de 2025, esta acta contiene un resumen ejecutivo, claro, conciso y detalla todos los puntos tratados en la audiencia de negociación.</p>
+
+        <div class="indented">
+            <p>Se pregunta a los asistentes si tienen algún reparo jurídico que hacer contra la decisión de admisión de este procedimiento de negociación de pasivos.</p>
+
+            <p>Como quiera que no hay reparos, se da continuación a la audiencia de negociación de deudas, dando lectura a la decisión emitida por el Juzgado <strong>{{NUMERO_JUZGADO}}</strong> Civil Municipal de Bogotá; dentro de las Facultades y Atribuciones del conciliador de insolvencia, se suspende la presente audiencia con el fin de presentar propuesta de pago.</p>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- SECCIÓN: AUDIENCIA CON CONTROL DE LEGALIDAD               -->
+        <!-- ========================================================= -->
+        <p class="bold section-spacing">AUDIENCIA CON CONTROL DE LEGALIDAD</p>
+
+        <p class="italic">Se informa a los asistentes que, conforme lo establece el numeral 8 del artículo 550 del CGP, modificado en la Ley 2445 de 2025, esta acta contiene un resumen ejecutivo, claro, conciso y detalla todos los puntos tratados en la audiencia de negociación.</p>
+
+        <div class="indented">
+            <p>Realizado control de legalidad en el presente trámite, se deja constancia y se informa a los participantes en este procedimiento de un error involuntario en <strong>{{DESCRIPCION_ERROR_LEGALIDAD}}</strong>.</p>
+
+            <p>Por lo anterior, mediante la presente acta se corrige y aclara dicho error, dejando constancia de que <strong>{{CORRECCION_LEGALIDAD}}</strong>, sin que esta modificación afecte el contenido, la validez ni los efectos del documento al que se hace referencia.</p>
+
+            <p>Se continúa con el desarrollo de la audiencia, recibiéndose los valores de las obligaciones por parte de los acreedores presentes. En ejercicio de las facultades y atribuciones conferidas al Operador de Insolvencia, se dispone la suspensión de la presente audiencia con el fin de:</p>
+
+            <ol class="sub-list">
+                <li>Verificar y analizar la información aportada por los acreedores.</li>
+                <li>Notificar debidamente a las partes ausentes, garantizando el derecho de contradicción y la participación efectiva de todos los interesados en el proceso.</li>
+                <li>Advertir que, en caso de no concurrir a la diligencia pese a las notificaciones realizadas, la parte será tenida como ausente conforme a la normatividad vigente y con las consecuencias legales que ello implica.</li>
+            </ol>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- SECCIÓN: AMPLIACIÓN DE TÉRMINOS                           -->
+        <!-- ========================================================= -->
+        <p class="bold section-spacing">AMPLIACIÓN DE LOS TÉRMINOS</p>
+
+        <p class="bold">POR CORREO:</p>
+        <div class="indented">
+            <p>Se deja constancia que el día <strong>{{FECHA_SOLICITUD_AMPLIACION}}</strong>, la apoderada de la deudora solicitó, mediante correo electrónico, la ampliación de los términos del trámite, conforme a lo establecido en el artículo 15 de la Ley 2445 de 2025, que modifica el artículo 544 del Código General del Proceso, solicitud que fue coadyuvada por el apoderado de <strong>{{NOMBRE_COADYUVANTE}}</strong>.</p>
+        </div>
+
+        <p class="bold">EN AUDIENCIA:</p>
+        <div class="indented">
+            <p>A solicitud de la apoderada del deudor y los apoderados de <strong>{{NOMBRES_APODERADOS_ACREEDORES}}</strong>, se amplían los términos del presente trámite conforme a lo establecido en el artículo 15 de la Ley 2445 de 2025 que modifica el artículo 544 del C.G.P.</p>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- RESUELVE (cierre común a todas las secciones)             -->
+        <!-- ========================================================= -->
         <p class="bold section-spacing">RESUELVE</p>
 
         <p>Suspender esta audiencia y fijar fecha para el día <strong>{{DIA_PROXIMA}} de {{MES_PROXIMA}} de {{ANO_ACTUAL}} a las {{HORA_PROXIMA}}</strong> los asistentes quedan notificados de acuerdo a la información reportada en la audiencia virtual.</p>
