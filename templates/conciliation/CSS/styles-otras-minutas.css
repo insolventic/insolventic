@@ -1,0 +1,189 @@
+@import url('styles-conciliacion-base.css');
+
+/* ============================================
+   OTRAS MINUTAS
+   Informe Conciliador, Aclaración de Acta
+   y Terminación Anormal
+   Estilos específicos — compartido
+   ============================================ */
+
+/* Título principal de la minuta */
+.titulo-minuta {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+/* Identificación (trámite, número de acta) */
+.minuta-identificacion {
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* Tabla de referencia (Aclaración de acta) */
+.tabla-referencia-acta {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 20px 0;
+  border: 1.5px solid #000;
+}
+
+.tabla-referencia-acta thead th {
+  background-color: #2c3e50;
+  color: #fff;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+  border: 1.5px solid #2c3e50;
+  letter-spacing: 0.5px;
+}
+
+.tabla-referencia-acta tbody td {
+  border: 1.5px solid #000;
+  padding: 7px 10px;
+  vertical-align: middle;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.tabla-referencia-acta .label-cell {
+  font-weight: bold;
+  width: 30%;
+  background-color: #f0f0f0;
+}
+
+/* Sección de antecedentes */
+.titulo-antecedentes {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 20px 0 10px 0;
+  border-bottom: 1.5px solid #2c3e50;
+  padding-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* Sección de consideraciones */
+.titulo-consideraciones {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 20px 0 10px 0;
+  border-bottom: 1.5px solid #2c3e50;
+  padding-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+/* Sección de aclaración */
+.titulo-aclaracion {
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 22px 0 12px 0;
+  letter-spacing: 1px;
+}
+
+/* Bloque de aclaración destacado */
+.bloque-aclaracion {
+  background-color: #e8f0fe;
+  padding: 14px 16px;
+  border-left: 4px solid #1a73e8;
+  margin: 14px 0 20px 0;
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+/* "HACE CONSTAR" / "CERTIFICA" */
+.titulo-hace-constar {
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  text-transform: uppercase;
+  margin: 20px 0 12px 0;
+  letter-spacing: 1px;
+}
+
+/* Párrafos generales de minutas */
+.parrafo-minuta {
+  text-align: justify;
+  margin-bottom: 16px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Párrafo de certifica / cierre formal */
+.parrafo-certifica {
+  background-color: #f8f9fa;
+  padding: 12px 14px;
+  border-left: 4px solid #2c3e50;
+  margin: 14px 0;
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+/* Fecha final */
+.fecha-firma {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Nombre de la conciliadora */
+.conciliadora-nombre {
+  font-weight: bold;
+  font-size: 12px;
+  text-align: left;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* Impresión */
+@media print {
+  .tabla-referencia-acta {
+    page-break-inside: avoid;
+  }
+
+  .bloque-aclaracion {
+    page-break-inside: avoid;
+    background-color: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .parrafo-certifica {
+    page-break-inside: avoid;
+    background-color: #f8f9fa;
+    border-left: 4px solid #2c3e50;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .titulo-antecedentes,
+  .titulo-consideraciones,
+  .titulo-aclaracion {
+    page-break-after: avoid;
+  }
+}
+
+/* Responsive */
+@media screen and (max-width: 480px) {
+  .titulo-minuta {
+    font-size: 12px;
+  }
+
+  .tabla-referencia-acta .label-cell {
+    width: 38%;
+  }
+}

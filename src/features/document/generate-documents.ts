@@ -431,7 +431,10 @@ export async function generateDocumentsForNewCase(
   documents: GeneratedDocument[];
 }> {
   const mergedOptions = { ...defaultOptions, ...options };
-  const templates = getTemplatesForCaseCreation();
+  const caseType =
+    (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
+    'INSOLVENCY';
+  const templates = getTemplatesForCaseCreation(caseType);
   const documents: GeneratedDocument[] = [];
 
   // Create case folder in Google Drive
@@ -504,7 +507,10 @@ export async function generateDocumentsForAdmission(
   options: GenerationOptions = {},
 ): Promise<GeneratedDocument[]> {
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
-  const templates = getTemplatesForAdmission();
+  const caseType =
+    (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
+    'INSOLVENCY';
+  const templates = getTemplatesForAdmission(caseType);
   const documents: GeneratedDocument[] = [];
 
   const placeholders = mapCaseToPlaceholders(caseData);
@@ -532,7 +538,10 @@ export async function generateDocumentsForAgreement(
   options: GenerationOptions = {},
 ): Promise<GeneratedDocument[]> {
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
-  const templates = getTemplatesForAgreement();
+  const caseType =
+    (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
+    'INSOLVENCY';
+  const templates = getTemplatesForAgreement(caseType);
   const documents: GeneratedDocument[] = [];
 
   const placeholders = mapCaseToPlaceholders(caseData);
@@ -561,7 +570,10 @@ export async function generateDocumentsForFailure(
   options: GenerationOptions = {},
 ): Promise<GeneratedDocument[]> {
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
-  const templates = getTemplatesForFailure(failureType);
+  const caseType =
+    (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
+    'INSOLVENCY';
+  const templates = getTemplatesForFailure(failureType, caseType);
   const documents: GeneratedDocument[] = [];
 
   if (templates.length === 0) {

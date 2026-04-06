@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constancia de Terminación Anormal</title>
+    <link rel="stylesheet" href="./CSS/styles-otras-minutas.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Título principal -->
+    <p class="titulo-minuta">CONSTANCIA DE TERMINACIÓN ANORMAL</p>
+
+    <!-- Identificación del trámite -->
+    <p class="minuta-identificacion">TRÁMITE No. {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}</p>
+
+    <!-- Párrafo de apertura -->
+    <p class="parrafo-minuta">
+        El Centro de Conciliación y Arbitraje "Constructores de Paz" de la Lonja de Propiedad Raíz
+        y Avaluadores de Colombia, aprobado por Resolución 1459 del 5 de septiembre de 2003 del
+        Ministerio de Justicia y del Derecho, autoriza a la Dra.
+        <strong>{{NOMBRE_CONCILIADORA}}</strong> para que lleve a cabo la audiencia solicitada por
+        <strong>{{NOMBRE_CONVOCANTE}}</strong> {{TIPO_ID_CONVOCANTE}}/C.C. {{ID_CONVOCANTE}},
+        el día {{DIA_SOLICITUD}} de {{MES_SOLICITUD}} de {{ANO_SOLICITUD}} a las
+        {{HORA_PROGRAMADA}}, para convocar a
+        <strong>{{NOMBRE_CONVOCADO}}</strong> {{TIPO_ID_CONVOCADO}}/C.C. {{ID_CONVOCADO}},
+        con el fin de conciliar sobre:
+    </p>
+
+    <p class="parrafo-advertencia">{{ASUNTO}}</p>
+
+    <!-- Hace constar -->
+    <p class="titulo-hace-constar">CERTIFICA</p>
+
+    <!-- Causal de terminación anormal -->
+    <p class="parrafo-certifica">
+        Que en virtud de lo establecido en el artículo 60 de la Ley 2220 de 2022, el término
+        para llevar a cabo el trámite de conciliación venció sin que las partes se hayan
+        pronunciado.
+    </p>
+
+    <!--
+        BLOQUE ITERABLE: causales de terminación anormal
+        El backend activa uno o más según los hechos del caso.
+    -->
+
+    <!-- {{#if CAUSA_PARTES_NO_ASISTIERON}} -->
+    <p class="parrafo-minuta">Las partes nunca asistieron a la audiencia.</p>
+    <!-- {{/if CAUSA_PARTES_NO_ASISTIERON}} -->
+
+    <!-- {{#if CAUSA_NO_SOLICITARON_RETIRO}} -->
+    <p class="parrafo-minuta">
+        Las partes no solicitaron el retiro del trámite ante el Centro de Conciliación.
+    </p>
+    <!-- {{/if CAUSA_NO_SOLICITARON_RETIRO}} -->
+
+    <!-- {{#if CAUSA_OTRA}} -->
+    <p class="parrafo-minuta">{{DESCRIPCION_CAUSA_ANORMAL}}</p>
+    <!-- {{/if CAUSA_OTRA}} -->
+
+    <!-- Cierre -->
+    <p class="parrafo-minuta">
+        Se cierra el presente trámite por vencimiento del término establecido en la ley.
+    </p>
+
+    <!-- Fecha de la constancia -->
+    <p class="parrafo-minuta">
+        Se firma en {{CIUDAD}}, el día {{DIA_CONSTANCIA}} de {{MES_CONSTANCIA}} de {{ANO_CONSTANCIA}}.
+    </p>
+
+    <p class="parrafo-minuta">Cordialmente,</p>
+
+    <!-- Firma de la conciliadora -->
+    <div class="firma-section">
+        <img src="../insolvency/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="../insolvency/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <p class="conciliadora-nombre bold text-center">{{NOMBRE_CONCILIADORA}}</p>
+    <p class="conciliadora-nombre text-center">ABOGADA CONCILIADORA</p>
+    <p class="conciliadora-nombre text-center">CC. {{CC_CONCILIADORA}}</p>
+    <p class="conciliadora-nombre text-center">T.P. {{TP_CONCILIADORA}}</p>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

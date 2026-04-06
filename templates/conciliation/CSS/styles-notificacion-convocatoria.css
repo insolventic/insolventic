@@ -1,0 +1,106 @@
+@import url('styles-conciliacion-base.css');
+
+/* ============================================
+   NOTIFICACIÓN DE CONVOCATORIA
+   Estilos específicos
+   ============================================ */
+
+/* Trámite en esquina superior */
+.tramite-header {
+  text-align: right;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Destinatario */
+.destinatario-section {
+  margin: 0 0 16px 0;
+}
+
+.destinatario-section p {
+  font-size: 12px;
+  line-height: 1.8;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+/* Asunto */
+.asunto-section {
+  margin: 16px 0 20px 0;
+  padding: 10px 0;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+
+.asunto-texto {
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+/* Convocante */
+.convocante-ref {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+/* Cuerpo principal */
+.cuerpo-section p {
+  text-align: justify;
+  margin-bottom: 14px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Instrucciones para presentarse */
+.instrucciones-section {
+  margin: 14px 0;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+/* Lista de requisitos */
+.lista-requisitos {
+  margin: 10px 0 16px 24px;
+}
+
+.lista-requisitos li {
+  margin-bottom: 8px;
+  text-align: justify;
+  line-height: 1.7;
+  font-size: 12px;
+}
+
+/* Cierre cordial */
+.cierre-section {
+  margin-top: 20px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Nombre y cargo de la conciliadora al final */
+.conciliadora-firma-texto {
+  font-weight: bold;
+  font-size: 12px;
+  text-align: left;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+/* Impresión específica */
+@media print {
+  .zoom-box {
+    page-break-inside: avoid;
+  }
+
+  .asunto-section {
+    page-break-inside: avoid;
+  }
+
+  .conciliadora-firma-texto {
+    page-break-before: avoid;
+  }
+}

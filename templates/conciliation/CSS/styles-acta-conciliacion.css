@@ -1,0 +1,229 @@
+@import url('styles-conciliacion-base.css');
+
+/* ============================================
+   ACTAS DE CONCILIACIÓN (General, Alimentos,
+   Unión Marital, Disolución de Unión Marital)
+   Estilos específicos — compartido para
+   todos los tipos de acta
+   ============================================ */
+
+/* Título de la audiencia (espaciado letra a letra) */
+.titulo-audiencia {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 6px;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+/* Identificación del acta */
+.acta-identificacion {
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+/* Párrafo de apertura (presentación del centro y conciliadora) */
+.parrafo-apertura {
+  text-align: justify;
+  margin-bottom: 18px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Líneas de asunto y partes */
+.linea-asunto {
+  font-size: 12px;
+  font-weight: bold;
+  margin: 10px 0 6px 0;
+  line-height: 1.6;
+}
+
+.linea-parte {
+  font-size: 12px;
+  margin: 4px 0;
+  line-height: 1.6;
+  font-weight: bold;
+}
+
+/* Título "RESUMEN DE LA ACTUACIÓN" */
+.titulo-resumen {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  margin: 22px 0 12px 0;
+  border-bottom: 2px solid #2c3e50;
+  padding-bottom: 6px;
+}
+
+/* "CONSIDERANDO" */
+.titulo-considerando {
+  font-size: 13px;
+  font-weight: bold;
+  text-align: center;
+  letter-spacing: 1px;
+  margin: 20px 0 12px 0;
+}
+
+/* Numerales del considerando */
+.considerando-numeral {
+  font-weight: bold;
+  display: inline;
+}
+
+.parrafo-considerando {
+  text-align: justify;
+  margin-bottom: 14px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* "ACUERDO CONCILIATORIO" */
+.titulo-acuerdo {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  margin: 22px 0 14px 0;
+}
+
+/* Texto general del acuerdo */
+.texto-acuerdo-intro {
+  text-align: justify;
+  margin-bottom: 14px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Cláusulas del acuerdo */
+.clausulas-list {
+  margin: 12px 0 18px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clausulas-list li {
+  margin-bottom: 14px;
+  text-align: justify;
+  line-height: 1.8;
+  font-size: 12px;
+  padding-left: 0;
+}
+
+.clausulas-list li .clausula-label {
+  font-weight: bold;
+}
+
+/* Bloque dinámico: área del acuerdo (cuando es texto libre) */
+.bloque-acuerdo {
+  min-height: 80px;
+  border: 1.5px dashed #aaa;
+  padding: 14px;
+  background-color: #fafafa;
+  margin: 12px 0 18px 0;
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: justify;
+  border-radius: 4px;
+}
+
+/* Información adicional */
+.bloque-info-adicional {
+  margin: 16px 0;
+  padding: 12px 14px;
+  background-color: #f8f9fa;
+  border-left: 4px solid #2c3e50;
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+/* "DISPOSICIONES FINALES" */
+.titulo-disposiciones {
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  margin: 24px 0 14px 0;
+}
+
+.parrafo-disposicion {
+  text-align: justify;
+  margin-bottom: 14px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Sección de constancia de asistentes */
+.titulo-constancia {
+  font-weight: bold;
+  font-size: 12px;
+  margin: 20px 0 10px 0;
+}
+
+.parrafo-asistente {
+  text-align: justify;
+  margin-bottom: 10px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Sección final de firmas de partes */
+.firmas-partes-container {
+  margin: 36px 0 20px 0;
+}
+
+.firma-parte-bloque {
+  margin-bottom: 30px;
+}
+
+.firma-parte-bloque .parte-label {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+/* Impresión específica */
+@media print {
+  .titulo-audiencia,
+  .acta-identificacion {
+    page-break-after: avoid;
+  }
+
+  .clausulas-list,
+  .firmas-partes-container,
+  .titulo-disposiciones {
+    page-break-inside: avoid;
+  }
+
+  .bloque-acuerdo,
+  .bloque-info-adicional {
+    page-break-inside: avoid;
+    background-color: #fafafa;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .titulo-considerando,
+  .titulo-acuerdo,
+  .titulo-disposiciones {
+    page-break-after: avoid;
+  }
+}
+
+/* Responsive */
+@media screen and (max-width: 480px) {
+  .titulo-audiencia {
+    font-size: 12px;
+    letter-spacing: 3px;
+  }
+
+  .titulo-acuerdo,
+  .titulo-disposiciones {
+    letter-spacing: 2px;
+  }
+}

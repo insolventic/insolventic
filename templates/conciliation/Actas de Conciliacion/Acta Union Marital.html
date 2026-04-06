@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acta de Conciliación – Declaración de Unión Marital de Hecho</title>
+    <link rel="stylesheet" href="../CSS/styles-acta-conciliacion.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Título de la audiencia -->
+    <p class="titulo-audiencia">A U D I E N C I A &nbsp; D E &nbsp; C O N C I L I A C I Ó N</p>
+
+    <!-- Identificación del acta -->
+    <p class="acta-identificacion">
+        Acta de conciliación No. {{NUMERO_ACTA}}-{{ANO_ACTUAL}} &nbsp;|&nbsp; Trámite No. {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}
+    </p>
+
+    <!-- Párrafo de apertura institucional -->
+    <p class="parrafo-apertura">
+        En el Centro de Conciliación y Arbitraje "Constructores de Paz", de la Lonja de Propiedad
+        Raíz y Avaluadores de Colombia, aprobado por Resolución No. 1459 del 05 de septiembre de
+        2003 expedida por el Ministerio de Justicia y del Derecho, actuando como conciliadora la
+        doctora <strong>{{NOMBRE_CONCILIADORA}}</strong>, identificada con la cédula de ciudadanía
+        No. {{CC_CONCILIADORA}}, adscrita al mencionado centro, se surtió el trámite de conciliación
+        N° {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}.
+    </p>
+
+    <!-- Asunto y partes -->
+    <p class="linea-asunto">ASUNTO: DECLARACIÓN DE UNIÓN MARITAL DE HECHO</p>
+
+    <p class="linea-parte">
+        CONVOCANTE: {{NOMBRE_CONVOCANTE}} &nbsp; C.C. {{ID_CONVOCANTE}}
+    </p>
+    <p class="linea-parte">
+        CONVOCADO: {{NOMBRE_CONVOCADO}} &nbsp; C.C. {{ID_CONVOCADO}}
+    </p>
+
+    <!-- Resumen de la actuación -->
+    <p class="titulo-resumen">RESUMEN DE LA ACTUACIÓN</p>
+
+    <p class="parrafo-apertura">
+        En {{CIUDAD}}, a los {{DIA_AUDIENCIA}} días del mes de {{MES_AUDIENCIA}} de {{ANO_AUDIENCIA}},
+        siendo las {{HORA_AUDIENCIA}}, ante el Centro de Conciliación y Arbitraje "Constructores de
+        Paz", de la Lonja de Propiedad Raíz y Avaluadores de Colombia, debidamente aprobado por el
+        MINISTERIO DE JUSTICIA Y DEL DERECHO, comparecieron de mutuo acuerdo el convocante y el
+        convocado.
+    </p>
+
+    <!-- Considerando -->
+    <p class="titulo-considerando">CONSIDERANDO</p>
+
+    <p class="parrafo-considerando">
+        <span class="considerando-numeral">PRIMERO:</span> Que los hechos constitutivos del conflicto
+        suscitado entre las partes son susceptibles de conciliación de acuerdo con lo preceptuado por
+        los artículos 75 y siguientes de la Ley 23 de 1991 y 65 de la Ley 446 de 1998 y Ley 2220 de
+        2022 y sus decretos reglamentarios, y demás normas concordantes y pertinentes.
+    </p>
+
+    <p class="parrafo-considerando">
+        <span class="considerando-numeral">SEGUNDO:</span> Las partes han decidido de manera libre,
+        voluntaria y unánime llegar al siguiente acuerdo conciliatorio en los términos que se citan
+        a continuación:
+    </p>
+
+    <!-- Acuerdo conciliatorio -->
+    <p class="titulo-acuerdo">A C U E R D O &nbsp; C O N C I L I A T O R I O</p>
+
+    <ol class="clausulas-list">
+        <li>
+            <span class="clausula-label">PRIMERO:</span>
+            El convocante <strong>{{NOMBRE_CONVOCANTE}}</strong> C.C. {{ID_CONVOCANTE}} y
+            el(la) convocado(a) <strong>{{NOMBRE_CONVOCADO}}</strong> C.C. {{ID_CONVOCADO}},
+            manifiestan que han tenido comunidad de vida de manera singular y permanente desde el
+            {{DIA_INICIO_UNION}} de {{MES_INICIO_UNION}} de {{ANO_INICIO_UNION}}, por lo tanto,
+            desean declarar desde esa fecha la existencia de su
+            <strong>UNIÓN MARITAL DE HECHO</strong>; la existencia de su
+            <strong>SOCIEDAD PATRIMONIAL DE HECHO</strong> se surtirá como un efecto, en virtud
+            de lo preceptuado por el artículo 4° de la Ley 54 de 1990, modificado por el artículo
+            2° de la Ley 979 de 2005, numeral 2°.
+        </li>
+
+        <li>
+            <span class="clausula-label">SEGUNDO:</span>
+            El convocante <strong>{{NOMBRE_CONVOCANTE}}</strong> C.C. {{ID_CONVOCANTE}} y
+            el(la) convocado(a) <strong>{{NOMBRE_CONVOCADO}}</strong> C.C. {{ID_CONVOCADO}},
+            se declaran compañero y compañera permanente.
+        </li>
+
+        <!-- {{#if HAS_MENORES_UNION}} -->
+        <li>
+            <span class="clausula-label">TERCERO:</span>
+            El convocante <strong>{{NOMBRE_CONVOCANTE}}</strong> C.C. {{ID_CONVOCANTE}} y
+            el(la) convocado(a) <strong>{{NOMBRE_CONVOCADO}}</strong> C.C. {{ID_CONVOCADO}},
+            manifiestan que conviven con su(s) menor(es):
+            <!-- ITERABLE: {{#each MENORES_UNION}} -->
+            <strong>{{NOMBRE_MENOR_UNION}}</strong>{{#unless @last}},{{/unless}}
+            <!-- {{/each MENORES_UNION}} -->
+        </li>
+        <!-- {{/if HAS_MENORES_UNION}} -->
+
+        <!-- {{#if HAS_CLAUSULAS_ADICIONALES_UNION}} -->
+        <!-- {{#each CLAUSULAS_ADICIONALES_UNION}} -->
+        <li>
+            <span class="clausula-label">{{NUMERO_CLAUSULA_ADICIONAL}}:</span> {{TEXTO_CLAUSULA_ADICIONAL}}
+        </li>
+        <!-- {{/each CLAUSULAS_ADICIONALES_UNION}} -->
+        <!-- {{/if HAS_CLAUSULAS_ADICIONALES_UNION}} -->
+    </ol>
+
+    <!-- Disposiciones finales -->
+    <p class="titulo-disposiciones">DISPOSICIONES FINALES</p>
+
+    <p class="parrafo-disposicion">
+        No siendo otro el objeto de la presente diligencia, se da por terminada la presente audiencia
+        y se firma por quienes en ella intervinieron, siendo aprobada en todas y cada una de sus
+        partes, junto con la conciliadora autorizada para este trámite; se expide en original y dos
+        copias auténticas que prestan todas mérito ejecutivo y hacen tránsito a cosa juzgada.
+    </p>
+
+    <!-- Constancia de asistentes -->
+    <p class="titulo-constancia">
+        La conciliadora designada hace constar que asisten a la diligencia las siguientes personas:
+    </p>
+
+    <p class="parrafo-asistente">
+        En calidad de convocante <strong>{{NOMBRE_CONVOCANTE}}</strong>
+        C.C. {{ID_CONVOCANTE}}, quien se puede notificar en el correo electrónico:
+        {{CORREO_CONVOCANTE}} y cel.: {{CEL_CONVOCANTE}}.
+    </p>
+
+    <p class="parrafo-asistente">
+        En calidad de convocado <strong>{{NOMBRE_CONVOCADO}}</strong>
+        C.C. {{ID_CONVOCADO}}, quien se puede notificar en el correo electrónico:
+        {{CORREO_CONVOCADO}} y cel.: {{CEL_CONVOCADO}}.
+    </p>
+
+    <p class="parrafo-disposicion">
+        Dada en {{CIUDAD}}, {{DIA_AUDIENCIA}} de {{MES_AUDIENCIA}} de {{ANO_AUDIENCIA}}.
+    </p>
+
+    <!-- Firma de la conciliadora -->
+    <div class="firma-section">
+        <img src="../../insolvency/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="../../insolvency/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <div class="text-center firma-info">
+        <p class="bold nombre-conciliadora">{{NOMBRE_CONCILIADORA}}</p>
+        <p class="bold cargo-conciliadora">ABOGADA CONCILIADORA</p>
+        <p class="bold cargo-conciliadora">CC. {{CC_CONCILIADORA}}</p>
+        <p class="bold cargo-conciliadora">TP. {{TP_CONCILIADORA}}</p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

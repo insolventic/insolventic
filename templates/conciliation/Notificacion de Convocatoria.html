@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notificación de Convocatoria – Conciliación</title>
+    <link rel="stylesheet" href="./CSS/styles-notificacion-convocatoria.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Trámite (esquina derecha) -->
+    <p class="tramite-header">Trámite: {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}</p>
+
+    <!-- Destinatario -->
+    <div class="destinatario-section">
+        <p>SEÑOR(A)</p>
+        <p>{{NOMBRE_CONVOCADO}}</p>
+    </div>
+
+    <!-- Asunto -->
+    <div class="asunto-section">
+        <p class="asunto-texto">
+            ASUNTO: AUDIENCIA DE CONCILIACIÓN EXTRAJUDICIAL – PRIMERA CITACIÓN PARA EL DÍA
+            {{DIA_AUDIENCIA}} DE {{MES_AUDIENCIA}} DE {{ANO_AUDIENCIA}} A LAS {{HORA_AUDIENCIA}}
+        </p>
+    </div>
+
+    <!-- Referencia del convocante -->
+    <p class="convocante-ref">CONVOCANTE: {{NOMBRE_CONVOCANTE}}</p>
+
+    <!-- Cuerpo principal -->
+    <div class="cuerpo-section">
+        <p>
+            Sírvase usted asistir por los medios dispuestos ante este Centro, en la fecha y hora
+            fijada y notificada por correo electrónico, con el fin de tener con usted una audiencia
+            de conciliación extrajudicial en derecho, y de esta manera llegar a promover un acuerdo
+            sobre el siguiente asunto:
+        </p>
+
+        <p>
+            <strong>{{ASUNTO}}. EN LOS TÉRMINOS DE LA SOLICITUD ADJUNTA.</strong>
+        </p>
+
+        <p>
+            Recordamos a usted que debe ingresar a la plataforma Zoom puntual y personalmente
+            mediante el siguiente enlace:
+        </p>
+    </div>
+
+    <!-- Datos de acceso Zoom -->
+    <div class="zoom-box">
+        <p class="zoom-titulo bold">DATOS INGRESO REUNIÓN ZOOM</p>
+        <p><strong>ID de reunión:</strong> {{ZOOM_ID}}</p>
+        <p><strong>Código de acceso:</strong> {{ZOOM_CODIGO}}</p>
+        <p><strong>Link:</strong> <a href="{{ZOOM_LINK}}">{{ZOOM_LINK}}</a></p>
+    </div>
+
+    <!-- Instrucciones legales -->
+    <div class="cuerpo-section">
+        <p>
+            Tenga en cuenta que, conforme al artículo 58 y su parágrafo de la Ley 2220 de 2022,
+            podrá asistir junto con su apoderado; de igual manera, si no se encuentra en territorio
+            nacional o por fuerza mayor o caso fortuito no puede asistir a esta convocatoria, podrá
+            ser representado por un apoderado, quien deberá aportar poder.
+        </p>
+
+        <p>
+            De conformidad con el artículo 59 de la precitada Ley, no justificar su inasistencia
+            a esta citación tiene consecuencias legales ante el proceso judicial que por dicho
+            asunto se instaure en contra de la parte que no comparezca, siempre que la conciliación
+            constituya requisito de procedibilidad.
+        </p>
+
+        <p>
+            Para presentarse a la audiencia de conciliación debe enviar al correo
+            <strong>contacto@constructoresdepaz.com.co</strong> cédula de ciudadanía, certificado de
+            existencia y representación de la Cámara de Comercio en caso de asistir como
+            representante legal de persona jurídica, o documento que lo acredite como tal.
+        </p>
+
+        <p>
+            Finalmente, le informamos que de la solicitud de conciliación presentada por el
+            convocante se le envía copia simple.
+        </p>
+    </div>
+
+    <!-- Cierre -->
+    <div class="cierre-section">
+        <p>Cordialmente,</p>
+    </div>
+
+    <!-- Firma (solo nombre y cargo, sin imagen de firma en notificación) -->
+    <div class="firma-section">
+        <img src="../insolvency/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="../insolvency/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <p class="bold text-center conciliadora-nombre">
+        {{NOMBRE_CONCILIADORA}}<br>ABOGADA CONCILIADORA
+    </p>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

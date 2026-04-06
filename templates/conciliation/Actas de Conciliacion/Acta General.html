@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acta de Conciliación General</title>
+    <link rel="stylesheet" href="../CSS/styles-acta-conciliacion.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Título de la audiencia -->
+    <p class="titulo-audiencia">A U D I E N C I A &nbsp; D E &nbsp; C O N C I L I A C I Ó N</p>
+
+    <!-- Identificación del acta -->
+    <p class="acta-identificacion">
+        Acta No. {{NUMERO_ACTA}}-{{ANO_ACTUAL}} &nbsp;|&nbsp; Trámite No. {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}
+    </p>
+
+    <!-- Párrafo de apertura institucional -->
+    <p class="parrafo-apertura">
+        En el Centro de Conciliación y Arbitraje "Constructores de Paz", de la Lonja de Propiedad
+        Raíz y Avaluadores de Colombia, aprobado por Resolución No. 1459 del 05 de septiembre de
+        2003 expedida por el Ministerio del Interior y de Justicia, actuando como conciliadora
+        <strong>{{NOMBRE_CONCILIADORA}}</strong>, identificada con la cédula de ciudadanía
+        No. {{CC_CONCILIADORA}}, adscrita al mencionado centro, se surtió el trámite de
+        conciliación N° {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}.
+    </p>
+
+    <!-- Partes del proceso -->
+    <p class="linea-asunto">ASUNTO: {{ASUNTO}}</p>
+
+    <p class="linea-parte">
+        CONVOCANTE(S): {{NOMBRE_CONVOCANTE}} &nbsp; {{TIPO_ID_CONVOCANTE}}. {{ID_CONVOCANTE}}
+    </p>
+
+    <!-- {{#if HAS_APODERADO_CONVOCANTE}} -->
+    <p class="linea-parte" style="font-weight: normal;">
+        APODERADO(A) DEL CONVOCANTE: {{NOMBRE_APODERADO_CONVOCANTE}}
+        {{TIPO_ID_APODERADO_CONVOCANTE}}. {{ID_APODERADO_CONVOCANTE}}
+    </p>
+    <!-- {{/if HAS_APODERADO_CONVOCANTE}} -->
+
+    <p class="linea-parte">
+        CONVOCADO(S): {{NOMBRE_CONVOCADO}} &nbsp; {{TIPO_ID_CONVOCADO}}. {{ID_CONVOCADO}}
+    </p>
+
+    <!-- {{#if HAS_APODERADO_CONVOCADO}} -->
+    <p class="linea-parte" style="font-weight: normal;">
+        APODERADO(A) DEL CONVOCADO: {{NOMBRE_APODERADO_CONVOCADO}}
+        {{TIPO_ID_APODERADO_CONVOCADO}}. {{ID_APODERADO_CONVOCADO}}
+    </p>
+    <!-- {{/if HAS_APODERADO_CONVOCADO}} -->
+
+    <!-- Resumen de la actuación -->
+    <p class="titulo-resumen">RESUMEN DE LA ACTUACIÓN</p>
+
+    <p class="parrafo-apertura">
+        En {{CIUDAD}}, a los {{DIA_AUDIENCIA}} días del mes de {{MES_AUDIENCIA}} de {{ANO_AUDIENCIA}},
+        siendo las {{HORA_AUDIENCIA}}, comparecieron mediante plataforma Zoom ante la conciliadora
+        designada por el Centro de Conciliación y Arbitraje "Constructores de Paz", de la Lonja de
+        Propiedad Raíz y Avaluadores de Colombia, debidamente aprobado por el
+        MINISTERIO DE JUSTICIA Y DEL DERECHO, asistieron el(los) convocante(s) y el(los)
+        convocado(s).
+    </p>
+
+    <!-- Considerando -->
+    <p class="titulo-considerando">CONSIDERANDO</p>
+
+    <p class="parrafo-considerando">
+        <span class="considerando-numeral">PRIMERO:</span> Que los hechos constitutivos del conflicto
+        suscitado entre las partes son susceptibles de conciliación de acuerdo con lo preceptuado por
+        los artículos 75 y siguientes de la Ley 23 de 1991 y 65 de la Ley 446 de 1998 y Ley 2220 de
+        2022 y sus decretos reglamentarios.
+    </p>
+
+    <p class="parrafo-considerando">
+        <span class="considerando-numeral">SEGUNDO:</span> Las partes han decidido de manera libre,
+        voluntaria y unánime llegar al siguiente acuerdo conciliatorio en los términos que se citan
+        a continuación:
+    </p>
+
+    <!-- Acuerdo conciliatorio -->
+    <p class="titulo-acuerdo">A C U E R D O &nbsp; C O N C I L I A T O R I O</p>
+
+    <p class="texto-acuerdo-intro">
+        Las partes de común acuerdo manifiestan que concilian sobre los siguientes temas, expuestos así:
+    </p>
+
+    <!--
+        BLOQUE ITERABLE: cláusulas del acuerdo
+        Cuando el acuerdo tiene cláusulas numeradas, se usa la lista.
+        Si es texto libre, se usa el bloque dinámico .bloque-acuerdo.
+        El backend debe elegir el modo según el tipo de acuerdo.
+    -->
+
+    <!-- {{#if HAS_CLAUSULAS_NUMERADAS}} -->
+    <ol class="clausulas-list">
+        <!-- {{#each CLAUSULAS_ACUERDO}} -->
+        <li>
+            <span class="clausula-label">{{NUMERO_CLAUSULA}}:</span> {{TEXTO_CLAUSULA}}
+        </li>
+        <!-- {{/each CLAUSULAS_ACUERDO}} -->
+    </ol>
+    <!-- {{/if HAS_CLAUSULAS_NUMERADAS}} -->
+
+    <!-- {{#if HAS_ACUERDO_LIBRE}} -->
+    <div class="bloque-acuerdo">{{ACUERDO_CONCILIATORIO}}</div>
+    <!-- {{/if HAS_ACUERDO_LIBRE}} -->
+
+    <!-- Información adicional (bloque condicional) -->
+    <!-- {{#if HAS_INFO_ADICIONAL}} -->
+    <p class="subsection-title">INFORMACIÓN ADICIONAL</p>
+    <div class="bloque-info-adicional">{{INFO_ADICIONAL}}</div>
+    <!-- {{/if HAS_INFO_ADICIONAL}} -->
+
+    <!-- Disposiciones finales -->
+    <p class="titulo-disposiciones">D I S P O S I C I O N E S &nbsp; F I N A L E S</p>
+
+    <p class="parrafo-disposicion">
+        El presente acuerdo conciliatorio hace tránsito a cosa juzgada y presta mérito ejecutivo,
+        sustituye y deja sin efecto cualquier convenio verbal o escrito celebrado con anterioridad
+        entre las mismas partes y sobre el mismo objeto. Leído el contenido de la conciliación, es
+        aprobada en todas sus partes por quienes en ella intervinieron; se archiva registro en video
+        de la aprobación de las obligaciones conciliadas, procediendo al depósito y registro,
+        adjuntando las constancias de ley.
+    </p>
+
+    <!-- Constancia de asistentes -->
+    <p class="titulo-constancia">
+        La conciliadora designada hace constar que asisten a la diligencia las siguientes personas:
+    </p>
+
+    <p class="parrafo-asistente">
+        En calidad de convocante <strong>{{NOMBRE_CONVOCANTE}}</strong>
+        {{TIPO_ID_CONVOCANTE}}. {{ID_CONVOCANTE}}, quien se puede notificar en el correo electrónico:
+        {{CORREO_CONVOCANTE}} y cel.: {{CEL_CONVOCANTE}}.
+    </p>
+
+    <!-- {{#if HAS_APODERADO_CONVOCANTE}} -->
+    <p class="parrafo-asistente">
+        En representación del convocante, su apoderado(a) judicial
+        <strong>{{NOMBRE_APODERADO_CONVOCANTE}}</strong>, identificado(a) con
+        {{TIPO_ID_APODERADO_CONVOCANTE}}. {{ID_APODERADO_CONVOCANTE}} y portador(a) de la
+        T.P. {{TP_APODERADO_CONVOCANTE}} del C.S. de la J., quien se puede notificar en el
+        correo electrónico: {{CORREO_APODERADO_CONVOCANTE}} y cel.: {{CEL_APODERADO_CONVOCANTE}}.
+    </p>
+    <!-- {{/if HAS_APODERADO_CONVOCANTE}} -->
+
+    <p class="parrafo-asistente">
+        En calidad de convocado <strong>{{NOMBRE_CONVOCADO}}</strong>
+        {{TIPO_ID_CONVOCADO}}. {{ID_CONVOCADO}}, quien se puede notificar en el correo electrónico:
+        {{CORREO_CONVOCADO}} y cel.: {{CEL_CONVOCADO}}.
+    </p>
+
+    <!-- {{#if HAS_APODERADO_CONVOCADO}} -->
+    <p class="parrafo-asistente">
+        En representación del convocado, su apoderado(a) judicial
+        <strong>{{NOMBRE_APODERADO_CONVOCADO}}</strong>, identificado(a) con
+        {{TIPO_ID_APODERADO_CONVOCADO}}. {{ID_APODERADO_CONVOCADO}} y portador(a) de la
+        T.P. {{TP_APODERADO_CONVOCADO}} del C.S. de la J., quien se puede notificar en el
+        correo electrónico: {{CORREO_APODERADO_CONVOCADO}} y cel.: {{CEL_APODERADO_CONVOCADO}}.
+    </p>
+    <!-- {{/if HAS_APODERADO_CONVOCADO}} -->
+
+    <p class="parrafo-disposicion">
+        Dado en {{CIUDAD}}, a los {{DIA_AUDIENCIA}} días del mes de {{MES_AUDIENCIA}} de {{ANO_AUDIENCIA}}.
+    </p>
+
+    <!-- Firmas de partes -->
+    <div class="firmas-partes-container">
+        <div class="firma-parte-bloque">
+            <p class="parte-label">CONVOCANTE(S):</p>
+            <p>{{NOMBRE_CONVOCANTE}} – {{TIPO_ID_CONVOCANTE}}. {{ID_CONVOCANTE}}</p>
+            <div class="espacio-firma"></div>
+            <p class="label-firma">Firma</p>
+        </div>
+
+        <div class="firma-parte-bloque">
+            <p class="parte-label">CONVOCADO(S):</p>
+            <p>{{NOMBRE_CONVOCADO}} – {{TIPO_ID_CONVOCADO}}. {{ID_CONVOCADO}}</p>
+            <div class="espacio-firma"></div>
+            <p class="label-firma">Firma</p>
+        </div>
+    </div>
+
+    <!-- Firma de la conciliadora -->
+    <div class="firma-section">
+        <img src="../../insolvency/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="../../insolvency/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <div class="text-center firma-info">
+        <p class="bold nombre-conciliadora">{{NOMBRE_CONCILIADORA}}</p>
+        <p class="bold cargo-conciliadora">ABOGADA CONCILIADORA</p>
+        <p class="bold cargo-conciliadora">CC. {{CC_CONCILIADORA}}</p>
+        <p class="bold cargo-conciliadora">T.P. {{TP_CONCILIADORA}}</p>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

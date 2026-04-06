@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aclaración al Acta de Conciliación</title>
+    <link rel="stylesheet" href="./CSS/styles-otras-minutas.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Título principal -->
+    <p class="titulo-minuta">
+        ACLARACIÓN AL ACTA {{NUMERO_ACTA}}-{{ANO_ACTA}} TRÁMITE {{NUMERO_TRAMITE}}-{{ANO_ACTA}}
+    </p>
+
+    <!-- Tabla de referencia del expediente -->
+    <table class="tabla-referencia-acta">
+        <thead>
+            <tr>
+                <th colspan="2">REFERENCIA</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="label-cell">CONVOCANTE</td>
+                <td>{{NOMBRE_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">CONVOCADO(S)</td>
+                <td>{{NOMBRE_CONVOCADO}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">TRÁMITE</td>
+                <td>{{NUMERO_TRAMITE}}-{{ANO_ACTA}}</td>
+            </tr>
+            <tr>
+                <td class="label-cell">FECHA DE SOLICITUD</td>
+                <td>{{FECHA_SOLICITUD}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Antecedentes -->
+    <p class="titulo-antecedentes">ANTECEDENTES</p>
+
+    <p class="parrafo-minuta">
+        En el Centro de Conciliación y Arbitraje "Constructores de Paz", de la Lonja de Propiedad
+        Raíz y Avaluadores de Colombia, aprobado por Resolución No. 1459 del 05 de septiembre de
+        2003 expedida por el Ministerio de Justicia y del Derecho, se autoriza a
+        <strong>{{NOMBRE_CONCILIADORA}}</strong> para que lleve a cabo la audiencia de conciliación
+        solicitada el día {{DIA_SOLICITUD}} de {{MES_SOLICITUD}} de {{ANO_SOLICITUD}} por los
+        señores <strong>{{NOMBRE_CONVOCANTE}}</strong> {{TIPO_ID_CONVOCANTE}}. {{ID_CONVOCANTE}},
+        para conciliar <em>"{{ASUNTO}}"</em>.
+    </p>
+
+    <!-- Consideraciones -->
+    <p class="titulo-consideraciones">CONSIDERACIONES</p>
+
+    <p class="parrafo-minuta">
+        Revisada el Acta {{NUMERO_ACTA}}-{{ANO_ACTA}} Trámite {{NUMERO_TRAMITE}}-{{ANO_ACTA}}
+        del {{DIA_ACTA_ORIGINAL}} de {{MES_ACTA_ORIGINAL}} de {{ANO_ACTA_ORIGINAL}}, se evidencia
+        un yerro tipográfico en relación con
+        <strong>{{CAMPO_CON_ERROR}}</strong>: siendo esta información incorrecta,
+        <strong>{{DESCRIPCION_ERROR}}</strong>. Por lo tanto, la abogada conciliadora realiza la
+        siguiente:
+    </p>
+
+    <!-- Aclaración -->
+    <p class="titulo-aclaracion">ACLARACIÓN</p>
+
+    <div class="bloque-aclaracion">
+        <p>
+            Por error involuntario en el referido documento se señaló como
+            <strong>{{CAMPO_CON_ERROR}}</strong>:
+            <em>{{VALOR_INCORRECTO}}</em>, siendo lo correcto:
+            <strong>{{VALOR_CORRECTO}}</strong>.
+        </p>
+    </div>
+
+    <!-- Fecha de la aclaración -->
+    <p class="parrafo-minuta">
+        Se firma en {{CIUDAD}}, a los {{DIA_CONSTANCIA}} días del mes de {{MES_CONSTANCIA}}
+        del {{ANO_CONSTANCIA}}.
+    </p>
+
+    <!-- Firma de la conciliadora -->
+    <div class="firma-section">
+        <img src="../insolvency/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="../insolvency/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <p class="conciliadora-nombre bold text-center">{{NOMBRE_CONCILIADORA}}</p>
+    <p class="conciliadora-nombre text-center">ABOGADA CONCILIADORA</p>
+    <p class="conciliadora-nombre text-center">CC. {{CC_CONCILIADORA}}</p>
+    <p class="conciliadora-nombre text-center">T.P. {{TP_CONCILIADORA}}</p>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

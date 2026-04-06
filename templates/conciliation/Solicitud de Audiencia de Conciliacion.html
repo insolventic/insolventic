@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Audiencia de Conciliación</title>
+    <link rel="stylesheet" href="./CSS/styles-solicitud-conciliacion.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Destinatario -->
+    <div class="destinatario-section">
+        <p>Señores</p>
+        <p><strong>CENTRO DE CONCILIACIÓN CONSTRUCTORES DE PAZ</strong></p>
+        <p>Calle 74 No. 15-80 interior 1 oficina 308</p>
+        <p>contacto@constructoresdepaz.com.co</p>
+        <p>Tel 311 811 75 20</p>
+        <p>{{CIUDAD}}</p>
+    </div>
+
+    <!-- Asunto -->
+    <div class="asunto-section">
+        <p class="asunto-texto">ASUNTO: SOLICITUD DE AUDIENCIA DE CONCILIACIÓN EXTRAJUDICIAL EN DERECHO – LEY 2220 DE 2022</p>
+    </div>
+
+    <!-- =====================================================
+         SECCIÓN 1: INDIVIDUALIZACIÓN DE LAS PARTES
+         ===================================================== -->
+    <p class="seccion-partes-titulo">1. Individualización de las partes y de sus representantes</p>
+
+    <!-- Tabla convocante -->
+    <table class="tabla-partes">
+        <thead>
+            <tr>
+                <th colspan="2">CONVOCANTE</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="label-campo">Nombre / Razón Social</td>
+                <td>{{NOMBRE_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Tipo de documento</td>
+                <td>{{TIPO_ID_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">N° de documento</td>
+                <td>{{ID_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Dirección de contacto</td>
+                <td>{{DIRECCION_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Ciudad / Municipio</td>
+                <td>{{CIUDAD_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Correo de contacto</td>
+                <td>{{CORREO_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Teléfono de contacto</td>
+                <td>{{CEL_CONVOCANTE}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Tabla representante legal (bloque condicional: solo si aplica) -->
+    <!-- {{#if HAS_REPRESENTANTE_LEGAL}} -->
+    <table class="tabla-partes">
+        <thead>
+            <tr>
+                <th colspan="2">REPRESENTANTE LEGAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="label-campo">Nombre / Razón Social</td>
+                <td>{{NOMBRE_REPRESENTANTE_LEGAL}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Tipo de documento</td>
+                <td>{{TIPO_ID_REPRESENTANTE_LEGAL}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">N° de documento</td>
+                <td>{{ID_REPRESENTANTE_LEGAL}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Dirección de contacto</td>
+                <td>{{DIRECCION_REPRESENTANTE_LEGAL}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Ciudad / Municipio</td>
+                <td>{{CIUDAD_REPRESENTANTE_LEGAL}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Correo de contacto</td>
+                <td>{{CORREO_REPRESENTANTE_LEGAL}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Teléfono de contacto</td>
+                <td>{{CEL_REPRESENTANTE_LEGAL}}</td>
+            </tr>
+        </tbody>
+    </table>
+    <!-- {{/if HAS_REPRESENTANTE_LEGAL}} -->
+
+    <!-- Tabla apoderado (bloque condicional: solo si aplica) -->
+    <!-- {{#if HAS_APODERADO_CONVOCANTE}} -->
+    <table class="tabla-partes">
+        <thead>
+            <tr>
+                <th colspan="2">APODERADO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="label-campo">Nombre / Razón Social</td>
+                <td>{{NOMBRE_APODERADO_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Tipo de documento</td>
+                <td>{{TIPO_ID_APODERADO_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">N° de documento</td>
+                <td>{{ID_APODERADO_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Dirección de contacto</td>
+                <td>{{DIRECCION_APODERADO_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Ciudad / Municipio</td>
+                <td>{{CIUDAD_APODERADO_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Correo de contacto</td>
+                <td>{{CORREO_APODERADO_CONVOCANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Teléfono de contacto</td>
+                <td>{{CEL_APODERADO_CONVOCANTE}}</td>
+            </tr>
+        </tbody>
+    </table>
+    <!-- {{/if HAS_APODERADO_CONVOCANTE}} -->
+
+    <!-- Tabla convocado -->
+    <table class="tabla-partes">
+        <thead>
+            <tr>
+                <th colspan="2">CONVOCADO</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="label-campo">Nombre / Razón Social</td>
+                <td>{{NOMBRE_CONVOCADO}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Tipo de documento</td>
+                <td>{{TIPO_ID_CONVOCADO}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">N° de documento</td>
+                <td>{{ID_CONVOCADO}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Dirección de contacto</td>
+                <td>{{DIRECCION_CONVOCADO}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Ciudad / Municipio</td>
+                <td>{{CIUDAD_CONVOCADO}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Correo de contacto</td>
+                <td>{{CORREO_CONVOCADO}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Teléfono de contacto</td>
+                <td>{{CEL_CONVOCADO}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- =====================================================
+         SECCIÓN 2: DESCRIPCIÓN DE LOS HECHOS
+         ===================================================== -->
+    <div class="bloque-hechos">
+        <p class="bloque-titulo">2. Descripción de los hechos</p>
+        <div class="contenido-hechos">{{DESCRIPCION_HECHOS}}</div>
+    </div>
+
+    <!-- =====================================================
+         SECCIÓN 3: PRETENSIONES
+         ===================================================== -->
+    <div class="bloque-hechos">
+        <p class="bloque-titulo">3. Pretensiones del convocante</p>
+        <div class="contenido-hechos">{{PRETENSIONES}}</div>
+    </div>
+
+    <!-- =====================================================
+         SECCIÓN 4: CUANTÍA
+         ===================================================== -->
+    <div class="cuantia-section">
+        <p class="cuantia-texto"><strong>4. Estimación razonada de la cuantía:</strong></p>
+        <p class="cuantia-texto">El valor a conciliar asciende aproximadamente a la suma de <strong>{{CUANTIA_PESOS}}</strong> ({{CUANTIA_LETRAS}})</p>
+    </div>
+
+    <!-- =====================================================
+         SECCIÓN 5: PRUEBAS
+         ===================================================== -->
+    <div class="pruebas-section">
+        <p><strong>5. Relación de las pruebas que se acompañan:</strong></p>
+        <div class="bloque-hechos" style="margin-top: 8px;">
+            <div class="contenido-hechos">{{RELACION_PRUEBAS}}</div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         SECCIÓN 6: MEDIO DE COMUNICACIÓN
+         ===================================================== -->
+    <div class="pruebas-section">
+        <p><strong>6. Medio de comunicación preferido:</strong></p>
+        <p style="margin-top:6px; line-height:1.7;">Correo electrónico: <strong>{{CORREO_NOTIFICACION}}</strong></p>
+        <!-- {{#if HAS_OTRO_MEDIO}} -->
+        <p style="margin-top:4px; line-height:1.7;">Otro medio: {{OTRO_MEDIO_COMUNICACION}}</p>
+        <!-- {{/if HAS_OTRO_MEDIO}} -->
+    </div>
+
+    <!-- =====================================================
+         NOTA ESPECIAL
+         ===================================================== -->
+    <div class="nota-especial">
+        <p class="nota-titulo">Nota especial:</p>
+        <p>En el caso de solicitudes enviadas por correo electrónico, el requisito de la firma se entenderá cumplido, conforme lo establece el artículo 7 de la Ley 527 de 1999.</p>
+        <p style="margin-top: 6px;">Podrá presentarse solicitud de conciliación a nombre de una persona de quien no se tenga poder, en los eventos y bajo las condiciones previstas en el Código General del Proceso para el agente oficioso. No será necesario prestar caución.</p>
+        <p style="margin-top: 6px;">Si el interesado no ratifica la solicitud dentro de los diez (10) días siguientes a su radicación, se entenderá como no presentada.</p>
+    </div>
+
+    <!-- =====================================================
+         FIRMA DEL SOLICITANTE
+         ===================================================== -->
+    <table class="tabla-firma-solicitante">
+        <thead>
+            <tr>
+                <th colspan="2">FIRMA DEL SOLICITANTE</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="label-campo">Nombre / Razón Social</td>
+                <td>{{NOMBRE_SOLICITANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Tipo de documento</td>
+                <td>{{TIPO_ID_SOLICITANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">N° de documento</td>
+                <td>{{ID_SOLICITANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Dirección de contacto</td>
+                <td>{{DIRECCION_SOLICITANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Ciudad / Municipio</td>
+                <td>{{CIUDAD_SOLICITANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Correo de contacto</td>
+                <td>{{CORREO_SOLICITANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Teléfono de contacto</td>
+                <td>{{CEL_SOLICITANTE}}</td>
+            </tr>
+            <tr>
+                <td class="label-campo">Fecha de nacimiento</td>
+                <td>{{FECHA_NACIMIENTO_SOLICITANTE}}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

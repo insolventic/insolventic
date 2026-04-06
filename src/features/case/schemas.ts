@@ -613,6 +613,77 @@ export const caseSchema = z.object({
   declaracionConocimientoNorma: z.boolean().optional(),
 
   // ============================================================
+  // CONCILIACIÓN - Campos específicos del servicio de conciliación
+  // ============================================================
+  concAsunto: z.string().optional().nullable(),
+  concDescripcionHechos: z.string().optional().nullable(),
+  concPretensiones: z.string().optional().nullable(),
+  concCuantiaPesos: z.string().optional().nullable(),
+  concCuantiaLetras: z.string().optional().nullable(),
+  concRelacionPruebas: z.string().optional().nullable(),
+  concOtroMedioComunicacion: z.string().optional().nullable(),
+  concFechaNacimiento: z.string().optional().nullable(),
+  // Convocante (solicitante)
+  concConvocanteName: z.string().optional().nullable(),
+  concConvocanteTipoId: z.string().optional().nullable(),
+  concConvocanteId: z.string().optional().nullable(),
+  concConvocanteDireccion: z.string().optional().nullable(),
+  concConvocanteCiudad: z.string().optional().nullable(),
+  concConvocanteCorreo: z.string().optional().nullable(),
+  concConvocanteCel: z.string().optional().nullable(),
+  // Convocado (contraparte)
+  concConvocadoName: z.string().optional().nullable(),
+  concConvocadoTipoId: z.string().optional().nullable(),
+  concConvocadoId: z.string().optional().nullable(),
+  concConvocadoDireccion: z.string().optional().nullable(),
+  concConvocadoCiudad: z.string().optional().nullable(),
+  concConvocadoCorreo: z.string().optional().nullable(),
+  concConvocadoCel: z.string().optional().nullable(),
+  // Representante legal (opcional)
+  concRepLegalName: z.string().optional().nullable(),
+  concRepLegalTipoId: z.string().optional().nullable(),
+  concRepLegalId: z.string().optional().nullable(),
+  concRepLegalDireccion: z.string().optional().nullable(),
+  concRepLegalCiudad: z.string().optional().nullable(),
+  concRepLegalCorreo: z.string().optional().nullable(),
+  concRepLegalCel: z.string().optional().nullable(),
+  // Apoderado convocante
+  concApoderadoConvocanteName: z.string().optional().nullable(),
+  concApoderadoConvocanteTipoId: z.string().optional().nullable(),
+  concApoderadoConvocanteId: z.string().optional().nullable(),
+  concApoderadoConvocanteDireccion: z.string().optional().nullable(),
+  concApoderadoConvocanteCiudad: z.string().optional().nullable(),
+  concApoderadoConvocanteCorreo: z.string().optional().nullable(),
+  concApoderadoConvocanteCel: z.string().optional().nullable(),
+  concApoderadoConvocanteTP: z.string().optional().nullable(),
+  // Apoderado convocado
+  concApoderadoConvocadoName: z.string().optional().nullable(),
+  concApoderadoConvocadoTipoId: z.string().optional().nullable(),
+  concApoderadoConvocadoId: z.string().optional().nullable(),
+  concApoderadoConvocadoCorreo: z.string().optional().nullable(),
+  concApoderadoConvocadoCel: z.string().optional().nullable(),
+  concApoderadoConvocadoTP: z.string().optional().nullable(),
+  // Conciliadora
+  concConciliadoraName: z.string().optional().nullable(),
+  concConciliadoraCC: z.string().optional().nullable(),
+  concConciliadoraTP: z.string().optional().nullable(),
+  // Acuerdo/Acta
+  concAcuerdoConciliatorio: z.string().optional().nullable(),
+  concInfoAdicional: z.string().optional().nullable(),
+  // Alimentos
+  concClausulaPrimeroAlimentos: z.string().optional().nullable(),
+  concClausulaSegundoAlimentos: z.string().optional().nullable(),
+  concClausulaTerceroAlimentos: z.string().optional().nullable(),
+  // Union marital
+  concSituacionBienes: z.string().optional().nullable(),
+  concSituacionAlimentos: z.string().optional().nullable(),
+  // Informe/Terminacion
+  concDescripcionResultado: z.string().optional().nullable(),
+  concTipoConstanciaSolicitada: z.string().optional().nullable(),
+  concDescripcionCausaAnormal: z.string().optional().nullable(),
+  concHoraProgramada: z.string().optional().nullable(),
+
+  // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
   propuestaPlazoMeses: z.coerce.number().optional().nullable(),
@@ -1151,6 +1222,77 @@ export const createCaseSchema = z.object({
   declaracionConocimientoNorma: z.boolean().optional(),
 
   // ============================================================
+  // CONCILIACIÓN - Campos específicos del servicio de conciliación
+  // ============================================================
+  concAsunto: z.string().optional().nullable(),
+  concDescripcionHechos: z.string().optional().nullable(),
+  concPretensiones: z.string().optional().nullable(),
+  concCuantiaPesos: z.string().optional().nullable(),
+  concCuantiaLetras: z.string().optional().nullable(),
+  concRelacionPruebas: z.string().optional().nullable(),
+  concOtroMedioComunicacion: z.string().optional().nullable(),
+  concFechaNacimiento: z.string().optional().nullable(),
+  // Convocante (solicitante)
+  concConvocanteName: z.string().optional().nullable(),
+  concConvocanteTipoId: z.string().optional().nullable(),
+  concConvocanteId: z.string().optional().nullable(),
+  concConvocanteDireccion: z.string().optional().nullable(),
+  concConvocanteCiudad: z.string().optional().nullable(),
+  concConvocanteCorreo: z.string().optional().nullable(),
+  concConvocanteCel: z.string().optional().nullable(),
+  // Convocado (contraparte)
+  concConvocadoName: z.string().optional().nullable(),
+  concConvocadoTipoId: z.string().optional().nullable(),
+  concConvocadoId: z.string().optional().nullable(),
+  concConvocadoDireccion: z.string().optional().nullable(),
+  concConvocadoCiudad: z.string().optional().nullable(),
+  concConvocadoCorreo: z.string().optional().nullable(),
+  concConvocadoCel: z.string().optional().nullable(),
+  // Representante legal (opcional)
+  concRepLegalName: z.string().optional().nullable(),
+  concRepLegalTipoId: z.string().optional().nullable(),
+  concRepLegalId: z.string().optional().nullable(),
+  concRepLegalDireccion: z.string().optional().nullable(),
+  concRepLegalCiudad: z.string().optional().nullable(),
+  concRepLegalCorreo: z.string().optional().nullable(),
+  concRepLegalCel: z.string().optional().nullable(),
+  // Apoderado convocante
+  concApoderadoConvocanteName: z.string().optional().nullable(),
+  concApoderadoConvocanteTipoId: z.string().optional().nullable(),
+  concApoderadoConvocanteId: z.string().optional().nullable(),
+  concApoderadoConvocanteDireccion: z.string().optional().nullable(),
+  concApoderadoConvocanteCiudad: z.string().optional().nullable(),
+  concApoderadoConvocanteCorreo: z.string().optional().nullable(),
+  concApoderadoConvocanteCel: z.string().optional().nullable(),
+  concApoderadoConvocanteTP: z.string().optional().nullable(),
+  // Apoderado convocado
+  concApoderadoConvocadoName: z.string().optional().nullable(),
+  concApoderadoConvocadoTipoId: z.string().optional().nullable(),
+  concApoderadoConvocadoId: z.string().optional().nullable(),
+  concApoderadoConvocadoCorreo: z.string().optional().nullable(),
+  concApoderadoConvocadoCel: z.string().optional().nullable(),
+  concApoderadoConvocadoTP: z.string().optional().nullable(),
+  // Conciliadora
+  concConciliadoraName: z.string().optional().nullable(),
+  concConciliadoraCC: z.string().optional().nullable(),
+  concConciliadoraTP: z.string().optional().nullable(),
+  // Acuerdo/Acta
+  concAcuerdoConciliatorio: z.string().optional().nullable(),
+  concInfoAdicional: z.string().optional().nullable(),
+  // Alimentos
+  concClausulaPrimeroAlimentos: z.string().optional().nullable(),
+  concClausulaSegundoAlimentos: z.string().optional().nullable(),
+  concClausulaTerceroAlimentos: z.string().optional().nullable(),
+  // Union marital
+  concSituacionBienes: z.string().optional().nullable(),
+  concSituacionAlimentos: z.string().optional().nullable(),
+  // Informe/Terminacion
+  concDescripcionResultado: z.string().optional().nullable(),
+  concTipoConstanciaSolicitada: z.string().optional().nullable(),
+  concDescripcionCausaAnormal: z.string().optional().nullable(),
+  concHoraProgramada: z.string().optional().nullable(),
+
+  // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
   propuestaPlazoMeses: z.number().optional(),
@@ -1668,6 +1810,77 @@ export const updateCaseSchema = z.object({
   autorizacionTratamientoDatos: z.boolean().optional(),
   declaracionNoOmisiones: z.boolean().optional(),
   declaracionConocimientoNorma: z.boolean().optional(),
+
+  // ============================================================
+  // CONCILIACIÓN - Campos específicos del servicio de conciliación
+  // ============================================================
+  concAsunto: z.string().optional().nullable(),
+  concDescripcionHechos: z.string().optional().nullable(),
+  concPretensiones: z.string().optional().nullable(),
+  concCuantiaPesos: z.string().optional().nullable(),
+  concCuantiaLetras: z.string().optional().nullable(),
+  concRelacionPruebas: z.string().optional().nullable(),
+  concOtroMedioComunicacion: z.string().optional().nullable(),
+  concFechaNacimiento: z.string().optional().nullable(),
+  // Convocante (solicitante)
+  concConvocanteName: z.string().optional().nullable(),
+  concConvocanteTipoId: z.string().optional().nullable(),
+  concConvocanteId: z.string().optional().nullable(),
+  concConvocanteDireccion: z.string().optional().nullable(),
+  concConvocanteCiudad: z.string().optional().nullable(),
+  concConvocanteCorreo: z.string().optional().nullable(),
+  concConvocanteCel: z.string().optional().nullable(),
+  // Convocado (contraparte)
+  concConvocadoName: z.string().optional().nullable(),
+  concConvocadoTipoId: z.string().optional().nullable(),
+  concConvocadoId: z.string().optional().nullable(),
+  concConvocadoDireccion: z.string().optional().nullable(),
+  concConvocadoCiudad: z.string().optional().nullable(),
+  concConvocadoCorreo: z.string().optional().nullable(),
+  concConvocadoCel: z.string().optional().nullable(),
+  // Representante legal (opcional)
+  concRepLegalName: z.string().optional().nullable(),
+  concRepLegalTipoId: z.string().optional().nullable(),
+  concRepLegalId: z.string().optional().nullable(),
+  concRepLegalDireccion: z.string().optional().nullable(),
+  concRepLegalCiudad: z.string().optional().nullable(),
+  concRepLegalCorreo: z.string().optional().nullable(),
+  concRepLegalCel: z.string().optional().nullable(),
+  // Apoderado convocante
+  concApoderadoConvocanteName: z.string().optional().nullable(),
+  concApoderadoConvocanteTipoId: z.string().optional().nullable(),
+  concApoderadoConvocanteId: z.string().optional().nullable(),
+  concApoderadoConvocanteDireccion: z.string().optional().nullable(),
+  concApoderadoConvocanteCiudad: z.string().optional().nullable(),
+  concApoderadoConvocanteCorreo: z.string().optional().nullable(),
+  concApoderadoConvocanteCel: z.string().optional().nullable(),
+  concApoderadoConvocanteTP: z.string().optional().nullable(),
+  // Apoderado convocado
+  concApoderadoConvocadoName: z.string().optional().nullable(),
+  concApoderadoConvocadoTipoId: z.string().optional().nullable(),
+  concApoderadoConvocadoId: z.string().optional().nullable(),
+  concApoderadoConvocadoCorreo: z.string().optional().nullable(),
+  concApoderadoConvocadoCel: z.string().optional().nullable(),
+  concApoderadoConvocadoTP: z.string().optional().nullable(),
+  // Conciliadora
+  concConciliadoraName: z.string().optional().nullable(),
+  concConciliadoraCC: z.string().optional().nullable(),
+  concConciliadoraTP: z.string().optional().nullable(),
+  // Acuerdo/Acta
+  concAcuerdoConciliatorio: z.string().optional().nullable(),
+  concInfoAdicional: z.string().optional().nullable(),
+  // Alimentos
+  concClausulaPrimeroAlimentos: z.string().optional().nullable(),
+  concClausulaSegundoAlimentos: z.string().optional().nullable(),
+  concClausulaTerceroAlimentos: z.string().optional().nullable(),
+  // Union marital
+  concSituacionBienes: z.string().optional().nullable(),
+  concSituacionAlimentos: z.string().optional().nullable(),
+  // Informe/Terminacion
+  concDescripcionResultado: z.string().optional().nullable(),
+  concTipoConstanciaSolicitada: z.string().optional().nullable(),
+  concDescripcionCausaAnormal: z.string().optional().nullable(),
+  concHoraProgramada: z.string().optional().nullable(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago

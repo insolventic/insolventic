@@ -230,6 +230,77 @@ model Case {
   declaracionConocimientoNorma         Boolean @default(false) @map("declaracion_conocimiento_norma")
 
   // ============================================================
+  // CONCILIACIÓN - Campos específicos del servicio de conciliación
+  // ============================================================
+  concAsunto                           String?   @map("conc_asunto")
+  concDescripcionHechos                String?   @map("conc_descripcion_hechos") @db.Text
+  concPretensiones                     String?   @map("conc_pretensiones") @db.Text
+  concCuantiaPesos                     String?   @map("conc_cuantia_pesos")
+  concCuantiaLetras                    String?   @map("conc_cuantia_letras")
+  concRelacionPruebas                  String?   @map("conc_relacion_pruebas") @db.Text
+  concOtroMedioComunicacion            String?   @map("conc_otro_medio_comunicacion")
+  concFechaNacimiento                  String?   @map("conc_fecha_nacimiento")
+  // Convocante (solicitante)
+  concConvocanteName                   String?   @map("conc_convocante_name")
+  concConvocanteTipoId                 String?   @map("conc_convocante_tipo_id")
+  concConvocanteId                     String?   @map("conc_convocante_id")
+  concConvocanteDireccion              String?   @map("conc_convocante_direccion")
+  concConvocanteCiudad                 String?   @map("conc_convocante_ciudad")
+  concConvocanteCorreo                 String?   @map("conc_convocante_correo")
+  concConvocanteCel                    String?   @map("conc_convocante_cel")
+  // Convocado (contraparte)
+  concConvocadoName                    String?   @map("conc_convocado_name")
+  concConvocadoTipoId                  String?   @map("conc_convocado_tipo_id")
+  concConvocadoId                      String?   @map("conc_convocado_id")
+  concConvocadoDireccion               String?   @map("conc_convocado_direccion")
+  concConvocadoCiudad                  String?   @map("conc_convocado_ciudad")
+  concConvocadoCorreo                  String?   @map("conc_convocado_correo")
+  concConvocadoCel                     String?   @map("conc_convocado_cel")
+  // Representante legal
+  concRepLegalName                     String?   @map("conc_rep_legal_name")
+  concRepLegalTipoId                   String?   @map("conc_rep_legal_tipo_id")
+  concRepLegalId                       String?   @map("conc_rep_legal_id")
+  concRepLegalDireccion                String?   @map("conc_rep_legal_direccion")
+  concRepLegalCiudad                   String?   @map("conc_rep_legal_ciudad")
+  concRepLegalCorreo                   String?   @map("conc_rep_legal_correo")
+  concRepLegalCel                      String?   @map("conc_rep_legal_cel")
+  // Apoderado convocante
+  concApoderadoConvocanteName          String?   @map("conc_apoderado_convocante_name")
+  concApoderadoConvocanteTipoId        String?   @map("conc_apoderado_convocante_tipo_id")
+  concApoderadoConvocanteId            String?   @map("conc_apoderado_convocante_id")
+  concApoderadoConvocanteDireccion     String?   @map("conc_apoderado_convocante_direccion")
+  concApoderadoConvocanteCiudad        String?   @map("conc_apoderado_convocante_ciudad")
+  concApoderadoConvocanteCorreo        String?   @map("conc_apoderado_convocante_correo")
+  concApoderadoConvocanteCel           String?   @map("conc_apoderado_convocante_cel")
+  concApoderadoConvocanteTP            String?   @map("conc_apoderado_convocante_tp")
+  // Apoderado convocado
+  concApoderadoConvocadoName           String?   @map("conc_apoderado_convocado_name")
+  concApoderadoConvocadoTipoId         String?   @map("conc_apoderado_convocado_tipo_id")
+  concApoderadoConvocadoId             String?   @map("conc_apoderado_convocado_id")
+  concApoderadoConvocadoCorreo         String?   @map("conc_apoderado_convocado_correo")
+  concApoderadoConvocadoCel            String?   @map("conc_apoderado_convocado_cel")
+  concApoderadoConvocadoTP             String?   @map("conc_apoderado_convocado_tp")
+  // Conciliadora
+  concConciliadoraName                 String?   @map("conc_conciliadora_name")
+  concConciliadoraCC                   String?   @map("conc_conciliadora_cc")
+  concConciliadoraTP                   String?   @map("conc_conciliadora_tp")
+  // Acuerdo/Acta
+  concAcuerdoConciliatorio             String?   @map("conc_acuerdo_conciliatorio") @db.Text
+  concInfoAdicional                    String?   @map("conc_info_adicional") @db.Text
+  // Alimentos
+  concClausulaPrimeroAlimentos         String?   @map("conc_clausula_primero_alimentos") @db.Text
+  concClausulaSegundoAlimentos         String?   @map("conc_clausula_segundo_alimentos") @db.Text
+  concClausulaTerceroAlimentos         String?   @map("conc_clausula_tercero_alimentos") @db.Text
+  // Situacion bienes/alimentos
+  concSituacionBienes                  String?   @map("conc_situacion_bienes") @db.Text
+  concSituacionAlimentos               String?   @map("conc_situacion_alimentos") @db.Text
+  // Informe/Terminacion
+  concDescripcionResultado             String?   @map("conc_descripcion_resultado") @db.Text
+  concTipoConstanciaSolicitada         String?   @map("conc_tipo_constancia_solicitada")
+  concDescripcionCausaAnormal          String?   @map("conc_descripcion_causa_anormal") @db.Text
+  concHoraProgramada                   String?   @map("conc_hora_programada")
+
+  // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
   propuestaPlazoMeses          Int?      @map("propuesta_plazo_meses")

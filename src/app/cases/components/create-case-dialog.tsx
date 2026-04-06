@@ -61,6 +61,9 @@ import { InfoLaboralSection } from './create-case-dialog/info-laboral-section';
 import { CesacionPagosSection } from './create-case-dialog/cesacion-pagos-section';
 import { DeclaracionesSection } from './create-case-dialog/declaraciones-section';
 import { ApoderadoSection } from './create-case-dialog/apoderado-section';
+// Conciliation sections
+import { ConciliationPartiesSection } from './create-case-dialog/conciliation-parties-section';
+import { ConciliationDetailsSection } from './create-case-dialog/conciliation-details-section';
 
 interface CreateCaseDialogProps {
   open: boolean;
@@ -68,7 +71,7 @@ interface CreateCaseDialogProps {
   onCaseCreated?: () => void;
 }
 
-const TAB_ORDER = [
+const INSOLVENCY_TABS = [
   'debtor',
   'situation',
   'creditors',
@@ -78,7 +81,11 @@ const TAB_ORDER = [
   'documents',
 ] as const;
 
-const LAST_TAB = TAB_ORDER[TAB_ORDER.length - 1];
+const CONCILIATION_TABS = ['debtor', 'conc-parties', 'conc-details'] as const;
+
+type TabId = string;
+
+const TAB_ORDER = INSOLVENCY_TABS; // backward compat for field mapping
 
 // Mapping of field prefixes to their corresponding tab
 const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
@@ -230,6 +237,15 @@ export function CreateCaseDialog({
 
   const dialogContentRef = useRef<HTMLDivElement>(null);
 
+  // Dynamic tabs based on case type
+  const watchedType = form.watch('type');
+  const currentTabs: readonly string[] = useMemo(
+    () =>
+      watchedType === 'CONCILIATION' ? CONCILIATION_TABS : INSOLVENCY_TABS,
+    [watchedType],
+  );
+  const lastTab = currentTabs[currentTabs.length - 1];
+
   // Determine which tabs have validation errors
   const formErrors = form.formState.errors;
   const tabsWithErrors = useMemo(() => {
@@ -243,11 +259,9 @@ export function CreateCaseDialog({
   }, [formErrors]);
 
   const goToNextTab = () => {
-    const currentIndex = TAB_ORDER.indexOf(
-      activeTab as (typeof TAB_ORDER)[number],
-    );
-    if (currentIndex < TAB_ORDER.length - 1) {
-      setActiveTab(TAB_ORDER[currentIndex + 1]);
+    const currentIndex = currentTabs.indexOf(activeTab);
+    if (currentIndex < currentTabs.length - 1) {
+      setActiveTab(currentTabs[currentIndex + 1]);
     }
   };
 
@@ -1275,16 +1289,21 @@ export function CreateCaseDialog({
                 className="space-y-4"
               >
                 <TabsList className="flex w-full flex-wrap gap-1">
-                  {(
-                    [
-                      { value: 'debtor', label: '1. Solicitante' },
-                      { value: 'situation', label: '2. Situación' },
-                      { value: 'creditors', label: '3. Acreedores' },
-                      { value: 'assets', label: '4. Bienes' },
-                      { value: 'proposal', label: '5. Propuesta' },
-                      { value: 'legal', label: '6. Legal' },
-                      { value: 'documents', label: '7. Documentos' },
-                    ] as const
+                  {(watchedType === 'CONCILIATION'
+                    ? [
+                        { value: 'debtor', label: '1. Solicitante' },
+                        { value: 'conc-parties', label: '2. Partes' },
+                        { value: 'conc-details', label: '3. Solicitud' },
+                      ]
+                    : [
+                        { value: 'debtor', label: '1. Solicitante' },
+                        { value: 'situation', label: '2. Situación' },
+                        { value: 'creditors', label: '3. Acreedores' },
+                        { value: 'assets', label: '4. Bienes' },
+                        { value: 'proposal', label: '5. Propuesta' },
+                        { value: 'legal', label: '6. Legal' },
+                        { value: 'documents', label: '7. Documentos' },
+                      ]
                   ).map((tab) => (
                     <TabsTrigger
                       key={tab.value}
@@ -1360,6 +1379,15 @@ export function CreateCaseDialog({
                     }}
                   />
                 </TabsContent>
+
+                {/* Conciliation-specific tabs */}
+                <TabsContent value="conc-parties" className="space-y-6">
+                  <ConciliationPartiesSection />
+                </TabsContent>
+
+                <TabsContent value="conc-details" className="space-y-6">
+                  <ConciliationDetailsSection />
+                </TabsContent>
               </Tabs>
 
               {/* Validation Warnings */}
@@ -1398,7 +1426,7 @@ export function CreateCaseDialog({
                   <DialogClose asChild>
                     <Button variant="outline">Cancelar</Button>
                   </DialogClose>
-                  {activeTab === LAST_TAB ? (
+                  {activeTab === lastTab ? (
                     <Button type="submit" disabled={isPending}>
                       {isPending ? (
                         <>

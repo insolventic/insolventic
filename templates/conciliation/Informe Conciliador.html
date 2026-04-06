@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe Conciliador</title>
+    <link rel="stylesheet" href="./CSS/styles-otras-minutas.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Título principal -->
+    <p class="titulo-minuta">INFORME CONCILIADOR</p>
+
+    <!-- Identificación del trámite -->
+    <p class="minuta-identificacion">Trámite {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}</p>
+
+    <!-- Párrafo de apertura -->
+    <p class="parrafo-minuta">
+        El Centro de Conciliación y Arbitraje <strong>CONSTRUCTORES DE PAZ</strong>, aprobado por
+        Resolución 1459 del 05 de septiembre de 2003 del Ministerio de Justicia y del Derecho,
+        autoriza a <strong>{{NOMBRE_CONCILIADORA}}</strong> para que lleve a cabo la audiencia
+        correspondiente al trámite de la conciliación solicitado el día {{DIA_SOLICITUD}} de
+        {{MES_SOLICITUD}} de {{ANO_SOLICITUD}} por
+        <strong>{{NOMBRE_CONVOCANTE}}</strong> {{TIPO_ID_CONVOCANTE}}. {{ID_CONVOCANTE}},
+        para conciliar con <strong>{{NOMBRE_CONVOCADO}}</strong> {{TIPO_ID_CONVOCADO}}. {{ID_CONVOCADO}}
+        sobre:
+    </p>
+
+    <p class="parrafo-advertencia">{{ASUNTO}}</p>
+
+    <!-- Desarrollo del informe -->
+    <p class="parrafo-minuta">
+        La conciliadora autorizada para adelantar el presente trámite informa que el día
+        {{DIA_AUDIENCIA}} de {{MES_AUDIENCIA}} de {{ANO_AUDIENCIA}} a las {{HORA_AUDIENCIA}}
+        se llevó a cabo la audiencia programada.
+    </p>
+
+    <!--
+        BLOQUE CONDICIONAL: resultado de la audiencia
+        El backend activa uno de los siguientes bloques según el desenlace.
+    -->
+
+    <!-- {{#if RESULTADO_INASISTENCIA_CONVOCADO}} -->
+    <p class="parrafo-minuta">
+        Se deja constancia de la inasistencia del convocado
+        <strong>{{NOMBRE_CONVOCADO}}</strong> a la diligencia programada, a pesar de estar
+        debidamente notificado. La conciliadora realizó llamada al convocado al abonado
+        telefónico <strong>{{TELEFONO_CONVOCADO}}</strong>; sin embargo, no se obtuvo respuesta.
+    </p>
+    <!-- {{/if RESULTADO_INASISTENCIA_CONVOCADO}} -->
+
+    <!-- {{#if RESULTADO_INASISTENCIA_CONVOCANTE}} -->
+    <p class="parrafo-minuta">
+        Se deja constancia de la inasistencia del convocante
+        <strong>{{NOMBRE_CONVOCANTE}}</strong> a la diligencia programada, a pesar de estar
+        debidamente notificado.
+    </p>
+    <!-- {{/if RESULTADO_INASISTENCIA_CONVOCANTE}} -->
+
+    <!-- {{#if RESULTADO_OTRO}} -->
+    <p class="parrafo-minuta">{{DESCRIPCION_RESULTADO}}</p>
+    <!-- {{/if RESULTADO_OTRO}} -->
+
+    <!-- Solicitud del interesado y cierre -->
+    <p class="parrafo-minuta">
+        A solicitud del interesado se cierra el trámite, para lo cual se otorga el término de ley
+        para presentar excusa y se solicita expedir {{TIPO_CONSTANCIA_SOLICITADA}}.
+    </p>
+
+    <!-- Fecha de la constancia -->
+    <p class="parrafo-minuta">
+        Para constancia se firma por la conciliadora designada en {{CIUDAD}}, el
+        {{DIA_CONSTANCIA}} de {{MES_CONSTANCIA}} de {{ANO_CONSTANCIA}}.
+    </p>
+
+    <!-- Firma de la conciliadora (texto, sin imagen en informe) -->
+    <div class="firma-section">
+        <img src="../insolvency/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="../insolvency/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <p class="conciliadora-nombre bold">{{NOMBRE_CONCILIADORA}}</p>
+    <p class="conciliadora-nombre">ABOGADA CONCILIADORA</p>
+    <p class="conciliadora-nombre">CC. {{CC_CONCILIADORA}}</p>
+    <p class="conciliadora-nombre">T.P. {{TP_CONCILIADORA}}</p>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

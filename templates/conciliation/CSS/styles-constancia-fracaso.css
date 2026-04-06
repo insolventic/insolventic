@@ -1,0 +1,124 @@
+@import url('styles-conciliacion-base.css');
+
+/* ============================================
+   CONSTANCIAS DE IMPOSIBILIDAD DE CONCILIACIÓN
+   (Por No Acuerdo y Por Inasistencia)
+   Estilos específicos — compartido
+   ============================================ */
+
+/* Título principal de la constancia */
+.titulo-constancia-principal {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 0 0 6px 0;
+  line-height: 1.5;
+}
+
+/* Número e identificación */
+.constancia-identificacion {
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+/* Párrafo de apertura */
+.parrafo-apertura {
+  text-align: justify;
+  margin-bottom: 18px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Título de antecedentes (solo inasistencia) */
+.titulo-antecedentes {
+  font-size: 13px;
+  font-weight: bold;
+  margin: 20px 0 10px 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid #2c3e50;
+  padding-bottom: 4px;
+}
+
+/* Título de inasistencia */
+.titulo-inasistencia {
+  font-size: 13px;
+  font-weight: bold;
+  margin: 20px 0 10px 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-bottom: 1.5px solid #2c3e50;
+  padding-bottom: 4px;
+}
+
+/* "RESUMEN DE LA ACTUACIÓN" */
+.titulo-resumen {
+  font-size: 13px;
+  font-weight: bold;
+  margin: 20px 0 10px 0;
+  text-align: left;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #2c3e50;
+  padding-bottom: 6px;
+}
+
+/* Párrafo del resumen */
+.parrafo-resumen {
+  text-align: justify;
+  margin-bottom: 18px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Declaración de fracaso */
+.declaracion-fracaso {
+  background-color: #fff8e1;
+  padding: 12px 14px;
+  border-left: 4px solid #f9a825;
+  margin: 16px 0;
+  font-weight: bold;
+  font-size: 12px;
+  line-height: 1.8;
+  text-align: justify;
+}
+
+/* Párrafo de efectos legales */
+.parrafo-efectos {
+  text-align: justify;
+  margin-bottom: 16px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+/* Fecha de la constancia */
+.fecha-firma {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* Impresión */
+@media print {
+  .titulo-constancia-principal,
+  .constancia-identificacion {
+    page-break-after: avoid;
+  }
+
+  .declaracion-fracaso {
+    page-break-inside: avoid;
+    background-color: #fff8e1;
+    border-left: 4px solid #f9a825;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .firma-section {
+    page-break-inside: avoid;
+    page-break-before: avoid;
+  }
+}

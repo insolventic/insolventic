@@ -1,0 +1,570 @@
+/* ============================================
+   INSOLVENTIC – MÓDULO CONCILIACIÓN
+   CSS BASE COMPARTIDO
+   Estándar visual unificado para todos los
+   documentos del expediente de conciliación
+   ============================================ */
+
+/* Reset y configuración base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #000;
+  background-color: #fff;
+}
+
+/* ---- TABLAS: prevención global de overflow ---- */
+table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+table td,
+table th {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+/* ---- CONTENEDOR PRINCIPAL ---- */
+.container {
+  max-width: 21cm;
+  margin: 0 auto;
+  padding: 2cm 2.5cm;
+  background-color: #fff;
+}
+
+/* ---- UTILIDADES DE TEXTO ---- */
+.text-center {
+  text-align: center;
+}
+.bold {
+  font-weight: bold;
+}
+.center {
+  text-align: center;
+}
+.justified {
+  text-align: justify;
+}
+
+/* ---- LOGO PRINCIPAL (HEADER) ---- */
+.logo-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.logo-section .logo {
+  max-width: 380px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* ---- TABLA INFO DE PARTES (convocante/convocado) ---- */
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  border: 1.5px solid #000;
+}
+
+.info-table td {
+  border: 1.5px solid #000;
+  padding: 8px 12px;
+  vertical-align: middle;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.info-table .label-cell {
+  font-weight: bold;
+  width: 28%;
+  background-color: #f0f0f0;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+/* Tabla de fechas */
+.fechas-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 20px 0;
+  border: 1.5px solid #000;
+}
+
+.fechas-table td {
+  border: 1.5px solid #000;
+  padding: 8px 12px;
+  vertical-align: middle;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.fechas-table .label-cell-fechas {
+  font-weight: bold;
+  width: 50%;
+  background-color: #f0f0f0;
+  letter-spacing: 0.3px;
+}
+
+/* Tabla de referencia (encabezado oscuro) */
+.tabla-referencia {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0 24px 0;
+  border: 1.5px solid #000;
+}
+
+.tabla-referencia thead th {
+  background-color: #2c3e50;
+  color: #fff;
+  padding: 10px 12px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 12px;
+  border: 1.5px solid #2c3e50;
+  letter-spacing: 0.5px;
+}
+
+.tabla-referencia tbody td {
+  border: 1.5px solid #000;
+  padding: 8px 12px;
+  vertical-align: middle;
+  font-size: 12px;
+}
+
+.tabla-referencia .label-cell {
+  font-weight: bold;
+  width: 28%;
+  background-color: #f0f0f0;
+}
+
+/* ---- PÁRRAFOS ---- */
+.parrafo-justified {
+  text-align: justify;
+  margin-bottom: 16px;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+.parrafo-justified strong {
+  font-weight: bold;
+  color: #000;
+}
+
+p.justified {
+  text-align: justify;
+  margin-bottom: 14px;
+  line-height: 1.7;
+}
+
+/* ---- BLOQUE ZOOM ---- */
+.zoom-box {
+  border: 1.5px solid #2c3e50;
+  background-color: #f8f9fa;
+  padding: 14px 18px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+.zoom-box p {
+  margin-bottom: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.zoom-box .zoom-titulo {
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+}
+
+/* ---- SECCIÓN DE FIRMAS ---- */
+.firma-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin: 40px 0 16px 0;
+  padding: 16px 0;
+}
+
+.firma-section .logo-firma {
+  max-width: 200px;
+  height: auto;
+  object-fit: contain;
+}
+
+.firma-section .firma-img {
+  max-width: 150px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Firma info (nombre y cargo) */
+.firma-info {
+  margin-top: 8px;
+  margin-bottom: 24px;
+}
+
+.nombre-conciliadora,
+.conciliadora-nombre {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.cargo-conciliadora {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+/* Espacio de firma manual (para las partes) */
+.espacio-firma {
+  height: 50px;
+  border-bottom: 1px solid #000;
+  margin: 16px 0 8px 0;
+}
+
+.label-firma {
+  font-size: 11px;
+  text-align: center;
+  color: #333;
+}
+
+/* ---- FOOTER ---- */
+.footer {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid #ccc;
+  text-align: center;
+  font-size: 10px;
+  line-height: 1.6;
+  color: #444;
+}
+
+.footer p {
+  margin-bottom: 6px;
+}
+
+/* ---- TÍTULOS DE SECCIÓN ---- */
+.section-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.section-title-left {
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  text-align: left;
+  border-bottom: 2px solid #2c3e50;
+  padding-bottom: 6px;
+}
+
+.subsection-title {
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 16px;
+  margin-bottom: 10px;
+}
+
+/* ---- LISTAS ---- */
+.lista-clausulas,
+.lista-resolutiva,
+.lista-considerandos {
+  margin-left: 28px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+}
+
+.lista-clausulas li,
+.lista-resolutiva li,
+.lista-considerandos li {
+  margin-bottom: 10px;
+  text-align: justify;
+  line-height: 1.7;
+  padding-left: 6px;
+}
+
+/* ---- PARTES DEL EXPEDIENTE ---- */
+.parte-label {
+  font-weight: bold;
+  margin-top: 14px;
+  margin-bottom: 4px;
+}
+
+.parte-datos {
+  margin-bottom: 12px;
+  line-height: 1.8;
+}
+
+/* ---- PÁRRAFOS ESPECIALES ---- */
+.parrafo-advertencia {
+  background-color: #fff8e1;
+  padding: 12px 14px;
+  border-left: 4px solid #f9a825;
+  margin: 16px 0;
+  font-weight: 500;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+.parrafo-importante {
+  background-color: #e8f0fe;
+  padding: 12px 14px;
+  border-left: 4px solid #1a73e8;
+  margin: 16px 0;
+  font-weight: 500;
+  line-height: 1.8;
+  font-size: 12px;
+}
+
+.parrafo-legal {
+  background-color: #f8f9fa;
+  padding: 12px 14px;
+  border-left: 4px solid #2c3e50;
+  border-radius: 2px;
+  line-height: 1.8;
+  font-size: 12px;
+  margin: 16px 0;
+}
+
+/* ---- BLOQUE CONDICIONAL (apoderado, menor, etc.) ---- */
+/* Marcadores de uso interno para el backend — no afectan impresión */
+.bloque-condicional {
+  /* Se activa/desactiva desde el backend */
+}
+
+/* ---- IMPRESIÓN ---- */
+@media print {
+  body {
+    background-color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  @page {
+    margin: 2cm 2.5cm;
+    size: letter;
+  }
+
+  .footer {
+    border-top: none;
+    color: #444;
+  }
+
+  /* Mantener colores de fondo */
+  .info-table .label-cell,
+  .fechas-table .label-cell-fechas,
+  .tabla-referencia .label-cell {
+    background-color: #f0f0f0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .tabla-referencia thead th {
+    background-color: #2c3e50;
+    color: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .zoom-box {
+    background-color: #f8f9fa;
+    border: 1.5px solid #2c3e50;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .parrafo-advertencia {
+    background-color: #fff8e1;
+    border-left: 4px solid #f9a825;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .parrafo-importante {
+    background-color: #e8f0fe;
+    border-left: 4px solid #1a73e8;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .parrafo-legal {
+    background-color: #f8f9fa;
+    border-left: 4px solid #2c3e50;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Prevenir cortes de página */
+  table {
+    page-break-inside: avoid;
+  }
+
+  .info-table,
+  .fechas-table,
+  .tabla-referencia,
+  .zoom-box {
+    page-break-inside: avoid;
+  }
+
+  .firma-section,
+  .firma-info {
+    page-break-inside: avoid;
+    page-break-before: avoid;
+  }
+
+  .section-title,
+  .section-title-left,
+  .subsection-title {
+    page-break-inside: avoid;
+    page-break-after: avoid;
+  }
+
+  .parrafo-justified,
+  .parrafo-advertencia,
+  .parrafo-importante,
+  .parrafo-legal {
+    page-break-inside: avoid;
+  }
+
+  .lista-clausulas,
+  .lista-resolutiva,
+  .lista-considerandos {
+    page-break-inside: avoid;
+  }
+
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  td,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+}
+
+/* ---- RESPONSIVE TABLET ---- */
+@media screen and (max-width: 768px) {
+  .container {
+    padding: 1.5cm 1cm;
+  }
+
+  .logo-section .logo {
+    max-width: 300px;
+  }
+
+  .firma-section {
+    flex-direction: column;
+    gap: 16px;
+    margin: 32px 0 16px 0;
+  }
+
+  .firma-section .logo-firma,
+  .firma-section .firma-img {
+    max-width: 160px;
+  }
+
+  .info-table .label-cell,
+  .tabla-referencia .label-cell {
+    width: 35%;
+  }
+}
+
+/* ---- RESPONSIVE MÓVIL ---- */
+@media screen and (max-width: 480px) {
+  body {
+    font-size: 11px;
+  }
+
+  .container {
+    padding: 1cm 0.5cm;
+  }
+
+  .logo-section .logo {
+    max-width: 240px;
+  }
+
+  .info-table td,
+  .fechas-table td,
+  .tabla-referencia tbody td {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  .parrafo-justified {
+    font-size: 11px;
+    text-align: left;
+    line-height: 1.7;
+  }
+
+  .footer {
+    font-size: 9px;
+  }
+}
+
+/* ---- PANTALLAS GRANDES ---- */
+@media screen and (min-width: 1200px) {
+  .container {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  }
+
+  body {
+    background-color: #f5f5f5;
+    padding: 20px 0;
+  }
+}
+
+/* ---- ANIMACIÓN ENTRADA ---- */
+@media screen {
+  .container {
+    animation: fadeIn 0.3s ease-in;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* ---- MODO EDICIÓN (hover sobre campos dinámicos) ---- */
+body.edit-mode .info-table td:not(.label-cell):hover,
+body.edit-mode .fechas-table td:not(.label-cell-fechas):hover {
+  background-color: #fffbea;
+  cursor: text;
+}

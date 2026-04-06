@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Desistimiento – Trámite de Conciliación</title>
+    <link rel="stylesheet" href="./CSS/styles-desistimiento-conciliacion.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Título principal -->
+    <p class="titulo-auto">
+        AUTO DESISTIMIENTO TRÁMITE DE CONCILIACIÓN No. {{NUMERO_TRAMITE}}-{{ANO_ACTUAL}}
+    </p>
+
+    <!-- Tabla de referencia del proceso -->
+    <table class="info-table">
+        <tr>
+            <td class="label-cell">CONVOCANTE</td>
+            <td>{{NOMBRE_CONVOCANTE}}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">{{TIPO_ID_CONVOCANTE}}</td>
+            <td>{{ID_CONVOCANTE}}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">CONVOCADO</td>
+            <td>{{NOMBRE_CONVOCADO}}</td>
+        </tr>
+        <tr>
+            <td class="label-cell">{{TIPO_ID_CONVOCADO}}</td>
+            <td>{{ID_CONVOCADO}}</td>
+        </tr>
+    </table>
+
+    <!-- Párrafo introductorio -->
+    <p class="parrafo-intro">
+        El Centro de Conciliación y Arbitraje <strong>CONSTRUCTORES DE PAZ</strong>, aprobado por
+        Resolución 1459 del 05 de septiembre de 2003 del Ministerio de Justicia y del Derecho,
+        autoriza a la Dra. <strong>{{NOMBRE_CONCILIADORA}}</strong> para que lleve a cabo la
+        audiencia solicitada por <strong>{{NOMBRE_CONVOCANTE}}</strong> para convocar a
+        <strong>{{NOMBRE_CONVOCADO}}</strong>, con el fin de conciliar sobre:
+    </p>
+
+    <p class="parrafo-importante">{{ASUNTO}}</p>
+
+    <p class="parrafo-intro">
+        Es recibida solicitud de desistimiento al trámite de conciliación mediante correo
+        electrónico del {{DIA_DESISTIMIENTO}} de {{MES_DESISTIMIENTO}} de {{ANO_DESISTIMIENTO}},
+        por parte de {{TIPO_SOLICITANTE_DESISTIMIENTO}}
+        <!-- {{#if HAS_APODERADO_DESISTIMIENTO}} -->
+        de la parte convocante, la apoderada <strong>{{NOMBRE_APODERADO_DESISTIMIENTO}}</strong>,
+        <!-- {{/if HAS_APODERADO_DESISTIMIENTO}} -->
+        <!-- {{#unless HAS_APODERADO_DESISTIMIENTO}} -->
+        del(la) convocante <strong>{{NOMBRE_CONVOCANTE}}</strong>,
+        <!-- {{/unless HAS_APODERADO_DESISTIMIENTO}} -->
+        por lo tanto:
+    </p>
+
+    <!-- Resuelve -->
+    <p class="titulo-resuelve">RESUELVE</p>
+
+    <ol class="lista-resolutiva">
+        <li>
+            Aceptar el desistimiento del presente trámite de conciliación en derecho.
+        </li>
+        <li>
+            Notificar a las partes de la presente decisión.
+        </li>
+        <li>
+            Realizar las anotaciones correspondientes en el Sicaac.
+        </li>
+    </ol>
+
+    <!-- Notifíquese -->
+    <p class="notifiquese">Notifíquese,</p>
+
+    <!-- Firma de la conciliadora -->
+    <div class="firma-section">
+        <img src="../insolvency/img/Logo construpaz.png" alt="Logo Construpaz" class="logo-firma">
+        <img src="../insolvency/img/firma abogada.png" alt="Firma" class="firma-img">
+    </div>
+
+    <p class="bold text-center conciliadora-nombre">
+        {{NOMBRE_CONCILIADORA}}<br>ABOGADA CONCILIADORA<br>
+        CC. {{CC_CONCILIADORA}}<br>
+        T.P. {{TP_CONCILIADORA}}
+    </p>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia<br>
+        Calle 74 No. 15-80 interior 1 Oficina 308 Bogotá D.C.<br>
+        Cel. 311 811 7520<br>
+        www.constructoresdepaz.com.co<br>
+        contacto@constructoresdepaz.com.co</p>
+        <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
+    </div>
+
+</div>
+</body>
+</html>

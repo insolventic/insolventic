@@ -1,14 +1,17 @@
 /**
  * Document Templates Configuration
- * Defines all 49 templates organized in 5 packages
+ * Defines templates organized by case type and packages
  */
 
 export type PackageNumber = 1 | 2 | 3 | 4 | 5;
+
+export type CaseType = 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT';
 
 export interface DocumentTemplate {
   id: string;
   name: string;
   fileName: string;
+  caseType: CaseType;
   category:
     | 'solicitud'
     | 'admision'
@@ -68,6 +71,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'solicitud-insolvencia',
     name: 'Solicitud de Insolvencia',
     fileName: 'Solicitud de Insolvencia.html',
+    caseType: 'INSOLVENCY',
     category: 'solicitud',
     packageNumber: 1,
     packageName: 'Solicitud',
@@ -82,6 +86,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'certificado-ingresos',
     name: 'Certificado de Ingresos',
     fileName: 'Certificado de Ingresos.html',
+    caseType: 'INSOLVENCY',
     category: 'solicitud',
     packageNumber: 1,
     packageName: 'Solicitud',
@@ -96,6 +101,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'declaracion-juramentada-domicilio',
     name: 'Declaracion Juramentada Domicilio',
     fileName: 'Declaracion Juramentada Domicilio.html',
+    caseType: 'INSOLVENCY',
     category: 'solicitud',
     packageNumber: 1,
     packageName: 'Solicitud',
@@ -110,6 +116,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'check-list',
     name: 'Check List',
     fileName: 'Check List.html',
+    caseType: 'INSOLVENCY',
     category: 'solicitud',
     packageNumber: 1,
     packageName: 'Solicitud',
@@ -124,6 +131,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'cyg-tramite',
     name: 'Calificacion y Graduacion',
     fileName: 'CYG Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'solicitud',
     packageNumber: 1,
     packageName: 'Solicitud',
@@ -138,6 +146,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'inadmision',
     name: 'Inadmision',
     fileName: 'Inadmision Cuando no Cumple con los Requisitos.html',
+    caseType: 'INSOLVENCY',
     category: 'solicitud',
     packageNumber: 1,
     packageName: 'Solicitud',
@@ -156,6 +165,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'auto-admision',
     name: 'Auto Admision del Tramite',
     fileName: 'Auto admision del tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -170,6 +180,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'designacion-conciliador',
     name: 'Designacion del Conciliador',
     fileName: 'Designacion del Conciliador.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -184,6 +195,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'aceptacion-cargo',
     name: 'Aceptacion del Cargo del Conciliador',
     fileName: 'Aceptacion del Cargo del Conciliador.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -198,6 +210,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'edicto-emplazatorio',
     name: 'Edicto Emplazatorio',
     fileName: 'Edicto Emplazatorio Publicacion en periodico.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -212,6 +225,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'notificacion-acreedores',
     name: 'Notificacion a los Acreedores',
     fileName: 'Notificacion a los Acreedores.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -226,6 +240,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'suspension-juzgados',
     name: 'Suspension Juzgados',
     fileName: 'Suspension Juzgados Procesos Judiciales.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -240,6 +255,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'envio-pagador-suspension',
     name: 'Envio Pagador Suspension',
     fileName: 'Formato Envio Pagador Para Suspension de Pagos.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -254,6 +270,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'restablecimiento-servicios',
     name: 'Restablecimiento de Servicios Publicos',
     fileName: 'Restablecimiento de Servicios Publicos.html',
+    caseType: 'INSOLVENCY',
     category: 'admision',
     packageNumber: 2,
     packageName: 'Admisión y Apertura',
@@ -273,6 +290,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'tramite-audiencia',
     name: 'Tramite Audiencia',
     fileName: 'Tramite Audiencia.html',
+    caseType: 'INSOLVENCY',
     category: 'audiencia',
     packageNumber: 3,
     packageName: 'Negociación y Acuerdo',
@@ -287,6 +305,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'sentido-voto',
     name: 'Sentido del Voto',
     fileName: 'Sentido Del Voto.html',
+    caseType: 'INSOLVENCY',
     category: 'audiencia',
     packageNumber: 3,
     packageName: 'Negociación y Acuerdo',
@@ -301,6 +320,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'acuerdo-pago',
     name: 'Acuerdo de Pago',
     fileName: 'Acuerdo de Pago Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'acuerdo',
     packageNumber: 3,
     packageName: 'Negociación y Acuerdo',
@@ -315,6 +335,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'acuerdo-bilateral',
     name: 'Acuerdo Bilateral',
     fileName: 'Acuerdo Bilateral Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'acuerdo',
     packageNumber: 3,
     packageName: 'Negociación y Acuerdo',
@@ -329,6 +350,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'solicitud-reforma',
     name: 'Auto Solicitud Reforma del Acuerdo',
     fileName: 'Auto Solicitud Reforma del Acuerdo.html',
+    caseType: 'INSOLVENCY',
     category: 'acuerdo',
     packageNumber: 3,
     packageName: 'Negociación y Acuerdo',
@@ -343,6 +365,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'reforma-acuerdo',
     name: 'Reforma Acuerdo de Pago',
     fileName: 'Reforma Acuerdo de Pago Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'acuerdo',
     packageNumber: 3,
     packageName: 'Negociación y Acuerdo',
@@ -361,6 +384,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'desistimiento',
     name: 'Auto Desistimiento',
     fileName: 'Auto Desistimiento.html',
+    caseType: 'INSOLVENCY',
     category: 'otros',
     packageNumber: 4,
     packageName: 'Terminación Normal',
@@ -376,6 +400,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     name: 'Remision Resultado',
     fileName:
       'Remision Resultado de la Negociacion Cuando Termina Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'otros',
     packageNumber: 4,
     packageName: 'Terminación Normal',
@@ -390,6 +415,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'hoja-guia',
     name: 'Hoja Guia',
     fileName: 'Hoja Guia con el final.html',
+    caseType: 'INSOLVENCY',
     category: 'otros',
     packageNumber: 4,
     packageName: 'Terminación Normal',
@@ -410,6 +436,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-acuerdo-bilateral',
     name: 'Fracaso por Acuerdo Bilateral',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -425,6 +452,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-acuerdo-bilateral',
     name: 'Remision Juzgado - Acuerdo Bilateral',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -442,6 +470,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-falta-pago-gastos',
     name: 'Fracaso por Falta de Pago de Gastos',
     fileName: 'FRACASO POR FALTA DE PAGO DE GASTOS DE ADMINISTRACION.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -457,6 +486,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-falta-pago-gastos',
     name: 'Remision Juzgado - Falta Pago Gastos',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -474,6 +504,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-impugnacion',
     name: 'Fracaso por Impugnacion',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -489,6 +520,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-impugnacion',
     name: 'Remision Juzgado - Impugnacion',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -506,6 +538,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-inasistencia-vencimiento',
     name: 'Fracaso por Inasistencia y Vencimiento',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -524,6 +557,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-inasistencia-vencimiento',
     name: 'Remision Juzgado - Inasistencia y Vencimiento',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -545,6 +579,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-inasistencia-animo',
     name: 'Fracaso por Inasistencia y Animo de Conciliar',
     fileName: 'Fracaso tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -563,6 +598,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-inasistencia-animo',
     name: 'Remision Juzgado - Inasistencia Animo Conciliar',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -583,6 +619,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-incumplimiento',
     name: 'Fracaso por Incumplimiento',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -598,6 +635,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-incumplimiento',
     name: 'Remision Juzgado - Incumplimiento',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -615,6 +653,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-muerte-deudor',
     name: 'Fracaso por Muerte del Deudor',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -630,6 +669,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-muerte-deudor',
     name: 'Remision Juzgado - Muerte del Deudor',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -647,6 +687,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-propuesta-mala',
     name: 'Fracaso por Propuesta Inadecuada',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -662,6 +703,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-propuesta-mala',
     name: 'Remision Juzgado - Propuesta Inadecuada',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -679,6 +721,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-propuesta-vencimiento',
     name: 'Fracaso por Propuesta y Vencimiento',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -697,6 +740,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-propuesta-vencimiento',
     name: 'Remision Juzgado - Propuesta y Vencimiento',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -718,6 +762,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-propuesta-quorum',
     name: 'Fracaso por Propuesta y Quorum',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -733,6 +778,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-propuesta-quorum',
     name: 'Remision Juzgado - Propuesta y Quorum',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -750,6 +796,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-reforma-acuerdo',
     name: 'Fracaso por Reforma del Acuerdo',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -765,6 +812,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-reforma-acuerdo',
     name: 'Remision Juzgado - Reforma del Acuerdo',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -782,6 +830,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'fracaso-vencimiento-terminos',
     name: 'Fracaso por Vencimiento de Terminos',
     fileName: 'Fracaso Tramite.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -797,6 +846,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'remision-juzgado-vencimiento-terminos',
     name: 'Remision Juzgado - Vencimiento de Terminos',
     fileName: 'Remision Juzgado F.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -814,6 +864,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'suspension-garantia-mobiliaria',
     name: 'Suspension Garantia Mobiliaria',
     fileName: 'Suspension Procesos Garantia Mobiliaria.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -828,6 +879,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'solicitud-incumplimiento',
     name: 'Solicitud por Incumplimiento',
     fileName: 'Auto Solicitud por Incumplimiento.html',
+    caseType: 'INSOLVENCY',
     category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -842,6 +894,7 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     id: 'rechazo-inasistencia',
     name: 'Cierre por Inasistencia',
     fileName: 'Auto Cierre Tramite por Inasistencia del Deudor.html',
+    caseType: 'INSOLVENCY',
     category: 'rechazo',
     packageNumber: 5,
     packageName: 'Fracaso',
@@ -851,6 +904,209 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     generateOnFailure: false,
     folderPath: ['Tipos de Rechazo'],
     description: 'Auto de cierre por inasistencia del deudor',
+  },
+
+  // =============================================
+  // CONCILIACIÓN — PAQUETE 1: SOLICITUD (1 documento)
+  // =============================================
+  {
+    id: 'conc-solicitud',
+    name: 'Solicitud de Audiencia de Conciliación',
+    fileName: 'Solicitud de Audiencia de Conciliacion.html',
+    caseType: 'CONCILIATION',
+    category: 'solicitud',
+    packageNumber: 1,
+    packageName: 'Solicitud',
+    generateOnCreate: true,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: false,
+    folderPath: [],
+    description: 'Solicitud de audiencia de conciliación extrajudicial',
+  },
+
+  // =============================================
+  // CONCILIACIÓN — PAQUETE 2: CITACIÓN (1 documento)
+  // =============================================
+  {
+    id: 'conc-notificacion-convocatoria',
+    name: 'Notificación de Convocatoria',
+    fileName: 'Notificacion de Convocatoria.html',
+    caseType: 'CONCILIATION',
+    category: 'admision',
+    packageNumber: 2,
+    packageName: 'Citación',
+    generateOnCreate: false,
+    generateOnAdmission: true,
+    generateOnAgreement: false,
+    generateOnFailure: false,
+    folderPath: [],
+    description: 'Citación a audiencia de conciliación',
+  },
+
+  // =============================================
+  // CONCILIACIÓN — PAQUETE 3: ACTAS (5 documentos)
+  // =============================================
+  {
+    id: 'conc-acta-general',
+    name: 'Acta General de Conciliación',
+    fileName: 'Acta General.html',
+    caseType: 'CONCILIATION',
+    category: 'acuerdo',
+    packageNumber: 3,
+    packageName: 'Actas de Conciliación',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: true,
+    generateOnFailure: false,
+    folderPath: ['Actas de Conciliacion'],
+    description: 'Acta de conciliación general',
+  },
+  {
+    id: 'conc-acta-alimentos',
+    name: 'Acta de Alimentos',
+    fileName: 'Acta Alimentos.html',
+    caseType: 'CONCILIATION',
+    category: 'acuerdo',
+    packageNumber: 3,
+    packageName: 'Actas de Conciliación',
+    subPackage: 'Alimentos',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: true,
+    generateOnFailure: false,
+    folderPath: ['Actas de Conciliacion'],
+    description: 'Acta de conciliación en materia de alimentos',
+  },
+  {
+    id: 'conc-acta-disolucion-union',
+    name: 'Acta Disolución Unión Marital',
+    fileName: 'Acta Disolucion Union Marital.html',
+    caseType: 'CONCILIATION',
+    category: 'acuerdo',
+    packageNumber: 3,
+    packageName: 'Actas de Conciliación',
+    subPackage: 'Unión Marital',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: true,
+    generateOnFailure: false,
+    folderPath: ['Actas de Conciliacion'],
+    description: 'Acta de disolución de unión marital de hecho',
+  },
+  {
+    id: 'conc-acta-union-marital',
+    name: 'Acta Unión Marital',
+    fileName: 'Acta Union Marital.html',
+    caseType: 'CONCILIATION',
+    category: 'acuerdo',
+    packageNumber: 3,
+    packageName: 'Actas de Conciliación',
+    subPackage: 'Unión Marital',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: true,
+    generateOnFailure: false,
+    folderPath: ['Actas de Conciliacion'],
+    description: 'Acta de declaración de unión marital de hecho',
+  },
+  {
+    id: 'conc-aclaracion-acta',
+    name: 'Aclaración de Acta',
+    fileName: 'Aclaracion Acta de Conciliacion.html',
+    caseType: 'CONCILIATION',
+    category: 'acuerdo',
+    packageNumber: 3,
+    packageName: 'Actas de Conciliación',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: false,
+    folderPath: [],
+    description: 'Aclaración o corrección de acta de conciliación',
+  },
+
+  // =============================================
+  // CONCILIACIÓN — PAQUETE 4: CONSTANCIAS Y TERMINACIÓN (4 documentos)
+  // =============================================
+  {
+    id: 'conc-constancia-inasistencia',
+    name: 'Constancia de Inasistencia',
+    fileName: 'Constancia Inasistencia.html',
+    caseType: 'CONCILIATION',
+    category: 'fracaso',
+    packageNumber: 4,
+    packageName: 'Constancias',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: true,
+    folderPath: ['Constancias de Fracaso'],
+    description: 'Constancia de no comparecencia a audiencia',
+  },
+  {
+    id: 'conc-constancia-no-acuerdo',
+    name: 'Constancia de No Acuerdo',
+    fileName: 'Constancia No Acuerdo.html',
+    caseType: 'CONCILIATION',
+    category: 'fracaso',
+    packageNumber: 4,
+    packageName: 'Constancias',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: true,
+    folderPath: ['Constancias de Fracaso'],
+    description: 'Constancia de audiencia sin acuerdo',
+  },
+  {
+    id: 'conc-informe-conciliador',
+    name: 'Informe del Conciliador',
+    fileName: 'Informe Conciliador.html',
+    caseType: 'CONCILIATION',
+    category: 'otros',
+    packageNumber: 4,
+    packageName: 'Constancias',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: true,
+    folderPath: [],
+    description: 'Informe final del conciliador al centro',
+  },
+  {
+    id: 'conc-terminacion-anormal',
+    name: 'Terminación Anormal',
+    fileName: 'Terminacion Anormal.html',
+    caseType: 'CONCILIATION',
+    category: 'otros',
+    packageNumber: 4,
+    packageName: 'Constancias',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: true,
+    folderPath: [],
+    description: 'Constancia de terminación anormal del trámite',
+  },
+
+  // =============================================
+  // CONCILIACIÓN — PAQUETE 5: DESISTIMIENTO (1 documento)
+  // =============================================
+  {
+    id: 'conc-desistimiento',
+    name: 'Auto Desistimiento Conciliación',
+    fileName: 'Auto Desistimiento Conciliacion.html',
+    caseType: 'CONCILIATION',
+    category: 'otros',
+    packageNumber: 5,
+    packageName: 'Desistimiento',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: false,
+    folderPath: [],
+    description: 'Auto de desistimiento del trámite de conciliación',
   },
 ];
 
@@ -917,22 +1173,37 @@ export function getPackageInfo(): Array<{
 // LIFECYCLE-BASED QUERY FUNCTIONS (backward-compatible)
 // =============================================
 
-export function getTemplatesForCaseCreation(): DocumentTemplate[] {
-  return ALL_TEMPLATES.filter((t) => t.generateOnCreate);
+export function getTemplatesForCaseCreation(
+  caseType: CaseType = 'INSOLVENCY',
+): DocumentTemplate[] {
+  return ALL_TEMPLATES.filter(
+    (t) => t.generateOnCreate && t.caseType === caseType,
+  );
 }
 
-export function getTemplatesForAdmission(): DocumentTemplate[] {
-  return ALL_TEMPLATES.filter((t) => t.generateOnAdmission);
+export function getTemplatesForAdmission(
+  caseType: CaseType = 'INSOLVENCY',
+): DocumentTemplate[] {
+  return ALL_TEMPLATES.filter(
+    (t) => t.generateOnAdmission && t.caseType === caseType,
+  );
 }
 
-export function getTemplatesForAgreement(): DocumentTemplate[] {
-  return ALL_TEMPLATES.filter((t) => t.generateOnAgreement);
+export function getTemplatesForAgreement(
+  caseType: CaseType = 'INSOLVENCY',
+): DocumentTemplate[] {
+  return ALL_TEMPLATES.filter(
+    (t) => t.generateOnAgreement && t.caseType === caseType,
+  );
 }
 
 export function getTemplatesForFailure(
   failureType?: string,
+  caseType: CaseType = 'INSOLVENCY',
 ): DocumentTemplate[] {
-  const failureTemplates = ALL_TEMPLATES.filter((t) => t.generateOnFailure);
+  const failureTemplates = ALL_TEMPLATES.filter(
+    (t) => t.generateOnFailure && t.caseType === caseType,
+  );
 
   if (!failureType) {
     return failureTemplates;
@@ -1045,18 +1316,30 @@ export function getAllTemplates(): DocumentTemplate[] {
 }
 
 /**
- * Base path to HTML templates folder
+ * Base path to HTML templates folder, keyed by case type
  */
-export const TEMPLATES_BASE_PATH = 'templates/insolvency';
+const TEMPLATES_BASE_PATHS: Record<CaseType, string> = {
+  INSOLVENCY: 'templates/insolvency',
+  CONCILIATION: 'templates/conciliation',
+  SUPPORT_AGREEMENT: 'templates/support-agreements',
+};
+
+/** @deprecated Use getTemplatePath(template) which resolves caseType automatically */
+export const TEMPLATES_BASE_PATH = TEMPLATES_BASE_PATHS.INSOLVENCY;
 
 /**
  * Get full path to template file
  */
 export function getTemplatePath(template: DocumentTemplate): string {
-  const parts = [
-    TEMPLATES_BASE_PATH,
-    ...template.folderPath,
-    template.fileName,
-  ];
+  const basePath =
+    TEMPLATES_BASE_PATHS[template.caseType] || TEMPLATES_BASE_PATHS.INSOLVENCY;
+  const parts = [basePath, ...template.folderPath, template.fileName];
   return parts.join('/');
+}
+
+/**
+ * Get templates filtered by case type
+ */
+export function getTemplatesByCaseType(caseType: CaseType): DocumentTemplate[] {
+  return ALL_TEMPLATES.filter((t) => t.caseType === caseType);
 }
