@@ -312,6 +312,12 @@ model Case {
   concClausulaPrimeroAlimentos         String?   @map("conc_clausula_primero_alimentos") @db.Text
   concClausulaSegundoAlimentos         String?   @map("conc_clausula_segundo_alimentos") @db.Text
   concClausulaTerceroAlimentos         String?   @map("conc_clausula_tercero_alimentos") @db.Text
+  concNombreMenor                      String?   @map("conc_nombre_menor")
+  // Cláusulas adicionales (texto libre — modelo simple, multi-cláusula = futuro)
+  concNumeroClausula                   String?   @map("conc_numero_clausula")
+  concTextoClausula                    String?   @map("conc_texto_clausula") @db.Text
+  concNumeroClausulaAdicional          String?   @map("conc_numero_clausula_adicional")
+  concTextoClausulaAdicional           String?   @map("conc_texto_clausula_adicional") @db.Text
   // Situacion bienes/alimentos
   concSituacionBienes                  String?   @map("conc_situacion_bienes") @db.Text
   concSituacionAlimentos               String?   @map("conc_situacion_alimentos") @db.Text

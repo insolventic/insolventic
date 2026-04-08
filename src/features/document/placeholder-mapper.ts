@@ -2025,6 +2025,15 @@ function mapConciliationFields(caseData: CaseWithRelations): PlaceholderMap {
     CLAUSULA_PRIMERO_ALIMENTOS: clausulaPrimero,
     CLAUSULA_SEGUNDO_ALIMENTOS: clausulaSegundo,
     CLAUSULA_TERCERO_ALIMENTOS: clausulaTercero,
+    NOMBRE_MENOR: (raw.concNombreMenor as string) || '________________',
+    NOMBRE_MENOR_UNION: (raw.concNombreMenor as string) || '________________',
+
+    // Cláusulas adicionales (texto libre — modelo simple, multi-cláusula = futuro)
+    NUMERO_CLAUSULA: (raw.concNumeroClausula as string) || 'CUARTO',
+    TEXTO_CLAUSULA: (raw.concTextoClausula as string) || '',
+    NUMERO_CLAUSULA_ADICIONAL:
+      (raw.concNumeroClausulaAdicional as string) || 'CUARTO',
+    TEXTO_CLAUSULA_ADICIONAL: (raw.concTextoClausulaAdicional as string) || '',
 
     // Union marital
     DIA_INICIO_UNION: (raw.concDiaInicioUnion as string) || '____',
