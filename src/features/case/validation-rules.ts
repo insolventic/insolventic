@@ -558,6 +558,11 @@ export const OPTIONAL_DOCUMENTS = [
 export function getRequiredDocuments(
   caseData: Partial<CreateCaseFormInput>,
 ): string[] {
+  // Conciliation cases follow a different document workflow — no obligatory
+  // uploads at creation time. Documents are produced by the conciliation
+  // pipeline (Solicitud, Notificación, Acta, etc.).
+  if (caseData.type === 'CONCILIATION') return [];
+
   const required = REQUIRED_DOCUMENTS.map((d) => d.id);
 
   const assets = (caseData.assets || []) as Array<{

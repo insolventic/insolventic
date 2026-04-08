@@ -65,10 +65,14 @@ import { ApoderadoSection } from './create-case-dialog/apoderado-section';
 import { ConciliationPartiesSection } from './create-case-dialog/conciliation-parties-section';
 import { ConciliationDetailsSection } from './create-case-dialog/conciliation-details-section';
 
+type CaseTypeChoice = 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT';
+
 interface CreateCaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCaseCreated?: () => void;
+  /** Pre-selects the case type when the dialog opens. Defaults to INSOLVENCY. */
+  initialType?: CaseTypeChoice;
 }
 
 const INSOLVENCY_TABS = [
@@ -197,6 +201,7 @@ export function CreateCaseDialog({
   open,
   onOpenChange,
   onCaseCreated,
+  initialType = 'INSOLVENCY',
 }: Readonly<CreateCaseDialogProps>) {
   const [dataLoading, setDataLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(TAB_ORDER[0]);
@@ -218,8 +223,9 @@ export function CreateCaseDialog({
     resolver: zodResolver(createCaseFormSchema),
     defaultValues: {
       debtorId: '',
-      type: 'INSOLVENCY' as const,
-      totalDebt: '',
+      type: initialType,
+      // Conciliation cases don't track a debt amount; satisfy required schema with 0.
+      totalDebt: initialType === 'CONCILIATION' ? '0' : '',
       creditors: 1,
       operatorId: '',
       causes: [],
@@ -272,11 +278,12 @@ export function CreateCaseDialog({
 
   useEffect(() => {
     if (open) {
+      // First tab is always 'debtor' for any case type — keep INSOLVENCY tab key.
       setActiveTab(TAB_ORDER[0]);
       form.reset({
         debtorId: '',
-        type: 'INSOLVENCY' as const,
-        totalDebt: '',
+        type: initialType,
+        totalDebt: initialType === 'CONCILIATION' ? '0' : '',
         creditors: 1,
         operatorId: '',
         causes: [],
@@ -392,7 +399,7 @@ export function CreateCaseDialog({
       };
       void loadData();
     }
-  }, [open, form]);
+  }, [open, form, initialType]);
 
   useEffect(() => {
     if (!showCreateDebtorDialog && open) {

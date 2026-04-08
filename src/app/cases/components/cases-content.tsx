@@ -69,9 +69,19 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   const [selectedCaseWithRelations, setSelectedCaseWithRelations] =
     useState<CaseWithRelations | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createDialogType, setCreateDialogType] = useState<
+    'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT'
+  >('INSOLVENCY');
   const [showComingSoonDialog, setShowComingSoonDialog] = useState<
     'conciliation' | 'support_agreement' | null
   >(null);
+
+  const openCreateDialog = (
+    type: 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT',
+  ) => {
+    setCreateDialogType(type);
+    setShowCreateDialog(true);
+  };
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -197,14 +207,14 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem
-                  onClick={() => setShowCreateDialog(true)}
+                  onClick={() => openCreateDialog('INSOLVENCY')}
                   className="cursor-pointer"
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   Insolvencia
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setShowComingSoonDialog('conciliation')}
+                  onClick={() => openCreateDialog('CONCILIATION')}
                   className="cursor-pointer"
                 >
                   <Handshake className="mr-2 h-4 w-4" />
@@ -267,6 +277,7 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
         open={showCreateDialog}
         onOpenChange={handleCreateDialogChange}
         onCaseCreated={handleCaseCreated}
+        initialType={createDialogType}
       />
 
       {selectedCase && (
