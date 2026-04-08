@@ -1380,6 +1380,7 @@ export async function uploadCaseDocuments(input: {
           fileName: safeFileName,
           mimeType: d.mimeType,
           isGenerated: false,
+          section: 'ADJUNTO',
           templateFolderPath: [adjuntosFolderName],
           caseId: caseId,
           tenantId,

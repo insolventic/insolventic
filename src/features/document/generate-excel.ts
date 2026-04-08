@@ -439,7 +439,61 @@ function buildIngresosGastos(
 }
 
 /**
- * Generate consolidated Excel workbook for a case
+ * Build "Partes Conciliación" sheet (only for CONCILIATION cases)
+ */
+function buildPartesConciliacion(
+  workbook: ExcelJS.Workbook,
+  caseData: CaseWithRelations,
+) {
+  const sheet = workbook.addWorksheet('Partes');
+  sheet.columns = [{ width: 32 }, { width: 50 }];
+  const c = caseData as unknown as Record<string, unknown>;
+
+  const rows: [string, string][] = [
+    ['CONVOCANTE', ''],
+    ['Nombre', String(caseData.debtor?.name ?? '')],
+    ['Identificación', String(caseData.debtor?.idNumber ?? '')],
+    ['', ''],
+    ['CONVOCADO', ''],
+    ['Nombre', String(c.concConvocadoName ?? '')],
+    ['Tipo ID', String(c.concConvocadoTipoId ?? '')],
+    ['Identificación', String(c.concConvocadoIdentificacion ?? '')],
+    ['Dirección', String(c.concConvocadoDireccion ?? '')],
+    ['Ciudad', String(c.concConvocadoCiudad ?? '')],
+    ['Email', String(c.concConvocadoEmail ?? '')],
+    ['Teléfono', String(c.concConvocadoTelefono ?? '')],
+  ];
+  rows.forEach((r) => sheet.addRow(r));
+  formatCellBorders(sheet);
+}
+
+/**
+ * Build "Asunto y Acuerdo" sheet for conciliation cases
+ */
+function buildAsuntoConciliacion(
+  workbook: ExcelJS.Workbook,
+  caseData: CaseWithRelations,
+) {
+  const sheet = workbook.addWorksheet('Asunto');
+  sheet.columns = [{ width: 32 }, { width: 70 }];
+  const c = caseData as unknown as Record<string, unknown>;
+
+  const rows: [string, string][] = [
+    ['Asunto', String(c.concAsunto ?? '')],
+    ['Cuantía', String(c.concCuantia ?? '')],
+    ['Hechos', String(c.concDescripcionHechos ?? '')],
+    ['Pretensiones', String(c.concPretensiones ?? '')],
+    ['Pruebas', String(c.concRelacionPruebas ?? '')],
+  ];
+  rows.forEach((r) => {
+    const row = sheet.addRow(r);
+    row.getCell(2).alignment = { wrapText: true, vertical: 'top' };
+  });
+  formatCellBorders(sheet);
+}
+
+/**
+ * Generate consolidated Excel workbook for a case (case-type aware)
  */
 export async function generateExcelForCase(
   caseData: CaseWithRelations,
@@ -448,10 +502,18 @@ export async function generateExcelForCase(
   workbook.creator = 'Insolventic';
   workbook.created = new Date();
 
+  const caseType = (caseData as { type?: string }).type ?? 'INSOLVENCY';
+
   buildDatosGenerales(workbook, caseData);
-  buildAcreedores(workbook, caseData);
-  buildBienes(workbook, caseData);
-  buildIngresosGastos(workbook, caseData);
+
+  if (caseType === 'CONCILIATION') {
+    buildPartesConciliacion(workbook, caseData);
+    buildAsuntoConciliacion(workbook, caseData);
+  } else {
+    buildAcreedores(workbook, caseData);
+    buildBienes(workbook, caseData);
+    buildIngresosGastos(workbook, caseData);
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
@@ -469,7 +531,14 @@ export async function generateAndUploadExcel(
   fileName: string;
 }> {
   const buffer = await generateExcelForCase(caseData);
-  const fileName = `Consolidado - ${caseData.debtor.name}.xlsx`;
+  const caseType = (caseData as { type?: string }).type ?? 'INSOLVENCY';
+  const label =
+    caseType === 'CONCILIATION'
+      ? 'Conciliación'
+      : caseType === 'SUPPORT_AGREEMENT'
+        ? 'Acuerdo de Apoyo'
+        : 'Insolvencia';
+  const fileName = `Consolidado ${label} - ${caseData.debtor.name}.xlsx`;
 
   const googleDriveId = await googleDriveService.uploadFile(
     fileName,

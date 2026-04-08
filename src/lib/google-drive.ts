@@ -208,6 +208,36 @@ class GoogleDriveService {
     }
   }
 
+  /**
+   * Move a file/folder to a new parent. Optionally rename it.
+   * Uses Drive's `addParents` / `removeParents` to swap parents atomically.
+   */
+  async moveFile(
+    fileId: string,
+    newParentId: string,
+    newName?: string,
+  ): Promise<void> {
+    try {
+      // Fetch current parents so we can detach them in the same call.
+      const meta = await this.drive.files.get({
+        fileId,
+        fields: 'parents',
+      });
+      const previousParents = (meta.data.parents ?? []).join(',');
+
+      await this.drive.files.update({
+        fileId,
+        addParents: newParentId,
+        removeParents: previousParents || undefined,
+        requestBody: newName ? { name: newName } : undefined,
+        fields: 'id, parents',
+      });
+    } catch (error) {
+      console.error('Error moviendo archivo en Google Drive:', error);
+      throw new Error('Error al mover archivo en Google Drive');
+    }
+  }
+
   getFileUrl(fileId: string): string {
     return `https://drive.google.com/file/d/${fileId}/view`;
   }

@@ -312,8 +312,19 @@ export async function createCase(
 
     let finalCaseNumber = caseNumber;
     if (!finalCaseNumber) {
+      // Service-specific prefix so case numbers are visually distinguishable.
+      const caseTypeForNumber =
+        (rest as { type?: string }).type ?? 'INSOLVENCY';
+      const prefix =
+        caseTypeForNumber === 'CONCILIATION'
+          ? 'CONC'
+          : caseTypeForNumber === 'SUPPORT_AGREEMENT'
+            ? 'APOYO'
+            : 'INSOL';
+
+      // Last case of the SAME prefix — sequences are independent per service.
       const lastCase = await prisma.case.findFirst({
-        where: { tenantId },
+        where: { tenantId, caseNumber: { startsWith: `${prefix}-` } },
         orderBy: { createdDate: 'desc' },
         select: { caseNumber: true },
       });
@@ -321,7 +332,7 @@ export async function createCase(
       const lastNumber = lastCase?.caseNumber
         ? parseInt(lastCase.caseNumber.split('-')[1]) || 0
         : 0;
-      finalCaseNumber = `CASO-${(lastNumber + 1).toString().padStart(6, '0')}`;
+      finalCaseNumber = `${prefix}-${(lastNumber + 1).toString().padStart(6, '0')}`;
     }
 
     const debtor = await prisma.debtor.findUnique({

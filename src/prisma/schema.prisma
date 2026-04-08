@@ -43,6 +43,25 @@ model Tenant {
   procesosJudiciales  ProcesoJudicial[]
   auditLogs           AuditLog[]
   payments            Payment[]
+  conciliationCenters ConciliationCenter[]
+}
+
+/// Centro de Conciliación — escalable, reemplaza el mapping hard-coded.
+/// El driveFolderName es la ruta de carpeta L2 dentro de Drive.
+model ConciliationCenter {
+  id              String   @id @default(cuid())
+  tenantId        String
+  code            String   // identificador estable, ej. "armonia"
+  displayName     String
+  driveFolderName String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, code])
+  @@index([tenantId, isActive])
 }
 
 model Case {
@@ -386,6 +405,14 @@ model Document {
   mimeType           String?
   isGenerated        Boolean           @default(false)
   templateFolderPath String[]          @default([])
+  // Sectioned-layout (v1) classification: GENERADO | ADJUNTO | EVIDENCIA | HISTORIAL
+  section            String?           @map("section")
+  // Versioning: when a generated doc is regenerated, the previous one is archived and points here.
+  supersededById     String?           @map("superseded_by_id")
+  supersededBy       Document?         @relation("DocumentVersion", fields: [supersededById], references: [id], onDelete: SetNull)
+  supersedes         Document[]        @relation("DocumentVersion")
+
+  @@index([caseId, section])
 }
 
 model DocumentTemplate {

@@ -337,44 +337,94 @@ export async function exportCasesToExcel(
 
     const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Casos');
+    workbook.creator = 'Insolventic';
+    workbook.created = new Date();
 
-    sheet.columns = [
-      { header: 'Caso', key: 'caseNumber', width: 15 },
-      { header: 'Deudor / Solicitante', key: 'debtorName', width: 30 },
+    const COLUMNS = [
+      { header: 'Caso', key: 'caseNumber', width: 18 },
+      { header: 'Deudor / Solicitante', key: 'debtorName', width: 32 },
       { header: 'Servicio', key: 'type', width: 22 },
-      { header: 'Fase', key: 'phase', width: 20 },
+      { header: 'Fase', key: 'phase', width: 22 },
       { header: 'Monto', key: 'totalDebt', width: 18 },
-      { header: 'Partes', key: 'creditors', width: 12 },
+      { header: 'Partes', key: 'creditors', width: 10 },
       { header: 'Ciudad', key: 'city', width: 18 },
       { header: 'Fecha Creación', key: 'createdDate', width: 16 },
       { header: 'Audiencia', key: 'hearingDate', width: 16 },
     ];
 
-    // Style header
-    const headerRow = sheet.getRow(1);
-    headerRow.font = { bold: true };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF1F2937' },
+    type WorksheetT = ReturnType<typeof workbook.addWorksheet>;
+    const styleHeader = (sheet: WorksheetT) => {
+      const h = sheet.getRow(1);
+      h.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      h.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1F4E79' },
+      };
+      h.alignment = { horizontal: 'center', vertical: 'middle' };
+      h.height = 24;
     };
-    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
 
+    // ---------- Sheets per service type ----------
+    const SERVICE_SHEETS: Array<{ key: string; name: string }> = [
+      { key: 'INSOLVENCY', name: 'Insolvencia' },
+      { key: 'CONCILIATION', name: 'Conciliación' },
+      { key: 'SUPPORT_AGREEMENT', name: 'Acuerdos de Apoyo' },
+    ];
+
+    const grouped: Record<string, typeof cases> = {};
     for (const c of cases) {
-      sheet.addRow({
-        caseNumber: c.caseNumber,
-        debtorName: c.debtorName,
-        type: TYPE_MAP[c.type] ?? c.type,
-        phase: c.phase ?? 'Inicial',
-        totalDebt: Number(c.totalDebt),
-        creditors: c.creditors,
-        city: c.city ?? '',
-        createdDate: c.createdDate.toLocaleDateString('es-CO'),
-        hearingDate: c.hearingDate
-          ? c.hearingDate.toLocaleDateString('es-CO')
-          : '',
-      });
+      const k = c.type ?? 'INSOLVENCY';
+      (grouped[k] ||= []).push(c);
+    }
+
+    // Summary sheet first
+    const summary = workbook.addWorksheet('Resumen');
+    summary.columns = [
+      { header: 'Servicio', key: 'service', width: 28 },
+      { header: 'Casos', key: 'count', width: 12 },
+      { header: 'Monto Total', key: 'amount', width: 22 },
+    ];
+    styleHeader(summary);
+    let totalCount = 0;
+    let totalAmount = 0;
+    for (const s of SERVICE_SHEETS) {
+      const list = grouped[s.key] ?? [];
+      const amount = list.reduce((acc, c) => acc + Number(c.totalDebt ?? 0), 0);
+      summary.addRow({ service: s.name, count: list.length, amount });
+      totalCount += list.length;
+      totalAmount += amount;
+    }
+    const totalRow = summary.addRow({
+      service: 'TOTAL',
+      count: totalCount,
+      amount: totalAmount,
+    });
+    totalRow.font = { bold: true };
+    summary.getColumn('amount').numFmt = '"$"#,##0';
+
+    // One sheet per service
+    for (const s of SERVICE_SHEETS) {
+      const list = grouped[s.key] ?? [];
+      const sheet = workbook.addWorksheet(s.name);
+      sheet.columns = COLUMNS;
+      styleHeader(sheet);
+      for (const c of list) {
+        sheet.addRow({
+          caseNumber: c.caseNumber,
+          debtorName: c.debtorName,
+          type: TYPE_MAP[c.type] ?? c.type,
+          phase: c.phase ?? 'Inicial',
+          totalDebt: Number(c.totalDebt),
+          creditors: c.creditors,
+          city: c.city ?? '',
+          createdDate: c.createdDate.toLocaleDateString('es-CO'),
+          hearingDate: c.hearingDate
+            ? c.hearingDate.toLocaleDateString('es-CO')
+            : '',
+        });
+      }
+      sheet.getColumn('totalDebt').numFmt = '"$"#,##0';
     }
 
     const buffer = await workbook.xlsx.writeBuffer();
