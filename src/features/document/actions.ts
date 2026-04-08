@@ -1300,7 +1300,13 @@ export async function uploadCaseDocuments(input: {
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
-      select: { caseNumber: true, id: true, centroConciliacionNombre: true },
+      select: {
+        caseNumber: true,
+        id: true,
+        centroConciliacionNombre: true,
+        driveFolderId: true,
+        layoutVersion: true,
+      },
     });
 
     if (!caseData) {
@@ -1317,36 +1323,35 @@ export async function uploadCaseDocuments(input: {
     // on the case query above. The resolveCenterFolderName function uses the
     // authoritative tenant→center mapping, so the folder is always correct.
 
-    // Ensure folder hierarchy: documentos-generados/{center}/{caseNumber}/
-    const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
+    let caseFolderId: string;
 
-    // Get or create center subfolder
-    const centerFolderId = await googleDriveService.createFolderHierarchy(
-      [centerFolderName],
-      docGenFolderId,
-    );
-
-    // Get or create case folder inside center
-    const caseFolderId = await googleDriveService.findOrCreateCaseFolder(
-      caseData.caseNumber,
-      centerFolderId,
-    );
-
-    // Update case.driveFolderId if not set (ensures subsequent operations find the folder)
-    const existingCase = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      select: { driveFolderId: true },
-    });
-    if (!existingCase?.driveFolderId) {
-      await prisma.case.update({
-        where: { id: caseId, tenantId },
-        data: { driveFolderId: caseFolderId },
-      });
+    if (caseData.layoutVersion >= 1 && caseData.driveFolderId) {
+      // Layout v1: use the persisted case folder (sectioned hierarchy already exists)
+      caseFolderId = caseData.driveFolderId;
+    } else {
+      // Legacy v0: ensure documentos-generados/{center}/{caseNumber}/
+      const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
+      const centerFolderId = await googleDriveService.createFolderHierarchy(
+        [centerFolderName],
+        docGenFolderId,
+      );
+      caseFolderId = await googleDriveService.findOrCreateCaseFolder(
+        caseData.caseNumber,
+        centerFolderId,
+      );
+      if (!caseData.driveFolderId) {
+        await prisma.case.update({
+          where: { id: caseId, tenantId },
+          data: { driveFolderId: caseFolderId },
+        });
+      }
     }
 
-    // Create Adjuntos subfolder inside case folder (not Personas/{name})
+    // Adjuntos subfolder name depends on layout version
+    const adjuntosFolderName =
+      caseData.layoutVersion >= 1 ? '02-Adjuntos' : 'Adjuntos';
     const adjuntosFolderId = await googleDriveService.createFolderHierarchy(
-      ['Adjuntos'],
+      [adjuntosFolderName],
       caseFolderId,
     );
 
@@ -1375,7 +1380,7 @@ export async function uploadCaseDocuments(input: {
           fileName: safeFileName,
           mimeType: d.mimeType,
           isGenerated: false,
-          templateFolderPath: ['Adjuntos'],
+          templateFolderPath: [adjuntosFolderName],
           caseId: caseId,
           tenantId,
         },
@@ -1388,7 +1393,11 @@ export async function uploadCaseDocuments(input: {
         update: {
           fileName: safeFileName,
           mimeType: d.mimeType,
-          folderPath: [centerFolderName, caseData.caseNumber, 'Adjuntos'],
+          folderPath: [
+            centerFolderName,
+            caseData.caseNumber,
+            adjuntosFolderName,
+          ],
           parentFolderId: adjuntosFolderId,
           updatedAt: new Date(),
         },
@@ -1396,7 +1405,11 @@ export async function uploadCaseDocuments(input: {
           googleDriveId: fileId,
           fileName: safeFileName,
           mimeType: d.mimeType,
-          folderPath: [centerFolderName, caseData.caseNumber, 'Adjuntos'],
+          folderPath: [
+            centerFolderName,
+            caseData.caseNumber,
+            adjuntosFolderName,
+          ],
           parentFolderId: adjuntosFolderId,
           isFolder: false,
           tenantId,

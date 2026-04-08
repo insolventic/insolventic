@@ -142,6 +142,8 @@ model Case {
 
   // Google Drive folder for case documents
   driveFolderId           String?
+  // Storage layout version: 0 = legacy flat, 1 = sectioned (01-Generados / 02-Adjuntos / 03-Evidencias / 04-Historial)
+  layoutVersion           Int       @default(0) @map("layout_version")
 
   // Campos de ingresos/gastos del caso legacy
   monthlyIncome           Decimal?

@@ -779,7 +779,7 @@ export async function createCase(
           if (result.caseFolderId) {
             await prisma.case.update({
               where: { id: newCase.id, tenantId },
-              data: { driveFolderId: result.caseFolderId },
+              data: { driveFolderId: result.caseFolderId, layoutVersion: 1 },
             });
           }
 
