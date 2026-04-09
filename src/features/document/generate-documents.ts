@@ -11,6 +11,7 @@ import {
   mapCaseToPlaceholders,
   replacePlaceholders,
   validatePlaceholderCoverage,
+  buildConciliationContext,
 } from './placeholder-mapper';
 import {
   getTemplatesForCaseCreation,
@@ -392,8 +393,16 @@ async function generateDocument(
     // Validate placeholder coverage
     const coverage = validatePlaceholderCoverage(htmlContent, placeholders);
 
-    // Replace placeholders
-    const filledHtml = replacePlaceholders(htmlContent, placeholders);
+    // Replace placeholders (conciliation adds flags + arrays for handlebars-lite)
+    const extraContext =
+      caseData.type === 'CONCILIATION'
+        ? buildConciliationContext(caseData)
+        : undefined;
+    const filledHtml = replacePlaceholders(
+      htmlContent,
+      placeholders,
+      extraContext,
+    );
 
     // Log coverage for debugging (in development)
     if (
@@ -755,7 +764,15 @@ export async function previewDocument(
   const templatePath = getTemplatePath(template);
   const htmlContent = await readTemplate(templatePath);
   const placeholders = mapCaseToPlaceholders(caseData);
-  const filledHtml = replacePlaceholders(htmlContent, placeholders);
+  const extraContext =
+    caseData.type === 'CONCILIATION'
+      ? buildConciliationContext(caseData)
+      : undefined;
+  const filledHtml = replacePlaceholders(
+    htmlContent,
+    placeholders,
+    extraContext,
+  );
 
   if (format === 'pdf') {
     const projectRoot = process.cwd();

@@ -326,6 +326,16 @@ model Case {
   concTipoConstanciaSolicitada         String?   @map("conc_tipo_constancia_solicitada")
   concDescripcionCausaAnormal          String?   @map("conc_descripcion_causa_anormal") @db.Text
   concHoraProgramada                   String?   @map("conc_hora_programada")
+  // Causa de terminación / resultado (enum-like: mutual-exclusive flags)
+  concCausaTerminacion                 String?   @map("conc_causa_terminacion")
+  concResultadoInforme                 String?   @map("conc_resultado_informe")
+  // JSON arrays for repeatable sections (handlebars-lite {{#each}})
+  concMenoresAlimentos                 Json?     @map("conc_menores_alimentos")
+  concMenoresUnion                     Json?     @map("conc_menores_union")
+  concClausulasAdicionalesAlimentos    Json?     @map("conc_clausulas_adicionales_alimentos")
+  concClausulasAdicionalesUnion        Json?     @map("conc_clausulas_adicionales_union")
+  concClausulasAdicionalesDisolucion   Json?     @map("conc_clausulas_adicionales_disolucion")
+  concClausulasAcuerdo                 Json?     @map("conc_clausulas_acuerdo")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago

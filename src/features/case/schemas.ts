@@ -7,6 +7,34 @@ const decimalToNumber = z.any().transform((val) => {
   return Number(val);
 });
 
+// ---------------------------------------------------------------------------
+// Conciliation repeatable-row sub-schemas (JSON arrays stored in Prisma Json?)
+// ---------------------------------------------------------------------------
+const concMenorSchema = z.object({
+  NOMBRE_MENOR: z.string().min(1, 'Nombre requerido'),
+});
+
+const concMenorUnionSchema = z.object({
+  NOMBRE_MENOR_UNION: z.string().min(1, 'Nombre requerido'),
+});
+
+const concClausulaSchema = z.object({
+  NUMERO_CLAUSULA: z.string().min(1, 'Número requerido'),
+  TEXTO_CLAUSULA: z.string().min(1, 'Texto requerido'),
+});
+
+const concClausulaAdicionalSchema = z.object({
+  NUMERO_CLAUSULA_ADICIONAL: z.string().min(1, 'Número requerido'),
+  TEXTO_CLAUSULA_ADICIONAL: z.string().min(1, 'Texto requerido'),
+});
+
+export {
+  concMenorSchema,
+  concMenorUnionSchema,
+  concClausulaSchema,
+  concClausulaAdicionalSchema,
+};
+
 const mapCaseTypeToSpanish = z.string().transform((type) => {
   const typeMap: Record<string, string> = {
     INSOLVENCY: 'Insolvencia',
@@ -687,6 +715,25 @@ export const caseSchema = z.object({
   concTipoConstanciaSolicitada: z.string().optional().nullable(),
   concDescripcionCausaAnormal: z.string().optional().nullable(),
   concHoraProgramada: z.string().optional().nullable(),
+  // Causa / resultado (mutual-exclusive enum-like)
+  concCausaTerminacion: z.string().optional().nullable(),
+  concResultadoInforme: z.string().optional().nullable(),
+  // Repeatable arrays (stored as Json in Prisma)
+  concMenoresAlimentos: z.array(concMenorSchema).optional().nullable(),
+  concMenoresUnion: z.array(concMenorUnionSchema).optional().nullable(),
+  concClausulasAdicionalesAlimentos: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAdicionalesUnion: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAdicionalesDisolucion: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAcuerdo: z.array(concClausulaSchema).optional().nullable(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
@@ -1301,6 +1348,25 @@ export const createCaseSchema = z.object({
   concTipoConstanciaSolicitada: z.string().optional().nullable(),
   concDescripcionCausaAnormal: z.string().optional().nullable(),
   concHoraProgramada: z.string().optional().nullable(),
+  // Causa / resultado (mutual-exclusive enum-like)
+  concCausaTerminacion: z.string().optional().nullable(),
+  concResultadoInforme: z.string().optional().nullable(),
+  // Repeatable arrays (stored as Json in Prisma)
+  concMenoresAlimentos: z.array(concMenorSchema).optional().nullable(),
+  concMenoresUnion: z.array(concMenorUnionSchema).optional().nullable(),
+  concClausulasAdicionalesAlimentos: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAdicionalesUnion: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAdicionalesDisolucion: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAcuerdo: z.array(concClausulaSchema).optional().nullable(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
@@ -1896,6 +1962,25 @@ export const updateCaseSchema = z.object({
   concTipoConstanciaSolicitada: z.string().optional().nullable(),
   concDescripcionCausaAnormal: z.string().optional().nullable(),
   concHoraProgramada: z.string().optional().nullable(),
+  // Causa / resultado (mutual-exclusive enum-like)
+  concCausaTerminacion: z.string().optional().nullable(),
+  concResultadoInforme: z.string().optional().nullable(),
+  // Repeatable arrays (stored as Json in Prisma)
+  concMenoresAlimentos: z.array(concMenorSchema).optional().nullable(),
+  concMenoresUnion: z.array(concMenorUnionSchema).optional().nullable(),
+  concClausulasAdicionalesAlimentos: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAdicionalesUnion: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAdicionalesDisolucion: z
+    .array(concClausulaAdicionalSchema)
+    .optional()
+    .nullable(),
+  concClausulasAcuerdo: z.array(concClausulaSchema).optional().nullable(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago

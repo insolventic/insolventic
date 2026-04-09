@@ -779,9 +779,11 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Map case data to placeholders
-    const { mapCaseToPlaceholders, replacePlaceholders } = await import(
-      './placeholder-mapper'
-    );
+    const {
+      mapCaseToPlaceholders,
+      replacePlaceholders,
+      buildConciliationContext,
+    } = await import('./placeholder-mapper');
 
     // Transform ALL Decimal fields to numbers for the mapper
     // Prisma Decimal.valueOf() returns a string, causing reduce() string concatenation bugs
@@ -914,6 +916,14 @@ export async function batchGenerateDocuments(input: {
       `[batchGenerateDocuments] Processing ${templatesToProcess.length} templates for package ${packageNumber || 'all'}`,
     );
 
+    // Pre-compute conciliation context once (flags + arrays for handlebars-lite)
+    const batchExtraCtx =
+      caseData.type === 'CONCILIATION'
+        ? buildConciliationContext(
+            transformedCaseData as unknown as import('@/features/case/schemas').CaseWithRelations,
+          )
+        : undefined;
+
     for (const template of templatesToProcess) {
       try {
         const templatePath = getTemplatePath(template);
@@ -922,7 +932,11 @@ export async function batchGenerateDocuments(input: {
           `[batchGenerateDocuments] Reading template: ${template.name} from ${fullPath}`,
         );
         const htmlContent = await fsPromises.readFile(fullPath, 'utf-8');
-        const filledHtml = replacePlaceholders(htmlContent, placeholders);
+        const filledHtml = replacePlaceholders(
+          htmlContent,
+          placeholders,
+          batchExtraCtx,
+        );
         const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}.pdf`;
 
         htmlDocuments.push({

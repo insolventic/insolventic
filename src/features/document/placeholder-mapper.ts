@@ -6,6 +6,7 @@
 import type { CaseWithRelations } from '../case/schemas';
 import { nowColombia, COLOMBIA_TZ } from '@/lib/date-colombia';
 import { getDebtClass } from '../case/validation-rules';
+import { renderTemplate } from './handlebars-lite';
 
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
@@ -1831,6 +1832,104 @@ function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
 // CONCILIATION-SPECIFIC MAPPER
 // =============================================
 
+/**
+ * Builds the non-string context (flags + arrays) used by handlebars-lite
+ * for conciliation templates. Kept separate from `mapConciliationFields`
+ * so the existing PlaceholderMap (string-only) API stays backward-compatible.
+ */
+export function buildConciliationContext(
+  caseData: CaseWithRelations,
+): Record<string, unknown> {
+  const raw = caseData as Record<string, unknown>;
+
+  // --- Arrays (stored as JSON columns — may be null/missing) ---
+  const asArray = <T = Record<string, unknown>>(v: unknown): T[] =>
+    Array.isArray(v) ? (v as T[]) : [];
+
+  const menoresAlimentos = asArray<{ NOMBRE_MENOR: string }>(
+    raw.concMenoresAlimentos,
+  );
+  const menoresUnion = asArray<{ NOMBRE_MENOR_UNION: string }>(
+    raw.concMenoresUnion,
+  );
+  const clausulasAdicionalesAlimentos = asArray<{
+    NUMERO_CLAUSULA_ADICIONAL: string;
+    TEXTO_CLAUSULA_ADICIONAL: string;
+  }>(raw.concClausulasAdicionalesAlimentos);
+  const clausulasAdicionalesUnion = asArray(raw.concClausulasAdicionalesUnion);
+  const clausulasAdicionalesDisolucion = asArray(
+    raw.concClausulasAdicionalesDisolucion,
+  );
+  const clausulasAcuerdo = asArray<{
+    NUMERO_CLAUSULA: string;
+    TEXTO_CLAUSULA: string;
+  }>(raw.concClausulasAcuerdo);
+
+  // CLAUSULAS_ALIMENTOS is a fixed block (primero/segundo/tercero). The
+  // template's {{#each CLAUSULAS_ALIMENTOS}} wraps the same 3 cláusulas —
+  // we feed it a single-element array to render the block exactly once.
+  const clausulasAlimentosSentinel =
+    raw.concClausulaPrimeroAlimentos || raw.concClausulaSegundoAlimentos
+      ? [{}]
+      : [];
+
+  // --- Conditional flags (derived from data; zero hand-editing required) ---
+  const hasApoderadoConvocante = !!raw.concApoderadoConvocanteName;
+  const hasApoderadoConvocado = !!raw.concApoderadoConvocadoName;
+  const hasRepresentanteLegal = !!raw.concRepLegalName;
+  const hasApoderadoDesistimiento = !!raw.concApoderadoDesistimientoName;
+  const hasOtroMedio = !!raw.concOtroMedioComunicacion;
+  const hasInfoAdicional = !!raw.concInfoAdicional;
+  const hasAcuerdoLibre = !!raw.concAcuerdoConciliatorio;
+  const hasMenoresUnion = menoresUnion.length > 0;
+  const hasClausulasNumeradas = clausulasAcuerdo.length > 0;
+  const hasClausulasAdicionalesAlimentos =
+    clausulasAdicionalesAlimentos.length > 0;
+  const hasClausulasAdicionalesUnion = clausulasAdicionalesUnion.length > 0;
+  const hasClausulasAdicionalesDisolucion =
+    clausulasAdicionalesDisolucion.length > 0;
+
+  // Causa (terminación anormal) — mutually exclusive radio in the form
+  const causa = (raw.concCausaTerminacion as string) || '';
+  // Resultado del informe — mutually exclusive
+  const resultado = (raw.concResultadoInforme as string) || '';
+
+  return {
+    // Arrays
+    MENORES_ALIMENTOS: menoresAlimentos,
+    MENORES_UNION: menoresUnion,
+    CLAUSULAS_ALIMENTOS: clausulasAlimentosSentinel,
+    CLAUSULAS_ADICIONALES_ALIMENTOS: clausulasAdicionalesAlimentos,
+    CLAUSULAS_ADICIONALES_UNION: clausulasAdicionalesUnion,
+    CLAUSULAS_ADICIONALES_DISOLUCION: clausulasAdicionalesDisolucion,
+    CLAUSULAS_ACUERDO: clausulasAcuerdo,
+
+    // Flags
+    HAS_APODERADO_CONVOCANTE: hasApoderadoConvocante,
+    HAS_APODERADO_CONVOCADO: hasApoderadoConvocado,
+    HAS_REPRESENTANTE_LEGAL: hasRepresentanteLegal,
+    HAS_APODERADO_DESISTIMIENTO: hasApoderadoDesistimiento,
+    HAS_OTRO_MEDIO: hasOtroMedio,
+    HAS_INFO_ADICIONAL: hasInfoAdicional,
+    HAS_ACUERDO_LIBRE: hasAcuerdoLibre,
+    HAS_MENORES_UNION: hasMenoresUnion,
+    HAS_CLAUSULAS_NUMERADAS: hasClausulasNumeradas,
+    HAS_CLAUSULAS_ADICIONALES_ALIMENTOS: hasClausulasAdicionalesAlimentos,
+    HAS_CLAUSULAS_ADICIONALES_UNION: hasClausulasAdicionalesUnion,
+    HAS_CLAUSULAS_ADICIONALES_DISOLUCION: hasClausulasAdicionalesDisolucion,
+
+    // Causa terminación anormal
+    CAUSA_PARTES_NO_ASISTIERON: causa === 'PARTES_NO_ASISTIERON',
+    CAUSA_NO_SOLICITARON_RETIRO: causa === 'NO_SOLICITARON_RETIRO',
+    CAUSA_OTRA: causa === 'OTRA',
+
+    // Resultado informe conciliador
+    RESULTADO_INASISTENCIA_CONVOCANTE: resultado === 'INASISTENCIA_CONVOCANTE',
+    RESULTADO_INASISTENCIA_CONVOCADO: resultado === 'INASISTENCIA_CONVOCADO',
+    RESULTADO_OTRO: resultado === 'OTRO',
+  };
+}
+
 function mapConciliationFields(caseData: CaseWithRelations): PlaceholderMap {
   const raw = caseData as Record<string, unknown>;
   const debtor = caseData.debtor;
@@ -2430,14 +2529,16 @@ export function mapCaseToPlaceholders(
 export function replacePlaceholders(
   html: string,
   placeholders: PlaceholderMap,
+  extraContext?: Record<string, unknown>,
 ): string {
-  let result = html;
-
-  for (const [key, value] of Object.entries(placeholders)) {
-    // Replace {{KEY}} pattern
-    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-    result = result.replace(regex, value || '');
-  }
+  // handlebars-lite takes a merged context (strings + flags + arrays).
+  // For legacy insolvency templates with no {{#...}} tokens, the engine
+  // short-circuits to plain substitution, preserving byte-for-byte output.
+  const ctx: Record<string, unknown> = {
+    ...(extraContext ?? {}),
+    ...placeholders,
+  };
+  let result = renderTemplate(html, ctx);
 
   // Clean up any remaining unreplaced placeholders (show empty instead of {{VAR}})
   result = result.replace(/\{\{[A-Za-z0-9_]+\}\}/g, '');
