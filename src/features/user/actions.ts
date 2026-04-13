@@ -96,13 +96,15 @@ export async function createUser(input: unknown): Promise<{
     const validatedInput = createUserSchema.parse(input);
     const { roleId, ...rest } = validatedInput;
 
-    const finalPassword = randomUUID().replaceAll('-', '').slice(0, 12);
-    const hashedPassword = await bcrypt.hash(finalPassword, 10);
+    // Temporary random password — user will set their own via activation link
+    const tempPassword = randomUUID().replaceAll('-', '').slice(0, 16);
+    const hashedPassword = await bcrypt.hash(tempPassword, 12);
 
     const createdUser = await prisma.user.create({
       data: {
         ...rest,
         password: hashedPassword,
+        mustChangePassword: true,
         role: { connect: { id: roleId } },
         tenant: { connect: { id: tenantId } },
       },
@@ -142,13 +144,30 @@ export async function createUser(input: unknown): Promise<{
       tenantId,
     });
 
+    // Generate activation token (reuses PasswordResetToken infrastructure)
+    const activationToken = randomUUID();
+    const activationExpires = new Date();
+    activationExpires.setHours(activationExpires.getHours() + 48); // 48h for activation
+
+    await prisma.passwordResetToken.create({
+      data: {
+        email: createdUser.email,
+        token: activationToken,
+        tenantId,
+        expiresAt: activationExpires,
+      },
+    });
+
+    const activationUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${activationToken}&db=${tenantId}`;
+
     await emailService.sendUserCreatedEmail(createdUser.email, {
       name: createdUser.name,
       email: createdUser.email,
-      password: finalPassword,
+      activationUrl,
       roleName: createdUser.role.name,
       database: tenantId,
       createdBy: user.name,
+      expiresIn: '48 horas',
     });
 
     const validated = userSummarySchema.parse(createdUser);

@@ -453,25 +453,36 @@ export async function deleteDebtor(id: string): Promise<{
 
       if (caseIds.length > 0) {
         // 2. Delete all case-related records without onDelete: Cascade
-        await tx.document.deleteMany({ where: { caseId: { in: caseIds } } });
-        await tx.debt.deleteMany({ where: { caseId: { in: caseIds } } });
-        await tx.asset.deleteMany({ where: { caseId: { in: caseIds } } });
+        // Include tenantId for defense-in-depth
+        await tx.document.deleteMany({
+          where: { caseId: { in: caseIds }, tenantId },
+        });
+        await tx.debt.deleteMany({
+          where: { caseId: { in: caseIds }, tenantId },
+        });
+        await tx.asset.deleteMany({
+          where: { caseId: { in: caseIds }, tenantId },
+        });
         await tx.legalProcess.deleteMany({
-          where: { caseId: { in: caseIds } },
+          where: { caseId: { in: caseIds }, tenantId },
         });
-        await tx.libranza.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.libranza.deleteMany({
+          where: { caseId: { in: caseIds }, tenantId },
+        });
         await tx.suspendedService.deleteMany({
-          where: { caseId: { in: caseIds } },
+          where: { caseId: { in: caseIds }, tenantId },
         });
-        await tx.dependent.deleteMany({ where: { caseId: { in: caseIds } } });
+        await tx.dependent.deleteMany({
+          where: { caseId: { in: caseIds }, tenantId },
+        });
 
         // 3. Delete all cases (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)
-        await tx.case.deleteMany({ where: { id: { in: caseIds } } });
+        await tx.case.deleteMany({ where: { id: { in: caseIds }, tenantId } });
       }
 
       // 4. Delete orphaned debts/assets linked directly to debtor (not via case)
-      await tx.debt.deleteMany({ where: { debtorId: validatedId } });
-      await tx.asset.deleteMany({ where: { debtorId: validatedId } });
+      await tx.debt.deleteMany({ where: { debtorId: validatedId, tenantId } });
+      await tx.asset.deleteMany({ where: { debtorId: validatedId, tenantId } });
 
       // 5. Delete the debtor
       return tx.debtor.delete({

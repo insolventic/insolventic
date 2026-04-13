@@ -54,6 +54,27 @@ import {
   type ProcesoJudicialFormData,
 } from './schemas';
 
+// Prisma Json fields reject `null` — they need `Prisma.JsonNull` or omission.
+// Simplest safe approach: strip null values so Prisma keeps the column NULL via `undefined`.
+const JSON_ARRAY_FIELDS = [
+  'concMenoresAlimentos',
+  'concMenoresUnion',
+  'concClausulasAdicionalesAlimentos',
+  'concClausulasAdicionalesUnion',
+  'concClausulasAdicionalesDisolucion',
+  'concClausulasAcuerdo',
+] as const;
+
+function sanitizeJsonFields<T extends Record<string, unknown>>(data: T): T {
+  const copy = { ...data } as Record<string, unknown>;
+  for (const key of JSON_ARRAY_FIELDS) {
+    if (key in copy && copy[key] == null) {
+      delete copy[key];
+    }
+  }
+  return copy as T;
+}
+
 export async function getAllCases(): Promise<{
   success: boolean;
   data?: z.infer<typeof getAllCasesSchema>;
@@ -390,9 +411,11 @@ export async function createCase(
         }
       })();
 
+    const safeRest = sanitizeJsonFields(rest);
+
     const newCase = await prisma.case.create({
       data: {
-        ...rest,
+        ...safeRest,
         tramite: autoTramite,
         debtorId,
         caseNumber: finalCaseNumber,
@@ -877,85 +900,95 @@ export async function updateCase(
       ...rest
     } = validatedInput;
 
-    // Update debtor income/expense info if provided
-    if (
-      monthlyIncome !== undefined ||
-      monthlyExpenses !== undefined ||
-      otherIncomeDescription !== undefined ||
-      otherIncomeAmount !== undefined ||
-      hasEmployerCertification !== undefined
-    ) {
-      await prisma.debtor.update({
-        where: {
-          id: debtorId,
-          tenantId,
-        },
+    const safeRestUpdate = sanitizeJsonFields(rest);
+
+    // Wrap debtor + case update in a transaction with optimistic locking
+    const updatedCase = await prisma.$transaction(async (tx) => {
+      // Optimistic lock check: if caller sends version, it must match current DB version
+      if (validatedInput.version !== undefined) {
+        const current = await tx.case.findUnique({
+          where: { id, tenantId },
+          select: { version: true },
+        });
+        if (!current) {
+          throw new Error('Caso no encontrado');
+        }
+        if (current.version !== validatedInput.version) {
+          throw new Error(
+            'Este caso fue modificado por otro usuario. Recargue la página e intente de nuevo.',
+          );
+        }
+      }
+
+      // Update debtor income/expense info if provided
+      if (
+        monthlyIncome !== undefined ||
+        monthlyExpenses !== undefined ||
+        otherIncomeDescription !== undefined ||
+        otherIncomeAmount !== undefined ||
+        hasEmployerCertification !== undefined
+      ) {
+        await tx.debtor.update({
+          where: { id: debtorId, tenantId },
+          data: {
+            ...(monthlyIncome !== undefined && { monthlyIncome }),
+            ...(monthlyExpenses !== undefined && { monthlyExpenses }),
+            ...(otherIncomeDescription !== undefined && {
+              otherIncomeDescription,
+            }),
+            ...(otherIncomeAmount !== undefined && { otherIncomeAmount }),
+            ...(hasEmployerCertification !== undefined && {
+              hasEmployerCertification,
+            }),
+          },
+        });
+      }
+
+      return tx.case.update({
+        where: { id, tenantId },
         data: {
-          ...(monthlyIncome !== undefined && { monthlyIncome }),
-          ...(monthlyExpenses !== undefined && { monthlyExpenses }),
-          ...(otherIncomeDescription !== undefined && {
-            otherIncomeDescription,
-          }),
-          ...(otherIncomeAmount !== undefined && { otherIncomeAmount }),
-          ...(hasEmployerCertification !== undefined && {
-            hasEmployerCertification,
-          }),
+          ...safeRestUpdate,
+          version: { increment: 1 },
+          debtor: { connect: { id: debtorId } },
+          operator: { connect: { id: operatorId } },
+          hearingDate:
+            hearingDate && hearingDate.trim()
+              ? new Date(hearingDate)
+              : undefined,
+          filingDate:
+            filingDate && filingDate.trim() ? new Date(filingDate) : undefined,
+          designationDate:
+            designationDate && designationDate.trim()
+              ? new Date(designationDate)
+              : undefined,
+          positionAcceptanceDate:
+            positionAcceptanceDate && positionAcceptanceDate.trim()
+              ? new Date(positionAcceptanceDate)
+              : undefined,
+          inadmissionDate:
+            inadmissionDate && inadmissionDate.trim()
+              ? new Date(inadmissionDate)
+              : undefined,
+          admissionDate:
+            admissionDate && admissionDate.trim()
+              ? new Date(admissionDate)
+              : undefined,
+          firstHearingDate:
+            firstHearingDate && firstHearingDate.trim()
+              ? new Date(firstHearingDate)
+              : undefined,
+          suspensionDate:
+            suspensionDate && suspensionDate.trim()
+              ? new Date(suspensionDate)
+              : undefined,
+          resultDeliveryDate:
+            resultDeliveryDate && resultDeliveryDate.trim()
+              ? new Date(resultDeliveryDate)
+              : undefined,
+          resultDate:
+            resultDate && resultDate.trim() ? new Date(resultDate) : undefined,
         },
       });
-    }
-
-    const updatedCase = await prisma.case.update({
-      where: {
-        id,
-        tenantId,
-      },
-      data: {
-        ...rest,
-        debtor: {
-          connect: {
-            id: debtorId,
-          },
-        },
-        operator: {
-          connect: {
-            id: operatorId,
-          },
-        },
-        hearingDate:
-          hearingDate && hearingDate.trim() ? new Date(hearingDate) : undefined,
-        filingDate:
-          filingDate && filingDate.trim() ? new Date(filingDate) : undefined,
-        designationDate:
-          designationDate && designationDate.trim()
-            ? new Date(designationDate)
-            : undefined,
-        positionAcceptanceDate:
-          positionAcceptanceDate && positionAcceptanceDate.trim()
-            ? new Date(positionAcceptanceDate)
-            : undefined,
-        inadmissionDate:
-          inadmissionDate && inadmissionDate.trim()
-            ? new Date(inadmissionDate)
-            : undefined,
-        admissionDate:
-          admissionDate && admissionDate.trim()
-            ? new Date(admissionDate)
-            : undefined,
-        firstHearingDate:
-          firstHearingDate && firstHearingDate.trim()
-            ? new Date(firstHearingDate)
-            : undefined,
-        suspensionDate:
-          suspensionDate && suspensionDate.trim()
-            ? new Date(suspensionDate)
-            : undefined,
-        resultDeliveryDate:
-          resultDeliveryDate && resultDeliveryDate.trim()
-            ? new Date(resultDeliveryDate)
-            : undefined,
-        resultDate:
-          resultDate && resultDate.trim() ? new Date(resultDate) : undefined,
-      },
     });
 
     revalidateTag('cases');
@@ -1845,13 +1878,14 @@ export async function deleteCase(
     // Models without onDelete:Cascade must be deleted manually first
     const deletedCase = await prisma.$transaction(async (tx) => {
       // 1. Delete related records that don't have onDelete: Cascade
-      await tx.document.deleteMany({ where: { caseId: id } });
-      await tx.debt.deleteMany({ where: { caseId: id } });
-      await tx.asset.deleteMany({ where: { caseId: id } });
-      await tx.legalProcess.deleteMany({ where: { caseId: id } });
-      await tx.libranza.deleteMany({ where: { caseId: id } });
-      await tx.suspendedService.deleteMany({ where: { caseId: id } });
-      await tx.dependent.deleteMany({ where: { caseId: id } });
+      // Include tenantId for defense-in-depth (CUIDs are globally unique, but belt+suspenders)
+      await tx.document.deleteMany({ where: { caseId: id, tenantId } });
+      await tx.debt.deleteMany({ where: { caseId: id, tenantId } });
+      await tx.asset.deleteMany({ where: { caseId: id, tenantId } });
+      await tx.legalProcess.deleteMany({ where: { caseId: id, tenantId } });
+      await tx.libranza.deleteMany({ where: { caseId: id, tenantId } });
+      await tx.suspendedService.deleteMany({ where: { caseId: id, tenantId } });
+      await tx.dependent.deleteMany({ where: { caseId: id, tenantId } });
 
       // 2. Delete the case (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)
       return tx.case.delete({

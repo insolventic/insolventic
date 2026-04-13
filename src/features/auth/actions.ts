@@ -195,6 +195,15 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
       };
     }
 
+    // Force password change for accounts created by admin
+    if ((user as Record<string, unknown>).mustChangePassword) {
+      return {
+        success: false,
+        message:
+          'Debe establecer una nueva contraseña. Revise su correo para el enlace de activación, o solicite un nuevo enlace usando "¿Olvidaste tu contraseña?".',
+      };
+    }
+
     await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
@@ -916,10 +925,10 @@ export async function resetPassword(
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Update user password
+    // Update user password and clear activation flag
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword },
+      data: { password: hashedPassword, mustChangePassword: false },
     });
 
     // Mark token as used

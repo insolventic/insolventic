@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { randomUUID } from 'crypto';
 import { cookies } from 'next/headers';
 
 import type { SessionData, RefreshTokenData } from '@/features/auth/schemas';
@@ -35,9 +36,9 @@ export async function createRefreshToken(
   payload: Omit<RefreshTokenData, 'iat' | 'exp'>,
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const exp = now + 30 * 24 * 60 * 60;
+  const exp = now + 7 * 24 * 60 * 60; // 7 days (reduced from 30 for security)
 
-  return new SignJWT(payload)
+  return new SignJWT({ ...payload, jti: randomUUID() })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt(now)
     .setExpirationTime(exp)
@@ -171,7 +172,7 @@ export async function setAuthCookies(
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60, // 30 days — matches refresh token JWT expiration
+    maxAge: 7 * 24 * 60 * 60, // 7 days — matches refresh token JWT expiration
     path: '/',
   });
 }

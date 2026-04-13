@@ -163,6 +163,8 @@ model Case {
   driveFolderId           String?
   // Storage layout version: 0 = legacy flat, 1 = sectioned (01-Generados / 02-Adjuntos / 03-Evidencias / 04-Historial)
   layoutVersion           Int       @default(0) @map("layout_version")
+  // Optimistic locking: incremented on every update, checked before write
+  version                 Int       @default(0)
 
   // Campos de ingresos/gastos del caso legacy
   monthlyIncome           Decimal?
@@ -783,6 +785,7 @@ model User {
   createdDate      DateTime       @default(now())
   roleId           String
   password         String?
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
   tenantId         String
   assignedCases      Case[]
   role               Role           @relation(fields: [roleId], references: [id])

@@ -8,6 +8,11 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limit';
 import type { DocumentTemplate } from './templates-config';
 
 import {
@@ -700,6 +705,20 @@ export async function batchGenerateDocuments(input: {
       return {
         success: false,
         message: 'No tienes permisos para generar documentos',
+        data: null,
+      };
+    }
+
+    // Rate limit batch generation per user (expensive operation)
+    const rlKey = getRateLimitKey('batchDocumentGeneration', user.id);
+    const rl = checkRateLimit(
+      rlKey,
+      RATE_LIMIT_CONFIGS.batchDocumentGeneration,
+    );
+    if (!rl.allowed) {
+      return {
+        success: false,
+        message: `Demasiadas solicitudes de generación masiva. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
         data: null,
       };
     }

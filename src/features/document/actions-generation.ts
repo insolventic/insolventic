@@ -14,6 +14,11 @@ import {
 } from './generate-documents';
 import { getAllTemplates } from './templates-config';
 import type { CaseWithRelations } from '../case/schemas';
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limit';
 
 /**
  * Get all available document templates
@@ -74,6 +79,16 @@ export async function regenerateCaseDocument(input: {
       return {
         success: false,
         error: 'No tienes permisos para generar documentos',
+      };
+    }
+
+    // Rate limit document generation per user
+    const rlKey = getRateLimitKey('documentGeneration', user.id);
+    const rl = checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.documentGeneration);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        error: `Demasiadas solicitudes de generación. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
       };
     }
 

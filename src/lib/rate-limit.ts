@@ -22,6 +22,10 @@ export const RATE_LIMIT_CONFIGS = {
   forgotPassword: { windowMs: 15 * 60 * 1000, maxAttempts: 3 },
   changePassword: { windowMs: 15 * 60 * 1000, maxAttempts: 5 },
   resetPassword: { windowMs: 15 * 60 * 1000, maxAttempts: 5 },
+  // Resource-intensive operations
+  documentGeneration: { windowMs: 5 * 60 * 1000, maxAttempts: 10 },
+  batchDocumentGeneration: { windowMs: 10 * 60 * 1000, maxAttempts: 5 },
+  reportExport: { windowMs: 5 * 60 * 1000, maxAttempts: 8 },
 } as const;
 
 export function checkRateLimit(

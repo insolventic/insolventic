@@ -4,6 +4,11 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limit';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -305,6 +310,16 @@ export async function exportCasesToExcel(
 
     if (!user.permissions.includes(P.VER_REPORTES)) {
       return { success: false, error: 'No tienes permisos para exportar' };
+    }
+
+    // Rate limit report exports per user
+    const rlKey = getRateLimitKey('reportExport', user.id);
+    const rl = checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.reportExport);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        error: `Demasiadas solicitudes de exportación. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
+      };
     }
 
     const where: Record<string, unknown> = { tenantId };

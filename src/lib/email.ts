@@ -18,10 +18,11 @@ interface PasswordResetEmailData {
 interface UserCreatedEmailData {
   name: string;
   email: string;
-  password: string;
+  activationUrl: string;
   roleName: string;
   database: string;
   createdBy: string;
+  expiresIn: string;
 }
 
 interface ActionNotificationEmailData {
@@ -45,8 +46,16 @@ class EmailService {
       port: 587,
       secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.SMTP_USER || 'insolvenic@gmail.com',
-        pass: process.env.SMTP_PASSWORD, // App password from Google
+        user:
+          process.env.SMTP_USER ??
+          (() => {
+            throw new Error('SMTP_USER env var is required');
+          })(),
+        pass:
+          process.env.SMTP_PASSWORD ??
+          (() => {
+            throw new Error('SMTP_PASSWORD env var is required');
+          })(),
       },
       tls: {
         rejectUnauthorized: process.env.NODE_ENV === 'production',
@@ -83,7 +92,7 @@ class EmailService {
       const info = await this.transporter.sendMail({
         from: {
           name: 'Sistema Insolventic',
-          address: process.env.SMTP_USER || 'insolvenic@gmail.com',
+          address: process.env.SMTP_USER!,
         },
         to,
         subject,
@@ -267,7 +276,15 @@ class EmailService {
     to: string,
     data: UserCreatedEmailData,
   ): Promise<boolean> {
-    const { name, email, password, roleName, database, createdBy } = data;
+    const {
+      name,
+      email,
+      activationUrl,
+      roleName,
+      database,
+      createdBy,
+      expiresIn,
+    } = data;
 
     const databaseDisplayNames = {
       armonia: 'Armonia',
@@ -277,7 +294,6 @@ class EmailService {
     const databaseName =
       databaseDisplayNames[database as keyof typeof databaseDisplayNames] ||
       database;
-    const loginUrl = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'}/login?db=${database}`;
 
     const subject = `Cuenta creada en Sistema Insolventic - ${databaseName}`;
 
@@ -388,29 +404,28 @@ class EmailService {
             <h3 style="margin-top: 0; color: #374151;">📋 Información de tu cuenta</h3>
             <p><strong>Usuario:</strong> ${email}</p>
             <p><strong>Rol:</strong> ${roleName}</p>
-            <p><strong>Contraseña temporal:</strong></p>
-            <div class="password">${password}</div>
           </div>
-          
+
+          <p>Para activar tu cuenta, haz clic en el siguiente botón y establece tu contraseña:</p>
+
           <div style="text-align: center;">
-            <a href="${loginUrl}" class="button">Acceder al Sistema</a>
+            <a href="${activationUrl}" class="button">Activar mi Cuenta</a>
           </div>
 
           <div class="warning">
             <strong>🔐 Importante - Seguridad:</strong>
             <ul>
-              <li>Esta es una <strong>contraseña temporal</strong></li>
-              <li>Cambia tu contraseña después del primer acceso</li>
-              <li>No compartas estas credenciales</li>
-              <li>Mantén segura tu cuenta</li>
+              <li>Este enlace de activación expira en <strong>${expiresIn}</strong></li>
+              <li>Si no solicitaste esta cuenta, ignora este correo</li>
+              <li>No compartas este enlace con nadie</li>
             </ul>
           </div>
 
           <p><strong>Pasos siguientes:</strong></p>
           <ol>
-            <li>Haz clic en "Acceder al Sistema" arriba</li>
-            <li>Inicia sesión con las credenciales proporcionadas</li>
-            <li>Cambia tu contraseña en la configuración de tu perfil</li>
+            <li>Haz clic en "Activar mi Cuenta" arriba</li>
+            <li>Establece una contraseña segura</li>
+            <li>Inicia sesión con tu nueva contraseña</li>
             <li>Explora las funcionalidades disponibles para tu rol</li>
           </ol>
         </div>
@@ -432,20 +447,19 @@ class EmailService {
     INFORMACIÓN DE TU CUENTA:
     - Usuario: ${email}
     - Rol: ${roleName}
-    - Contraseña temporal: ${password}
 
-    Accede al sistema en: ${loginUrl}
+    Para activar tu cuenta y establecer tu contraseña, visita:
+    ${activationUrl}
 
     IMPORTANTE - SEGURIDAD:
-    - Esta es una contraseña temporal
-    - Cambia tu contraseña después del primer acceso
-    - No compartas estas credenciales
-    - Mantén segura tu cuenta
+    - Este enlace de activación expira en ${expiresIn}
+    - Si no solicitaste esta cuenta, ignora este correo
+    - No compartas este enlace con nadie
 
     PASOS SIGUIENTES:
-    1. Accede al sistema con las credenciales proporcionadas
-    2. Cambia tu contraseña en la configuración de tu perfil
-    3. Explora las funcionalidades disponibles para tu rol
+    1. Abre el enlace de activación
+    2. Establece una contraseña segura
+    3. Inicia sesión y explora las funcionalidades
 
     --
     Sistema Insolventic - ${databaseName}
