@@ -40,3 +40,14 @@ plan.md
 
 # Claude / AI artifacts
 .claude/
+
+# Thesis / academic artifacts (not part of the product)
+# These files live in the working directory for the author's convenience
+# but must never ship with the codebase.
+/*.docx
+/*.pptx
+/Carta_Aceptacion_*.docx
+/DT - INSOLVENTIC*.docx
+/INSOLVENTIC_Presentacion.pptx
+/Diagrama_AS-IS_Insolventic.png
+/Diagrama_TO-BE_Insolventic.png

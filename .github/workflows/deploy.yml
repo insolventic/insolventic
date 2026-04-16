@@ -1,9 +1,9 @@
-name: Deploy to Staging & Production
+name: Deploy
 
 on:
   push:
     branches:
-      - stg
+      - dev
       - main
 
 permissions:
@@ -15,7 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      DEPLOY_ENV: ${{ github.ref == 'refs/heads/stg' && 'preview' || 'production' }}
+      # `dev` → Vercel preview deployment; `main` → production.
+      DEPLOY_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

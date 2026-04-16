@@ -37,6 +37,16 @@ interface ActionNotificationEmailData {
   date: Date;
 }
 
+interface AlertEmailData {
+  recipientName: string;
+  database: string;
+  alertKind: 'hearing_upcoming' | 'payment_overdue';
+  subject: string;
+  heading: string;
+  /** Rows of plain "Label: Value" text rendered as <li>. */
+  lines: string[];
+}
+
 class EmailService {
   private transporter: nodemailer.Transporter;
 
@@ -811,6 +821,64 @@ class EmailService {
       html,
       text: text.trim(),
     });
+  }
+
+  /**
+   * Plantilla genérica para alertas proactivas (audiencias, pagos).
+   * Se mantiene deliberadamente simple: encabezado + lista de datos clave.
+   */
+  async sendAlertEmail(to: string, data: AlertEmailData): Promise<boolean> {
+    const { recipientName, database, alertKind, subject, heading, lines } =
+      data;
+
+    const databaseDisplayNames = {
+      armonia: 'Armonia',
+      'constructores-paz': 'Constructores de Paz',
+    };
+    const databaseName =
+      databaseDisplayNames[database as keyof typeof databaseDisplayNames] ||
+      database;
+
+    const accent = alertKind === 'payment_overdue' ? '#dc2626' : '#d97706';
+
+    const rows = lines
+      .map(
+        (l) =>
+          `<li style="padding: 6px 0; border-bottom: 1px solid #e5e7eb;">${l}</li>`,
+      )
+      .join('');
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
+      <div style="background: white; padding: 30px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid ${accent};">
+          <div style="font-size: 28px; font-weight: bold; color: ${accent};">🏛️ INSOLVENTIC</div>
+          <p style="margin: 10px 0 0 0; color: #6b7280;">${databaseName}</p>
+        </div>
+        <h2 style="color: ${accent};">${heading}</h2>
+        <p>Hola ${recipientName},</p>
+        <p>Se ha detectado el siguiente evento que requiere tu atención:</p>
+        <ul style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px 20px; list-style: none;">
+          ${rows}
+        </ul>
+        <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">
+          Este correo se generó automáticamente por el sistema de alertas. Si
+          crees que es un error, revisa el caso en la plataforma.
+        </p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const text = `${heading}\n\nHola ${recipientName},\n\nSe ha detectado el siguiente evento:\n\n${lines.join('\n')}\n\n--\nSistema Insolventic - ${databaseName}`;
+
+    return this.sendEmail({ to, subject, html, text });
   }
 
   // Verificar configuración SMTP

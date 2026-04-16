@@ -90,6 +90,7 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
     searchParams.get('search') ?? '',
   );
   const [selectedPhase, setSelectedPhase] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
 
   const { checkPermission } = useAuth();
   const canCreateCases = checkPermission(P.CREAR_CASOS);
@@ -103,7 +104,9 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
     const matchesPhase =
       selectedPhase === 'all' ||
       (caseItem.phase ?? 'Inicial') === selectedPhase;
-    return matchesSearch && matchesPhase;
+    const matchesType =
+      selectedType === 'all' || caseItem.type === selectedType;
+    return matchesSearch && matchesPhase && matchesType;
   });
 
   const { paginatedItems: paginatedCases, paginationProps } = usePagination(
@@ -247,6 +250,8 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
                   onSearchChange={setSearchTerm}
                   selectedPhase={selectedPhase}
                   onPhaseChange={setSelectedPhase}
+                  selectedType={selectedType}
+                  onTypeChange={setSelectedType}
                 />
               </div>
             </CardHeader>

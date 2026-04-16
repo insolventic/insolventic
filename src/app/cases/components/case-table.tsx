@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Edit, Trash2, ArrowRightLeft } from 'lucide-react';
+import { Eye, Edit, Trash2, ArrowRightLeft, FolderOpen } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -142,6 +142,18 @@ export function CaseTable({
           </TableRow>
         </TableHeader>
         <TableBody>
+          {cases.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={9} className="h-32 text-center">
+                <div className="flex flex-col items-center gap-2">
+                  <FolderOpen className="text-muted-foreground h-8 w-8" />
+                  <p className="text-muted-foreground text-sm">
+                    No se encontraron casos
+                  </p>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
           {cases.map((caseItem) => (
             <TableRow key={caseItem.id}>
               <TableCell className="font-medium">

@@ -1,0 +1,101 @@
+name: E2E Tests (Playwright)
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+  # Allow manual runs from the GitHub UI.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    # Deterministic Postgres service — no reliance on external secrets for E2E
+    # DB connectivity. Credentials are ephemeral (container-scoped) and match
+    # the DATABASE_URL_* env vars below.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: insolventic_e2e
+          POSTGRES_PASSWORD: insolventic_e2e
+          POSTGRES_DB: insolventic_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U insolventic_e2e -d insolventic_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      CI: 'true'
+      # Single DB is shared across both tenants — per-tenant isolation is
+      # enforced at the Prisma `tenantId` level, not at the DB level, which
+      # is sufficient for E2E smoke tests.
+      DATABASE_URL: postgresql://insolventic_e2e:insolventic_e2e@localhost:5432/insolventic_e2e
+      DATABASE_URL_ARMONIA: postgresql://insolventic_e2e:insolventic_e2e@localhost:5432/insolventic_e2e
+      DATABASE_URL_CONSTRUCTORES_PAZ: postgresql://insolventic_e2e:insolventic_e2e@localhost:5432/insolventic_e2e
+
+      # Test-only secrets. Production values are never used in E2E.
+      JWT_SECRET: ci-e2e-jwt-secret-key-for-github-actions-only-123
+      JWT_REFRESH_SECRET: ci-e2e-refresh-secret-key-for-github-actions-only-456
+      NEXTAUTH_SECRET: ci-e2e-nextauth-secret-key-for-github-actions-only-789
+      NEXTAUTH_URL: http://localhost:3000
+      APP_URL: http://localhost:3000
+      E2E_BASE_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply schema to Postgres
+        run: npx prisma db push --skip-generate
+
+      - name: Seed deterministic fixtures
+        run: npm run db:seed
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Next.js (production mode)
+        run: npm run build
+
+      - name: Run Playwright E2E tests
+        run: npx playwright test --reporter=list,html
+        env:
+          # Start the built app on port 3000 via Playwright's webServer.
+          PLAYWRIGHT_WEB_SERVER_COMMAND: 'npm run start'
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 14

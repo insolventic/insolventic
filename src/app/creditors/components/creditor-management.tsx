@@ -11,6 +11,7 @@ import {
   Building,
   Download,
   Trash2,
+  Landmark,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -296,6 +297,18 @@ export function CreditorManagement({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
+                  {paginatedCreditors.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-32 text-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <Landmark className="text-muted-foreground h-8 w-8" />
+                          <p className="text-muted-foreground text-sm">
+                            No se encontraron acreedores
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {paginatedCreditors.map((creditor) => (
                     <TableRow key={creditor.id}>
                       <TableCell>

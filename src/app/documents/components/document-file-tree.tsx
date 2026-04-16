@@ -8,6 +8,7 @@ import {
   FolderOpen,
   ChevronRight,
   ChevronDown,
+  X,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -24,6 +25,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
 import { type DocumentFromDrive } from '@/features/document/schemas';
@@ -66,6 +73,21 @@ export function DocumentFileTree({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
     new Set(),
   );
+  const [previewDoc, setPreviewDoc] = useState<{
+    name: string;
+    driveId: string;
+    mimeType?: string;
+  } | null>(null);
+
+  const isPreviewable = (mimeType?: string, fileName?: string): boolean => {
+    if (mimeType?.startsWith('application/pdf')) return true;
+    if (mimeType?.startsWith('image/')) return true;
+    if (fileName) {
+      const ext = fileName.split('.').pop()?.toLowerCase();
+      return ['pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext ?? '');
+    }
+    return false;
+  };
 
   const buildTree = (documentsFromDrive: DocumentFromDrive[]): TreeNode[] => {
     const nodeMap = new Map<string, TreeNode>();
@@ -227,6 +249,23 @@ export function DocumentFileTree({
             )}
           </div>
           <div className="flex items-center space-x-1">
+            {isPreviewable(doc.mimeType, doc.fileName) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setPreviewDoc({
+                    name: doc.fileName,
+                    driveId: doc.googleDriveId ?? '',
+                    mimeType: doc.mimeType,
+                  })
+                }
+                className="h-8 w-8 p-0"
+                title="Vista previa"
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -264,43 +303,79 @@ export function DocumentFileTree({
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Documentos Generados</CardTitle>
-            <CardDescription>Documentos organizados por caso</CardDescription>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Documentos Generados</CardTitle>
+              <CardDescription>Documentos organizados por caso</CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+                <Input
+                  placeholder="Buscar documentos..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-80 pl-10"
+                />
+              </div>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="relative">
-              <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
-              <Input
-                placeholder="Buscar documentos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-80 pl-10"
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-1">
+            {filteredTreeNodes.length > 0 ? (
+              filteredTreeNodes.map((node) => (
+                <div key={node.id}>{renderTreeNode(node)}</div>
+              ))
+            ) : (
+              <div className="text-muted-foreground py-8 text-center">
+                <FileText className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
+                <p>No se encontraron documentos</p>
+                <p className="text-sm">
+                  Genera documentos para un caso para verlos aquí
+                </p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog
+        open={previewDoc !== null}
+        onOpenChange={() => setPreviewDoc(null)}
+      >
+        <DialogContent className="max-h-[90vh] sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="truncate pr-4">{previewDoc?.name}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPreviewDoc(null)}
+                className="h-8 w-8 shrink-0 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          {previewDoc && (
+            <div
+              className="flex items-center justify-center overflow-auto"
+              style={{ height: '70vh' }}
+            >
+              <iframe
+                src={`https://drive.google.com/file/d/${previewDoc.driveId}/preview`}
+                className="h-full w-full rounded border-0"
+                title={previewDoc.name}
+                allow="autoplay"
               />
             </div>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-1">
-          {filteredTreeNodes.length > 0 ? (
-            filteredTreeNodes.map((node) => (
-              <div key={node.id}>{renderTreeNode(node)}</div>
-            ))
-          ) : (
-            <div className="text-muted-foreground py-8 text-center">
-              <FileText className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-              <p>No se encontraron documentos</p>
-              <p className="text-sm">
-                Genera documentos para un caso para verlos aquí
-              </p>
-            </div>
           )}
-        </div>
-      </CardContent>
-    </Card>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

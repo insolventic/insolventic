@@ -1,116 +1,117 @@
-// Prisma client mock for unit tests
+// Prisma client mock for unit tests.
+// Provides a wide Prisma surface area so actions that call less-commonly
+// mocked models (auditLog, payment, etc.) don't crash.
+
+// By default each method resolves with an empty-ish value so fire-and-forget
+// code paths (e.g. audit log, notifications) don't crash when a test doesn't
+// explicitly mock them.
+const makeModel = () => ({
+  findUnique: jest.fn().mockResolvedValue(null),
+  findFirst: jest.fn().mockResolvedValue(null),
+  findMany: jest.fn().mockResolvedValue([]),
+  create: jest.fn().mockResolvedValue({}),
+  createMany: jest.fn().mockResolvedValue({ count: 0 }),
+  update: jest.fn().mockResolvedValue({}),
+  updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+  upsert: jest.fn().mockResolvedValue({}),
+  delete: jest.fn().mockResolvedValue({}),
+  deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+  count: jest.fn().mockResolvedValue(0),
+  aggregate: jest.fn().mockResolvedValue({ _count: 0, _sum: {}, _avg: {} }),
+  groupBy: jest.fn().mockResolvedValue([]),
+});
+
 const mockPrismaClient = {
-  tenant: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  user: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  role: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-  },
-  permission: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-  },
-  rolePermission: {
-    findMany: jest.fn(),
-  },
-  case: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-    count: jest.fn(),
-  },
-  debtor: {
-    findUnique: jest.fn(),
-    findFirst: jest.fn(),
-    findMany: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-    delete: jest.fn(),
-  },
-  debt: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  asset: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  document: {
-    findMany: jest.fn(),
-    create: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  documentTemplate: {
-    findMany: jest.fn(),
-    findFirst: jest.fn(),
-  },
-  legalProcess: {
-    create: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  libranza: {
-    create: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  suspendedService: {
-    create: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  dependent: {
-    create: jest.fn(),
-    delete: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-  notification: {
-    create: jest.fn(),
-    findMany: jest.fn(),
-  },
-  passwordResetToken: {
-    findUnique: jest.fn(),
-    create: jest.fn(),
-    update: jest.fn(),
-  },
-  $transaction: jest.fn((fn: (tx: typeof mockPrismaClient) => Promise<unknown>) =>
-    fn(mockPrismaClient),
+  tenant: makeModel(),
+  user: makeModel(),
+  role: makeModel(),
+  permission: makeModel(),
+  rolePermission: makeModel(),
+  case: makeModel(),
+  debtor: makeModel(),
+  creditor: makeModel(),
+  debt: makeModel(),
+  asset: makeModel(),
+  document: makeModel(),
+  documentTemplate: makeModel(),
+  legalProcess: makeModel(),
+  libranza: makeModel(),
+  suspendedService: makeModel(),
+  dependent: makeModel(),
+  notification: makeModel(),
+  passwordResetToken: makeModel(),
+  auditLog: makeModel(),
+  payment: makeModel(),
+  paymentReceipt: makeModel(),
+  contact: makeModel(),
+  report: makeModel(),
+  formRequest: makeModel(),
+  acreedor: makeModel(),
+  bien: makeModel(),
+  procesoJudicial: makeModel(),
+  apoderado: makeModel(),
+  $transaction: jest.fn(
+    async (
+      arg:
+        | ((tx: typeof mockPrismaClient) => Promise<unknown>)
+        | Array<Promise<unknown>>,
+    ) => {
+      if (typeof arg === 'function') {
+        return arg(mockPrismaClient);
+      }
+      return Promise.all(arg);
+    },
   ),
+  $connect: jest.fn(),
+  $disconnect: jest.fn(),
 };
 
 export default mockPrismaClient;
+
+const DEFAULT_RESOLVED: Record<string, unknown> = {
+  findUnique: null,
+  findFirst: null,
+  findMany: [],
+  create: {},
+  createMany: { count: 0 },
+  update: {},
+  updateMany: { count: 0 },
+  upsert: {},
+  delete: {},
+  deleteMany: { count: 0 },
+  count: 0,
+  aggregate: { _count: 0, _sum: {}, _avg: {} },
+  groupBy: [],
+};
+
 export const resetAllMocks = () => {
   Object.values(mockPrismaClient).forEach((model) => {
     if (typeof model === 'object' && model !== null) {
-      Object.values(model).forEach((method) => {
+      Object.entries(model).forEach(([methodName, method]) => {
         if (typeof method === 'function' && 'mockReset' in method) {
           (method as jest.Mock).mockReset();
+          if (methodName in DEFAULT_RESOLVED) {
+            (method as jest.Mock).mockResolvedValue(
+              DEFAULT_RESOLVED[methodName],
+            );
+          }
         }
       });
     }
   });
+  if ('mockReset' in mockPrismaClient.$transaction) {
+    (mockPrismaClient.$transaction as jest.Mock).mockReset();
+    (mockPrismaClient.$transaction as jest.Mock).mockImplementation(
+      async (
+        arg:
+          | ((tx: typeof mockPrismaClient) => Promise<unknown>)
+          | Array<Promise<unknown>>,
+      ) => {
+        if (typeof arg === 'function') {
+          return arg(mockPrismaClient);
+        }
+        return Promise.all(arg);
+      },
+    );
+  }
 };

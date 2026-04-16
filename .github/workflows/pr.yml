@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - dev
-      - stg
       - main
 
 permissions:
@@ -14,7 +13,7 @@ jobs:
   quality-checks:
     runs-on: ubuntu-latest
     env:
-      DEPLOY_ENV: ${{ github.base_ref == 'stg' && 'preview' || github.base_ref == 'main' && 'production' || 'development' }}
+      DEPLOY_ENV: ${{ github.base_ref == 'main' && 'production' || 'development' }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -36,6 +35,12 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Unit & integration tests
+        run: npx jest --ci
+        env:
+          CI: 'true'
+          JWT_SECRET: ci-test-secret-key-for-github-actions-only
 
       - name: Build (type & syntax check)
         run: npm run build

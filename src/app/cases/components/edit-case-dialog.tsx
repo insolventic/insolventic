@@ -152,6 +152,7 @@ export function EditCaseDialog({
 
             form.reset({
               id: fullCase.id,
+              version: fullCase.version ?? 1,
               debtorId: fullCase.debtorId,
               type: caseTypeValue as
                 | 'INSOLVENCY'
@@ -408,6 +409,7 @@ export function EditCaseDialog({
 
       const submitData = {
         id: caseData.id,
+        version: data.version,
         debtorId: data.debtorId,
         type: data.type,
         totalDebt: data.totalDebt,
@@ -530,6 +532,12 @@ export function EditCaseDialog({
             await uploadCaseDocuments(payload);
           } catch {}
         }
+      } else if (error?.includes('modificado por otro usuario')) {
+        toast.error(
+          'Este caso fue modificado por otro usuario. Recargue y vuelva a intentarlo.',
+          { duration: 6000 },
+        );
+        onOpenChange(false);
       } else {
         toast.error(error ?? 'Error al actualizar el caso');
       }

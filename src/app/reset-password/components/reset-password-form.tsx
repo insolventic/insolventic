@@ -23,30 +23,9 @@ import { Label } from '@/components/ui/label';
 
 import { resetPassword } from '@/features/auth/actions';
 import type { ResetPasswordInput } from '@/features/auth/schemas';
+import { TENANT_THEMES } from '@/lib/tenant-theme';
 
 import type React from 'react';
-
-interface DatabaseInfo {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-}
-
-const databaseInfo: Record<string, DatabaseInfo> = {
-  armonia: {
-    id: 'armonia',
-    name: 'Armonia',
-    icon: '/images/toucan.png',
-    color: 'text-orange-600',
-  },
-  'constructores-paz': {
-    id: 'constructores-paz',
-    name: 'Constructores de Paz',
-    icon: '/images/dove-of-peace.png',
-    color: 'text-primary',
-  },
-};
 
 export function ResetPasswordForm() {
   const [password, setPassword] = useState('');
@@ -74,17 +53,17 @@ export function ResetPasswordForm() {
       return;
     }
 
-    if (dbParam && databaseInfo[dbParam]) {
+    if (dbParam && TENANT_THEMES[dbParam]) {
       setSelectedDb(dbParam);
       localStorage.setItem('selectedDatabase', dbParam);
-    } else if (storedDb && databaseInfo[storedDb]) {
+    } else if (storedDb && TENANT_THEMES[storedDb]) {
       setSelectedDb(storedDb);
     } else {
       router.push('/');
     }
   }, [searchParams, router]);
 
-  const currentDb = selectedDb ? databaseInfo[selectedDb] : null;
+  const currentDb = selectedDb ? TENANT_THEMES[selectedDb] : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,7 +130,7 @@ export function ResetPasswordForm() {
               </h1>
               <Badge
                 variant="outline"
-                className={`${currentDb.color} mt-1 border-current`}
+                className={`${currentDb.textClass} mt-1 border-current`}
               >
                 {currentDb.name}
               </Badge>
@@ -196,7 +175,7 @@ export function ResetPasswordForm() {
             <h1 className="text-foreground text-3xl font-bold">INSOLVENTIC</h1>
             <Badge
               variant="outline"
-              className={`${currentDb.color} mt-1 border-current`}
+              className={`${currentDb.textClass} mt-1 border-current`}
             >
               {currentDb.name}
             </Badge>

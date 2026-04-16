@@ -736,10 +736,15 @@ export function validateCaseComplete(
     else warnings.push(issue);
   });
 
-  // Assets validation
+  // Assets validation — the form has no explicit "hasAssets" flag, so we
+  // derive it from the assets array itself. This makes the consistency
+  // check a no-op in practice (both branches require a mismatch that
+  // can't happen), but we keep it so the helper stays reachable for
+  // future UI changes that might add an explicit toggle.
+  const assetsList = data.assets || [];
   const assetIssues = validateAssetsDeclaration(
-    false, // TODO: Get from form data
-    (data.assets || []).length,
+    assetsList.length > 0,
+    assetsList.length,
   );
   assetIssues.forEach((issue) => {
     if (issue.type === 'error') issues.push(issue);

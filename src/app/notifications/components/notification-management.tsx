@@ -19,7 +19,10 @@ import {
   markAsRead,
   markAllAsRead,
 } from '@/features/notification/actions';
-import { NotificationWithCase } from '@/features/notification/schemas';
+import {
+  NotificationWithCase,
+  NotificationType,
+} from '@/features/notification/schemas';
 
 import { DashboardHeader } from '../../dashboard/components/dashboard-header';
 
@@ -39,22 +42,7 @@ export function NotificationManagement() {
     async (
       page: number,
       filters?: {
-        type?:
-          | 'case_created'
-          | 'case_updated'
-          | 'case_deleted'
-          | 'creditor_created'
-          | 'creditor_updated'
-          | 'creditor_deleted'
-          | 'debtor_created'
-          | 'debtor_updated'
-          | 'debtor_deleted'
-          | 'user_created'
-          | 'user_updated'
-          | 'user_deleted'
-          | 'role_created'
-          | 'role_updated'
-          | 'role_deleted';
+        type?: NotificationType;
       },
     ) => {
       startTransition(async () => {

@@ -15,7 +15,11 @@ import {
   verifyRefreshToken,
   isTokenExpired,
 } from '@/lib/auth';
-import { buildSessionPayload, ADMIN_USER, TENANT } from '../../helpers/fixtures';
+import {
+  buildSessionPayload,
+  ADMIN_USER,
+  TENANT,
+} from '../../helpers/fixtures';
 
 // Mock next/headers — these functions use cookies() internally
 jest.mock('next/headers', () => ({
@@ -83,7 +87,7 @@ describe('Auth Tokens — src/lib/auth.ts', () => {
       expect(token.split('.')).toHaveLength(3);
     });
 
-    it('should set expiration to 30 days', async () => {
+    it('should set expiration to 7 days (security hardening)', async () => {
       const token = await createRefreshToken({
         userId: ADMIN_USER.id,
         tenantId: TENANT.slug,
@@ -92,7 +96,7 @@ describe('Auth Tokens — src/lib/auth.ts', () => {
       const decoded = await verifyRefreshToken(token);
       expect(decoded).not.toBeNull();
 
-      const expectedExpiry = decoded!.iat! + 30 * 24 * 60 * 60;
+      const expectedExpiry = decoded!.iat! + 7 * 24 * 60 * 60;
       expect(decoded!.exp).toBe(expectedExpiry);
     });
 

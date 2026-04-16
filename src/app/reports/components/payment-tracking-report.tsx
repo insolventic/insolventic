@@ -13,6 +13,7 @@ import {
   DollarSign,
   Plus,
   Upload,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -50,6 +51,7 @@ import {
   getCasesForPayment,
   getCasePaymentSummaries,
   registerPayment,
+  exportPaymentTrackingToExcel,
 } from '@/features/payment/actions';
 import { PAYMENT_METHODS } from '@/features/payment/constants';
 import type {
@@ -160,6 +162,7 @@ export function PaymentTrackingReport() {
   const [dateTo, setDateTo] = useState('');
   const [hasReceipt, setHasReceipt] = useState('all');
   const [search, setSearch] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('es-CO', {
@@ -261,6 +264,43 @@ export function PaymentTrackingReport() {
     void fetchReport();
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const result = await exportPaymentTrackingToExcel({
+        status: status !== 'all' ? status : undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        hasReceipt: hasReceipt as 'yes' | 'no' | 'all',
+        search: search || undefined,
+      });
+      if (result.success && result.data) {
+        const byteArr = Uint8Array.from(atob(result.data), (c) =>
+          c.charCodeAt(0),
+        );
+        const blob = new Blob([byteArr], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const stamp = new Date().toISOString().slice(0, 10);
+        a.download = `trazabilidad_pagos_${stamp}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        toast.success('Reporte exportado exitosamente');
+      } else {
+        toast.error(result.error ?? 'Error al exportar');
+      }
+    } catch {
+      toast.error('Error al exportar');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -295,10 +335,16 @@ export function PaymentTrackingReport() {
             Todos los Pagos
           </Button>
         </div>
-        <Button onClick={openRegisterDialog}>
-          <Plus className="mr-2 h-4 w-4" />
-          Registrar Pago
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            <Download className="mr-2 h-4 w-4" />
+            {exporting ? 'Exportando...' : 'Exportar Excel'}
+          </Button>
+          <Button onClick={openRegisterDialog}>
+            <Plus className="mr-2 h-4 w-4" />
+            Registrar Pago
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}

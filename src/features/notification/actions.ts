@@ -15,7 +15,9 @@ import {
   deleteNotificationOutputSchema,
   getNotificationStatsInputSchema,
   getNotificationStatsOutputSchema,
-  notificationTypeSchema,
+  NOTIFICATION_TYPES,
+  type NotificationType,
+  type CrudNotificationType,
 } from './schemas';
 
 export async function getNotifications(
@@ -71,22 +73,7 @@ export async function getNotifications(
 
     const notifications = notificationsRaw.map((notification) => ({
       ...notification,
-      type: notification.type as
-        | 'case_created'
-        | 'case_updated'
-        | 'case_deleted'
-        | 'creditor_created'
-        | 'creditor_updated'
-        | 'creditor_deleted'
-        | 'debtor_created'
-        | 'debtor_updated'
-        | 'debtor_deleted'
-        | 'user_created'
-        | 'user_updated'
-        | 'user_deleted'
-        | 'role_created'
-        | 'role_updated'
-        | 'role_deleted',
+      type: notification.type as NotificationType,
     }));
 
     const result = getNotificationsOutputSchema.parse({
@@ -270,76 +257,29 @@ export async function getNotificationStats(
     const { userId } = validatedInput;
     const finalUserId = userId || user.id;
 
-    const [total, byType] = await Promise.all([
+    // One groupBy roundtrip instead of 15+ individual counts — scales cleanly
+    // as new notification types are added.
+    const [total, grouped] = await Promise.all([
       prisma.notification.count({ where: { userId: finalUserId, tenantId } }),
-      Promise.all([
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'case_created' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'case_updated' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'case_deleted' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'creditor_created' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'creditor_updated' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'creditor_deleted' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'debtor_created' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'debtor_updated' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'debtor_deleted' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'user_created' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'user_updated' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'user_deleted' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'role_created' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'role_updated' },
-        }),
-        prisma.notification.count({
-          where: { userId: finalUserId, tenantId, type: 'role_deleted' },
-        }),
-      ]),
+      prisma.notification.groupBy({
+        by: ['type'],
+        where: { userId: finalUserId, tenantId },
+        _count: { _all: true },
+      }),
     ]);
+
+    const byType = Object.fromEntries(
+      NOTIFICATION_TYPES.map((t) => [t, 0]),
+    ) as Record<NotificationType, number>;
+    for (const row of grouped) {
+      if ((NOTIFICATION_TYPES as readonly string[]).includes(row.type)) {
+        byType[row.type as NotificationType] = row._count._all;
+      }
+    }
 
     const result = getNotificationStatsOutputSchema.parse({
       total,
-      byType: {
-        case_created: byType[0],
-        case_updated: byType[1],
-        case_deleted: byType[2],
-        creditor_created: byType[3],
-        creditor_updated: byType[4],
-        creditor_deleted: byType[5],
-        debtor_created: byType[6],
-        debtor_updated: byType[7],
-        debtor_deleted: byType[8],
-        user_created: byType[9],
-        user_updated: byType[10],
-        user_deleted: byType[11],
-        role_created: byType[12],
-        role_updated: byType[13],
-        role_deleted: byType[14],
-      },
+      byType,
     });
 
     return { success: true, data: result };
@@ -363,7 +303,7 @@ interface ActionActorInfo {
 }
 
 export async function createNotificationForAction(
-  type: z.infer<typeof notificationTypeSchema>,
+  type: CrudNotificationType,
   entityName: string,
   prisma: PrismaClient,
   tenantId: string,

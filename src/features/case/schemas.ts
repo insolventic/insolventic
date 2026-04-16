@@ -475,6 +475,7 @@ export const caseSchema = z.object({
   type: mapCaseTypeToSpanish,
   totalDebt: decimalToNumber,
   creditors: z.coerce.number(),
+  version: z.number().int().default(1),
   createdDate: z.coerce.date(),
   hearingDate: z.coerce.date().nullable(),
   phase: z.string().nullable(),

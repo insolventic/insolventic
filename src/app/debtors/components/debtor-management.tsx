@@ -10,6 +10,7 @@ import {
   MapPin,
   Mail,
   Phone,
+  Users,
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
@@ -256,6 +257,18 @@ export function DebtorManagement({ debtors }: Readonly<DebtorManagementProps>) {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {paginatedDebtors.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="h-32 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <Users className="text-muted-foreground h-8 w-8" />
+                        <p className="text-muted-foreground text-sm">
+                          No se encontraron deudores
+                        </p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
                 {paginatedDebtors.map((debtor) => (
                   <TableRow key={debtor.id}>
                     <TableCell>

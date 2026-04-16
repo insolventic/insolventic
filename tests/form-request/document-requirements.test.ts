@@ -1,6 +1,10 @@
 /**
  * Tests: Document Requirements Validation
  * Validates that required documents are enforced and optional ones are not.
+ *
+ * NOTE: Document requirements were refactored so that Certificado de tradición
+ * y libertad and Poder are CONDITIONAL (not always required). This file tests
+ * the current ("always = 3") rule set.
  */
 
 import {
@@ -14,43 +18,45 @@ import {
 describe('Document Requirements — validation-rules.ts', () => {
   describe('REQUIRED_DOCUMENTS', () => {
     it('should include Cédula as always required', () => {
-      const cedula = REQUIRED_DOCUMENTS.find(d => d.id === 'cedula');
+      const cedula = REQUIRED_DOCUMENTS.find((d) => d.id === 'cedula');
       expect(cedula).toBeDefined();
       expect(cedula!.always).toBe(true);
     });
 
     it('should include REDAM as always required', () => {
-      const redam = REQUIRED_DOCUMENTS.find(d => d.id === 'redam');
+      const redam = REQUIRED_DOCUMENTS.find((d) => d.id === 'redam');
       expect(redam).toBeDefined();
       expect(redam!.always).toBe(true);
     });
 
     it('should include Certificado de ingresos as always required', () => {
-      const cert = REQUIRED_DOCUMENTS.find(d => d.id === 'cert_ingresos');
+      const cert = REQUIRED_DOCUMENTS.find((d) => d.id === 'cert_ingresos');
       expect(cert).toBeDefined();
       expect(cert!.always).toBe(true);
     });
 
-    it('should include Certificado de tradición y libertad as always required', () => {
-      const tradicion = REQUIRED_DOCUMENTS.find(d => d.id === 'tradicion_libertad');
+    it('should expose Certificado de tradición y libertad as CONDITIONAL (hasRealEstate)', () => {
+      const tradicion = CONDITIONAL_DOCUMENTS.find(
+        (d) => d.id === 'tradicion_libertad',
+      );
       expect(tradicion).toBeDefined();
-      expect(tradicion!.always).toBe(true);
+      expect(tradicion!.condition).toBe('hasRealEstate');
     });
 
-    it('should include Poder as always required', () => {
-      const poder = REQUIRED_DOCUMENTS.find(d => d.id === 'poder');
+    it('should expose Poder as CONDITIONAL (hasAttorney)', () => {
+      const poder = CONDITIONAL_DOCUMENTS.find((d) => d.id === 'poder');
       expect(poder).toBeDefined();
-      expect(poder!.always).toBe(true);
+      expect(poder!.condition).toBe('hasAttorney');
     });
 
-    it('should have exactly 5 always-required documents', () => {
-      expect(REQUIRED_DOCUMENTS).toHaveLength(5);
+    it('should have exactly 3 always-required documents', () => {
+      expect(REQUIRED_DOCUMENTS).toHaveLength(3);
     });
   });
 
   describe('CONDITIONAL_DOCUMENTS', () => {
     it('should require matrícula mercantil for small merchants', () => {
-      const matricula = CONDITIONAL_DOCUMENTS.find(d => d.id === 'matricula');
+      const matricula = CONDITIONAL_DOCUMENTS.find((d) => d.id === 'matricula');
       expect(matricula).toBeDefined();
       expect(matricula!.condition).toBe('isSmallMerchant');
     });
@@ -58,50 +64,58 @@ describe('Document Requirements — validation-rules.ts', () => {
 
   describe('OPTIONAL_DOCUMENTS', () => {
     it('should include extractos bancarios', () => {
-      expect(OPTIONAL_DOCUMENTS.find(d => d.id === 'extractos')).toBeDefined();
+      expect(
+        OPTIONAL_DOCUMENTS.find((d) => d.id === 'extractos'),
+      ).toBeDefined();
     });
 
     it('should include gastos de manutención', () => {
-      expect(OPTIONAL_DOCUMENTS.find(d => d.id === 'gastos_manutencion')).toBeDefined();
+      expect(
+        OPTIONAL_DOCUMENTS.find((d) => d.id === 'gastos_manutencion'),
+      ).toBeDefined();
     });
 
     it('should include mandamientos de pago', () => {
-      expect(OPTIONAL_DOCUMENTS.find(d => d.id === 'mandamientos_pago')).toBeDefined();
+      expect(
+        OPTIONAL_DOCUMENTS.find((d) => d.id === 'mandamientos_pago'),
+      ).toBeDefined();
     });
 
     it('should include certificados de deuda', () => {
-      expect(OPTIONAL_DOCUMENTS.find(d => d.id === 'certificados_deuda')).toBeDefined();
+      expect(
+        OPTIONAL_DOCUMENTS.find((d) => d.id === 'certificados_deuda'),
+      ).toBeDefined();
     });
 
     it('should include copias de títulos valores', () => {
-      expect(OPTIONAL_DOCUMENTS.find(d => d.id === 'copias_titulos')).toBeDefined();
+      expect(
+        OPTIONAL_DOCUMENTS.find((d) => d.id === 'copias_titulos'),
+      ).toBeDefined();
     });
 
     it('should have all optional documents marked as multiple', () => {
-      OPTIONAL_DOCUMENTS.forEach(doc => {
+      OPTIONAL_DOCUMENTS.forEach((doc) => {
         expect(doc.multiple).toBe(true);
       });
     });
   });
 
   describe('getRequiredDocuments', () => {
-    it('should return 5 base required docs for non-merchant', () => {
+    it('should return 3 base required docs for non-merchant', () => {
       const required = getRequiredDocuments({
         applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
       });
-      expect(required).toHaveLength(5);
+      expect(required).toHaveLength(3);
       expect(required).toContain('cedula');
       expect(required).toContain('redam');
       expect(required).toContain('cert_ingresos');
-      expect(required).toContain('tradicion_libertad');
-      expect(required).toContain('poder');
     });
 
     it('should add matrícula mercantil for small merchant', () => {
       const required = getRequiredDocuments({
         applicantScope: ['PERSONA_NATURAL_PEQUENA_COMERCIANTE'],
       });
-      expect(required).toHaveLength(6);
+      expect(required).toHaveLength(4);
       expect(required).toContain('matricula');
     });
 
@@ -114,7 +128,7 @@ describe('Document Requirements — validation-rules.ts', () => {
 
     it('should return base docs when no applicantScope provided', () => {
       const required = getRequiredDocuments({});
-      expect(required).toHaveLength(5);
+      expect(required).toHaveLength(3);
     });
   });
 
@@ -124,7 +138,7 @@ describe('Document Requirements — validation-rules.ts', () => {
         applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
       });
       expect(result.isValid).toBe(false);
-      expect(result.missingDocuments).toHaveLength(5);
+      expect(result.missingDocuments).toHaveLength(3);
     });
 
     it('should fail when only some required documents are uploaded', () => {
@@ -133,11 +147,13 @@ describe('Document Requirements — validation-rules.ts', () => {
       });
       expect(result.isValid).toBe(false);
       expect(result.missingDocuments.length).toBeGreaterThan(0);
-      expect(result.missingDocuments.map(d => d.id)).toContain('cert_ingresos');
+      expect(result.missingDocuments.map((d) => d.id)).toContain(
+        'cert_ingresos',
+      );
     });
 
     it('should pass when all required documents are uploaded (non-merchant)', () => {
-      const allRequired = ['cedula', 'redam', 'cert_ingresos', 'tradicion_libertad', 'poder'];
+      const allRequired = ['cedula', 'redam', 'cert_ingresos'];
       const result = validateDocumentsComplete(allRequired, {
         applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
       });
@@ -146,16 +162,16 @@ describe('Document Requirements — validation-rules.ts', () => {
     });
 
     it('should fail for merchant without matrícula', () => {
-      const allBase = ['cedula', 'redam', 'cert_ingresos', 'tradicion_libertad', 'poder'];
+      const allBase = ['cedula', 'redam', 'cert_ingresos'];
       const result = validateDocumentsComplete(allBase, {
         applicantScope: ['PERSONA_NATURAL_PEQUENA_COMERCIANTE'],
       });
       expect(result.isValid).toBe(false);
-      expect(result.missingDocuments.map(d => d.id)).toContain('matricula');
+      expect(result.missingDocuments.map((d) => d.id)).toContain('matricula');
     });
 
     it('should pass for merchant with all docs including matrícula', () => {
-      const allDocs = ['cedula', 'redam', 'cert_ingresos', 'tradicion_libertad', 'poder', 'matricula'];
+      const allDocs = ['cedula', 'redam', 'cert_ingresos', 'matricula'];
       const result = validateDocumentsComplete(allDocs, {
         applicantScope: ['PERSONA_NATURAL_PEQUENA_COMERCIANTE'],
       });
@@ -163,8 +179,7 @@ describe('Document Requirements — validation-rules.ts', () => {
     });
 
     it('should not require optional documents', () => {
-      const allRequired = ['cedula', 'redam', 'cert_ingresos', 'tradicion_libertad', 'poder'];
-      // No extractos, no gastos, etc. — should still be valid
+      const allRequired = ['cedula', 'redam', 'cert_ingresos'];
       const result = validateDocumentsComplete(allRequired, {
         applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
       });
@@ -173,7 +188,7 @@ describe('Document Requirements — validation-rules.ts', () => {
 
     it('should return correct names for missing documents', () => {
       const result = validateDocumentsComplete([], {});
-      const names = result.missingDocuments.map(d => d.name);
+      const names = result.missingDocuments.map((d) => d.name);
       expect(names).toContain('Cédula de ciudadanía');
       expect(names).toContain('Certificado REDAM');
     });

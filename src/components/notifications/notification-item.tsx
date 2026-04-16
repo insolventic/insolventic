@@ -7,6 +7,8 @@ import {
   User,
   UserCheck,
   Shield,
+  Calendar,
+  AlertTriangle,
 } from 'lucide-react';
 import { NotificationWithCase } from '@/features/notification/schemas';
 
@@ -38,13 +40,27 @@ const getNotificationTypeIcon = (type: string) => {
     role_created: Shield,
     role_updated: Shield,
     role_deleted: Trash2,
+
+    // Proactive alerts
+    hearing_upcoming: Calendar,
+    payment_overdue: AlertTriangle,
   };
 
   return iconMap[type] || Bell;
 };
 
 const getNotificationTypeColor = (type: string) => {
-  if (type.includes('_created')) {
+  if (type === 'hearing_upcoming') {
+    return {
+      bg: 'bg-amber-100 dark:bg-amber-900/30',
+      icon: 'text-amber-600 dark:text-amber-400',
+    };
+  } else if (type === 'payment_overdue') {
+    return {
+      bg: 'bg-red-100 dark:bg-red-900/30',
+      icon: 'text-red-600 dark:text-red-400',
+    };
+  } else if (type.includes('_created')) {
     return {
       bg: 'bg-green-100 dark:bg-green-900/30',
       icon: 'text-green-600 dark:text-green-400',

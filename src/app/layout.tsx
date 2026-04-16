@@ -1,5 +1,7 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 import { ThemeProvider } from '@/components/theme-provider';
 import { TenantProvider } from '@/components/tenant-provider';
@@ -51,6 +53,12 @@ export default function RootLayout({
           <Toaster closeButton richColors />
           <VersionBadge />
         </ThemeProvider>
+        {/*
+          Vercel Analytics (page views) + Speed Insights (Core Web Vitals).
+          They only emit telemetry when deployed on Vercel; local dev is inert.
+        */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

@@ -455,6 +455,16 @@ export async function refreshAccessToken(): Promise<AuthResult> {
       };
     }
 
+    // Block refresh if user must change password
+    if ((user as Record<string, unknown>).mustChangePassword) {
+      await clearAuthCookies();
+      return {
+        success: false,
+        message:
+          'Debe establecer una nueva contraseña antes de continuar. Revise su correo para el enlace de activación.',
+      };
+    }
+
     const sessionData = {
       id: user.id,
       name: user.name,
@@ -568,6 +578,14 @@ export async function switchTenant(targetTenantSlug: string): Promise<{
       return {
         success: false,
         error: 'No tienes cuenta en esta organización',
+      };
+    }
+
+    // Block tenant switch if user must change password
+    if ((userInTarget as Record<string, unknown>).mustChangePassword) {
+      return {
+        success: false,
+        error: 'Debe establecer una nueva contraseña antes de continuar.',
       };
     }
 

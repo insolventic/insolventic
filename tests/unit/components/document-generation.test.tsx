@@ -2,7 +2,13 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -42,17 +48,30 @@ jest.mock('@/features/case/actions', () => ({
 }));
 
 jest.mock('@/features/document/actions', () => ({
-  batchGenerateDocuments: (...args: unknown[]) => mockBatchGenerateDocuments(...args),
+  batchGenerateDocuments: (...args: unknown[]) =>
+    mockBatchGenerateDocuments(...args),
 }));
 
 // Mock Radix Popover (simplify for testing)
 jest.mock('@/components/ui/popover', () => ({
-  Popover: ({ children, open }: { children: React.ReactNode; open?: boolean }) => (
-    <div data-testid="popover" data-open={open}>{children}</div>
+  Popover: ({
+    children,
+    open,
+  }: {
+    children: React.ReactNode;
+    open?: boolean;
+  }) => (
+    <div data-testid="popover" data-open={open}>
+      {children}
+    </div>
   ),
-  PopoverTrigger: ({ children, asChild }: { children: React.ReactNode; asChild?: boolean }) => (
-    <div data-testid="popover-trigger">{children}</div>
-  ),
+  PopoverTrigger: ({
+    children,
+    asChild,
+  }: {
+    children: React.ReactNode;
+    asChild?: boolean;
+  }) => <div data-testid="popover-trigger">{children}</div>,
   PopoverContent: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="popover-content">{children}</div>
   ),
@@ -63,9 +82,12 @@ jest.mock('@/components/ui/command', () => ({
   Command: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="command">{children}</div>
   ),
-  CommandInput: ({ placeholder }: { placeholder?: string; className?: string }) => (
-    <input data-testid="command-input" placeholder={placeholder} />
-  ),
+  CommandInput: ({
+    placeholder,
+  }: {
+    placeholder?: string;
+    className?: string;
+  }) => <input data-testid="command-input" placeholder={placeholder} />,
   CommandList: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="command-list">{children}</div>
   ),
@@ -84,80 +106,136 @@ jest.mock('@/components/ui/command', () => ({
     onSelect?: () => void;
     value?: string;
   }) => (
-    <div data-testid="command-item" data-value={value} onClick={onSelect} role="option">
+    <div
+      data-testid="command-item"
+      data-value={value}
+      onClick={onSelect}
+      role="option"
+    >
       {children}
     </div>
   ),
 }));
 
-// Mock Select
-jest.mock('@/components/ui/select', () => ({
-  Select: ({
-    children,
-    value,
-    onValueChange,
-    disabled,
-  }: {
-    children: React.ReactNode;
-    value?: string;
-    onValueChange?: (v: string) => void;
-    disabled?: boolean;
-  }) => (
-    <div data-testid="select" data-value={value} data-disabled={disabled}>
-      {children}
-      <select
-        data-testid="select-native"
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onValueChange?.(e.target.value)}
-      >
-        <option value="all">Todos los paquetes (49 doc.)</option>
-        <option value="1">Paquete 1 - Solicitud (6 doc.)</option>
-        <option value="2">Paquete 2 - Admisión (7 doc.)</option>
-        <option value="3">Paquete 3 - Negociación (6 doc.)</option>
-        <option value="4">Paquete 4 - Terminación (3 doc.)</option>
-        <option value="5">Paquete 5 - Fracaso (27 doc.)</option>
-      </select>
-    </div>
-  ),
-  SelectTrigger: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="select-trigger">{children}</div>
-  ),
-  SelectValue: ({ placeholder }: { placeholder?: string }) => (
-    <span data-testid="select-value">{placeholder}</span>
-  ),
-  SelectContent: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="select-content">{children}</div>
-  ),
-  SelectItem: ({
-    children,
-    value,
-  }: {
-    children: React.ReactNode;
-    value: string;
-  }) => (
-    <option data-testid="select-item" value={value}>
-      {children}
-    </option>
-  ),
-}));
+// Mock Select. The source component now renders two Selects (package + format),
+// so we assign a data-testid based on the value domain: the package Select uses
+// values {all, 1, 2, 3, 4, 5} and keeps the legacy id `select-native`. The
+// format Select uses values {pdf, docx, both} and gets `select-native-format`.
+jest.mock('@/components/ui/select', () => {
+  const PACKAGE_VALUES = new Set(['all', '1', '2', '3', '4', '5']);
+  const isPackage = (v: unknown) =>
+    typeof v === 'string' && PACKAGE_VALUES.has(v);
+  return {
+    Select: ({
+      children,
+      value,
+      onValueChange,
+      disabled,
+    }: {
+      children: React.ReactNode;
+      value?: string;
+      onValueChange?: (v: string) => void;
+      disabled?: boolean;
+    }) => {
+      const isPkg = isPackage(value);
+      const nativeTestId = isPkg ? 'select-native' : 'select-native-format';
+      const rootTestId = isPkg ? 'select' : 'select-format';
+      return (
+        <div
+          data-testid={rootTestId}
+          data-value={value}
+          data-disabled={disabled}
+        >
+          {children}
+          <select
+            data-testid={nativeTestId}
+            value={value}
+            disabled={disabled}
+            onChange={(e) => onValueChange?.(e.target.value)}
+          >
+            {isPkg ? (
+              <>
+                <option value="all">Todos los paquetes (49 doc.)</option>
+                <option value="1">Paquete 1 - Solicitud (6 doc.)</option>
+                <option value="2">Paquete 2 - Admisión (7 doc.)</option>
+                <option value="3">Paquete 3 - Negociación (6 doc.)</option>
+                <option value="4">Paquete 4 - Terminación (3 doc.)</option>
+                <option value="5">Paquete 5 - Fracaso (27 doc.)</option>
+              </>
+            ) : (
+              <>
+                <option value="pdf">Solo PDF</option>
+                <option value="docx">Solo Word (.docx)</option>
+                <option value="both">Ambos (PDF + Word)</option>
+              </>
+            )}
+          </select>
+        </div>
+      );
+    },
+    SelectTrigger: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="select-trigger">{children}</div>
+    ),
+    SelectValue: ({ placeholder }: { placeholder?: string }) => (
+      <span data-testid="select-value">{placeholder}</span>
+    ),
+    SelectContent: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="select-content">{children}</div>
+    ),
+    SelectItem: ({
+      children,
+      value,
+    }: {
+      children: React.ReactNode;
+      value: string;
+    }) => (
+      <option data-testid="select-item" value={value}>
+        {children}
+      </option>
+    ),
+  };
+});
 
 // Minimal mocks for remaining UI components
 jest.mock('@/components/ui/card', () => ({
-  Card: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="card" className={className}>{children}</div>
+  Card: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <div data-testid="card" className={className}>
+      {children}
+    </div>
   ),
   CardHeader: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="card-header">{children}</div>
   ),
-  CardTitle: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <h2 data-testid="card-title" className={className}>{children}</h2>
+  CardTitle: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <h2 data-testid="card-title" className={className}>
+      {children}
+    </h2>
   ),
   CardDescription: ({ children }: { children: React.ReactNode }) => (
     <p data-testid="card-description">{children}</p>
   ),
-  CardContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="card-content" className={className}>{children}</div>
+  CardContent: ({
+    children,
+    className,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+  }) => (
+    <div data-testid="card-content" className={className}>
+      {children}
+    </div>
   ),
 }));
 
@@ -173,7 +251,12 @@ jest.mock('@/components/ui/badge', () => ({
     title?: string;
     className?: string;
   }) => (
-    <span data-testid="badge" data-variant={variant} title={title} className={className}>
+    <span
+      data-testid="badge"
+      data-variant={variant}
+      title={title}
+      className={className}
+    >
       {children}
     </span>
   ),
@@ -211,9 +294,13 @@ jest.mock('@/components/ui/button', () => ({
 }));
 
 jest.mock('@/components/ui/label', () => ({
-  Label: ({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) => (
-    <label htmlFor={htmlFor}>{children}</label>
-  ),
+  Label: ({
+    children,
+    htmlFor,
+  }: {
+    children: React.ReactNode;
+    htmlFor?: string;
+  }) => <label htmlFor={htmlFor}>{children}</label>,
 }));
 
 // Mock cn utility
@@ -375,7 +462,9 @@ describe('DocumentGeneration', () => {
 
       expect(screen.getByText('Generación de Documentos')).toBeInTheDocument();
       expect(
-        screen.getByText(/Selecciona un caso y un paquete para generar documentos/),
+        screen.getByText(
+          /Selecciona un caso, paquete y formato para generar documentos/,
+        ),
       ).toBeInTheDocument();
     });
 
@@ -402,9 +491,7 @@ describe('DocumentGeneration', () => {
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
 
-      expect(
-        screen.getByText('Generar Documentos'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Generar Documentos')).toBeInTheDocument();
     });
 
     it('shows permission notice when user lacks Generar documentos permission', async () => {
@@ -579,9 +666,7 @@ describe('DocumentGeneration', () => {
       fireEvent.click(caseItems[0]);
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/Se generarán/),
-        ).toBeInTheDocument();
+        expect(screen.getByText(/Se generarán/)).toBeInTheDocument();
       });
     });
   });
@@ -594,7 +679,9 @@ describe('DocumentGeneration', () => {
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button');
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button');
       expect(generateBtn).toBeDisabled();
     });
 
@@ -610,7 +697,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button');
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button');
       expect(generateBtn).not.toBeDisabled();
     });
 
@@ -628,7 +717,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button');
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button');
       expect(generateBtn).toBeDisabled();
     });
   });
@@ -650,14 +741,18 @@ describe('DocumentGeneration', () => {
       fireEvent.click(caseItems[0]);
 
       // Click generate
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith({
-          caseId: 'case-1',
-          packageNumber: undefined, // 'all' => undefined
-        });
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+          expect.objectContaining({
+            caseId: 'case-1',
+            packageNumber: undefined, // 'all' => undefined
+          }),
+        );
       });
     });
 
@@ -679,14 +774,18 @@ describe('DocumentGeneration', () => {
       fireEvent.change(selectNative, { target: { value: '3' } });
 
       // Click generate
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith({
-          caseId: 'case-1',
-          packageNumber: 3,
-        });
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+          expect.objectContaining({
+            caseId: 'case-1',
+            packageNumber: 3,
+          }),
+        );
       });
     });
 
@@ -702,7 +801,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -722,7 +823,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -750,7 +853,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -776,7 +881,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -796,7 +903,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[1]); // Select case-2
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -823,7 +932,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[1]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -853,7 +964,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -877,7 +990,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -898,9 +1013,7 @@ describe('DocumentGeneration', () => {
       expect(
         screen.getByText('Error leyendo plantilla: ENOENT'),
       ).toBeInTheDocument();
-      expect(
-        screen.getByText('Declaración Juramentada'),
-      ).toBeInTheDocument();
+      expect(screen.getByText('Declaración Juramentada')).toBeInTheDocument();
     });
 
     it('shows amber/warning style when there are failed documents', async () => {
@@ -917,7 +1030,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -940,7 +1055,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[1]); // case-2
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -983,14 +1100,18 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith({
-          caseId: 'case-1',
-          packageNumber: undefined,
-        });
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+          expect.objectContaining({
+            caseId: 'case-1',
+            packageNumber: undefined,
+          }),
+        );
       });
     });
 
@@ -1010,14 +1131,18 @@ describe('DocumentGeneration', () => {
       const selectNative = screen.getByTestId('select-native');
       fireEvent.change(selectNative, { target: { value: '5' } });
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith({
-          caseId: 'case-1',
-          packageNumber: 5,
-        });
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+          expect.objectContaining({
+            caseId: 'case-1',
+            packageNumber: 5,
+          }),
+        );
       });
     });
   });
@@ -1037,7 +1162,9 @@ describe('DocumentGeneration', () => {
       const caseItems = screen.getAllByTestId('command-item');
       fireEvent.click(caseItems[0]);
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -1065,7 +1192,9 @@ describe('DocumentGeneration', () => {
       const selectNative = screen.getByTestId('select-native');
       fireEvent.change(selectNative, { target: { value: '2' } });
 
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
@@ -1096,7 +1225,9 @@ describe('DocumentGeneration', () => {
       });
 
       // 4. Generate
-      const generateBtn = screen.getByText('Generar Documentos').closest('button')!;
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
       fireEvent.click(generateBtn);
 
       // 5. Verify results are displayed

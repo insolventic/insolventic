@@ -5,6 +5,11 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limit';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -1103,5 +1108,204 @@ export async function getCasePaymentSummaries(): Promise<{
   } catch (error) {
     console.error('Error getting case payment summaries:', error);
     return { success: false, error: 'Error al obtener resúmenes' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// exportPaymentTrackingToExcel — Excel export of the payment tracking report
+// ---------------------------------------------------------------------------
+
+const STATUS_LABELS: Record<string, string> = {
+  pendiente: 'Pendiente',
+  pagado: 'Pagado',
+  parcial: 'Parcial',
+  vencido: 'Vencido',
+};
+
+/**
+ * Exports the payment tracking report as a multi-sheet Excel workbook.
+ * Applies the same filters and visibility scoping as `getPaymentTrackingReport`.
+ * Rate-limited per user to avoid abusive generation of heavy exports.
+ */
+export async function exportPaymentTrackingToExcel(
+  filters: z.infer<typeof trackingFiltersSchema> = {},
+): Promise<{ success: boolean; data?: string; error?: string }> {
+  try {
+    const validated = trackingFiltersSchema.parse(filters);
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.VER_REPORTES)) {
+      return { success: false, error: 'No tienes permisos para exportar' };
+    }
+
+    const rlKey = getRateLimitKey('reportExport', user.id);
+    const rl = checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.reportExport);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        error: `Demasiadas solicitudes de exportación. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
+      };
+    }
+
+    // Build the same where clause as the report (kept in sync deliberately)
+    const where: Record<string, unknown> = { tenantId };
+
+    if (validated.status && validated.status !== 'all') {
+      where.status = validated.status;
+    }
+
+    if (validated.dateFrom || validated.dateTo) {
+      const paymentDateFilter: Record<string, Date> = {};
+      if (validated.dateFrom)
+        paymentDateFilter.gte = new Date(validated.dateFrom);
+      if (validated.dateTo) {
+        const endDate = new Date(validated.dateTo);
+        endDate.setHours(23, 59, 59, 999);
+        paymentDateFilter.lte = endDate;
+      }
+      where.paymentDate = paymentDateFilter;
+    }
+
+    if (validated.hasReceipt === 'yes') {
+      where.receiptFileId = { not: null };
+    } else if (validated.hasReceipt === 'no') {
+      where.receiptFileId = null;
+    }
+
+    if (validated.search) {
+      where.OR = [
+        {
+          case: {
+            caseNumber: { contains: validated.search, mode: 'insensitive' },
+          },
+        },
+        {
+          case: {
+            debtorName: { contains: validated.search, mode: 'insensitive' },
+          },
+        },
+        {
+          debtor: { name: { contains: validated.search, mode: 'insensitive' } },
+        },
+      ];
+    }
+
+    // Visibility scoping
+    if (user.permissions.includes(P.VER_TODOS_CASOS)) {
+      // full visibility
+    } else if (user.permissions.includes(P.VER_CASOS_PROPIOS)) {
+      where.case = { ...(where.case as object), operatorId: user.id };
+    }
+
+    const payments = await prisma.payment.findMany({
+      where,
+      include: {
+        case: { select: { caseNumber: true, debtorName: true } },
+        debtor: { select: { name: true } },
+        registeredBy: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const ExcelJS = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Insolventic';
+    workbook.created = new Date();
+
+    type WorksheetT = ReturnType<typeof workbook.addWorksheet>;
+    const styleHeader = (sheet: WorksheetT) => {
+      const h = sheet.getRow(1);
+      h.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      h.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1F4E79' },
+      };
+      h.alignment = { horizontal: 'center', vertical: 'middle' };
+      h.height = 24;
+    };
+
+    // Summary sheet
+    const summary = workbook.addWorksheet('Resumen');
+    summary.columns = [
+      { header: 'Indicador', key: 'label', width: 32 },
+      { header: 'Valor', key: 'value', width: 22 },
+    ];
+    styleHeader(summary);
+
+    const now = new Date();
+    const totalRecaudado = payments
+      .filter((p) => p.status === 'pagado')
+      .reduce((s, p) => s + Number(p.amount), 0);
+    const totalPendiente = payments
+      .filter(
+        (p) => p.status === 'pendiente' && (!p.dueDate || p.dueDate >= now),
+      )
+      .reduce((s, p) => s + Number(p.amount), 0);
+    const totalVencido = payments
+      .filter(
+        (p) =>
+          p.status === 'vencido' ||
+          (p.status === 'pendiente' && p.dueDate && p.dueDate < now),
+      )
+      .reduce((s, p) => s + Number(p.amount), 0);
+    const casesConPagos = new Set(
+      payments.filter((p) => p.status === 'pagado').map((p) => p.caseId),
+    ).size;
+
+    summary.addRow({ label: 'Total Recaudado', value: totalRecaudado });
+    summary.addRow({ label: 'Total Pendiente', value: totalPendiente });
+    summary.addRow({ label: 'Total Vencido', value: totalVencido });
+    summary.addRow({ label: 'Casos con Pagos', value: casesConPagos });
+    summary.addRow({ label: 'Total Pagos Listados', value: payments.length });
+    summary.getColumn('value').numFmt = '"$"#,##0';
+    // Casos con pagos y Total listados son conteos (no montos)
+    summary.getCell('B4').numFmt = '#,##0';
+    summary.getCell('B5').numFmt = '#,##0';
+
+    // Detail sheet
+    const detail = workbook.addWorksheet('Pagos');
+    detail.columns = [
+      { header: 'Caso', key: 'caseNumber', width: 18 },
+      { header: 'Deudor', key: 'debtorName', width: 32 },
+      { header: 'Monto', key: 'amount', width: 16 },
+      { header: 'Fecha Pago', key: 'paymentDate', width: 16 },
+      { header: 'Fecha Límite', key: 'dueDate', width: 16 },
+      { header: 'Estado', key: 'status', width: 14 },
+      { header: 'Método', key: 'paymentMethod', width: 18 },
+      { header: 'Comprobante', key: 'receipt', width: 14 },
+      { header: 'Registrado por', key: 'registeredBy', width: 24 },
+      { header: 'Observaciones', key: 'observations', width: 40 },
+    ];
+    styleHeader(detail);
+
+    for (const p of payments) {
+      detail.addRow({
+        caseNumber: p.case.caseNumber,
+        debtorName: p.debtor.name,
+        amount: Number(p.amount),
+        paymentDate: p.paymentDate
+          ? p.paymentDate.toLocaleDateString('es-CO')
+          : '',
+        dueDate: p.dueDate ? p.dueDate.toLocaleDateString('es-CO') : '',
+        status: STATUS_LABELS[p.status] ?? p.status,
+        paymentMethod: p.paymentMethod ?? '',
+        receipt: p.receiptFileId ? 'Sí' : 'No',
+        registeredBy: p.registeredBy?.name ?? '',
+        observations: p.observations ?? '',
+      });
+    }
+    detail.getColumn('amount').numFmt = '"$"#,##0';
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const base64 = Buffer.from(buffer).toString('base64');
+
+    return { success: true, data: base64 };
+  } catch (error) {
+    console.error('Error exporting payment tracking:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al exportar pagos',
+    };
   }
 }

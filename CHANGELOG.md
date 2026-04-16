@@ -5,6 +5,84 @@ All notable changes to INSOLVENTIC will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-04-15
+
+### Added
+
+- **Proactive alerts (in-app + email)**:
+  - `hearing_upcoming` — notifica al operador asignado 48h antes de una audiencia.
+  - `payment_overdue` — notifica al operador cuando un pago vence sin registrarse y marca el pago como `vencido`.
+  - Scanners puros en `src/features/notification/alerts.ts`, deduplicados por `(type, relatedId, userId)` dentro de una ventana de 20h.
+  - Cron endpoint `/api/cron/alerts` protegido con `CRON_SECRET` (Bearer). Schedule por defecto 08:00 UTC diario (`vercel.json`).
+  - Email opcional (`ALERTS_EMAIL_ENABLED=true`) con plantilla genérica `emailService.sendAlertEmail(...)`.
+- **Observabilidad — Sentry**: configs `sentry.{client,server,edge}.config.ts` + wrapper `src/lib/observability.ts` (`reportError` / `reportMessage`). Sin DSN → degrada a `console` (no-op).
+- **Vercel Analytics + Speed Insights** inyectados en `app/layout.tsx`.
+- **Exportación a Excel del reporte de Trazabilidad de Pagos** (`exportPaymentTrackingToExcel`, rate-limited, 2 hojas: Resumen + Pagos).
+- **Workflow `e2e.yml`**: Playwright (chromium) con Postgres service + seed determinístico, PRs + manual dispatch, artefactos (HTML report + traces) en fallo.
+- **Icons + colores** para notificaciones de alertas (Calendar ámbar / AlertTriangle rojo).
+
+### Changed
+
+- **Notificaciones — schema**: `notificationTypeSchema` ahora se genera desde una tupla única (`NOTIFICATION_TYPES`). `getNotificationStats.byType` pasó de 15 counts paralelos a un solo `groupBy` — escala automáticamente al agregar tipos.
+- **Notificaciones — API tipada**: `createNotificationForAction` acepta únicamente `CrudNotificationType`; las alertas proactivas fluyen por `alerts.ts` (fuera del action-map).
+- **`vercel.json`**: añade sección `crons` con el endpoint de alertas.
+- **`.env.example`**: nueva sección "Alertas Proactivas (Cron)" con `CRON_SECRET`, `ALERTS_HEARING_LOOKAHEAD_HOURS`, `ALERTS_DEDUPE_WINDOW_HOURS`, `ALERTS_EMAIL_ENABLED`.
+- **Cron endpoint**: comparación de `CRON_SECRET` ahora usa `crypto.timingSafeEqual` (constant-time) en lugar de `!==`.
+- **Tenant config consolidada**: 4 formularios de auth (`login`, `register`, `forgot-password`, `reset-password`) ahora importan de `@/lib/tenant-theme` — eliminado `databaseInfo` local duplicado.
+- **Estrategia de ramas simplificada**: solo `main` + `dev`. Eliminada rama `stg` de todos los workflows (`pr.yml`, `deploy.yml`, `e2e.yml`) y docs.
+- **`deploy.yml`**: `dev` → preview, `main` → producción. Renombrado de "Deploy to Staging & Production" → "Deploy".
+
+### Removed
+
+- Dependencias no utilizadas: `cookies`, `libreoffice-convert`, `pizzip`, `jsdom`.
+- Referencias a rama `stg` en workflows, README, y documentación de arquitectura.
+
+### Fixed
+
+- `.gitignore`: excluye artefactos de tesis (`*.docx`, `*.pptx`, diagramas PNG) de la raíz del repo.
+- `.vercelignore`: excluye `tests/`, `docs/`, `.github/`, configs de test y artefactos académicos del bundle de producción.
+
+### Tests
+
+- **+17 tests** (unit/alerts.test.ts × 7, unit/observability.test.ts × 3, unit/cron/alerts-route.test.ts × 7) — **23 suites / 422 tests verdes**.
+- E2E Playwright realineado con los usuarios del seed (`beatriz.malavera@insolventic.com` / `123456`, tenant `armonia`) y navegación vía `?db=<tenant>` URL param.
+
+### Security
+
+- `CRON_SECRET` se compara con `crypto.timingSafeEqual` (constant-time).
+- Cron endpoint emite `requestId` en toda respuesta (éxito o fallo) para trazabilidad en logs.
+- Cron endpoint aplica timeout duro de 60s por ejecución; si se excede devuelve `ok: false, timedOut: true` sin reventar el deployment.
+
+## [0.2.0] - 2026-04-14
+
+### Added
+
+- **Case edit with optimistic locking**: `version` field propagado al Zod schema + `edit-case-dialog`. Conflictos muestran toast y cierran el diálogo.
+- **Case type filter** en el listado de casos (Insolvencia / Conciliación / Acuerdo de Apoyo).
+- **Inline document preview** para PDFs e imágenes usando Google Drive embedded viewer.
+- **Empty states** en tablas de casos, deudores y acreedores.
+- **Payment receipt upload** con soporte PDF/JPG/PNG hacia Google Drive (`/Comprobantes/`).
+- **Documentación completa**: README, ARQUITECTURA (con diagramas Mermaid), MANUAL_USUARIO, TESTS.
+- **Tests en CI**: `jest --ci` ejecutado en cada pull request contra `dev`/`stg`/`main`.
+
+### Changed
+
+- **Refresh token security hardening**: expiración reducida de 30 días → 7 días.
+- **`mustChangePassword` enforcement**: ahora se valida también en `refresh` y `switchTenant`, no solo en login.
+- **Documentos requeridos**: Tradición y libertad + Poder pasan a ser condicionales (no siempre requeridos).
+- **Reporte Estado de Casos**: Conciliación y Acuerdo de Apoyo ya no muestran montos engañosos (campo `showMonetary`).
+- **.env.example**: documentado exhaustivamente con comentarios por sección.
+
+### Fixed
+
+- Prisma mock en tests: agregados modelos faltantes (auditLog, payment, paymentReceipt, etc.) para evitar `Cannot read properties of undefined`.
+- Drive centro tests: alineados a nombres canónicos "Armonía" y "Constructores de Paz".
+- Document generation tests: 36 tests verdes (antes: 31/36) tras alinear mock de Select con nueva UI de paquete + formato.
+
+### Tests
+
+- **20 suites / 405 tests verdes** (antes: 7 suites fallando).
+
 ## [0.1.0] - 2026-03-08
 
 ### Added
