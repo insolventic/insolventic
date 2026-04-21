@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constancia de Incumplimiento — Acuerdo de Apoyo</title>
+    <link rel="stylesheet" href="./CSS/styles-acuerdo-apoyo.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Encabezado -->
+    <div style="text-align:center; margin: 20px 0;">
+        <p style="font-size:14px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">
+            CONSTANCIA DE INCUMPLIMIENTO<br>ACUERDO DE APOYO
+        </p>
+        <p style="font-size:12px; margin-top:6px;">
+            Radicado N° <strong>{{RADICADO}}</strong>
+        </p>
+    </div>
+
+    <!-- Datos del trámite -->
+    <p class="seccion-titulo">Datos del trámite</p>
+    <table class="tabla-condiciones">
+        <tr>
+            <td class="label-cond">Fecha de radicación</td>
+            <td>{{FECHA_RADICACION}}</td>
+        </tr>
+        <tr>
+            <td class="label-cond">Beneficiario</td>
+            <td>{{NOMBRE_BENEFICIARIO}} — {{TIPO_ID_BENEFICIARIO}} {{ID_BENEFICIARIO}}</td>
+        </tr>
+        <tr>
+            <td class="label-cond">Prestador de apoyo</td>
+            <td>{{NOMBRE_PRESTADOR}} — {{TIPO_ID_PRESTADOR}} {{ID_PRESTADOR}}</td>
+        </tr>
+        <tr>
+            <td class="label-cond">Ciudad</td>
+            <td>{{CIUDAD}}</td>
+        </tr>
+    </table>
+
+    <!-- Constancia -->
+    <p class="seccion-titulo">Constancia</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">
+            El Centro de Conciliación Constructores de Paz deja constancia de que el acuerdo de apoyo
+            celebrado entre las partes identificadas arriba, con radicado N° <strong>{{RADICADO}}</strong>,
+            no fue cumplido en los términos pactados.
+        </p>
+    </div>
+
+    <!-- Causa de incumplimiento -->
+    <p class="seccion-titulo">Causa de terminación</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">{{CAUSA_TERMINACION_APOYO}}</p>
+    </div>
+
+    {{#if RESULTADO_APOYO}}
+    <p class="seccion-titulo">Descripción del resultado</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">{{RESULTADO_APOYO}}</p>
+    </div>
+    {{/if}}
+
+    <!-- Nota legal -->
+    <div class="bloque-contenido" style="border:1px solid #ccc; padding:10px; margin-top:20px; background:#f9f9f9;">
+        <p style="font-size:11px; color:#555; text-align:justify;">
+            La presente constancia se expide para los fines que el interesado estime convenientes,
+            de acuerdo con lo establecido en el artículo 2° de la Ley 640 de 2001 y demás normas concordantes.
+        </p>
+    </div>
+
+    <!-- Firma conciliadora -->
+    <div class="firma-section">
+        <p style="font-size:12px; text-align:center;">
+            Expedida en {{CIUDAD}}, el {{NUMERO_DIA}} de {{NOMBRE_MES}} de {{ANO}}.
+        </p>
+        <div style="text-align:center; margin-top:40px;">
+            <div class="firma-linea" style="width:50%; margin:0 auto 6px;"></div>
+            <p class="firma-nombre">{{NOMBRE_CONCILIADORA_APOYO}}</p>
+            <p class="firma-cargo">Conciliadora — C.C. {{CC_CONCILIADORA_APOYO}} — T.P. {{TP_CONCILIADORA_APOYO}}</p>
+            <p class="firma-cargo">Centro de Conciliación Constructores de Paz</p>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

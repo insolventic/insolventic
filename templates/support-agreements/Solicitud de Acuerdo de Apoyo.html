@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitud de Acuerdo de Apoyo</title>
+    <link rel="stylesheet" href="./CSS/styles-acuerdo-apoyo.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Destinatario -->
+    <div class="destinatario-section">
+        <p>Señores</p>
+        <p><strong>CENTRO DE CONCILIACIÓN CONSTRUCTORES DE PAZ</strong></p>
+        <p>Calle 74 No. 15-80 interior 1 oficina 308</p>
+        <p>contacto@constructoresdepaz.com.co</p>
+        <p>{{CIUDAD}}</p>
+    </div>
+
+    <!-- Asunto -->
+    <div class="asunto-section">
+        <p class="asunto-texto">ASUNTO: SOLICITUD DE ACUERDO DE APOYO — {{ASUNTO_APOYO}}</p>
+    </div>
+
+    <!-- Radicado -->
+    <p style="font-size:12px; margin-bottom:16px;">
+        <strong>Radicado:</strong> {{RADICADO}} &nbsp;&nbsp;
+        <strong>Fecha:</strong> {{FECHA_RADICACION}}
+    </p>
+
+    <!-- 1. PARTES -->
+    <p class="seccion-titulo">1. Identificación de las partes</p>
+
+    <table class="tabla-partes">
+        <thead>
+            <tr><th colspan="2">BENEFICIARIO (quien solicita el apoyo)</th></tr>
+        </thead>
+        <tbody>
+            <tr><td class="label-campo">Nombre completo</td><td>{{NOMBRE_BENEFICIARIO}}</td></tr>
+            <tr><td class="label-campo">Tipo de identificación</td><td>{{TIPO_ID_BENEFICIARIO}}</td></tr>
+            <tr><td class="label-campo">N° de documento</td><td>{{ID_BENEFICIARIO}}</td></tr>
+            <tr><td class="label-campo">Dirección</td><td>{{DIRECCION_BENEFICIARIO}}</td></tr>
+            <tr><td class="label-campo">Ciudad</td><td>{{CIUDAD_BENEFICIARIO}}</td></tr>
+            <tr><td class="label-campo">Correo electrónico</td><td>{{CORREO_BENEFICIARIO}}</td></tr>
+            <tr><td class="label-campo">Teléfono / Celular</td><td>{{CEL_BENEFICIARIO}}</td></tr>
+        </tbody>
+    </table>
+
+    <table class="tabla-partes">
+        <thead>
+            <tr><th colspan="2">PRESTADOR DE APOYO (quien se compromete)</th></tr>
+        </thead>
+        <tbody>
+            <tr><td class="label-campo">Nombre completo</td><td>{{NOMBRE_PRESTADOR}}</td></tr>
+            <tr><td class="label-campo">Tipo de identificación</td><td>{{TIPO_ID_PRESTADOR}}</td></tr>
+            <tr><td class="label-campo">N° de documento</td><td>{{ID_PRESTADOR}}</td></tr>
+            <tr><td class="label-campo">Relación con el beneficiario</td><td>{{RELACION_PRESTADOR}}</td></tr>
+            <tr><td class="label-campo">Correo electrónico</td><td>{{CORREO_PRESTADOR}}</td></tr>
+            <tr><td class="label-campo">Teléfono / Celular</td><td>{{CEL_PRESTADOR}}</td></tr>
+        </tbody>
+    </table>
+
+    <!-- 2. HECHOS -->
+    <p class="seccion-titulo">2. Descripción de los hechos</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">{{HECHOS_APOYO}}</p>
+    </div>
+
+    <!-- 3. PRETENSIONES -->
+    <p class="seccion-titulo">3. Compromisos solicitados al prestador</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">{{PRETENSIONES_APOYO}}</p>
+    </div>
+
+    <!-- 4. CONDICIONES PROPUESTAS -->
+    <p class="seccion-titulo">4. Condiciones propuestas del acuerdo</p>
+    <table class="tabla-condiciones">
+        <tr>
+            <td class="label-cond">Tipo de apoyo</td>
+            <td>{{TIPO_APOYO}}</td>
+        </tr>
+        <tr>
+            <td class="label-cond">Monto mensual propuesto</td>
+            <td>{{MONTO_MENSUAL_APOYO}}</td>
+        </tr>
+        <tr>
+            <td class="label-cond">Plazo (meses)</td>
+            <td>{{PLAZO_MESES_APOYO}}</td>
+        </tr>
+    </table>
+
+    {{#if CONDICIONES_APOYO}}
+    <div class="bloque-contenido">
+        <p class="bloque-titulo">Condiciones adicionales</p>
+        <p class="bloque-texto">{{CONDICIONES_APOYO}}</p>
+    </div>
+    {{/if}}
+
+    <!-- Firma solicitante -->
+    <div class="firma-section">
+        <p style="font-size:12px; text-align:center;">
+            En constancia, se firma en la ciudad de {{CIUDAD}}, el {{NUMERO_DIA}} de {{NOMBRE_MES}} de {{ANO}}.
+        </p>
+        <div class="firma-grid">
+            <div class="firma-bloque">
+                <div class="firma-linea"></div>
+                <p class="firma-nombre">{{NOMBRE_BENEFICIARIO}}</p>
+                <p class="firma-cargo">Beneficiario — C.C. {{ID_BENEFICIARIO}}</p>
+            </div>
+            <div class="firma-bloque">
+                <div class="firma-linea"></div>
+                <p class="firma-nombre">{{NOMBRE_CONCILIADORA_APOYO}}</p>
+                <p class="firma-cargo">Conciliadora — T.P. {{TP_CONCILIADORA_APOYO}}</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

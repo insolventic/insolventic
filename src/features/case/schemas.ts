@@ -734,6 +734,43 @@ export const caseSchema = z.object({
   concClausulasAcuerdo: z.array(concClausulaSchema).optional(),
 
   // ============================================================
+  // ACUERDO DE APOYO - Campos específicos del servicio
+  // ============================================================
+  apoyoAsunto: z.string().optional().nullable(),
+  apoyoDescripcionHechos: z.string().optional().nullable(),
+  apoyoPretensiones: z.string().optional().nullable(),
+  apoyoMontoMensual: z.string().optional().nullable(),
+  apoyoPlazoMeses: z.string().optional().nullable(),
+  apoyoCondiciones: z.string().optional().nullable(),
+  apoyoTipoApoyo: z.string().optional().nullable(),
+  // Beneficiario
+  apoyoBeneficiarioName: z.string().optional().nullable(),
+  apoyoBeneficiarioTipoId: z.string().optional().nullable(),
+  apoyoBeneficiarioId: z.string().optional().nullable(),
+  apoyoBeneficiarioDireccion: z.string().optional().nullable(),
+  apoyoBeneficiarioCiudad: z.string().optional().nullable(),
+  apoyoBeneficiarioCorreo: z.string().optional().nullable(),
+  apoyoBeneficiarioCel: z.string().optional().nullable(),
+  // Prestador
+  apoyoPrestadorName: z.string().optional().nullable(),
+  apoyoPrestadorTipoId: z.string().optional().nullable(),
+  apoyoPrestadorId: z.string().optional().nullable(),
+  apoyoPrestadorDireccion: z.string().optional().nullable(),
+  apoyoPrestadorCiudad: z.string().optional().nullable(),
+  apoyoPrestadorCorreo: z.string().optional().nullable(),
+  apoyoPrestadorCel: z.string().optional().nullable(),
+  apoyoPrestadorRelacion: z.string().optional().nullable(),
+  // Conciliadora
+  apoyoConciliadoraName: z.string().optional().nullable(),
+  apoyoConciliadoraCC: z.string().optional().nullable(),
+  apoyoConciliadoraTP: z.string().optional().nullable(),
+  // Acuerdo y resultado
+  apoyoAcuerdo: z.string().optional().nullable(),
+  apoyoResultado: z.string().optional().nullable(),
+  apoyoCausaTerminacion: z.string().optional().nullable(),
+  apoyoClausulas: z.array(concClausulaSchema).optional(),
+
+  // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
   propuestaPlazoMeses: z.coerce.number().optional().nullable(),

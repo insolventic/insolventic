@@ -64,6 +64,9 @@ import { ApoderadoSection } from './create-case-dialog/apoderado-section';
 // Conciliation sections
 import { ConciliationPartiesSection } from './create-case-dialog/conciliation-parties-section';
 import { ConciliationDetailsSection } from './create-case-dialog/conciliation-details-section';
+// Support agreement sections
+import { SupportAgreementPartiesSection } from './create-case-dialog/support-agreement-parties-section';
+import { SupportAgreementDetailsSection } from './create-case-dialog/support-agreement-details-section';
 
 type CaseTypeChoice = 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT';
 
@@ -86,6 +89,12 @@ const INSOLVENCY_TABS = [
 ] as const;
 
 const CONCILIATION_TABS = ['debtor', 'conc-parties', 'conc-details'] as const;
+
+const SUPPORT_AGREEMENT_TABS = [
+  'debtor',
+  'apoyo-parties',
+  'apoyo-details',
+] as const;
 
 type TabId = string;
 
@@ -224,8 +233,11 @@ export function CreateCaseDialog({
     defaultValues: {
       debtorId: '',
       type: initialType,
-      // Conciliation cases don't track a debt amount; satisfy required schema with 0.
-      totalDebt: initialType === 'CONCILIATION' ? '0' : '',
+      // Conciliation/support-agreement cases don't track a debt amount.
+      totalDebt:
+        initialType === 'CONCILIATION' || initialType === 'SUPPORT_AGREEMENT'
+          ? '0'
+          : '',
       creditors: 1,
       operatorId: '',
       causes: [],
@@ -245,11 +257,11 @@ export function CreateCaseDialog({
 
   // Dynamic tabs based on case type
   const watchedType = form.watch('type');
-  const currentTabs: readonly string[] = useMemo(
-    () =>
-      watchedType === 'CONCILIATION' ? CONCILIATION_TABS : INSOLVENCY_TABS,
-    [watchedType],
-  );
+  const currentTabs: readonly string[] = useMemo(() => {
+    if (watchedType === 'CONCILIATION') return CONCILIATION_TABS;
+    if (watchedType === 'SUPPORT_AGREEMENT') return SUPPORT_AGREEMENT_TABS;
+    return INSOLVENCY_TABS;
+  }, [watchedType]);
   const lastTab = currentTabs[currentTabs.length - 1];
 
   // Determine which tabs have validation errors
@@ -1302,15 +1314,21 @@ export function CreateCaseDialog({
                         { value: 'conc-parties', label: '2. Partes' },
                         { value: 'conc-details', label: '3. Solicitud' },
                       ]
-                    : [
-                        { value: 'debtor', label: '1. Solicitante' },
-                        { value: 'situation', label: '2. Situación' },
-                        { value: 'creditors', label: '3. Acreedores' },
-                        { value: 'assets', label: '4. Bienes' },
-                        { value: 'proposal', label: '5. Propuesta' },
-                        { value: 'legal', label: '6. Legal' },
-                        { value: 'documents', label: '7. Documentos' },
-                      ]
+                    : watchedType === 'SUPPORT_AGREEMENT'
+                      ? [
+                          { value: 'debtor', label: '1. Solicitante' },
+                          { value: 'apoyo-parties', label: '2. Partes' },
+                          { value: 'apoyo-details', label: '3. Acuerdo' },
+                        ]
+                      : [
+                          { value: 'debtor', label: '1. Solicitante' },
+                          { value: 'situation', label: '2. Situación' },
+                          { value: 'creditors', label: '3. Acreedores' },
+                          { value: 'assets', label: '4. Bienes' },
+                          { value: 'proposal', label: '5. Propuesta' },
+                          { value: 'legal', label: '6. Legal' },
+                          { value: 'documents', label: '7. Documentos' },
+                        ]
                   ).map((tab) => (
                     <TabsTrigger
                       key={tab.value}
@@ -1394,6 +1412,15 @@ export function CreateCaseDialog({
 
                 <TabsContent value="conc-details" className="space-y-6">
                   <ConciliationDetailsSection />
+                </TabsContent>
+
+                {/* Support agreement-specific tabs */}
+                <TabsContent value="apoyo-parties" className="space-y-6">
+                  <SupportAgreementPartiesSection />
+                </TabsContent>
+
+                <TabsContent value="apoyo-details" className="space-y-6">
+                  <SupportAgreementDetailsSection />
                 </TabsContent>
               </Tabs>
 

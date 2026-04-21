@@ -1108,6 +1108,63 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     folderPath: [],
     description: 'Auto de desistimiento del trámite de conciliación',
   },
+
+  // =============================================
+  // ACUERDO DE APOYO — PAQUETE 1: SOLICITUD
+  // =============================================
+  {
+    id: 'apoyo-solicitud',
+    name: 'Solicitud de Acuerdo de Apoyo',
+    fileName: 'Solicitud de Acuerdo de Apoyo.html',
+    caseType: 'SUPPORT_AGREEMENT',
+    category: 'solicitud',
+    packageNumber: 1,
+    packageName: 'Solicitud',
+    generateOnCreate: true,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: false,
+    folderPath: [],
+    description: 'Solicitud inicial del acuerdo de apoyo económico',
+  },
+
+  // =============================================
+  // ACUERDO DE APOYO — PAQUETE 3: ACUERDO
+  // =============================================
+  {
+    id: 'apoyo-acuerdo',
+    name: 'Acuerdo de Apoyo',
+    fileName: 'Acuerdo de Apoyo.html',
+    caseType: 'SUPPORT_AGREEMENT',
+    category: 'acuerdo',
+    packageNumber: 3,
+    packageName: 'Acuerdo',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: true,
+    generateOnFailure: false,
+    folderPath: [],
+    description: 'Documento del acuerdo de apoyo suscrito por las partes',
+  },
+
+  // =============================================
+  // ACUERDO DE APOYO — PAQUETE 5: INCUMPLIMIENTO
+  // =============================================
+  {
+    id: 'apoyo-incumplimiento',
+    name: 'Constancia de Incumplimiento',
+    fileName: 'Constancia de Incumplimiento Acuerdo de Apoyo.html',
+    caseType: 'SUPPORT_AGREEMENT',
+    category: 'fracaso',
+    packageNumber: 5,
+    packageName: 'Incumplimiento',
+    generateOnCreate: false,
+    generateOnAdmission: false,
+    generateOnAgreement: false,
+    generateOnFailure: true,
+    folderPath: [],
+    description: 'Constancia de incumplimiento del acuerdo de apoyo',
+  },
 ];
 
 // =============================================

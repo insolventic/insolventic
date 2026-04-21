@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acuerdo de Apoyo</title>
+    <link rel="stylesheet" href="./CSS/styles-acuerdo-apoyo.css">
+</head>
+<body>
+<div class="container">
+
+    <!-- Logo -->
+    <div class="logo-section">
+        <img src="../insolvency/img/Logo y titulo constructores de paz.png" alt="Logo Constructores de Paz" class="logo">
+    </div>
+
+    <!-- Encabezado del acuerdo -->
+    <div style="text-align:center; margin: 20px 0;">
+        <p style="font-size:14px; font-weight:bold; text-transform:uppercase; letter-spacing:1px;">
+            ACUERDO DE APOYO
+        </p>
+        <p style="font-size:12px;">
+            Radicado N° <strong>{{RADICADO}}</strong>
+        </p>
+        <p style="font-size:12px;">
+            {{CIUDAD}}, {{NUMERO_DIA}} de {{NOMBRE_MES}} de {{ANO}}
+        </p>
+    </div>
+
+    <!-- COMPARECIENTES -->
+    <p class="seccion-titulo">COMPARECIENTES</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">
+            Entre los suscritos, de una parte,
+            <strong>{{NOMBRE_BENEFICIARIO}}</strong>,
+            identificado(a) con {{TIPO_ID_BENEFICIARIO}} N° <strong>{{ID_BENEFICIARIO}}</strong>,
+            residente en {{CIUDAD_BENEFICIARIO}},
+            en adelante EL/LA <strong>BENEFICIARIO(A)</strong>;
+        </p>
+        <br>
+        <p class="bloque-texto">
+            Y de la otra parte,
+            <strong>{{NOMBRE_PRESTADOR}}</strong>,
+            identificado(a) con {{TIPO_ID_PRESTADOR}} N° <strong>{{ID_PRESTADOR}}</strong>,
+            en calidad de <strong>{{RELACION_PRESTADOR}}</strong>,
+            en adelante EL/LA <strong>PRESTADOR(A) DE APOYO</strong>;
+        </p>
+        <br>
+        <p class="bloque-texto">
+            Actuando en presencia de la conciliadora
+            <strong>{{NOMBRE_CONCILIADORA_APOYO}}</strong>,
+            T.P. <strong>{{TP_CONCILIADORA_APOYO}}</strong>,
+            del Centro de Conciliación Constructores de Paz,
+            hemos convenido celebrar el presente ACUERDO DE APOYO, sujeto a las siguientes condiciones:
+        </p>
+    </div>
+
+    <!-- OBJETO DEL ACUERDO -->
+    <p class="seccion-titulo">OBJETO</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">{{ASUNTO_APOYO}}</p>
+    </div>
+
+    <!-- CONDICIONES -->
+    <p class="seccion-titulo">CONDICIONES DEL ACUERDO</p>
+    <table class="tabla-condiciones">
+        <tr>
+            <td class="label-cond">Tipo de apoyo</td>
+            <td>{{TIPO_APOYO}}</td>
+        </tr>
+        <tr>
+            <td class="label-cond">Monto mensual acordado</td>
+            <td><strong>{{MONTO_MENSUAL_APOYO}}</strong></td>
+        </tr>
+        <tr>
+            <td class="label-cond">Plazo de cumplimiento</td>
+            <td>{{PLAZO_MESES_APOYO}} meses</td>
+        </tr>
+        <tr>
+            <td class="label-cond">Fecha de inicio</td>
+            <td>{{FECHA_RADICACION}}</td>
+        </tr>
+    </table>
+
+    {{#if CONDICIONES_APOYO}}
+    <div class="bloque-contenido">
+        <p class="bloque-titulo">Condiciones adicionales</p>
+        <p class="bloque-texto">{{CONDICIONES_APOYO}}</p>
+    </div>
+    {{/if}}
+
+    <!-- CLÁUSULAS -->
+    {{#if TIENE_CLAUSULAS_APOYO}}
+    <p class="seccion-titulo">CLÁUSULAS</p>
+    <div class="clausulas-lista">
+        {{#each CLAUSULAS_APOYO}}
+        <div class="clausula-item">
+            <span class="clausula-numero">CLÁUSULA {{NUMERO_CLAUSULA}}.</span>
+            <span class="clausula-texto">{{TEXTO_CLAUSULA}}</span>
+        </div>
+        {{/each}}
+    </div>
+    {{/if}}
+
+    <!-- TEXTO DEL ACUERDO (libre) -->
+    {{#if ACUERDO_APOYO}}
+    <p class="seccion-titulo">ACUERDO SUSCRITO</p>
+    <div class="bloque-contenido">
+        <p class="bloque-texto">{{ACUERDO_APOYO}}</p>
+    </div>
+    {{/if}}
+
+    <!-- FIRMAS -->
+    <div class="firma-section">
+        <p style="font-size:12px; text-align:center;">
+            Para constancia, se firma en la ciudad de {{CIUDAD}}, el {{NUMERO_DIA}} de {{NOMBRE_MES}} de {{ANO}}.
+        </p>
+        <div class="firma-grid">
+            <div class="firma-bloque">
+                <div class="firma-linea"></div>
+                <p class="firma-nombre">{{NOMBRE_BENEFICIARIO}}</p>
+                <p class="firma-cargo">Beneficiario(a) — C.C. {{ID_BENEFICIARIO}}</p>
+            </div>
+            <div class="firma-bloque">
+                <div class="firma-linea"></div>
+                <p class="firma-nombre">{{NOMBRE_PRESTADOR}}</p>
+                <p class="firma-cargo">Prestador(a) de apoyo — C.C. {{ID_PRESTADOR}}</p>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:40px;">
+            <div class="firma-linea" style="width:50%; margin:0 auto 6px;"></div>
+            <p class="firma-nombre">{{NOMBRE_CONCILIADORA_APOYO}}</p>
+            <p class="firma-cargo">Conciliadora — C.C. {{CC_CONCILIADORA_APOYO}} — T.P. {{TP_CONCILIADORA_APOYO}}</p>
+            <p class="firma-cargo">Centro de Conciliación Constructores de Paz</p>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

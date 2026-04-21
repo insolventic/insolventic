@@ -224,7 +224,7 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
                   Conciliación
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setShowComingSoonDialog('support_agreement')}
+                  onClick={() => openCreateDialog('SUPPORT_AGREEMENT')}
                   className="cursor-pointer"
                 >
                   <HeartHandshake className="mr-2 h-4 w-4" />

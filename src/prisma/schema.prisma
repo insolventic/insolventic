@@ -340,6 +340,44 @@ model Case {
   concClausulasAcuerdo                 Json?     @map("conc_clausulas_acuerdo")
 
   // ============================================================
+  // ACUERDO DE APOYO - Campos específicos del servicio
+  // ============================================================
+  apoyoAsunto                          String?   @map("apoyo_asunto")
+  apoyoDescripcionHechos               String?   @map("apoyo_descripcion_hechos") @db.Text
+  apoyoPretensiones                    String?   @map("apoyo_pretensiones") @db.Text
+  apoyoMontoMensual                    String?   @map("apoyo_monto_mensual")
+  apoyoPlazoMeses                      String?   @map("apoyo_plazo_meses")
+  apoyoCondiciones                     String?   @map("apoyo_condiciones") @db.Text
+  apoyoTipoApoyo                       String?   @map("apoyo_tipo_apoyo")
+  // Beneficiario (quien recibe el apoyo)
+  apoyoBeneficiarioName                String?   @map("apoyo_beneficiario_name")
+  apoyoBeneficiarioTipoId              String?   @map("apoyo_beneficiario_tipo_id")
+  apoyoBeneficiarioId                  String?   @map("apoyo_beneficiario_id")
+  apoyoBeneficiarioDireccion           String?   @map("apoyo_beneficiario_direccion")
+  apoyoBeneficiarioCiudad              String?   @map("apoyo_beneficiario_ciudad")
+  apoyoBeneficiarioCorreo              String?   @map("apoyo_beneficiario_correo")
+  apoyoBeneficiarioCel                 String?   @map("apoyo_beneficiario_cel")
+  // Prestador de apoyo (quien se compromete)
+  apoyoPrestadorName                   String?   @map("apoyo_prestador_name")
+  apoyoPrestadorTipoId                 String?   @map("apoyo_prestador_tipo_id")
+  apoyoPrestadorId                     String?   @map("apoyo_prestador_id")
+  apoyoPrestadorDireccion              String?   @map("apoyo_prestador_direccion")
+  apoyoPrestadorCiudad                 String?   @map("apoyo_prestador_ciudad")
+  apoyoPrestadorCorreo                 String?   @map("apoyo_prestador_correo")
+  apoyoPrestadorCel                    String?   @map("apoyo_prestador_cel")
+  apoyoPrestadorRelacion               String?   @map("apoyo_prestador_relacion")
+  // Conciliadora asignada
+  apoyoConciliadoraName                String?   @map("apoyo_conciliadora_name")
+  apoyoConciliadoraCC                  String?   @map("apoyo_conciliadora_cc")
+  apoyoConciliadoraTP                  String?   @map("apoyo_conciliadora_tp")
+  // Acuerdo y resultado
+  apoyoAcuerdo                         String?   @map("apoyo_acuerdo") @db.Text
+  apoyoResultado                       String?   @map("apoyo_resultado") @db.Text
+  apoyoCausaTerminacion                String?   @map("apoyo_causa_terminacion")
+  // Cláusulas del acuerdo (JSON array: [{NUMERO_CLAUSULA, TEXTO_CLAUSULA}])
+  apoyoClausulas                       Json?     @map("apoyo_clausulas")
+
+  // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
   propuestaPlazoMeses          Int?      @map("propuesta_plazo_meses")
