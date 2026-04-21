@@ -21,7 +21,11 @@
     "test:integration": "jest --verbose tests/integration",
     "test:coverage": "jest --coverage",
     "test:e2e": "npx playwright test",
-    "test:e2e:ui": "npx playwright test --ui"
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:load:smoke": "k6 run tests/load/k6.config.js",
+    "test:load:avg": "k6 run -e SCENARIO=average tests/load/k6.config.js",
+    "test:load:peak": "k6 run -e SCENARIO=peak tests/load/k6.config.js",
+    "check:schema-drift": "npx ts-node tests/schema/check-schema-drift.ts"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
