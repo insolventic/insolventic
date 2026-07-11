@@ -50,6 +50,7 @@ const mockPrismaClient = {
   bien: makeModel(),
   procesoJudicial: makeModel(),
   apoderado: makeModel(),
+  documentGenerationRequest: makeModel(),
   $transaction: jest.fn(
     async (
       arg:

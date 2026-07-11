@@ -10,7 +10,6 @@ import { getValidTransitions } from '@/lib/case-phases';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import {
-  generateDocumentsForNewCase,
   generateDocumentsForAdmission,
   generateDocumentsForAgreement,
   generateDocumentsForFailure,
@@ -776,47 +775,44 @@ export async function createCase(
       tenantId,
     });
 
-    // Generate documents for the new case (async, non-blocking)
-    // Fetch the complete case with relations for document generation
-    const { fetchCaseForGeneration, persistGeneratedDocuments } = await import(
-      '@/features/document/persistence'
-    );
-    const caseWithRelations = await fetchCaseForGeneration(
-      newCase.id,
-      tenantId,
-    );
+    // P3+P4: generación inicial en background post-response.
+    // El lock (DocumentGenerationRequest.activeKey) evita duplicados; after()
+    // mantiene viva la función serverless tras responder (a diferencia del
+    // fire-and-forget anterior, que Vercel podía cortar); el job actualiza el
+    // estado consultable y notifica in-app al terminar o fallar.
+    try {
+      const { claimGenerationRequest } = await import(
+        '@/features/document/generation-request'
+      );
+      const { runInitialGenerationJob } = await import(
+        '@/features/document/generation-job'
+      );
+      const { after } = await import('next/server');
 
-    if (caseWithRelations) {
-      // Generate documents in background (don't await to avoid blocking response)
-      generateDocumentsForNewCase(
-        caseWithRelations as unknown as CaseWithRelations,
-      )
-        .then(async (result) => {
-          // Update case with the Google Drive folder ID
-          if (result.caseFolderId) {
-            await prisma.case.update({
-              where: { id: newCase.id, tenantId },
-              data: { driveFolderId: result.caseFolderId, layoutVersion: 1 },
-            });
-          }
+      const claim = await claimGenerationRequest({
+        tenantId,
+        caseId: newCase.id,
+        kind: 'INITIAL',
+        requestedById: user.id,
+      });
 
-          // Create document records in database
-          await persistGeneratedDocuments(
-            result.documents,
-            newCase.id,
+      if (claim.claimed) {
+        after(() =>
+          runInitialGenerationJob({
+            requestId: claim.request.id,
+            caseId: newCase.id,
             tenantId,
-          );
-
-          console.log(
-            `Documents generated for case ${finalCaseNumber}: ${result.documents.length} documents`,
-          );
-        })
-        .catch((error) => {
-          console.error(
-            `Error generating documents for case ${finalCaseNumber}:`,
-            error,
-          );
-        });
+            requestedById: user.id,
+          }),
+        );
+      }
+    } catch (genError) {
+      // La creación del caso no debe fallar por el arranque de la generación;
+      // el usuario puede lanzarla manualmente desde la sección Documentos.
+      console.error(
+        `Error iniciando generación de documentos para ${finalCaseNumber}:`,
+        genError,
+      );
     }
 
     const result = caseSummarySchema.parse(newCase);

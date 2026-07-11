@@ -6,6 +6,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
+import { withRetry } from '@/lib/retry';
 import { htmlToPdf } from '@/lib/html-to-pdf';
 import {
   mapCaseToPlaceholders,
@@ -293,15 +294,22 @@ async function getOrCreateCaseFolder(
     const surname = extractSurname(debtorName);
     const caseFolderName = surname ? `${caseNumber} - ${surname}` : caseNumber;
 
-    const hierarchyId = await googleDriveService.createFolderHierarchy(
-      [
-        'Insolventic',
-        centerFolderName,
-        caseTypeFolderLabel(caseType),
-        year,
-        caseFolderName,
-      ],
-      rootFolderId,
+    // Reintento con backoff: la creación de la jerarquía es find-or-create
+    // (idempotente), un fallo transitorio de la API de Drive no debe abortar
+    // toda la generación del expediente.
+    const hierarchyId = await withRetry(
+      () =>
+        googleDriveService.createFolderHierarchy(
+          [
+            'Insolventic',
+            centerFolderName,
+            caseTypeFolderLabel(caseType),
+            year,
+            caseFolderName,
+          ],
+          rootFolderId,
+        ),
+      { label: `case-folder:${caseNumber}` },
     );
     return hierarchyId;
   }
@@ -467,11 +475,15 @@ async function generateDocument(
         subfolderCache,
       );
 
-      googleDriveId = await googleDriveService.uploadFile(
-        fileName,
-        fileBuffer,
-        mimeType,
-        targetFolderId,
+      googleDriveId = await withRetry(
+        () =>
+          googleDriveService.uploadFile(
+            fileName,
+            fileBuffer,
+            mimeType,
+            targetFolderId,
+          ),
+        { label: `upload:${fileName}` },
       );
       googleDriveUrl = googleDriveService.getFileUrl(googleDriveId);
     }

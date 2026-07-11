@@ -327,6 +327,70 @@ describe('Placeholder Mapper — HTML escaping (P2)', () => {
     expect(placeholders.GASTOS_MENSUALES).toContain('$');
   });
 
+  it('handles unicode intact (tildes, ñ, emoji) — only HTML specials change', () => {
+    const placeholders = mapCaseToPlaceholders(
+      makeCase({
+        debtor: {
+          name: 'José Ñúñez Müller 日本 🚀',
+          idNumber: '123',
+          address: 'Cra 7 № 45–12',
+          city: 'Bogotá',
+          email: 'j@x.co',
+          phone: '300',
+          occupation: 'Ingeniería & Diseño',
+        },
+      }),
+    );
+    expect(placeholders.NOMBRE_DEUDOR).toBe('José Ñúñez Müller 日本 🚀');
+    expect(placeholders.DIRECCION_DEUDOR).toBe('Cra 7 № 45–12');
+  });
+
+  it('handles null/undefined debtor fields without crashing', () => {
+    const placeholders = mapCaseToPlaceholders(
+      makeCase({
+        debtor: {
+          name: 'Juan',
+          idNumber: null,
+          address: undefined,
+          city: null,
+          email: null,
+          phone: undefined,
+          occupation: null,
+        },
+      }),
+    );
+    // null/undefined → string vacío o 'null'-free, nunca crash
+    expect(typeof placeholders.CEDULA_DEUDOR).toBe('string');
+    expect(typeof placeholders.DIRECCION_DEUDOR).toBe('string');
+  });
+
+  it('benchmark: mapea un caso con 100 deudas y 50 bienes en <100ms', () => {
+    const bigCase = makeCase({
+      debts: Array.from({ length: 100 }, (_, i) => ({
+        amount: 1000000 + i,
+        capitalAmount: 1000000 + i,
+        interestAmount: 5000,
+        creditorClass: 'Quirografario',
+        creditor: { name: `Acreedor & Cía ${i}` },
+      })),
+      assets: Array.from({ length: 50 }, (_, i) => ({
+        type: 'VEHICULO',
+        name: `Bien <${i}>`,
+        description: `Descripción ${i}`,
+        value: 5000000,
+      })),
+      paymentTermMonths: 60,
+      monthlyPaymentAmount: 2000000,
+    });
+
+    const start = performance.now();
+    const placeholders = mapCaseToPlaceholders(bigCase);
+    const elapsed = performance.now() - start;
+
+    expect(Object.keys(placeholders).length).toBeGreaterThan(300);
+    expect(elapsed).toBeLessThan(100);
+  });
+
   it('escapes string values inside buildConciliationContext each-items', () => {
     const ctx = buildConciliationContext(
       makeCase({

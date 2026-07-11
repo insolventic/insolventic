@@ -11,6 +11,7 @@
 
 import prisma from '@/lib/prisma';
 import type { GeneratedDocument } from './generate-documents';
+import type { CaseWithRelations } from '../case/schemas';
 
 /**
  * Relations required by mapCaseToPlaceholders / document generation.
@@ -47,6 +48,23 @@ export async function fetchCaseForGeneration(caseId: string, tenantId: string) {
     where: { id: caseId, tenantId },
     include: CASE_GENERATION_INCLUDE,
   });
+}
+
+/**
+ * ADR (mini): puente único entre el payload de Prisma (Decimal, relaciones)
+ * y el tipo CaseWithRelations (Zod, number) que consume el mapper de
+ * placeholders. Ambos tipos son estructuralmente compatibles en los campos
+ * que la generación usa, pero difieren en Decimal vs number, por lo que un
+ * assert directo no compila. Centralizar el cast aquí (en vez de repetir
+ * `as unknown as` en cada call-site) acota el punto ciego a una función
+ * documentada. La eliminación real —derivar el tipo con
+ * Prisma.CaseGetPayload<typeof CASE_GENERATION_INCLUDE> + un transformador
+ * Decimal→number— está planificada para la sesión de refactor de tipos.
+ */
+export function asCaseWithRelations(
+  caseData: NonNullable<Awaited<ReturnType<typeof fetchCaseForGeneration>>>,
+): CaseWithRelations {
+  return caseData as unknown as CaseWithRelations;
 }
 
 /**

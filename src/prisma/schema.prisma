@@ -44,6 +44,7 @@ model Tenant {
   auditLogs           AuditLog[]
   payments            Payment[]
   conciliationCenters ConciliationCenter[]
+  generationRequests  DocumentGenerationRequest[]
 }
 
 /// Centro de Conciliación — escalable, reemplaza el mapping hard-coded.
@@ -439,6 +440,7 @@ model Case {
   bienes                  Bien[]
   procesosJudiciales      ProcesoJudicial[]
   payments                Payment[]
+  generationRequests      DocumentGenerationRequest[]
 
   @@unique([caseNumber, tenantId])
 }
@@ -964,6 +966,44 @@ model Dependent {
   tenantId     String
   case         Case   @relation(fields: [caseId], references: [id])
   tenant       Tenant @relation(fields: [tenantId], references: [id])
+}
+
+/// Solicitud de generación de documentos — estado del job + lock anti-duplicados.
+///
+/// P3 (antidup): `activeKey` vale "{caseId}:{kind}" mientras la solicitud está
+/// activa (PENDING/PROCESSING) y NULL al terminar. El @@unique sobre activeKey
+/// da unicidad parcial nativa en Postgres (los NULL no colisionan): dos
+/// generaciones simultáneas del mismo tipo sobre el mismo caso son imposibles
+/// a nivel de BD, sin triggers.
+///
+/// P4 (background): la fila es la fuente de verdad del job — el cliente
+/// consulta por polling (getGenerationRequestStatus) y recibe notificación
+/// in-app al terminar.
+model DocumentGenerationRequest {
+  id             String    @id @default(cuid())
+  tenantId       String
+  caseId         String
+  /// INITIAL | ADMISSION | AGREEMENT | FAILURE
+  kind           String
+  /// PENDING | PROCESSING | COMPLETED | COMPLETED_WITH_ERRORS | FAILED
+  status         String    @default("PENDING")
+  /// "{caseId}:{kind}" mientras activa; NULL al terminar (lock parcial)
+  activeKey      String?
+  requestedById  String?
+  error          String?
+  totalDocuments Int       @default(0)
+  successCount   Int       @default(0)
+  errorCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+  startedAt      DateTime?
+  finishedAt     DateTime?
+
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([activeKey])
+  @@index([tenantId, caseId, createdAt])
+  @@map("document_generation_requests")
 }
 
 model Payment {
