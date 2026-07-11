@@ -36,6 +36,15 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # Visible en cada PR pero no bloquea el merge: las vulnerabilidades
+      # de dependencias se atienden como tarea propia, no frenan features.
+      - name: Dependency audit (informativo)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
       - name: Unit & integration tests
         run: npx jest --ci
         env:
