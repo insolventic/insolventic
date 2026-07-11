@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { randomUUID } from 'crypto';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 import type { SessionData, RefreshTokenData } from '@/features/auth/schemas';
 
@@ -69,7 +70,12 @@ export async function verifyToken(token: string): Promise<SessionData | null> {
       exp: payload.exp as number,
     };
   } catch (error) {
-    console.error('Token verification failed:', error);
+    // Evento esperado (tokens expirados en cada sesión vencida): nivel info
+    // para no inundar Sentry; visible en dev o con LOG_LEVEL=info.
+    logger.info('Token verification failed', {
+      action: 'verifyToken',
+      reason: error instanceof Error ? error.message : 'unknown',
+    });
     return null;
   }
 }
@@ -87,7 +93,10 @@ export async function verifyRefreshToken(
       exp: payload.exp as number,
     };
   } catch (error) {
-    console.error('Refresh token verification failed:', error);
+    logger.info('Refresh token verification failed', {
+      action: 'verifyRefreshToken',
+      reason: error instanceof Error ? error.message : 'unknown',
+    });
     return null;
   }
 }
@@ -103,7 +112,9 @@ export async function getCurrentUser(): Promise<SessionData | null> {
 
     return await verifyToken(accessToken);
   } catch (error) {
-    console.error('Get current user failed:', error);
+    logger.error('Get current user failed', error, {
+      action: 'getCurrentUser',
+    });
     return null;
   }
 }
@@ -130,7 +141,9 @@ export async function checkPermission(
 
     return user.permissions.includes(requiredPermission);
   } catch (error) {
-    console.error('Permission check failed:', error);
+    logger.error('Permission check failed', error, {
+      action: 'checkPermission',
+    });
     return false;
   }
 }

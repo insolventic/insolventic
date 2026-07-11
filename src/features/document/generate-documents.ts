@@ -7,6 +7,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
 import { withRetry } from '@/lib/retry';
+import { logger } from '@/lib/logger';
 import { htmlToPdf } from '@/lib/html-to-pdf';
 import {
   mapCaseToPlaceholders,
@@ -233,7 +234,10 @@ async function readTemplate(templatePath: string): Promise<string> {
     const fullPath = path.join(projectRoot, templatePath);
     return await fs.readFile(fullPath, 'utf-8');
   } catch (error) {
-    console.error(`Error reading template ${templatePath}:`, error);
+    logger.error('Error reading template', error, {
+      action: 'generate-documents',
+      templatePath,
+    });
     throw new Error(`No se pudo leer la plantilla: ${templatePath}`);
   }
 }
@@ -367,7 +371,11 @@ async function createDocumentSubfolder(
     cache?.set(cacheKey, folderId);
     return folderId;
   } catch (error) {
-    console.error('Error creating subfolder:', error);
+    logger.warn('Error creating Drive subfolder, falling back to case folder', {
+      action: 'generate-documents',
+      folderPath: effectivePath.join('/'),
+      reason: error instanceof Error ? error.message : String(error),
+    });
     return caseFolderId; // Fallback to case folder
   }
 }
@@ -428,12 +436,12 @@ async function generateDocument(
       process.env.NODE_ENV === 'development' &&
       coverage.coveragePercentage < 80
     ) {
-      console.warn(
-        `[${template.name}] Low coverage: ${coverage.coveragePercentage}%`,
-      );
-      if (coverage.missing.length > 0) {
-        console.warn(`  Missing variables: ${coverage.missing.join(', ')}`);
-      }
+      logger.debug('Low placeholder coverage', {
+        action: 'generate-documents',
+        template: template.name,
+        coveragePercentage: coverage.coveragePercentage,
+        missingVariables: coverage.missing,
+      });
     }
 
     // Generate file name
@@ -500,7 +508,11 @@ async function generateDocument(
         coverage.missing.length > 0 ? coverage.missing : undefined,
     };
   } catch (error) {
-    console.error(`Error generating document ${template.name}:`, error);
+    logger.error('Error generating document', error, {
+      action: 'generate-documents',
+      template: template.name,
+      templateId: template.id,
+    });
     return {
       templateId: template.id,
       templateName: template.name,
@@ -599,7 +611,9 @@ export async function generateDocumentsForNewCase(
         status: 'success',
       });
     } catch (error) {
-      console.error('Error generating Excel:', error);
+      logger.error('Error generating consolidated Excel', error, {
+        action: 'generate-documents',
+      });
       documents.push({
         templateId: 'consolidado-excel',
         templateName: 'Consolidado Excel',
@@ -667,7 +681,10 @@ export async function generateDocumentsForFailure(
   const templates = getTemplatesForFailure(failureType, caseType);
 
   if (templates.length === 0) {
-    console.warn(`No templates found for failure type: ${failureType}`);
+    logger.warn('No templates found for failure type', {
+      action: 'generate-documents',
+      failureType,
+    });
     return [];
   }
 

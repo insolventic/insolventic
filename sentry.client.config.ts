@@ -5,6 +5,7 @@
  * browser). Set the DSN in Vercel env for each environment.
  */
 import * as Sentry from '@sentry/nextjs';
+import { scrubSentryEvent } from '@/lib/sentry-scrub';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
@@ -17,12 +18,8 @@ if (dsn) {
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0,
     // Privacy: no PII in breadcrumbs by default.
     sendDefaultPii: false,
-    // Scrub likely-sensitive inputs automatically.
-    beforeSend(event) {
-      if (event.request?.cookies) {
-        event.request.cookies = {};
-      }
-      return event;
-    },
+    // Scrub likely-sensitive inputs automatically (cookies, auth headers,
+    // sensitive query params).
+    beforeSend: (event) => scrubSentryEvent(event),
   });
 }

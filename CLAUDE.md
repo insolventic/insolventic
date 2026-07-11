@@ -29,6 +29,25 @@ npm run test:e2e       # playwright
 - Env vars: validar en el primer uso, **nunca en import** — `next build` recolecta page data sin secrets (`vercel pull` excluye las vars sensitive). Patrón: `email.ts`, `auth.ts`.
 - Módulos compartidos entre actions van en archivos sin `'use server'` (ej. `persistence.ts`, `generation-request.ts`).
 
+## Logger Pattern
+
+Usar `logger` de `src/lib/logger.ts` — **nunca `console.*` directo** en código nuevo.
+
+```ts
+import { logger } from '@/lib/logger';
+
+logger.error('Generation job failed', error, { action: 'generation-job', requestId, caseId });
+logger.warn('Retry attempt', { action: 'drive-upload', attempt, maxAttempts, reason: err.message });
+logger.info('Generation job completed', { requestId, duration });  // prod: solo con LOG_LEVEL=info
+logger.debug('useAuth state', { hasUser, isLoading });             // solo desarrollo
+```
+
+- Niveles: ERROR/WARN → consola JSON + Sentry; INFO/DEBUG → consola JSON según `LOG_LEVEL` (default: `warn` en prod, `debug` en dev).
+- El `context` pasa por redacción automática (password/token/email/phone/cedula → `[REDACTED]`); aun así no pasar payloads completos.
+- Eventos **esperados** (token expirado, redirect de logout) van en `info`/`debug`, no `error` — no inundar Sentry.
+- Sin dependencia de Pino/Winston a propósito: en Vercel serverless stdout es el transport; el interface permite introducir una librería después sin tocar call-sites.
+- `beforeSend` de Sentry redacta cookies/headers/query params sensibles (`src/lib/sentry-scrub.ts`, compartido por los 3 configs).
+
 ## Architecture Decisions
 
 ### Session 2 (2026-07-11) — Document Generation P3/P4 + CI Stabilization

@@ -10,6 +10,7 @@ import {
   switchTenant,
 } from '@/features/auth/actions';
 import type { ValidateSessionResult } from '@/features/auth/schemas';
+import { logger } from '@/lib/logger';
 
 type AuthUser = NonNullable<ValidateSessionResult['user']>;
 
@@ -43,20 +44,20 @@ export function useAuth(): UseAuthReturn {
     const loadingDuration = Math.round(
       (currentTime - loadingStartTimeRef.current) / 1000,
     );
-    console.log('🔍 [useAuth] Current state:', {
+    logger.debug('useAuth state', {
+      action: 'useAuth',
       hasUser: !!user,
-      userName: user?.name || 'N/A',
       isLoading,
-      isAuthenticated: !!user,
-      loadingDuration: loadingDuration + 's',
+      loadingDurationSeconds: loadingDuration,
     });
     lastLogTimeRef.current = currentTime;
 
     // Advertencia si lleva demasiado tiempo loading
     if (loadingDuration > 30) {
-      console.warn(
-        '⚠️ [useAuth] Loading for over 30 seconds - potential issue detected',
-      );
+      logger.warn('useAuth loading for over 30 seconds', {
+        action: 'useAuth',
+        loadingDurationSeconds: loadingDuration,
+      });
     }
   }
 
@@ -69,33 +70,29 @@ export function useAuth(): UseAuthReturn {
 
   const refreshSession = useCallback(async () => {
     try {
-      console.log('🔄 [useAuth] Starting session refresh...');
+      logger.debug('Session refresh started', { action: 'refreshSession' });
       setIsLoading(true);
       const result = await validateSession();
 
-      console.log('📋 [useAuth] Session validation result:', {
+      logger.debug('Session validation result', {
+        action: 'refreshSession',
         valid: result?.valid,
         hasUser: !!result?.user,
-        userName: result?.user?.name || 'N/A',
       });
 
       if (result?.valid && result.user) {
         setUser((prevUser) => {
           // Solo ejecutar force init si realmente cambió de no autenticado a autenticado
           const wasLoggedOut = !prevUser;
-          console.log('👤 [useAuth] Setting user:', {
-            wasLoggedOut,
-            newUserName: result.user?.name,
-          });
 
           if (wasLoggedOut && typeof window !== 'undefined') {
             const forceInit = (
               window as unknown as { __sessionTimeoutForceInit?: () => void }
             ).__sessionTimeoutForceInit;
             if (forceInit) {
-              console.log(
-                '🚀 [useAuth] User just logged in, forcing session timeout initialization',
-              );
+              logger.debug('Forcing session timeout initialization', {
+                action: 'refreshSession',
+              });
               // Aumentar el delay para dar más tiempo a que el estado se sincronice
               setTimeout(() => forceInit(), 1000);
             }
@@ -103,15 +100,18 @@ export function useAuth(): UseAuthReturn {
           return result.user || null;
         });
       } else {
-        console.log('❌ [useAuth] Invalid session, clearing user');
+        logger.debug('Invalid session, clearing user', {
+          action: 'refreshSession',
+        });
         setUser(null);
       }
     } catch (error) {
-      console.error('❌ [useAuth] Session refresh failed:', error);
+      logger.error('Session refresh failed', error, {
+        action: 'refreshSession',
+      });
       setUser(null);
     } finally {
       setIsLoading(false);
-      console.log('✅ [useAuth] Session refresh completed');
     }
   }, []); // Eliminar la dependencia de user para evitar el bucle infinito
 
@@ -122,15 +122,12 @@ export function useAuth(): UseAuthReturn {
   // Timeout de seguridad para casos donde el loading se queda pegado
   useEffect(() => {
     if (isLoading) {
-      console.log(
-        '🔍 [useAuth] Loading state detected, setting safety timeout...',
-      );
-
       // Si el loading toma más de 5 segundos, forzar a falso
       const safetyTimeout = setTimeout(() => {
-        console.log(
-          '⚠️ [useAuth] Safety timeout triggered - forcing loading to false',
-        );
+        logger.warn('useAuth safety timeout triggered', {
+          action: 'useAuth',
+          timeoutMs: 5000,
+        });
         setIsLoading(false);
       }, 5000);
 
@@ -150,7 +147,9 @@ export function useAuth(): UseAuthReturn {
       // Next.js redirect() throws an error by design to perform the redirect
       // This is expected behavior, so we just clear the user state
       // The server-side redirect will handle navigation
-      console.log('Logout redirect triggered (expected behavior)');
+      logger.debug('Logout redirect triggered (expected behavior)', {
+        action: 'logout',
+      });
     }
   }, []);
 
@@ -161,7 +160,9 @@ export function useAuth(): UseAuthReturn {
       await switchDatabase();
     } catch (error) {
       // If there's an error, still redirect to home page as fallback
-      console.error('Switch database error:', error);
+      logger.error('Switch database error', error, {
+        action: 'switchDatabase',
+      });
       router.push('/');
     }
   }, [router]);
@@ -177,9 +178,11 @@ export function useAuth(): UseAuthReturn {
         // This line is unlikely to be reached due to the redirect
         await refreshSession();
         return result;
-      } catch (error) {
+      } catch {
         // redirect() throws an error by design in Next.js
-        console.log('Tenant switch redirect triggered (expected behavior)');
+        logger.debug('Tenant switch redirect triggered (expected behavior)', {
+          action: 'switchTenant',
+        });
         return { success: true };
       }
     },

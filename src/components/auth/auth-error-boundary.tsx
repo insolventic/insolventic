@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 
 interface AuthErrorBoundaryProps {
   error: Error & { digest?: string };
@@ -15,7 +16,10 @@ export function AuthErrorBoundary({ error, reset }: AuthErrorBoundaryProps) {
   const router = useRouter();
 
   useEffect(() => {
-    console.error('🔐 [AuthErrorBoundary] Authentication error caught:', error);
+    logger.error('Route error boundary caught error', error, {
+      action: 'error-boundary',
+      digest: error.digest,
+    });
   }, [error]);
 
   // If it's an auth-related error, redirect to home page

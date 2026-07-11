@@ -17,6 +17,8 @@ export interface RetryOptions {
   label?: string;
 }
 
+import { logger } from '@/lib/logger';
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function withRetry<T>(
@@ -35,9 +37,13 @@ export async function withRetry<T>(
       lastError = error;
       if (attempt === attempts || !isRetryable(error)) break;
       const delay = baseDelayMs * 2 ** (attempt - 1);
-      console.warn(
-        `[withRetry] ${options.label ?? 'operation'} falló (intento ${attempt}/${attempts}), reintentando en ${delay}ms`,
-      );
+      logger.warn('Retry attempt', {
+        action: options.label ?? 'withRetry',
+        attempt,
+        maxAttempts: attempts,
+        nextDelayMs: delay,
+        reason: error instanceof Error ? error.message : String(error),
+      });
       await wait(delay);
     }
   }

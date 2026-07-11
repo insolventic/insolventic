@@ -8,6 +8,7 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
+import { logger } from '@/lib/logger';
 import { headers } from 'next/headers';
 import {
   checkRateLimit,
@@ -239,10 +240,7 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
       refreshToken,
     };
   } catch (error) {
-    console.error(
-      'Login error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Login error', error);
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -255,10 +253,7 @@ export async function logoutUser(): Promise<void> {
     await clearAuthCookies();
     revalidateTag('auth');
   } catch (error) {
-    console.error(
-      'Logout error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Logout error', error);
   }
 
   // Always redirect to home page after logout, even on error
@@ -342,10 +337,7 @@ export async function validateSession(): Promise<ValidateSessionResult> {
 
     return validatedResult;
   } catch (error) {
-    console.error(
-      'Session validation error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Session validation error', error);
     return {
       valid: false,
       error: 'Error al validar sesión',
@@ -385,10 +377,7 @@ export async function checkUserPermission(
       requiredPermission: permission,
     };
   } catch (error) {
-    console.error(
-      'Permission check error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Permission check error', error);
     return {
       hasPermission: false,
       userPermissions: [],
@@ -493,10 +482,7 @@ export async function refreshAccessToken(): Promise<AuthResult> {
       refreshToken: newRefreshToken,
     };
   } catch (error) {
-    console.error(
-      'Token refresh error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Token refresh error', error);
     return {
       success: false,
       message: 'Error al actualizar token',
@@ -512,10 +498,7 @@ export async function switchDatabase(): Promise<void> {
     // Redirect immediately on server side to prevent race condition
     redirect('/');
   } catch (error) {
-    console.error(
-      'Tenant switch error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Tenant switch error', error);
     // Even on error, redirect to prevent staying on authenticated page
     redirect('/');
   }
@@ -627,7 +610,7 @@ export async function switchTenant(targetTenantSlug: string): Promise<{
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
       throw error;
     }
-    console.error('Error switching tenant:', error);
+    logger.error('Error switching tenant', error);
     return {
       success: false,
       error: 'Error al cambiar de organización',
@@ -731,10 +714,7 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
         tenantIdValue,
       );
     } catch (error) {
-      console.error(
-        'Failed to send welcome email:',
-        error instanceof Error ? error.message : 'Unknown error',
-      );
+      logger.error('Failed to send welcome email', error);
       // Don't fail registration if email fails
     }
 
@@ -755,10 +735,7 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
         message: messages.join('. '),
       };
     }
-    console.error(
-      'Registration error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Registration error', error);
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -843,7 +820,11 @@ export async function forgotPassword(
     });
 
     if (!emailSent) {
-      console.error('Failed to send password reset email to:', email);
+      // El email es PII: va en el contexto para que el logger lo redacte.
+      logger.error('Failed to send password reset email', undefined, {
+        action: 'forgotPassword',
+        email,
+      });
       return {
         success: false,
         message:
@@ -857,10 +838,7 @@ export async function forgotPassword(
         'Correo de recuperación enviado exitosamente. Revise su bandeja de entrada y siga las instrucciones.',
     };
   } catch (error) {
-    console.error(
-      'Forgot password error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Forgot password error', error);
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -961,10 +939,7 @@ export async function resetPassword(
         'Contraseña actualizada exitosamente. Puede iniciar sesión con su nueva contraseña.',
     };
   } catch (error) {
-    console.error(
-      'Reset password error:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Reset password error', error);
     return {
       success: false,
       message: 'Error interno del servidor. Intente nuevamente.',
@@ -1086,10 +1061,7 @@ export async function changePassword(input: unknown): Promise<{
       message: 'Contraseña cambiada exitosamente',
     };
   } catch (error) {
-    console.error(
-      'Error in changePassword:',
-      error instanceof Error ? error.message : 'Unknown error',
-    );
+    logger.error('Error in changePassword', error);
     return {
       success: false,
       message:

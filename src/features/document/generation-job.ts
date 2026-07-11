@@ -12,6 +12,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { generateDocumentsForNewCase } from './generate-documents';
 import {
@@ -59,10 +60,11 @@ async function notifyRequester(params: {
       },
     });
   } catch (error) {
-    console.warn(
-      `[generation-job] requestId=${params.requestId} no se pudo crear la notificación`,
-      error instanceof Error ? error.message : error,
-    );
+    logger.warn('No se pudo crear la notificación de generación', {
+      action: 'generation-job',
+      requestId: params.requestId,
+      reason: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -80,9 +82,13 @@ export async function runInitialGenerationJob(params: {
   const { requestId, caseId, tenantId } = params;
   const requestedById = params.requestedById ?? null;
 
-  console.info(
-    `[generation-job] start requestId=${requestId} caseId=${caseId}`,
-  );
+  const startedAt = Date.now();
+  logger.info('Generation job started', {
+    action: 'generation-job',
+    requestId,
+    caseId,
+    tenantId,
+  });
 
   try {
     await markGenerationProcessing(requestId);
@@ -132,16 +138,24 @@ export async function runInitialGenerationJob(params: {
           : `Generación finalizada con errores: ${success} correctos, ${errors} fallidos de ${total}.`,
     });
 
-    console.info(
-      `[generation-job] done requestId=${requestId} total=${total} success=${success} errors=${errors}`,
-    );
+    logger.info('Generation job completed', {
+      action: 'generation-job',
+      requestId,
+      caseId,
+      total,
+      successCount: success,
+      errorCount: errors,
+      duration: Date.now() - startedAt,
+    });
 
     return { total, success, errors, caseFolderId: result.caseFolderId };
   } catch (error) {
-    console.error(
-      `[generation-job] failed requestId=${requestId} caseId=${caseId}`,
-      error instanceof Error ? error.message : error,
-    );
+    logger.error('Generation job failed', error, {
+      action: 'generation-job',
+      requestId,
+      caseId,
+      duration: Date.now() - startedAt,
+    });
     Sentry.captureException(error, {
       tags: { job: 'document-generation', requestId, caseId },
     });
