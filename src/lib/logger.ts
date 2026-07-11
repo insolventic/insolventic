@@ -35,6 +35,29 @@ export interface LogContext {
 
 type Level = 'error' | 'warn' | 'info' | 'debug';
 
+// ---------------------------------------------------------------------------
+// requestId automático — inversión de dependencia para no importar
+// async_hooks aquí (este módulo también corre en el cliente, donde no existe).
+// request-context.ts registra el provider al cargarse en el servidor.
+// ---------------------------------------------------------------------------
+
+let requestIdProvider: (() => string | undefined) | null = null;
+
+/** Registrado por `src/lib/request-context.ts` (solo server). */
+export function setRequestIdProvider(
+  provider: () => string | undefined,
+): void {
+  requestIdProvider = provider;
+}
+
+function autoRequestId(): string | undefined {
+  try {
+    return requestIdProvider?.();
+  } catch {
+    return undefined;
+  }
+}
+
 const LEVEL_WEIGHT: Record<Level, number> = {
   error: 0,
   warn: 1,
@@ -137,14 +160,18 @@ function emit(
 ): void {
   if (!enabled(level)) return;
 
+  const requestId = autoRequestId();
   const entry: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     level: level.toUpperCase(),
     message,
+    // Inyectado automáticamente; un requestId explícito en ctx lo pisa.
+    ...(requestId ? { requestId } : {}),
     ...(ctx ? redactContext(ctx) : {}),
   };
   if (err instanceof Error) {
     entry.error = err.message;
+    if (level === 'error' && err.stack) entry.stack = err.stack;
   } else if (err !== undefined) {
     entry.error = String(err);
   }
@@ -160,11 +187,14 @@ export const logger = {
   /** ERROR: consola + Sentry.captureException. `err` opcional pero recomendado. */
   error(message: string, err?: unknown, ctx?: LogContext): void {
     emit('error', message, ctx, err);
+    const requestId = autoRequestId();
     void getSentry().then((sentry) => {
       if (!sentry) return;
       const extra = ctx ? redactContext(ctx) : undefined;
       if (err instanceof Error) {
-        sentry.captureException(err, { extra: { message, ...extra } });
+        sentry.captureException(err, {
+          extra: { message, ...(requestId ? { requestId } : {}), ...extra },
+        });
       } else {
         sentry.captureMessage(message, 'error');
       }

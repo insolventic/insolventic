@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { seedRequestContextFromHeaders } from '@/lib/request-context';
 import { headers } from 'next/headers';
 import {
   checkRateLimit,
@@ -42,6 +43,11 @@ import {
 } from './schemas';
 
 export async function authenticateUser() {
+  // Siembra el requestId (header del middleware) en AsyncLocalStorage:
+  // authenticateUser es el entry point de casi toda server action, así que
+  // todos los logs posteriores de la action llevan requestId automático.
+  await seedRequestContextFromHeaders();
+
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access-token')?.value;
 
@@ -130,6 +136,9 @@ async function getClientIp(): Promise<string> {
 
 export async function loginUser(input: unknown): Promise<AuthResult> {
   try {
+    // Action no autenticada: sembrar el contexto aquí directamente.
+    await seedRequestContextFromHeaders();
+
     // Rate limiting
     const ip = await getClientIp();
     const rateLimitResult = checkRateLimit(
