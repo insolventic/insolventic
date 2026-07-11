@@ -4,17 +4,23 @@ import { cookies } from 'next/headers';
 
 import type { SessionData, RefreshTokenData } from '@/features/auth/schemas';
 
+// Validado en el primer uso, no en el import: `next build` recolecta page
+// data importando este módulo, y en entornos de build (CI con `vercel pull`,
+// que excluye las env vars sensitive) JWT_SECRET no existe. En runtime la
+// primera operación de auth sigue fallando fuerte si falta.
+let jwtSecretCache: Uint8Array | null = null;
+
 function getJwtSecret(): Uint8Array {
+  if (jwtSecretCache) return jwtSecretCache;
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error(
       'JWT_SECRET environment variable is not set. Application cannot start without it.',
     );
   }
-  return new TextEncoder().encode(secret);
+  jwtSecretCache = new TextEncoder().encode(secret);
+  return jwtSecretCache;
 }
-
-const JWT_SECRET = getJwtSecret();
 
 export async function createAccessToken(
   payload: Omit<SessionData, 'iat' | 'exp'>,
@@ -29,7 +35,7 @@ export async function createAccessToken(
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt(now)
     .setExpirationTime(exp)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function createRefreshToken(
@@ -42,12 +48,12 @@ export async function createRefreshToken(
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt(now)
     .setExpirationTime(exp)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifyToken(token: string): Promise<SessionData | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
 
     return {
       id: payload.id as string,
@@ -72,7 +78,7 @@ export async function verifyRefreshToken(
   token: string,
 ): Promise<RefreshTokenData | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
 
     return {
       userId: payload.userId as string,
