@@ -778,30 +778,13 @@ export async function createCase(
 
     // Generate documents for the new case (async, non-blocking)
     // Fetch the complete case with relations for document generation
-    const caseWithRelations = await prisma.case.findUnique({
-      where: { id: newCase.id, tenantId },
-      include: {
-        debtor: true,
-        operator: {
-          select: { id: true, name: true, email: true },
-        },
-        documents: true,
-        debts: {
-          include: {
-            creditor: { select: { name: true } },
-          },
-        },
-        assets: true,
-        libranzas: true,
-        suspendedServices: true,
-        dependents: true,
-        legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
-        _count: { select: { documents: true } },
-      },
-    });
+    const { fetchCaseForGeneration, persistGeneratedDocuments } = await import(
+      '@/features/document/persistence'
+    );
+    const caseWithRelations = await fetchCaseForGeneration(
+      newCase.id,
+      tenantId,
+    );
 
     if (caseWithRelations) {
       // Generate documents in background (don't await to avoid blocking response)
@@ -818,24 +801,11 @@ export async function createCase(
           }
 
           // Create document records in database
-          for (const doc of result.documents) {
-            if (doc.status === 'success' && doc.googleDriveId) {
-              await prisma.document.create({
-                data: {
-                  name: doc.templateName,
-                  type: 'generated',
-                  status: 'completed',
-                  url: doc.googleDriveUrl,
-                  caseId: newCase.id,
-                  tenantId,
-                  googleDriveId: doc.googleDriveId,
-                  fileName: doc.fileName,
-                  mimeType: 'application/pdf',
-                  isGenerated: true,
-                },
-              });
-            }
-          }
+          await persistGeneratedDocuments(
+            result.documents,
+            newCase.id,
+            tenantId,
+          );
 
           console.log(
             `Documents generated for case ${finalCaseNumber}: ${result.documents.length} documents`,

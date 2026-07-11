@@ -778,8 +778,12 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Get HTML templates to process
-    const { ALL_TEMPLATES, getTemplatesByPackage, getTemplatePath } =
-      await import('./templates-config');
+    const {
+      ALL_TEMPLATES,
+      getTemplatesByPackage,
+      getTemplatePath,
+      getTemplateAssetsBaseDir,
+    } = await import('./templates-config');
 
     let templatesToProcess: DocumentTemplate[];
 
@@ -997,6 +1001,13 @@ export async function batchGenerateDocuments(input: {
     const htmlInputs = htmlDocuments.map((d) => ({
       html: d.html,
       filename: `${d.uniqueKey}.html`,
+      // Per-document asset resolution: conciliation / support-agreement
+      // templates keep their CSS next to the template, not under insolvency.
+      assetsBaseDir: path.join(
+        projectRoot,
+        getTemplateAssetsBaseDir(d.template),
+      ),
+      docDir: path.dirname(path.join(projectRoot, getTemplatePath(d.template))),
     }));
 
     // Generate PDFs if requested
