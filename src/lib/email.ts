@@ -48,29 +48,35 @@ interface AlertEmailData {
 }
 
 class EmailService {
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
 
-  constructor() {
+  /**
+   * Crea el transporter en el primer uso, no en el import del módulo.
+   * Validar SMTP_* aquí mantiene `next build` y los entornos sin correo
+   * funcionando: una credencial ausente solo falla la ruta de email,
+   * en runtime, en lugar de tumbar todo el build/arranque.
+   */
+  private getTransporter(): nodemailer.Transporter {
+    if (this.transporter) return this.transporter;
+
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASSWORD;
+    if (!user || !pass) {
+      throw new Error(
+        'SMTP_USER y SMTP_PASSWORD son requeridos para enviar correos',
+      );
+    }
+
     this.transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
       secure: false, // true for 465, false for other ports
-      auth: {
-        user:
-          process.env.SMTP_USER ??
-          (() => {
-            throw new Error('SMTP_USER env var is required');
-          })(),
-        pass:
-          process.env.SMTP_PASSWORD ??
-          (() => {
-            throw new Error('SMTP_PASSWORD env var is required');
-          })(),
-      },
+      auth: { user, pass },
       tls: {
         rejectUnauthorized: process.env.NODE_ENV === 'production',
       },
     });
+    return this.transporter;
   }
 
   private async sendEmail({
@@ -80,7 +86,16 @@ class EmailService {
     text,
   }: EmailOptions): Promise<boolean> {
     try {
-      if (!process.env.SMTP_PASSWORD) {
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
+        if (process.env.NODE_ENV === 'production') {
+          // En producción la falta de SMTP es un error operativo, no
+          // un caso de simulación: se reporta y el envío falla explícito.
+          console.error(
+            '❌ SMTP no configurado (SMTP_USER/SMTP_PASSWORD): no se pudo enviar el correo a:',
+            to,
+          );
+          return false;
+        }
         console.log('\n📧 ===== EMAIL SIMULATION MODE =====');
         console.log('⚠️  SMTP not configured - Simulating email send');
         console.log('📤 To:', to);
@@ -99,7 +114,7 @@ class EmailService {
         return true;
       }
 
-      const info = await this.transporter.sendMail({
+      const info = await this.getTransporter().sendMail({
         from: {
           name: 'Sistema Insolventic',
           address: process.env.SMTP_USER!,
@@ -900,7 +915,7 @@ class EmailService {
         return true;
       }
 
-      await this.transporter.verify();
+      await this.getTransporter().verify();
       console.log('✅ SMTP connection verified successfully');
       console.log('📧 SMTP_USER:', process.env.SMTP_USER);
       console.log('🔐 SMTP_PASSWORD: SET (hidden for security)');
