@@ -19,7 +19,7 @@ jobs:
       DEPLOY_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set git author for Vercel team access
         run: |
@@ -28,9 +28,9 @@ jobs:
           git commit --amend --reset-author --no-edit
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Pull Vercel environment info

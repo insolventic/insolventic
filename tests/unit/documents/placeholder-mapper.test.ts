@@ -248,3 +248,166 @@ describe('Placeholder Mapper — Helper Functions', () => {
     });
   });
 });
+
+describe('Placeholder Mapper — HTML escaping (P2)', () => {
+  // Real imports: escaping happens inside mapCaseToPlaceholders (merge point)
+  // and inside the HTML builders, so we test through the exported functions.
+  const {
+    mapCaseToPlaceholders,
+    buildConciliationContext,
+  } = require('@/features/document/placeholder-mapper');
+
+  const makeCase = (overrides: Record<string, unknown> = {}) =>
+    ({
+      type: 'INSOLVENCY',
+      caseNumber: 'INS-2026-001',
+      debtor: {
+        name: 'Juan <script>alert(1)</script> Pérez',
+        idNumber: '123456789',
+        address: 'Calle 5 & Carrera "10"',
+        city: 'Bogotá',
+        email: 'juan@example.com',
+        phone: '3000000000',
+        occupation: 'Ingeniero',
+      },
+      debts: [
+        {
+          amount: 1000000,
+          capitalAmount: 1000000,
+          creditor: { name: 'Banco <b>Evil</b> & Cía' },
+        },
+      ],
+      assets: [],
+      documents: [
+        { name: '<img src=x onerror=alert(1)>.pdf', isGenerated: false },
+      ],
+      legalProcesses: [],
+      libranzas: [],
+      suspendedServices: [],
+      dependents: [],
+      causes: [],
+      applicantScope: [],
+      operator: null,
+      ...overrides,
+    }) as never;
+
+  it('escapes scalar placeholders (user data) automatically', () => {
+    const placeholders = mapCaseToPlaceholders(makeCase());
+    expect(placeholders.NOMBRE_DEUDOR).toContain('&lt;script&gt;');
+    expect(placeholders.NOMBRE_DEUDOR).not.toContain('<script>');
+    expect(placeholders.DIRECCION_DEUDOR).toContain('&amp;');
+    expect(placeholders.DIRECCION_DEUDOR).toContain('&quot;10&quot;');
+  });
+
+  it('keeps system-built HTML intact but escapes user data inside it', () => {
+    const placeholders = mapCaseToPlaceholders(makeCase());
+    // Table markup survives (allowlisted key)
+    expect(placeholders.CUADRO_CALIFICACION_GRADUACION).toContain('<table');
+    // ...but the creditor name interpolated into it is escaped
+    expect(placeholders.CUADRO_CALIFICACION_GRADUACION).toContain(
+      '&lt;b&gt;Evil&lt;/b&gt;',
+    );
+    expect(placeholders.CUADRO_CALIFICACION_GRADUACION).not.toContain(
+      '<b>Evil</b>',
+    );
+    expect(placeholders.LISTA_ACREEDORES).toContain('&lt;b&gt;');
+  });
+
+  it('escapes uploaded document names in LISTA_ANEXOS but keeps <li> markup', () => {
+    const placeholders = mapCaseToPlaceholders(makeCase());
+    expect(placeholders.LISTA_ANEXOS).toContain('<li>');
+    expect(placeholders.LISTA_ANEXOS).toContain('&lt;img');
+    expect(placeholders.LISTA_ANEXOS).not.toContain('<img');
+  });
+
+  it('does not alter safe values (manual fills, SI/NO flags, currency)', () => {
+    const placeholders = mapCaseToPlaceholders(makeCase());
+    expect(placeholders.DIA_ACUERDO).toBe('____');
+    expect(placeholders.TIENE_ACREEDORES).toBe('SI');
+    expect(placeholders.GASTOS_MENSUALES).toContain('$');
+  });
+
+  it('handles unicode intact (tildes, ñ, emoji) — only HTML specials change', () => {
+    const placeholders = mapCaseToPlaceholders(
+      makeCase({
+        debtor: {
+          name: 'José Ñúñez Müller 日本 🚀',
+          idNumber: '123',
+          address: 'Cra 7 № 45–12',
+          city: 'Bogotá',
+          email: 'j@x.co',
+          phone: '300',
+          occupation: 'Ingeniería & Diseño',
+        },
+      }),
+    );
+    expect(placeholders.NOMBRE_DEUDOR).toBe('José Ñúñez Müller 日本 🚀');
+    expect(placeholders.DIRECCION_DEUDOR).toBe('Cra 7 № 45–12');
+  });
+
+  it('handles null/undefined debtor fields without crashing', () => {
+    const placeholders = mapCaseToPlaceholders(
+      makeCase({
+        debtor: {
+          name: 'Juan',
+          idNumber: null,
+          address: undefined,
+          city: null,
+          email: null,
+          phone: undefined,
+          occupation: null,
+        },
+      }),
+    );
+    // null/undefined → string vacío o 'null'-free, nunca crash
+    expect(typeof placeholders.CEDULA_DEUDOR).toBe('string');
+    expect(typeof placeholders.DIRECCION_DEUDOR).toBe('string');
+  });
+
+  it('benchmark: mapea un caso con 100 deudas y 50 bienes en <100ms', () => {
+    const bigCase = makeCase({
+      debts: Array.from({ length: 100 }, (_, i) => ({
+        amount: 1000000 + i,
+        capitalAmount: 1000000 + i,
+        interestAmount: 5000,
+        creditorClass: 'Quirografario',
+        creditor: { name: `Acreedor & Cía ${i}` },
+      })),
+      assets: Array.from({ length: 50 }, (_, i) => ({
+        type: 'VEHICULO',
+        name: `Bien <${i}>`,
+        description: `Descripción ${i}`,
+        value: 5000000,
+      })),
+      paymentTermMonths: 60,
+      monthlyPaymentAmount: 2000000,
+    });
+
+    const start = performance.now();
+    const placeholders = mapCaseToPlaceholders(bigCase);
+    const elapsed = performance.now() - start;
+
+    expect(Object.keys(placeholders).length).toBeGreaterThan(300);
+    expect(elapsed).toBeLessThan(100);
+  });
+
+  it('escapes string values inside buildConciliationContext each-items', () => {
+    const ctx = buildConciliationContext(
+      makeCase({
+        type: 'CONCILIATION',
+        concClausulasAcuerdo: [
+          {
+            NUMERO_CLAUSULA: 'PRIMERA',
+            TEXTO_CLAUSULA: 'Pagar <script>alert(1)</script> a tiempo',
+          },
+        ],
+      }),
+    );
+    const clausulas = ctx.CLAUSULAS_ACUERDO as Array<Record<string, string>>;
+    expect(clausulas[0].TEXTO_CLAUSULA).toContain('&lt;script&gt;');
+    expect(clausulas[0].TEXTO_CLAUSULA).not.toContain('<script>');
+    // Flags remain booleans
+    expect(typeof ctx.HAS_CLAUSULAS_NUMERADAS).toBe('boolean');
+    expect(ctx.HAS_CLAUSULAS_NUMERADAS).toBe(true);
+  });
+});

@@ -1395,6 +1395,18 @@ export function getTemplatePath(template: DocumentTemplate): string {
 }
 
 /**
+ * Base directory (relative to project root) where a template's CSS/img
+ * assets live. Conciliation and support-agreement templates keep their own
+ * CSS folders, so the assets dir must follow the case type — resolving
+ * everything against templates/insolvency leaves those PDFs unstyled.
+ */
+export function getTemplateAssetsBaseDir(template: DocumentTemplate): string {
+  return (
+    TEMPLATES_BASE_PATHS[template.caseType] || TEMPLATES_BASE_PATHS.INSOLVENCY
+  );
+}
+
+/**
  * Get templates filtered by case type
  */
 export function getTemplatesByCaseType(caseType: CaseType): DocumentTemplate[] {

@@ -6,6 +6,8 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
+import { withRetry } from '@/lib/retry';
+import { logger } from '@/lib/logger';
 import { htmlToPdf } from '@/lib/html-to-pdf';
 import {
   mapCaseToPlaceholders,
@@ -19,6 +21,7 @@ import {
   getTemplatesForAgreement,
   getTemplatesForFailure,
   getTemplatePath,
+  getTemplateAssetsBaseDir,
   type DocumentTemplate,
 } from './templates-config';
 import { generateAndUploadExcel } from './generate-excel';
@@ -231,7 +234,10 @@ async function readTemplate(templatePath: string): Promise<string> {
     const fullPath = path.join(projectRoot, templatePath);
     return await fs.readFile(fullPath, 'utf-8');
   } catch (error) {
-    console.error(`Error reading template ${templatePath}:`, error);
+    logger.error('Error reading template', error, {
+      action: 'generate-documents',
+      templatePath,
+    });
     throw new Error(`No se pudo leer la plantilla: ${templatePath}`);
   }
 }
@@ -292,15 +298,22 @@ async function getOrCreateCaseFolder(
     const surname = extractSurname(debtorName);
     const caseFolderName = surname ? `${caseNumber} - ${surname}` : caseNumber;
 
-    const hierarchyId = await googleDriveService.createFolderHierarchy(
-      [
-        'Insolventic',
-        centerFolderName,
-        caseTypeFolderLabel(caseType),
-        year,
-        caseFolderName,
-      ],
-      rootFolderId,
+    // Reintento con backoff: la creación de la jerarquía es find-or-create
+    // (idempotente), un fallo transitorio de la API de Drive no debe abortar
+    // toda la generación del expediente.
+    const hierarchyId = await withRetry(
+      () =>
+        googleDriveService.createFolderHierarchy(
+          [
+            'Insolventic',
+            centerFolderName,
+            caseTypeFolderLabel(caseType),
+            year,
+            caseFolderName,
+          ],
+          rootFolderId,
+        ),
+      { label: `case-folder:${caseNumber}` },
     );
     return hierarchyId;
   }
@@ -335,6 +348,7 @@ async function createDocumentSubfolder(
   caseFolderId: string,
   folderPath: string[],
   layoutVersion: number = 0,
+  cache?: Map<string, string>,
 ): Promise<string> {
   const effectivePath =
     layoutVersion >= 1 ? ['01-Generados', ...folderPath] : folderPath;
@@ -343,13 +357,25 @@ async function createDocumentSubfolder(
     return caseFolderId;
   }
 
+  // Many templates share the same folderPath within a run; resolving the
+  // hierarchy once per unique path avoids N redundant Drive round-trips.
+  const cacheKey = `${caseFolderId}::${effectivePath.join('/')}`;
+  const cached = cache?.get(cacheKey);
+  if (cached) return cached;
+
   try {
-    return await googleDriveService.createFolderHierarchy(
+    const folderId = await googleDriveService.createFolderHierarchy(
       effectivePath,
       caseFolderId,
     );
+    cache?.set(cacheKey, folderId);
+    return folderId;
   } catch (error) {
-    console.error('Error creating subfolder:', error);
+    logger.warn('Error creating Drive subfolder, falling back to case folder', {
+      action: 'generate-documents',
+      folderPath: effectivePath.join('/'),
+      reason: error instanceof Error ? error.message : String(error),
+    });
     return caseFolderId; // Fallback to case folder
   }
 }
@@ -363,6 +389,7 @@ async function generateDocument(
   placeholders: Record<string, string>,
   caseFolderId: string,
   options: GenerationOptions & { skipValidation?: boolean },
+  subfolderCache?: Map<string, string>,
 ): Promise<GeneratedDocument> {
   try {
     // Validate document requirements before generation
@@ -409,12 +436,12 @@ async function generateDocument(
       process.env.NODE_ENV === 'development' &&
       coverage.coveragePercentage < 80
     ) {
-      console.warn(
-        `[${template.name}] Low coverage: ${coverage.coveragePercentage}%`,
-      );
-      if (coverage.missing.length > 0) {
-        console.warn(`  Missing variables: ${coverage.missing.join(', ')}`);
-      }
+      logger.debug('Low placeholder coverage', {
+        action: 'generate-documents',
+        template: template.name,
+        coveragePercentage: coverage.coveragePercentage,
+        missingVariables: coverage.missing,
+      });
     }
 
     // Generate file name
@@ -429,8 +456,14 @@ async function generateDocument(
 
     if (options.generatePdf) {
       const projectRoot = process.cwd();
-      const assetsBaseDir = path.join(projectRoot, 'templates/insolvency');
-      fileBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir);
+      // Root-relative asset refs ("/CSS/...") resolve against the case-type
+      // base dir; relative refs ("./", "../") against the template's own dir.
+      const assetsBaseDir = path.join(
+        projectRoot,
+        getTemplateAssetsBaseDir(template),
+      );
+      const docDir = path.dirname(path.join(projectRoot, templatePath));
+      fileBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir, docDir);
       mimeType = 'application/pdf';
     } else {
       fileBuffer = Buffer.from(filledHtml, 'utf-8');
@@ -447,13 +480,18 @@ async function generateDocument(
         caseFolderId,
         template.folderPath,
         (caseData as { layoutVersion?: number }).layoutVersion ?? 0,
+        subfolderCache,
       );
 
-      googleDriveId = await googleDriveService.uploadFile(
-        fileName,
-        fileBuffer,
-        mimeType,
-        targetFolderId,
+      googleDriveId = await withRetry(
+        () =>
+          googleDriveService.uploadFile(
+            fileName,
+            fileBuffer,
+            mimeType,
+            targetFolderId,
+          ),
+        { label: `upload:${fileName}` },
       );
       googleDriveUrl = googleDriveService.getFileUrl(googleDriveId);
     }
@@ -470,7 +508,11 @@ async function generateDocument(
         coverage.missing.length > 0 ? coverage.missing : undefined,
     };
   } catch (error) {
-    console.error(`Error generating document ${template.name}:`, error);
+    logger.error('Error generating document', error, {
+      action: 'generate-documents',
+      template: template.name,
+      templateId: template.id,
+    });
     return {
       templateId: template.id,
       templateName: template.name,
@@ -481,6 +523,37 @@ async function generateDocument(
       error: error instanceof Error ? error.message : 'Error desconocido',
     };
   }
+}
+
+/**
+ * Run a list of templates through generateDocument sequentially, sharing a
+ * placeholder map and a Drive-subfolder cache across the whole batch.
+ * Sequential on purpose: Puppeteer + Drive quotas punish concurrency here.
+ */
+async function generateFromTemplates(
+  templates: DocumentTemplate[],
+  caseData: CaseWithRelations,
+  caseFolderId: string,
+  options: GenerationOptions,
+): Promise<GeneratedDocument[]> {
+  const placeholders = mapCaseToPlaceholders(caseData);
+  const subfolderCache = new Map<string, string>();
+  const documents: GeneratedDocument[] = [];
+
+  for (const template of templates) {
+    documents.push(
+      await generateDocument(
+        template,
+        caseData,
+        placeholders,
+        caseFolderId,
+        options,
+        subfolderCache,
+      ),
+    );
+  }
+
+  return documents;
 }
 
 /**
@@ -500,7 +573,6 @@ export async function generateDocumentsForNewCase(
     (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
     'INSOLVENCY';
   const templates = getTemplatesForCaseCreation(caseType);
-  const documents: GeneratedDocument[] = [];
 
   // Create case folder in Google Drive
   let caseFolderId = mergedOptions.caseFolderId || '';
@@ -519,20 +591,12 @@ export async function generateDocumentsForNewCase(
     (caseData as { layoutVersion?: number }).layoutVersion = 1;
   }
 
-  // Map case data to placeholders
-  const placeholders = mapCaseToPlaceholders(caseData);
-
-  // Generate each document
-  for (const template of templates) {
-    const result = await generateDocument(
-      template,
-      caseData,
-      placeholders,
-      caseFolderId,
-      mergedOptions,
-    );
-    documents.push(result);
-  }
+  const documents = await generateFromTemplates(
+    templates,
+    caseData,
+    caseFolderId,
+    mergedOptions,
+  );
 
   // Generate consolidated Excel and upload
   if (mergedOptions.uploadToGoogleDrive && caseFolderId) {
@@ -547,7 +611,9 @@ export async function generateDocumentsForNewCase(
         status: 'success',
       });
     } catch (error) {
-      console.error('Error generating Excel:', error);
+      logger.error('Error generating consolidated Excel', error, {
+        action: 'generate-documents',
+      });
       documents.push({
         templateId: 'consolidado-excel',
         templateName: 'Consolidado Excel',
@@ -580,22 +646,7 @@ export async function generateDocumentsForAdmission(
     (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
     'INSOLVENCY';
   const templates = getTemplatesForAdmission(caseType);
-  const documents: GeneratedDocument[] = [];
-
-  const placeholders = mapCaseToPlaceholders(caseData);
-
-  for (const template of templates) {
-    const result = await generateDocument(
-      template,
-      caseData,
-      placeholders,
-      caseFolderId,
-      mergedOptions,
-    );
-    documents.push(result);
-  }
-
-  return documents;
+  return generateFromTemplates(templates, caseData, caseFolderId, mergedOptions);
 }
 
 /**
@@ -611,22 +662,7 @@ export async function generateDocumentsForAgreement(
     (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
     'INSOLVENCY';
   const templates = getTemplatesForAgreement(caseType);
-  const documents: GeneratedDocument[] = [];
-
-  const placeholders = mapCaseToPlaceholders(caseData);
-
-  for (const template of templates) {
-    const result = await generateDocument(
-      template,
-      caseData,
-      placeholders,
-      caseFolderId,
-      mergedOptions,
-    );
-    documents.push(result);
-  }
-
-  return documents;
+  return generateFromTemplates(templates, caseData, caseFolderId, mergedOptions);
 }
 
 /**
@@ -643,27 +679,16 @@ export async function generateDocumentsForFailure(
     (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
     'INSOLVENCY';
   const templates = getTemplatesForFailure(failureType, caseType);
-  const documents: GeneratedDocument[] = [];
 
   if (templates.length === 0) {
-    console.warn(`No templates found for failure type: ${failureType}`);
-    return documents;
+    logger.warn('No templates found for failure type', {
+      action: 'generate-documents',
+      failureType,
+    });
+    return [];
   }
 
-  const placeholders = mapCaseToPlaceholders(caseData);
-
-  for (const template of templates) {
-    const result = await generateDocument(
-      template,
-      caseData,
-      placeholders,
-      caseFolderId,
-      mergedOptions,
-    );
-    documents.push(result);
-  }
-
-  return documents;
+  return generateFromTemplates(templates, caseData, caseFolderId, mergedOptions);
 }
 
 /**
@@ -714,6 +739,7 @@ export async function generateSpecificDocuments(
   const { getTemplateById } = await import('./templates-config');
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
   const placeholders = mapCaseToPlaceholders(caseData);
+  const subfolderCache = new Map<string, string>();
   const documents: GeneratedDocument[] = [];
 
   for (const templateId of templateIds) {
@@ -738,6 +764,7 @@ export async function generateSpecificDocuments(
       placeholders,
       caseFolderId,
       mergedOptions,
+      subfolderCache,
     );
     documents.push(result);
   }
@@ -776,8 +803,12 @@ export async function previewDocument(
 
   if (format === 'pdf') {
     const projectRoot = process.cwd();
-    const assetsBaseDir = path.join(projectRoot, 'templates/insolvency');
-    const pdfBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir);
+    const assetsBaseDir = path.join(
+      projectRoot,
+      getTemplateAssetsBaseDir(template),
+    );
+    const docDir = path.dirname(path.join(projectRoot, templatePath));
+    const pdfBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir, docDir);
     return { content: pdfBuffer, mimeType: 'application/pdf' };
   }
 

@@ -40,13 +40,14 @@ export async function htmlToDocx(
   html: string,
   options: DocxOptions = {},
   assetsBaseDir?: string,
+  docDir?: string,
 ): Promise<Buffer> {
   const mergedOptions = { ...defaultDocxOptions, ...options };
 
   try {
     // Inline assets if base directory provided
     const processedHtml = assetsBaseDir
-      ? await inlineAssets(html, assetsBaseDir)
+      ? await inlineAssets(html, assetsBaseDir, docDir)
       : html;
 
     // html-to-docx uses a default export
@@ -82,7 +83,14 @@ export async function htmlToDocx(
  * If assetsBaseDir is provided, CSS and images are inlined before conversion.
  */
 export async function batchHtmlToDocx(
-  documents: Array<{ html: string; filename: string }>,
+  documents: Array<{
+    html: string;
+    filename: string;
+    /** Per-document override for root-relative asset refs */
+    assetsBaseDir?: string;
+    /** Per-document dir for relative ("./", "../") asset refs */
+    docDir?: string;
+  }>,
   options: DocxOptions = {},
   assetsBaseDir?: string,
 ): Promise<Array<{ filename: string; buffer: Buffer }>> {
@@ -95,7 +103,12 @@ export async function batchHtmlToDocx(
         `[batchHtmlToDocx] Processing ${i + 1}/${documents.length}: ${doc.filename}`,
       );
 
-      const buffer = await htmlToDocx(doc.html, options, assetsBaseDir);
+      const buffer = await htmlToDocx(
+        doc.html,
+        options,
+        doc.assetsBaseDir || assetsBaseDir,
+        doc.docDir,
+      );
 
       results.push({
         filename: doc.filename.replace(/\.html$/, '.docx'),

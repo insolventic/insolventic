@@ -50,6 +50,11 @@ async function verifyToken(token: string) {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Correlación de logs: un id por request, reenviado a las server actions
+  // vía header (el edge runtime no comparte AsyncLocalStorage con Node).
+  const requestId =
+    request.headers.get('x-request-id') ?? crypto.randomUUID();
+
   const accessToken = request.cookies.get('access-token')?.value;
 
   // Public routes that don't require authentication
@@ -72,7 +77,13 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    return NextResponse.next();
+    const publicHeaders = new Headers(request.headers);
+    publicHeaders.set('x-request-id', requestId);
+    const publicResponse = NextResponse.next({
+      request: { headers: publicHeaders },
+    });
+    publicResponse.headers.set('x-request-id', requestId);
+    return publicResponse;
   }
 
   if (!accessToken) {
@@ -109,17 +120,20 @@ export async function middleware(request: NextRequest) {
   }
 
   const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-request-id', requestId);
   requestHeaders.set('x-user-id', user.id);
   requestHeaders.set('x-user-email', user.email);
   requestHeaders.set('x-user-role', user.roleName);
   requestHeaders.set('x-user-permissions', JSON.stringify(user.permissions));
   requestHeaders.set('x-user-tenant', user.tenantId);
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+  response.headers.set('x-request-id', requestId);
+  return response;
 }
 
 export const config = {

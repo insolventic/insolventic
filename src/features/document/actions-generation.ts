@@ -13,12 +13,91 @@ import {
   type GeneratedDocument,
 } from './generate-documents';
 import { getAllTemplates } from './templates-config';
+import {
+  fetchCaseForGeneration,
+  persistGeneratedDocuments,
+  inferMimeType,
+} from './persistence';
+import {
+  claimGenerationRequest,
+  markGenerationProcessing,
+  completeGenerationRequest,
+  failGenerationRequest,
+  getGenerationRequests,
+  type GenerationKind,
+  type GenerationRequestSummary,
+} from './generation-request';
 import type { CaseWithRelations } from '../case/schemas';
 import {
   checkRateLimit,
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
+
+/**
+ * Ejecuta `produce` protegido por el lock anti-duplicados (P3): reclama la
+ * solicitud (caseId, kind), la marca PROCESSING, registra los conteos al
+ * terminar y libera el lock. Si ya hay una generación activa devuelve la
+ * solicitud existente (equivalente al 409 + requestId del patrón REST).
+ */
+async function runWithGenerationLock(
+  params: {
+    tenantId: string;
+    caseId: string;
+    kind: GenerationKind;
+    userId: string;
+  },
+  produce: () => Promise<GeneratedDocument[]>,
+): Promise<
+  | { ok: true; requestId: string; documents: GeneratedDocument[] }
+  | { ok: false; requestId: string; error: string }
+> {
+  const claim = await claimGenerationRequest({
+    tenantId: params.tenantId,
+    caseId: params.caseId,
+    kind: params.kind,
+    requestedById: params.userId,
+  });
+
+  if (!claim.claimed) {
+    return {
+      ok: false,
+      requestId: claim.request.id,
+      error: `Ya hay una generación de documentos en curso para este caso (estado: ${claim.request.status}). Espere a que termine o consulte su estado.`,
+    };
+  }
+
+  const requestId = claim.request.id;
+  try {
+    await markGenerationProcessing(requestId);
+    const documents = await produce();
+    const success = documents.filter((d) => d.status === 'success').length;
+    const errors = documents.filter((d) => d.status === 'error').length;
+    await completeGenerationRequest(requestId, {
+      total: documents.length,
+      success,
+      errors,
+    });
+    return { ok: true, requestId, documents };
+  } catch (error) {
+    // Liberar el lock para permitir reintento; el error sube al catch de la action.
+    await failGenerationRequest(requestId, error).catch(() => {});
+    throw error;
+  }
+}
+
+/**
+ * Per-user rate limit shared by every generation action. Returns an error
+ * string when the limit is exceeded, null otherwise.
+ */
+function checkGenerationRateLimit(userId: string): string | null {
+  const rlKey = getRateLimitKey('documentGeneration', userId);
+  const rl = checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.documentGeneration);
+  if (!rl.allowed) {
+    return `Demasiadas solicitudes de generación. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`;
+  }
+  return null;
+}
 
 /**
  * Get all available document templates
@@ -82,43 +161,15 @@ export async function regenerateCaseDocument(input: {
       };
     }
 
-    // Rate limit document generation per user
-    const rlKey = getRateLimitKey('documentGeneration', user.id);
-    const rl = checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.documentGeneration);
-    if (!rl.allowed) {
-      return {
-        success: false,
-        error: `Demasiadas solicitudes de generación. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
-      };
+    const rateLimitError = checkGenerationRateLimit(user.id);
+    if (rateLimitError) {
+      return { success: false, error: rateLimitError };
     }
 
     const { caseId, templateId } = input;
 
     // Fetch the case with all relations
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      include: {
-        debtor: true,
-        operator: {
-          select: { id: true, name: true, email: true },
-        },
-        documents: true,
-        debts: {
-          include: {
-            creditor: { select: { name: true } },
-          },
-        },
-        assets: true,
-        libranzas: true,
-        suspendedServices: true,
-        dependents: true,
-        legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
-        _count: { select: { documents: true } },
-      },
-    });
+    const caseData = await fetchCaseForGeneration(caseId, tenantId);
 
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
@@ -155,6 +206,7 @@ export async function regenerateCaseDocument(input: {
             url: result.googleDriveUrl,
             googleDriveId: result.googleDriveId,
             fileName: result.fileName,
+            mimeType: inferMimeType(result.fileName),
             uploadDate: new Date(),
           },
         });
@@ -169,8 +221,9 @@ export async function regenerateCaseDocument(input: {
             tenantId,
             googleDriveId: result.googleDriveId,
             fileName: result.fileName,
-            mimeType: 'application/pdf',
+            mimeType: inferMimeType(result.fileName),
             isGenerated: true,
+            section: 'GENERADO',
           },
         });
       }
@@ -197,6 +250,7 @@ export async function generateInitialDocuments(caseId: string): Promise<{
     caseFolderUrl: string;
     documents: GeneratedDocument[];
   };
+  requestId?: string;
   error?: string;
 }> {
   try {
@@ -209,30 +263,12 @@ export async function generateInitialDocuments(caseId: string): Promise<{
       };
     }
 
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      include: {
-        debtor: true,
-        operator: {
-          select: { id: true, name: true, email: true },
-        },
-        documents: true,
-        debts: {
-          include: {
-            creditor: { select: { name: true } },
-          },
-        },
-        assets: true,
-        libranzas: true,
-        suspendedServices: true,
-        dependents: true,
-        legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
-        _count: { select: { documents: true } },
-      },
-    });
+    const rateLimitError = checkGenerationRateLimit(user.id);
+    if (rateLimitError) {
+      return { success: false, error: rateLimitError };
+    }
+
+    const caseData = await fetchCaseForGeneration(caseId, tenantId);
 
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
@@ -242,41 +278,44 @@ export async function generateInitialDocuments(caseId: string): Promise<{
       tenantId,
       caseData.centroConciliacionNombre,
     );
-    const result = await generateDocumentsForNewCase(
-      caseData as unknown as CaseWithRelations,
-      {},
-      centerFolderName,
+
+    let folderInfo = { caseFolderId: '', caseFolderUrl: '' };
+    const lock = await runWithGenerationLock(
+      { tenantId, caseId, kind: 'INITIAL', userId: user.id },
+      async () => {
+        const result = await generateDocumentsForNewCase(
+          caseData as unknown as CaseWithRelations,
+          {},
+          centerFolderName,
+        );
+        folderInfo = {
+          caseFolderId: result.caseFolderId,
+          caseFolderUrl: result.caseFolderUrl,
+        };
+
+        // Update case with folder ID
+        if (result.caseFolderId) {
+          await prisma.case.update({
+            where: { id: caseId, tenantId },
+            data: { driveFolderId: result.caseFolderId },
+          });
+        }
+
+        // Create document records
+        await persistGeneratedDocuments(result.documents, caseId, tenantId);
+        return result.documents;
+      },
     );
 
-    // Update case with folder ID
-    if (result.caseFolderId) {
-      await prisma.case.update({
-        where: { id: caseId, tenantId },
-        data: { driveFolderId: result.caseFolderId },
-      });
+    if (!lock.ok) {
+      return { success: false, error: lock.error, requestId: lock.requestId };
     }
 
-    // Create document records
-    for (const doc of result.documents) {
-      if (doc.status === 'success' && doc.googleDriveId) {
-        await prisma.document.create({
-          data: {
-            name: doc.templateName,
-            type: 'generated',
-            status: 'completed',
-            url: doc.googleDriveUrl,
-            caseId,
-            tenantId,
-            googleDriveId: doc.googleDriveId,
-            fileName: doc.fileName,
-            mimeType: 'application/pdf',
-            isGenerated: true,
-          },
-        });
-      }
-    }
-
-    return { success: true, data: result };
+    return {
+      success: true,
+      data: { ...folderInfo, documents: lock.documents },
+      requestId: lock.requestId,
+    };
   } catch (error) {
     console.error('Error generating initial documents:', error);
     return {
@@ -305,30 +344,12 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
       };
     }
 
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      include: {
-        debtor: true,
-        operator: {
-          select: { id: true, name: true, email: true },
-        },
-        documents: true,
-        debts: {
-          include: {
-            creditor: { select: { name: true } },
-          },
-        },
-        assets: true,
-        libranzas: true,
-        suspendedServices: true,
-        dependents: true,
-        legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
-        _count: { select: { documents: true } },
-      },
-    });
+    const rateLimitError = checkGenerationRateLimit(user.id);
+    if (rateLimitError) {
+      return { success: false, error: rateLimitError };
+    }
+
+    const caseData = await fetchCaseForGeneration(caseId, tenantId);
 
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
@@ -341,32 +362,24 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
       };
     }
 
-    const result = await generateDocumentsForAdmission(
-      caseData as unknown as CaseWithRelations,
-      caseData.driveFolderId,
+    const driveFolderId = caseData.driveFolderId;
+    const lock = await runWithGenerationLock(
+      { tenantId, caseId, kind: 'ADMISSION', userId: user.id },
+      async () => {
+        const result = await generateDocumentsForAdmission(
+          caseData as unknown as CaseWithRelations,
+          driveFolderId,
+        );
+        await persistGeneratedDocuments(result, caseId, tenantId);
+        return result;
+      },
     );
 
-    // Create document records
-    for (const doc of result) {
-      if (doc.status === 'success' && doc.googleDriveId) {
-        await prisma.document.create({
-          data: {
-            name: doc.templateName,
-            type: 'generated',
-            status: 'completed',
-            url: doc.googleDriveUrl,
-            caseId,
-            tenantId,
-            googleDriveId: doc.googleDriveId,
-            fileName: doc.fileName,
-            mimeType: 'application/pdf',
-            isGenerated: true,
-          },
-        });
-      }
+    if (!lock.ok) {
+      return { success: false, error: lock.error };
     }
 
-    return { success: true, data: result };
+    return { success: true, data: lock.documents };
   } catch (error) {
     console.error('Error generating admission documents:', error);
     return {
@@ -397,30 +410,12 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
       };
     }
 
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      include: {
-        debtor: true,
-        operator: {
-          select: { id: true, name: true, email: true },
-        },
-        documents: true,
-        debts: {
-          include: {
-            creditor: { select: { name: true } },
-          },
-        },
-        assets: true,
-        libranzas: true,
-        suspendedServices: true,
-        dependents: true,
-        legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
-        _count: { select: { documents: true } },
-      },
-    });
+    const rateLimitError = checkGenerationRateLimit(user.id);
+    if (rateLimitError) {
+      return { success: false, error: rateLimitError };
+    }
+
+    const caseData = await fetchCaseForGeneration(caseId, tenantId);
 
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
@@ -433,32 +428,24 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
       };
     }
 
-    const result = await generateDocumentsForAgreement(
-      caseData as unknown as CaseWithRelations,
-      caseData.driveFolderId,
+    const driveFolderId = caseData.driveFolderId;
+    const lock = await runWithGenerationLock(
+      { tenantId, caseId, kind: 'AGREEMENT', userId: user.id },
+      async () => {
+        const result = await generateDocumentsForAgreement(
+          caseData as unknown as CaseWithRelations,
+          driveFolderId,
+        );
+        await persistGeneratedDocuments(result, caseId, tenantId);
+        return result;
+      },
     );
 
-    // Create document records
-    for (const doc of result) {
-      if (doc.status === 'success' && doc.googleDriveId) {
-        await prisma.document.create({
-          data: {
-            name: doc.templateName,
-            type: 'generated',
-            status: 'completed',
-            url: doc.googleDriveUrl,
-            caseId,
-            tenantId,
-            googleDriveId: doc.googleDriveId,
-            fileName: doc.fileName,
-            mimeType: 'application/pdf',
-            isGenerated: true,
-          },
-        });
-      }
+    if (!lock.ok) {
+      return { success: false, error: lock.error };
     }
 
-    return { success: true, data: result };
+    return { success: true, data: lock.documents };
   } catch (error) {
     console.error('Error generating agreement documents:', error);
     return {
@@ -492,30 +479,12 @@ export async function generateFailureDocuments(
       };
     }
 
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      include: {
-        debtor: true,
-        operator: {
-          select: { id: true, name: true, email: true },
-        },
-        documents: true,
-        debts: {
-          include: {
-            creditor: { select: { name: true } },
-          },
-        },
-        assets: true,
-        libranzas: true,
-        suspendedServices: true,
-        dependents: true,
-        legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
-        _count: { select: { documents: true } },
-      },
-    });
+    const rateLimitError = checkGenerationRateLimit(user.id);
+    if (rateLimitError) {
+      return { success: false, error: rateLimitError };
+    }
+
+    const caseData = await fetchCaseForGeneration(caseId, tenantId);
 
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
@@ -528,33 +497,25 @@ export async function generateFailureDocuments(
       };
     }
 
-    const result = await generateDocumentsForFailure(
-      caseData as unknown as CaseWithRelations,
-      caseData.driveFolderId,
-      failureType,
+    const driveFolderId = caseData.driveFolderId;
+    const lock = await runWithGenerationLock(
+      { tenantId, caseId, kind: 'FAILURE', userId: user.id },
+      async () => {
+        const result = await generateDocumentsForFailure(
+          caseData as unknown as CaseWithRelations,
+          driveFolderId,
+          failureType,
+        );
+        await persistGeneratedDocuments(result, caseId, tenantId);
+        return result;
+      },
     );
 
-    // Create document records
-    for (const doc of result) {
-      if (doc.status === 'success' && doc.googleDriveId) {
-        await prisma.document.create({
-          data: {
-            name: doc.templateName,
-            type: 'generated',
-            status: 'completed',
-            url: doc.googleDriveUrl,
-            caseId,
-            tenantId,
-            googleDriveId: doc.googleDriveId,
-            fileName: doc.fileName,
-            mimeType: 'application/pdf',
-            isGenerated: true,
-          },
-        });
-      }
+    if (!lock.ok) {
+      return { success: false, error: lock.error };
     }
 
-    return { success: true, data: result };
+    return { success: true, data: lock.documents };
   } catch (error) {
     console.error('Error generating failure documents:', error);
     return {
@@ -666,6 +627,39 @@ export async function getCaseDocumentStatus(caseId: string): Promise<{
         error instanceof Error
           ? error.message
           : 'Error al obtener estado de documentos',
+    };
+  }
+}
+
+/**
+ * Polling del estado de las solicitudes de generación de un caso (P4).
+ * Devuelve las últimas solicitudes (más reciente primero), scoped al tenant.
+ */
+export async function getGenerationRequestStatus(caseId: string): Promise<{
+  success: boolean;
+  data?: GenerationRequestSummary[];
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
+      return {
+        success: false,
+        error: 'No tienes permisos para ver documentos',
+      };
+    }
+
+    const requests = await getGenerationRequests(tenantId, caseId);
+    return { success: true, data: requests };
+  } catch (error) {
+    console.error('Error getting generation request status:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al consultar el estado de generación',
     };
   }
 }

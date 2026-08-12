@@ -133,14 +133,23 @@ function isFullHtmlDocument(html: string): boolean {
  * and <img src="..."> with base64 data URIs.
  *
  * @param html - The HTML content
- * @param assetsBaseDir - Absolute path to the directory containing CSS/ and img/ folders
+ * @param assetsBaseDir - Absolute path used to resolve root-relative refs ("/CSS/...")
+ * @param docDir - Absolute path of the source HTML's own directory, used to
+ *   resolve relative refs ("./CSS/...", "../CSS/..."). Defaults to assetsBaseDir.
  */
 export async function inlineAssets(
   html: string,
   assetsBaseDir: string,
+  docDir?: string,
 ): Promise<string> {
   const fs = await import('fs');
   const pathModule = await import('path');
+  const relativeBase = docDir || assetsBaseDir;
+
+  const resolveAssetPath = (ref: string): string =>
+    ref.startsWith('/')
+      ? pathModule.join(assetsBaseDir, ref)
+      : pathModule.resolve(relativeBase, ref);
 
   let result = html;
 
@@ -160,13 +169,9 @@ export async function inlineAssets(
     const fullTag = match[0];
     const href = match[1];
 
-    // Resolve the CSS file path - handle root-relative paths like /CSS/file.css
-    let cssPath: string;
-    if (href.startsWith('/')) {
-      cssPath = pathModule.join(assetsBaseDir, href);
-    } else {
-      cssPath = pathModule.join(assetsBaseDir, href);
-    }
+    // Root-relative ("/CSS/...") resolves against assetsBaseDir;
+    // relative ("./CSS/...", "../CSS/...") against the document's own dir.
+    const cssPath = resolveAssetPath(href);
 
     try {
       if (fs.existsSync(cssPath)) {
@@ -214,13 +219,7 @@ export async function inlineAssets(
     // Skip already-inlined data URIs
     if (src.startsWith('data:')) continue;
 
-    // Resolve the image file path
-    let imgPath: string;
-    if (src.startsWith('/')) {
-      imgPath = pathModule.join(assetsBaseDir, src);
-    } else {
-      imgPath = pathModule.join(assetsBaseDir, src);
-    }
+    const imgPath = resolveAssetPath(src);
 
     try {
       if (fs.existsSync(imgPath)) {
@@ -302,6 +301,7 @@ export async function htmlToPdf(
   html: string,
   options: PDFOptions = {},
   assetsBaseDir?: string,
+  docDir?: string,
 ): Promise<Buffer> {
   const mergedOptions = { ...defaultOptions, ...options };
   let browser = null;
@@ -309,7 +309,7 @@ export async function htmlToPdf(
   try {
     // Inline assets if base directory provided
     let processedHtml = assetsBaseDir
-      ? await inlineAssets(html, assetsBaseDir)
+      ? await inlineAssets(html, assetsBaseDir, docDir)
       : html;
 
     // Smart wrapping: only wrap if HTML is a fragment
@@ -363,7 +363,14 @@ export async function htmlToPdf(
  * If assetsBaseDir is provided, CSS and images are inlined before rendering.
  */
 export async function batchHtmlToPdf(
-  documents: Array<{ html: string; filename: string }>,
+  documents: Array<{
+    html: string;
+    filename: string;
+    /** Per-document override for root-relative asset refs */
+    assetsBaseDir?: string;
+    /** Per-document dir for relative ("./", "../") asset refs */
+    docDir?: string;
+  }>,
   options: PDFOptions = {},
   assetsBaseDir?: string,
 ): Promise<Array<{ filename: string; buffer: Buffer }>> {
@@ -393,9 +400,10 @@ export async function batchHtmlToPdf(
           `[batchHtmlToPdf] Processing ${i + 1}/${documents.length}: ${doc.filename}`,
         );
 
-        // Inline assets if base directory provided
-        let processedHtml = assetsBaseDir
-          ? await inlineAssets(doc.html, assetsBaseDir)
+        // Inline assets if base directory provided (per-doc override wins)
+        const docAssetsBase = doc.assetsBaseDir || assetsBaseDir;
+        let processedHtml = docAssetsBase
+          ? await inlineAssets(doc.html, docAssetsBase, doc.docDir)
           : doc.html;
 
         // Smart wrapping

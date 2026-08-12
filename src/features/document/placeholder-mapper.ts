@@ -11,6 +11,68 @@ import { renderTemplate } from './handlebars-lite';
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
 
+/**
+ * Escapa caracteres HTML especiales en un valor string (regla OWASP: & < > " ').
+ * Usado para datos capturados del usuario (nombres, direcciones, descripciones)
+ * que se insertan en las plantillas HTML de los documentos.
+ *
+ * @param value Valor a escapar (puede ser null/undefined/number)
+ * @returns String escapado o convertido
+ */
+function escapePlaceholder(value: unknown): string {
+  if (typeof value !== 'string') {
+    return String(value ?? '');
+  }
+
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Allowlist de placeholders HTML — construidos por el sistema (tablas, listas,
+ * narrativas). Sus interpolaciones de datos de usuario se escapan DENTRO del
+ * builder correspondiente. Todo lo demás se escapa automáticamente en el punto
+ * de fusión (safe-by-default): cualquier placeholder escalar nuevo queda
+ * protegido sin tocar código; agregar HTML del sistema requiere listarlo aquí.
+ */
+const HTML_PLACEHOLDERS_ALLOWLIST = new Set<string>([
+  'LISTA_ANEXOS',
+  'NARRATIVA_INGRESOS',
+  'LISTA_ACREEDORES',
+  'CUADRO_TOTAL_ACREEDORES',
+  'CUADRO_CALIFICACION_GRADUACION',
+  'CUADRO_CALIFICACION_FIRMADO',
+  'CUADRO_ACUERDO_BILATERAL',
+  'CUADRO_FRACASO_NEGOCIACION',
+  'PROYECTO_CALIFICACION_GRADUACION',
+  'PROPUESTA_PAGO',
+  'PROPUESTA_REFORMA_PAGO',
+  'DETALLE_BIENES',
+  'INVENTARIO_BIENES',
+  'DETALLE_PAGO_CAPITAL',
+  'FORMA_PAGO_ACREEDORES',
+  'PROYECCION_PAGOS',
+]);
+
+/**
+ * Escapa todos los valores string del mapa excepto los HTML del sistema
+ * (allowlist). Aplicado una sola vez, en el punto de fusión final de
+ * mapCaseToPlaceholders.
+ */
+function escapeAllUnlessHtml(map: PlaceholderMap): PlaceholderMap {
+  const escaped: PlaceholderMap = {};
+  for (const [key, value] of Object.entries(map)) {
+    escaped[key] = HTML_PLACEHOLDERS_ALLOWLIST.has(key)
+      ? value
+      : escapePlaceholder(value);
+  }
+  return escaped;
+}
+
 // Helper to format currency
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '$0';
@@ -700,6 +762,14 @@ function buildIncomeNarrative(caseData: CaseWithRelations): string {
 
   const parts: string[] = [];
 
+  // NARRATIVA_INGRESOS está en la allowlist HTML — los datos del usuario que
+  // interpola se escapan aquí, dentro del builder.
+  const safeOcupacion = escapePlaceholder(ocupacion);
+  const safeEmpleador = escapePlaceholder(empleador || 'No especificada');
+  const safeVinculacion = escapePlaceholder(tipoVinculacion);
+  const safeActividad = escapePlaceholder(actividad || ocupacion);
+  const safeOtrosDesc = escapePlaceholder(otrosDesc);
+
   const tipo = (tipoVinculacion || '').toLowerCase();
   if (
     tipo === 'empleado' ||
@@ -707,11 +777,11 @@ function buildIncomeNarrative(caseData: CaseWithRelations): string {
     tipo.includes('término')
   ) {
     parts.push(
-      `<p class="justified">Actualmente me encuentro vinculado(a) laboralmente como <strong>${ocupacion}</strong> en la empresa <strong>${empleador || 'No especificada'}</strong>, bajo modalidad de <strong>${tipoVinculacion}</strong>, devengando un ingreso principal mensual de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
+      `<p class="justified">Actualmente me encuentro vinculado(a) laboralmente como <strong>${safeOcupacion}</strong> en la empresa <strong>${safeEmpleador}</strong>, bajo modalidad de <strong>${safeVinculacion}</strong>, devengando un ingreso principal mensual de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
     );
   } else if (tipo === 'independiente' || tipo === 'contratista') {
     parts.push(
-      `<p class="justified">Me desempeño como trabajador(a) independiente en la actividad de <strong>${actividad || ocupacion}</strong>, de la cual derivo un ingreso principal mensual aproximado de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
+      `<p class="justified">Me desempeño como trabajador(a) independiente en la actividad de <strong>${safeActividad}</strong>, de la cual derivo un ingreso principal mensual aproximado de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
     );
   } else if (tipo === 'pensionado') {
     parts.push(
@@ -719,18 +789,18 @@ function buildIncomeNarrative(caseData: CaseWithRelations): string {
     );
   } else if (tipo === 'desempleado') {
     parts.push(
-      `<p class="justified">Actualmente me encuentro desempleado(a). Mi sustento proviene de ${otrosDesc || 'apoyo familiar y otros recursos'}, con un ingreso aproximado mensual de <strong>${formatCurrency(ingresoPrincipal + otrosIngresos)}</strong>.</p>`,
+      `<p class="justified">Actualmente me encuentro desempleado(a). Mi sustento proviene de ${safeOtrosDesc || 'apoyo familiar y otros recursos'}, con un ingreso aproximado mensual de <strong>${formatCurrency(ingresoPrincipal + otrosIngresos)}</strong>.</p>`,
     );
   } else {
     // Fallback genérico
     parts.push(
-      `<p class="justified">Mis ingresos mensuales provienen de la actividad vinculada con <strong>${actividad || ocupacion}</strong>, con un ingreso principal mensual de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
+      `<p class="justified">Mis ingresos mensuales provienen de la actividad vinculada con <strong>${safeActividad}</strong>, con un ingreso principal mensual de <strong>${formatCurrency(ingresoPrincipal)}</strong>.</p>`,
     );
   }
 
   if (otrosIngresos > 0 && tipo !== 'desempleado') {
     parts.push(
-      `<p class="justified">Adicionalmente, percibo otros ingresos mensuales por concepto de <strong>${otrosDesc || 'otras fuentes'}</strong> por valor de <strong>${formatCurrency(otrosIngresos)}</strong>.</p>`,
+      `<p class="justified">Adicionalmente, percibo otros ingresos mensuales por concepto de <strong>${safeOtrosDesc || 'otras fuentes'}</strong> por valor de <strong>${formatCurrency(otrosIngresos)}</strong>.</p>`,
     );
   }
 
@@ -1309,7 +1379,7 @@ function generateDetalleBienes(assets: CaseWithRelations['assets']): string {
     html += inmuebles
       .map(
         (a, i) =>
-          `${i + 1}. ${a.propertyType || a.type}: ${a.address || a.name || 'Sin dirección'} - Matrícula: ${a.registrationNumber || 'N/A'} - Valor: ${formatCurrency(a.value)}`,
+          `${i + 1}. ${escapePlaceholder(a.propertyType || a.type)}: ${escapePlaceholder(a.address || a.name || 'Sin dirección')} - Matrícula: ${escapePlaceholder(a.registrationNumber || 'N/A')} - Valor: ${formatCurrency(a.value)}`,
       )
       .join('<br>');
     html += '<br><br>';
@@ -1320,7 +1390,7 @@ function generateDetalleBienes(assets: CaseWithRelations['assets']): string {
     html += muebles
       .map(
         (a, i) =>
-          `${i + 1}. ${a.type}: ${a.name || a.description || 'Sin descripción'} - Valor: ${formatCurrency(a.value)}`,
+          `${i + 1}. ${escapePlaceholder(a.type)}: ${escapePlaceholder(a.name || a.description || 'Sin descripción')} - Valor: ${formatCurrency(a.value)}`,
       )
       .join('<br>');
   }
@@ -1349,7 +1419,7 @@ function generateDetallePagoCapital(
     const monthlyPayment = (percentage / 100) * monthlyAmount;
 
     html += `<tr>
-      <td style="padding:5px;">${debt.creditor?.name || 'N/A'}</td>
+      <td style="padding:5px;">${escapePlaceholder(debt.creditor?.name || 'N/A')}</td>
       <td style="padding:5px; text-align:right;">${formatCurrency(capital)}</td>
       <td style="padding:5px; text-align:center;">${percentage.toFixed(2)}%</td>
       <td style="padding:5px; text-align:right;">${formatCurrency(monthlyPayment)}</td>
@@ -1378,7 +1448,7 @@ function generateFormaPagoAcreedores(
   return debts
     .map(
       (debt) =>
-        `• <strong>${debt.creditor?.name || 'N/A'}:</strong> Consignación a cuenta bancaria o medio de pago acordado con el acreedor.`,
+        `• <strong>${escapePlaceholder(debt.creditor?.name || 'N/A')}:</strong> Consignación a cuenta bancaria o medio de pago acordado con el acreedor.`,
     )
     .join('<br>');
 }
@@ -1447,8 +1517,8 @@ function generateInventarioBienes(assets: CaseWithRelations['assets']): string {
 
   assets.forEach((asset) => {
     html += `<tr>
-      <td style="padding:5px;">${asset.type || 'N/A'}</td>
-      <td style="padding:5px;">${asset.name || asset.description || asset.address || 'Sin descripción'}</td>
+      <td style="padding:5px;">${escapePlaceholder(asset.type || 'N/A')}</td>
+      <td style="padding:5px;">${escapePlaceholder(asset.name || asset.description || asset.address || 'Sin descripción')}</td>
       <td style="padding:5px; text-align:right;">${formatCurrency(Number(asset.value) || 0)}</td>
     </tr>`;
   });
@@ -1468,7 +1538,7 @@ function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
   const creditorsList = caseData.debts
     .map(
       (d, i) =>
-        `${i + 1}. ${d.creditor.name} - ${formatCurrency(Number(d.amount) || 0)}`,
+        `${i + 1}. ${escapePlaceholder(d.creditor.name)} - ${formatCurrency(Number(d.amount) || 0)}`,
     )
     .join('<br>');
 
@@ -1586,9 +1656,9 @@ function generateCalificacionGraduacionTable(
 
       return `
       <tr>
-        <td style="padding:5px; border:1px solid #000;">${debt.creditor?.name || 'N/A'}</td>
+        <td style="padding:5px; border:1px solid #000;">${escapePlaceholder(debt.creditor?.name || 'N/A')}</td>
         <td style="padding:5px; border:1px solid #000; text-align:center;">${index + 1}</td>
-        <td style="padding:5px; border:1px solid #000; text-align:center;">${prelacion}</td>
+        <td style="padding:5px; border:1px solid #000; text-align:center;">${escapePlaceholder(prelacion)}</td>
         <td style="padding:5px; border:1px solid #000; text-align:right;">${formatCurrency(capital)}</td>
         <td style="padding:5px; border:1px solid #000; text-align:right;">${formatCurrency(interest)}</td>
         <td style="padding:5px; border:1px solid #000; text-align:center;">${percentage}%</td>
@@ -1843,8 +1913,23 @@ export function buildConciliationContext(
   const raw = caseData as Record<string, unknown>;
 
   // --- Arrays (stored as JSON columns — may be null/missing) ---
+  // Los items alimentan bloques {{#each}} de handlebars-lite y se insertan
+  // en el HTML sin más procesamiento, así que sus strings se escapan aquí.
   const asArray = <T = Record<string, unknown>>(v: unknown): T[] =>
-    Array.isArray(v) ? (v as T[]) : [];
+    Array.isArray(v)
+      ? (v as unknown[]).map((item) =>
+          item && typeof item === 'object'
+            ? (Object.fromEntries(
+                Object.entries(item as Record<string, unknown>).map(
+                  ([k, val]) => [
+                    k,
+                    typeof val === 'string' ? escapePlaceholder(val) : val,
+                  ],
+                ),
+              ) as T)
+            : (item as T),
+        )
+      : [];
 
   const menoresAlimentos = asArray<{ NOMBRE_MENOR: string }>(
     raw.concMenoresAlimentos,
@@ -2585,11 +2670,15 @@ export function mapCaseToPlaceholders(
   const uploadedDocs = (caseData.documents || []).filter((d) => !d.isGenerated);
   const listaAnexos =
     uploadedDocs.length > 0
-      ? uploadedDocs.map((d) => `<li>${d.name}</li>`).join('\n            ')
+      ? uploadedDocs
+          .map((d) => `<li>${escapePlaceholder(d.name)}</li>`)
+          .join('\n            ')
       : '<li>No se han adjuntado documentos aún</li>';
 
-  // Merge all mappings
-  return {
+  // Merge all mappings.
+  // escapeAllUnlessHtml escapa TODO valor string salvo la allowlist de HTML
+  // del sistema — punto único de defensa contra inyección HTML/XSS.
+  return escapeAllUnlessHtml({
     ...basePlaceholders,
     LISTA_ANEXOS: listaAnexos,
     ...mapApplicantScope(caseData.applicantScope || []),
@@ -2625,7 +2714,7 @@ export function mapCaseToPlaceholders(
       : {}),
     // Support agreement placeholders (only relevant for SUPPORT_AGREEMENT cases)
     ...(caseData.type === 'SUPPORT_AGREEMENT' ? mapApoyoFields(caseData) : {}),
-  };
+  });
 }
 
 /**

@@ -1,20 +1,27 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { randomUUID } from 'crypto';
 import { cookies } from 'next/headers';
+import { logger } from '@/lib/logger';
 
 import type { SessionData, RefreshTokenData } from '@/features/auth/schemas';
 
+// Validado en el primer uso, no en el import: `next build` recolecta page
+// data importando este módulo, y en entornos de build (CI con `vercel pull`,
+// que excluye las env vars sensitive) JWT_SECRET no existe. En runtime la
+// primera operación de auth sigue fallando fuerte si falta.
+let jwtSecretCache: Uint8Array | null = null;
+
 function getJwtSecret(): Uint8Array {
+  if (jwtSecretCache) return jwtSecretCache;
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error(
       'JWT_SECRET environment variable is not set. Application cannot start without it.',
     );
   }
-  return new TextEncoder().encode(secret);
+  jwtSecretCache = new TextEncoder().encode(secret);
+  return jwtSecretCache;
 }
-
-const JWT_SECRET = getJwtSecret();
 
 export async function createAccessToken(
   payload: Omit<SessionData, 'iat' | 'exp'>,
@@ -29,7 +36,7 @@ export async function createAccessToken(
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt(now)
     .setExpirationTime(exp)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function createRefreshToken(
@@ -42,12 +49,12 @@ export async function createRefreshToken(
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt(now)
     .setExpirationTime(exp)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifyToken(token: string): Promise<SessionData | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
 
     return {
       id: payload.id as string,
@@ -63,7 +70,12 @@ export async function verifyToken(token: string): Promise<SessionData | null> {
       exp: payload.exp as number,
     };
   } catch (error) {
-    console.error('Token verification failed:', error);
+    // Evento esperado (tokens expirados en cada sesión vencida): nivel info
+    // para no inundar Sentry; visible en dev o con LOG_LEVEL=info.
+    logger.info('Token verification failed', {
+      action: 'verifyToken',
+      reason: error instanceof Error ? error.message : 'unknown',
+    });
     return null;
   }
 }
@@ -72,7 +84,7 @@ export async function verifyRefreshToken(
   token: string,
 ): Promise<RefreshTokenData | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
 
     return {
       userId: payload.userId as string,
@@ -81,7 +93,10 @@ export async function verifyRefreshToken(
       exp: payload.exp as number,
     };
   } catch (error) {
-    console.error('Refresh token verification failed:', error);
+    logger.info('Refresh token verification failed', {
+      action: 'verifyRefreshToken',
+      reason: error instanceof Error ? error.message : 'unknown',
+    });
     return null;
   }
 }
@@ -97,7 +112,9 @@ export async function getCurrentUser(): Promise<SessionData | null> {
 
     return await verifyToken(accessToken);
   } catch (error) {
-    console.error('Get current user failed:', error);
+    logger.error('Get current user failed', error, {
+      action: 'getCurrentUser',
+    });
     return null;
   }
 }
@@ -124,7 +141,9 @@ export async function checkPermission(
 
     return user.permissions.includes(requiredPermission);
   } catch (error) {
-    console.error('Permission check failed:', error);
+    logger.error('Permission check failed', error, {
+      action: 'checkPermission',
+    });
     return false;
   }
 }

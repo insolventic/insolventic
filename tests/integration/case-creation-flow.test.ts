@@ -26,8 +26,21 @@ jest.mock('@/features/document/generate-documents', () => ({
   generateDocumentsForNewCase: (...args: unknown[]) => mockGenerateDocuments(...args),
 }));
 
+// P4: createCase programa el job post-response con after() de next/server.
+// En tests lo ejecutamos inline para poder asertar el flujo completo.
+const afterCallbacks: Array<() => unknown> = [];
+jest.mock('next/server', () => ({
+  after: (fn: () => unknown) => {
+    afterCallbacks.push(fn);
+  },
+}));
+
 jest.mock('@/features/notification/actions', () => ({
   createNotificationForAction: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/lib/centro-conciliacion', () => ({
+  resolveCenterFolderName: jest.fn().mockReturnValue('Centro Test'),
 }));
 
 import {
@@ -46,6 +59,7 @@ describe('Integration: Case Creation Flow', () => {
     resetAllMocks();
     mockAuthenticateUser.mockReset();
     mockGenerateDocuments.mockReset();
+    afterCallbacks.length = 0;
     jest.clearAllMocks();
   });
 
@@ -124,6 +138,24 @@ describe('Integration: Case Creation Flow', () => {
         documents: [],
       });
 
+      mockGenerateDocuments.mockResolvedValue({
+        caseFolderId: 'folder-1',
+        caseFolderUrl: 'https://drive/folder-1',
+        documents: [],
+      });
+      mockPrisma.documentGenerationRequest.create.mockResolvedValue({
+        id: 'req-1',
+        kind: 'INITIAL',
+        status: 'PENDING',
+        totalDocuments: 0,
+        successCount: 0,
+        errorCount: 0,
+        error: null,
+        createdAt: new Date(),
+        startedAt: null,
+        finishedAt: null,
+      });
+
       await createCase({
         debtorId: DEBTOR.id,
         type: 'INSOLVENCY',
@@ -132,7 +164,17 @@ describe('Integration: Case Creation Flow', () => {
         operatorId: ADMIN_USER.id,
       });
 
-      // Document generation should have been triggered
+      // P3: el lock de generación se reclamó (fila DocumentGenerationRequest)
+      expect(mockPrisma.documentGenerationRequest.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ kind: 'INITIAL' }),
+        }),
+      );
+
+      // P4: el job quedó programado post-response; al ejecutarlo dispara
+      // la generación de documentos
+      expect(afterCallbacks).toHaveLength(1);
+      await afterCallbacks[0]();
       expect(mockGenerateDocuments).toHaveBeenCalled();
     });
 
