@@ -176,36 +176,47 @@ El dialog de edición captura el error y cierra con toast rojo invitando a recar
 
 ## 6. Generación de documentos
 
+> **Corrección (ago-2026):** una pasada anterior de esta sección afirmó que el único formato de salida era PDF y que no existía ruta a `.docx`. Es incorrecto — hay una segunda ruta de generación manual que sí exporta `.docx`, vía un paquete distinto de `docxtemplater`. Ambas rutas están descritas abajo con evidencia de código.
+
+Hay **dos rutas de generación, independientes entre sí**, ambas partiendo de las mismas plantillas HTML:
+
 ```mermaid
 flowchart LR
-    A[Usuario selecciona caso + paquete de documentos] --> B[batchGenerateDocuments]
-    B --> C{Paquete?}
-    C -- "todos" --> D["Templates HTML del caseType<br/>insolvency / conciliation / support-agreements"]
-    C -- "por fase" --> E[Templates de la fase<br/>admisión / acuerdo / fracaso]
-    D --> F["mapCaseToPlaceholders<br/>(escapado OWASP en el punto de fusión)"]
-    E --> F
-    F --> G["replacePlaceholders<br/>(handlebars-lite.ts)"]
-    G --> H{generatePdf?}
-    H -- "sí" --> I["htmlToPdf<br/>puppeteer-core + @sparticuz/chromium"]
-    H -- "no" --> J[Buffer HTML directo]
-    I --> K[Upload a Google Drive]
-    J --> K
-    K --> L[Persistir Document + URL]
-    L --> M[Retornar resumen: éxitos, fallos, skipped]
+    subgraph Manual["Ruta A — Manual (página /documents)"]
+        A1[Usuario selecciona caso + paquete + formato] --> A2["batchGenerateDocuments<br/>(actions.ts)"]
+        A2 --> A3["Templates HTML del caseType"]
+        A3 --> A4["mapCaseToPlaceholders + replacePlaceholders<br/>(handlebars-lite.ts)"]
+        A4 --> A5{"outputFormat?"}
+        A5 -- "pdf / both" --> A6["htmlToPdf<br/>puppeteer-core + @sparticuz/chromium"]
+        A5 -- "docx / both" --> A7["batchHtmlToDocx<br/>paquete html-to-docx"]
+        A6 --> A8[Upload a Google Drive]
+        A7 --> A8
+    end
+    subgraph Auto["Ruta B — Automática (P4, al crear el caso)"]
+        B1["createCase"] --> B2["after() de Next 15"]
+        B2 --> B3["generate-documents.ts"]
+        B3 --> B4["Templates HTML del caseType"]
+        B4 --> B5["mapCaseToPlaceholders + replacePlaceholders"]
+        B5 --> B6["htmlToPdf (solo PDF)"]
+        B6 --> B7[Upload a Google Drive]
+    end
+    A8 --> Z[Persistir Document + URL]
+    B7 --> Z
 ```
 
 **Pipeline real (verificado en código, ago-2026):**
 
-- Plantillas en **HTML puro** (`templates/{insolvency,conciliation,support-agreements}/*.html`, con hojas de estilo `CSS/*.css` propias por tipo) — no `.docx`.
+- Plantillas en **HTML puro** (`templates/{insolvency,conciliation,support-agreements}/*.html`, con hojas de estilo `CSS/*.css` propias por tipo) — no `.docx` como plantilla fuente en ninguna de las dos rutas.
 - Placeholders resueltos por un motor propio y liviano: `mapCaseToPlaceholders` (`src/features/document/placeholder-mapper.ts`, escapado OWASP en el punto de fusión — ver Session 1 en `CLAUDE.md`) + `replacePlaceholders` (`src/features/document/handlebars-lite.ts`) — no `docxtemplater`.
-- Conversión a PDF: `htmlToPdf` (`src/lib/html-to-pdf.ts`) con `puppeteer-core` + `@sparticuz/chromium` (Chromium serverless en Vercel/Lambda; Chrome local en dev) — no `pdf-lib`.
-- Único formato de salida en el flujo principal: PDF (o HTML crudo si `generatePdf: false`); no hay ruta de exportación a `.docx`.
-- **Excepción:** el reporte de Trazabilidad de Pagos exporta a Excel (`src/features/document/generate-excel.ts`) — no pasa por Puppeteer, es un documento aparte.
-- **Nota de higiene:** `docxtemplater` figura en `package.json` (`^3.66.7`) pero no tiene ninguna referencia en `src/` — dependencia muerta, probablemente residuo de un diseño previo a la migración a HTML+Puppeteer. Candidato a `npm uninstall` en Fase 2 (no se tocó aquí por estar a días de la reunión). `pdf-lib` no existe en el proyecto — nunca estuvo instalado.
+- **Ruta A (manual, `src/features/document/actions.ts:batchGenerateDocuments`, invocada desde `src/app/documents/components/document-generation.tsx`):** el usuario elige caso + paquete + `outputFormat` (`pdf` / `docx` / `both`). PDF vía `htmlToPdf` (`src/lib/html-to-pdf.ts`, `puppeteer-core` + `@sparticuz/chromium`); DOCX vía `batchHtmlToDocx` (`src/lib/html-to-docx.ts`, que envuelve el paquete npm `html-to-docx` — conversión directa HTML→DOCX, **no** `docxtemplater**).
+- **Ruta B (automática, P4, disparada por `createCase` vía `after()`):** solo genera PDF, vía el mismo `htmlToPdf`. No tiene rama DOCX — `generate-documents.ts` no importa `html-to-docx`.
+- `pdf-lib` no existe en el proyecto — nunca estuvo instalado (no confundir con `html-to-docx`, que sí lo está).
+- **Excepción:** el reporte de Trazabilidad de Pagos exporta a Excel (`src/features/document/generate-excel.ts`) — no pasa por Puppeteer ni por `html-to-docx`, es un documento aparte.
+- **Nota de higiene:** `docxtemplater` figura en `package.json` (`^3.66.7`) pero no tiene ninguna referencia en `src/` — dependencia muerta, probablemente residuo de un diseño previo a la migración a HTML+Puppeteer/html-to-docx. Candidato a `npm uninstall` en Fase 2 (no se tocó aquí por estar a días de la reunión).
 
 **Decisiones:**
 
-- Los documentos se generan a demanda, no en tiempo de creación del caso.
+- La Ruta A (manual) es a demanda; la Ruta B (automática, P4) corre en background al crear el caso — ver P3/P4 abajo. No son mutuamente excluyentes: un caso recién creado ya tiene sus documentos iniciales en PDF (Ruta B) y el usuario puede regenerar/exportar a DOCX después desde `/documents` (Ruta A).
 - Layout de Drive: `{caseFolder}/01-Generados/`, `02-Adjuntos/`, `03-Evidencias/`, `04-Historial/`.
 - `layoutVersion` permite convivir layouts flat (legacy) y seccionado.
 

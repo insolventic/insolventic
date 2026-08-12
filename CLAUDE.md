@@ -6,7 +6,7 @@ Sistema web full-stack de gestión de expedientes de insolvencia (proyecto de te
 
 - **Framework:** Next.js 15 (App Router) — la API son **server actions** (`src/features/*/actions.ts`); solo existe una route handler (`/api/cron/alerts`)
 - **BD:** PostgreSQL + Prisma (schema en `src/prisma/schema.prisma`, migraciones en `src/prisma/migrations/`)
-- **Documentos:** plantillas HTML (`templates/{insolvency,conciliation,support-agreements}`) → placeholders → Puppeteer/Chromium (PDF) → **Google Drive** (no S3)
+- **Documentos:** plantillas HTML (`templates/{insolvency,conciliation,support-agreements}`) → placeholders → dos rutas: automática al crear el caso (PDF vía Puppeteer/Chromium, `generate-documents.ts`) y manual desde `/documents` (PDF y/o DOCX vía `html-to-docx`, `actions.ts:batchGenerateDocuments`) → **Google Drive** (no S3); detalle completo en `docs/ARQUITECTURA.md` §6
 - **Auth:** JWT propio (jose) + middleware; RBAC por permisos; aislamiento multi-tenant por `tenantId` en cada query
 - **Deploy:** Vercel (serverless — sin workers persistentes) vía GitHub Actions (`deploy.yml` corre `prisma migrate deploy` antes del build)
 - **Tests:** Jest (unit/integration, mocks en `tests/__mocks__/`), Playwright (E2E), k6 (load)

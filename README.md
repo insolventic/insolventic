@@ -78,7 +78,7 @@
 | **ORM**            | Prisma (PostgreSQL / CockroachDB)             |
 | **Auth**           | JWT con `jose` (HS256, cookies httpOnly)      |
 | **Almacenamiento** | Google Drive API (por centro de conciliación) |
-| **Documentos**     | Plantillas HTML + Puppeteer/Chromium → PDF    |
+| **Documentos**     | Plantillas HTML → Puppeteer/Chromium (PDF) + `html-to-docx` (DOCX) |
 | **Testing**        | Jest + React Testing Library + Playwright     |
 | **CI/CD**          | GitHub Actions + Vercel                       |
 | **Email**          | Nodemailer (Gmail SMTP)                       |
