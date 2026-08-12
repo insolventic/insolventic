@@ -178,23 +178,30 @@ El dialog de edición captura el error y cierra con toast rojo invitando a recar
 
 ```mermaid
 flowchart LR
-    A[Usuario selecciona caso + paquete + formato] --> B[batchGenerateDocuments]
+    A[Usuario selecciona caso + paquete de documentos] --> B[batchGenerateDocuments]
     B --> C{Paquete?}
-    C -- "all" --> D[49 plantillas]
-    C -- "1..5" --> E[Plantillas del paquete]
-    D --> F[Cargar .docx de templates]
+    C -- "todos" --> D["Templates HTML del caseType<br/>insolvency / conciliation / support-agreements"]
+    C -- "por fase" --> E[Templates de la fase<br/>admisión / acuerdo / fracaso]
+    D --> F["mapCaseToPlaceholders<br/>(escapado OWASP en el punto de fusión)"]
     E --> F
-    F --> G[docxtemplater: inyectar placeholders]
-    G --> H{Formato?}
-    H -- "docx" --> I[Guardar .docx]
-    H -- "pdf" --> J[pdf-lib: convertir a PDF]
-    H -- "both" --> I
-    H -- "both" --> J
+    F --> G["replacePlaceholders<br/>(handlebars-lite.ts)"]
+    G --> H{generatePdf?}
+    H -- "sí" --> I["htmlToPdf<br/>puppeteer-core + @sparticuz/chromium"]
+    H -- "no" --> J[Buffer HTML directo]
     I --> K[Upload a Google Drive]
     J --> K
     K --> L[Persistir Document + URL]
-    L --> M[Retornar resumen: éxitos, fallos]
+    L --> M[Retornar resumen: éxitos, fallos, skipped]
 ```
+
+**Pipeline real (verificado en código, ago-2026):**
+
+- Plantillas en **HTML puro** (`templates/{insolvency,conciliation,support-agreements}/*.html`, con hojas de estilo `CSS/*.css` propias por tipo) — no `.docx`.
+- Placeholders resueltos por un motor propio y liviano: `mapCaseToPlaceholders` (`src/features/document/placeholder-mapper.ts`, escapado OWASP en el punto de fusión — ver Session 1 en `CLAUDE.md`) + `replacePlaceholders` (`src/features/document/handlebars-lite.ts`) — no `docxtemplater`.
+- Conversión a PDF: `htmlToPdf` (`src/lib/html-to-pdf.ts`) con `puppeteer-core` + `@sparticuz/chromium` (Chromium serverless en Vercel/Lambda; Chrome local en dev) — no `pdf-lib`.
+- Único formato de salida en el flujo principal: PDF (o HTML crudo si `generatePdf: false`); no hay ruta de exportación a `.docx`.
+- **Excepción:** el reporte de Trazabilidad de Pagos exporta a Excel (`src/features/document/generate-excel.ts`) — no pasa por Puppeteer, es un documento aparte.
+- **Nota de higiene:** `docxtemplater` figura en `package.json` (`^3.66.7`) pero no tiene ninguna referencia en `src/` — dependencia muerta, probablemente residuo de un diseño previo a la migración a HTML+Puppeteer. Candidato a `npm uninstall` en Fase 2 (no se tocó aquí por estar a días de la reunión). `pdf-lib` no existe en el proyecto — nunca estuvo instalado.
 
 **Decisiones:**
 
@@ -242,7 +249,7 @@ erDiagram
     User ||--o{ Notification : receives
 ```
 
-- **~60 modelos** en total, incluyendo entidades específicas (Libranza, SuspendedService, Apoderado, ProcesoJudicial, Bien).
+- **27 modelos** en total (`grep -c '^model ' src/prisma/schema.prisma`), incluyendo entidades específicas (Libranza, SuspendedService, Dependent, ProcesoJudicial, Bien). Ver `docs/DICCIONARIO_DATOS.md` y `docs/MODELO_ENTIDAD_RELACION.md` para el detalle completo.
 - **~400 campos** en `Case` cubren los 9 bloques del formulario maestro.
 - Migraciones en `src/prisma/migrations/` gestionadas con `prisma migrate`.
 
