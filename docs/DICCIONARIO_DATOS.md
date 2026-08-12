@@ -2,16 +2,11 @@
 
 > Generado desde `src/prisma/schema.prisma` (1.041 líneas, 27 modelos, PostgreSQL). Verificado campo por campo contra el schema real — sin datos inventados. Agosto 2026.
 
-## ⚠️ No confundir con `docs/DICCIONARIO_VARIABLES.md`
+## Alcance de este documento
 
-Este proyecto tiene **dos diccionarios distintos** y no deben mezclarse en la reunión:
+Describe el modelo de datos de la base de datos: tablas, columnas, tipos y relaciones, generado desde `src/prisma/schema.prisma`. Sirve para diseñar queries, migraciones y el MER — entender qué hay realmente en Postgres.
 
-| | `DICCIONARIO_DATOS.md` (este documento) | `DICCIONARIO_VARIABLES.md` |
-|---|---|---|
-| **Qué describe** | Las tablas y columnas de la base de datos (modelo relacional real) | Los *placeholders* (`DEUDOR_NOMBRE`, `ACREEDOR_1_VALOR`...) que se inyectan en las plantillas HTML al generar un documento |
-| **Fuente** | `src/prisma/schema.prisma` | `src/features/document/placeholder-mapper.ts` |
-| **Para qué sirve** | Diseñar queries, migraciones, el MER — entender qué hay realmente en Postgres | Escribir o depurar una plantilla `.html` de documento legal |
-| **Entregable del cliente** | "Diccionario de datos (modelo relacional)" | No corresponde a ninguno de los 4 entregables pedidos |
+Es distinto de `docs/DICCIONARIO_PLACEHOLDERS.md`, que cataloga los *placeholders* (`DEUDOR_NOMBRE`, `ACREEDOR_1_VALOR`...) que se inyectan en las plantillas HTML al generar un documento, con fuente en `src/features/document/placeholder-mapper.ts`. Para escribir o depurar una plantilla de documento legal, usar ese archivo.
 
 ---
 

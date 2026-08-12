@@ -403,7 +403,7 @@ flowchart TD
 
 1. Colocar `.docx` en `src/features/document/templates/`.
 2. Registrarla en el manifiesto de paquetes.
-3. Declarar sus placeholders en `docs/DICCIONARIO_VARIABLES.md`.
+3. Declarar sus placeholders en `docs/DICCIONARIO_PLACEHOLDERS.md`.
 
 **Agregar un nuevo tenant/centro:**
 

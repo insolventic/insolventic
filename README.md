@@ -249,7 +249,7 @@ Ver [`.env.example`](./.env.example) para el listado completo. Variables crític
 | [`docs/MANUAL_USUARIO.md`](./docs/MANUAL_USUARIO.md)                             | Guía funcional para operadores y administradores         |
 | [`docs/TESTS.md`](./docs/TESTS.md)                                               | Plan de pruebas y reporte de cobertura                   |
 | [`docs/FORMULARIO_MAESTRO.md`](./docs/FORMULARIO_MAESTRO.md)                     | Especificación del formulario maestro de insolvencia     |
-| [`docs/DICCIONARIO_VARIABLES.md`](./docs/DICCIONARIO_VARIABLES.md)               | Diccionario de placeholders para plantillas documentales |
+| [`docs/DICCIONARIO_PLACEHOLDERS.md`](./docs/DICCIONARIO_PLACEHOLDERS.md)         | Diccionario de placeholders para plantillas documentales |
 | [`docs/VALIDACIONES_Y_GENERACION.md`](./docs/VALIDACIONES_Y_GENERACION.md)       | Reglas de validación y proceso de generación             |
 | [`docs/AUDITORIA_SISTEMA_DOCUMENTOS.md`](./docs/AUDITORIA_SISTEMA_DOCUMENTOS.md) | Auditoría del sistema documental                         |
 | [`CHANGELOG.md`](./CHANGELOG.md)                                                 | Historial de versiones                                   |

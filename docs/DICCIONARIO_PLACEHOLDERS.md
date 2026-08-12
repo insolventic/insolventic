@@ -1,4 +1,6 @@
-# DICCIONARIO NORMALIZADO DE VARIABLES - INSOLVENTIC
+# Diccionario de Placeholders — INSOLVENTIC
+
+> Catálogo normalizado de los *placeholders* (`DEUDOR_NOMBRE`, `ACREEDOR_1_VALOR`...) que se inyectan en las plantillas HTML al generar un documento. Fuente: `src/features/document/placeholder-mapper.ts`. Para el modelo de datos de la base de datos (tablas, columnas, tipos, relaciones) ver `docs/DICCIONARIO_DATOS.md`.
 
 ## Convenciones de Naming
 
