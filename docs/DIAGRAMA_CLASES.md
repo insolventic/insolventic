@@ -96,7 +96,7 @@ classDiagram
 
 ## Vista 2 — Financiero/Patrimonial + Capa Definitivo
 
-**Distinción de dos capas (misma que en el MER, repetida aquí porque es la que más se presta a malinterpretación en la reunión):** `Debt`/`Asset`/`LegalProcess`/`Libranza`/`SuspendedService` son la capa general — asociaciones normales, sin cascada. `Acreedor`/`Bien`/`ProcesoJudicial` son **composiciones** de `Case` (`onDelete: Cascade`): existen únicamente como snapshot congelado de las Secciones V/VI/VII del Formulario Definitivo y mueren con el caso. La UML aquí hace explícita una diferencia que en el ERD solo se ve en el texto de la relación.
+**Distinción de dos capas (misma que en el MER, repetida aquí porque el diagrama de clases es el lugar donde más fácil se lee como redundancia si no se aclara):** `Debt`/`Asset`/`LegalProcess`/`Libranza`/`SuspendedService` son la capa general — asociaciones normales, sin cascada. `Acreedor`/`Bien`/`ProcesoJudicial` son **composiciones** de `Case` (`onDelete: Cascade`): existen únicamente como snapshot congelado de las Secciones V/VI/VII del Formulario Definitivo y mueren con el caso. La UML aquí hace explícita una diferencia que en el ERD solo se ve en el texto de la relación.
 
 ```mermaid
 classDiagram

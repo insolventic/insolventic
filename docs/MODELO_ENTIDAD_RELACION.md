@@ -7,7 +7,7 @@
 Un solo diagrama con las 27 entidades y sus ~54 relaciones no es legible (es el mismo problema que tendría cualquier ERD de un sistema con formularios legales de ~400 campos). Se divide en 3 vistas temáticas que comparten algunas entidades "puente" (`Case`, `Debtor`, `Tenant`) para que se puedan leer por separado sin perder el hilo:
 
 1. **Núcleo + Personas** — multi-tenant, RBAC, el caso, y las personas del dominio.
-2. **Financiero/Patrimonial + Capa Definitivo** — la parte más sensible para la reunión: aquí se ve explícitamente por qué `Creditor`/`Asset`/`LegalProcess` y `Acreedor`/`Bien`/`ProcesoJudicial` **no son redundantes**.
+2. **Financiero/Patrimonial + Capa Definitivo** — la vista donde se distingue con más claridad por qué `Creditor`/`Asset`/`LegalProcess` y `Acreedor`/`Bien`/`ProcesoJudicial` **no son redundantes**.
 3. **Documentos + Pagos + Operación** — generación documental, trazabilidad de pagos, notificaciones y auditoría.
 
 `Tenant` es la raíz de aislamiento multi-tenant para las 26 entidades restantes (cada una tiene `tenantId → Tenant`, N:1) — se muestra completo solo en la Vista 1 para no repetir 26 flechas idénticas en las otras dos vistas.
