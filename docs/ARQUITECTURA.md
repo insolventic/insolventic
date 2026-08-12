@@ -1,6 +1,6 @@
 # Arquitectura — INSOLVENTIC
 
-> Versión consolidada al cierre del proyecto (abril 2026). Este documento describe la arquitectura, los límites del sistema, los flujos críticos y las decisiones técnicas clave.
+> Última actualización: julio 2026. El core del sistema cerró en abril 2026 (ver histórico abajo); en julio se sumó hardening de generación de documentos (lock anti-duplicados + background jobs) y observabilidad (logger estructurado). Este documento describe la arquitectura, los límites del sistema, los flujos críticos y las decisiones técnicas clave.
 
 ---
 
@@ -202,6 +202,20 @@ flowchart LR
 - Layout de Drive: `{caseFolder}/01-Generados/`, `02-Adjuntos/`, `03-Evidencias/`, `04-Historial/`.
 - `layoutVersion` permite convivir layouts flat (legacy) y seccionado.
 
+**Lock atómico anti-duplicados (P3, jul-2026):**
+
+- Tabla `DocumentGenerationRequest` con unicidad parcial sobre `activeKey` (`"{caseId}:{kind}"` mientras la solicitud está activa, `NULL` al terminar — los `NULL` no colisionan en Postgres, sin triggers).
+- Dos generaciones simultáneas del mismo tipo sobre el mismo caso son imposibles a nivel de BD: solo una gana el `activeKey`; el resto recibe `{ success: false, requestId }` con la solicitud activa (equivalente semántico a un 409 en server actions).
+- Locks huérfanos (>10 min activos) se liberan y re-reclaman automáticamente.
+
+**Generación en background (P4, jul-2026):**
+
+- `createCase` responde de inmediato; el job de generación corre post-response vía `after()` de Next 15.
+- Máquina de estados de la solicitud: `PENDING → PROCESSING → COMPLETED / COMPLETED_WITH_ERRORS / FAILED`.
+- Retry con backoff exponencial (3×, `src/lib/retry.ts`) en subida a Drive y creación de carpetas (operaciones idempotentes).
+- Notificación in-app (modelo `Notification` existente) al terminar o fallar; sin webhooks externos (sin consumidores hoy).
+- Polling: server action `getGenerationRequestStatus(caseId)` — wiring en la UI (`documents-section`) pendiente.
+
 ---
 
 ## 7. Capa de datos (Prisma)
@@ -298,6 +312,21 @@ flowchart TD
 - Cuando `SENTRY_DSN` está vacío (dev / staging sin proyecto), el helper degrada a `console.error` — nunca lanza.
 - `sentry.client.config.ts`, `sentry.server.config.ts` y `sentry.edge.config.ts` inicializan Sentry por runtime. `sendDefaultPii: false` y `beforeSend` limpia cookies.
 - `@vercel/analytics` y `@vercel/speed-insights` se importan en `src/app/layout.tsx`; activos automáticamente al desplegar en Vercel.
+
+**Logger estructurado (Fase 2.1, jul-2026)**
+
+- `src/lib/logger.ts` reemplaza `console.*` en código nuevo: niveles ERROR/WARN (consola JSON + Sentry) e INFO/DEBUG (consola JSON, gated por `LOG_LEVEL`; default `warn` en prod, `debug` en dev).
+- El `context` de cada log pasa por redacción automática (password/token/email/phone/cedula → `[REDACTED]`).
+- `beforeSend` de Sentry (`src/lib/sentry-scrub.ts`, compartido por los 3 configs) redacta cookies/headers/query params sensibles.
+- Sin dependencia de Pino/Winston a propósito: en Vercel serverless stdout es el transport; el interface permite introducir una librería después sin tocar call-sites.
+- Rutas críticas migradas (~50 refs): auth (actions, lib, hook `use-auth`), generación de documentos (job, service, retry) y error boundaries (`app/global-error.tsx`). Migración completa de los ~334 `console.*` restantes queda en el roadmap (Fase 2).
+
+**Correlación por `requestId` (jul-2026)**
+
+- `src/lib/request-context.ts` usa `AsyncLocalStorage` con `enterWith()` (no `run()`, porque `run()` dentro del middleware no se propaga a las server actions) para llevar un `requestId` por request.
+- El edge runtime del middleware no comparte `AsyncLocalStorage` con el runtime Node de las actions, así que el `requestId` viaja también por header entre ambos; `auth/actions.ts` lo siembra en el `AsyncLocalStorage` de Node al entrar.
+- El logger consulta el `requestId` activo vía un provider inyectado (`setRequestIdProvider`), sin importar `request-context.ts` directamente — inversión de dependencia para no acoplar el logger al mecanismo de propagación.
+- Un `requestId` explícito pasado en el `context` de un log individual pisa el auto-inyectado.
 
 **Alertas proactivas**
 
