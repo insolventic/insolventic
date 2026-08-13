@@ -1,6 +1,13 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // @opentelemetry/api is reached via observability.ts's dynamic
+  // `import('@sentry/nextjs')`; without withSentryConfig() wiring up file
+  // tracing for it, @vercel/nft misses one of its internal files
+  // (build/src/api/context.js) when packaging serverless functions, which
+  // fails the Vercel deploy with ENOENT. Externalizing it makes Next.js
+  // resolve it from node_modules at runtime instead of trying to trace it.
+  serverExternalPackages: ['@opentelemetry/api'],
   async headers() {
     return [
       {
