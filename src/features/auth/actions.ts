@@ -242,12 +242,12 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
 
     revalidateTag('auth');
 
+    // A-3: los tokens NO se devuelven en el body — viajan solo en las
+    // cookies httpOnly seteadas arriba.
     return {
       success: true,
       message: 'Inicio de sesión exitoso',
       user: sessionData,
-      accessToken,
-      refreshToken,
     };
   } catch (error) {
     logger.error('Login error', error);
@@ -484,12 +484,12 @@ export async function refreshAccessToken(): Promise<AuthResult> {
 
     await setAuthCookies(newAccessToken, newRefreshToken);
 
+    // A-3: los tokens NO se devuelven en el body — viajan solo en las
+    // cookies httpOnly seteadas arriba.
     return {
       success: true,
       message: 'Token actualizado exitosamente',
       user: sessionData,
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
     };
   } catch (error) {
     logger.error('Token refresh error', error);

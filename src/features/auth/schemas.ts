@@ -42,12 +42,12 @@ export const refreshTokenSchema = z.object({
   exp: z.number(),
 });
 
+// A-3 (auditoría 2026-08-25): los JWT viajan SOLO en cookies httpOnly.
+// Devolverlos en el body exponía la sesión a exfiltración vía XSS.
 export const authResultSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   user: sessionSchema.omit({ iat: true, exp: true }).optional(),
-  accessToken: z.string().optional(),
-  refreshToken: z.string().optional(),
 });
 
 export const logoutResultSchema = z.object({

@@ -32,6 +32,7 @@ import { TENANT, ADMIN_USER, LAWYER_USER, ADMIN_ROLE, USER_ROLE } from '../../he
 // Import actions under test
 import {
   loginUser,
+  refreshAccessToken,
   registerUser,
   validateSession,
   checkUserPermission,
@@ -39,7 +40,7 @@ import {
   resetPassword,
   changePassword,
 } from '@/features/auth/actions';
-import { createAccessToken } from '@/lib/auth';
+import { createAccessToken, createRefreshToken } from '@/lib/auth';
 import { _resetRateLimitStore } from '@/lib/rate-limit';
 
 // Strong password meeting policy requirements
@@ -74,8 +75,32 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
       expect(result.message).toBe('Inicio de sesión exitoso');
       expect(result.user).toBeDefined();
       expect(result.user!.email).toBe('admin@test.com');
-      expect(result.accessToken).toBeDefined();
-      expect(result.refreshToken).toBeDefined();
+    });
+
+    // A-3: los tokens viajan solo en cookies httpOnly, nunca en el body
+    // (devolverlos anula el httpOnly ante cualquier XSS).
+    it('should NOT return tokens in the response body (A-3)', async () => {
+      const hashedPassword = await bcrypt.hash('password123', 12);
+
+      mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        ...ADMIN_USER,
+        password: hashedPassword,
+      });
+      mockPrisma.user.update.mockResolvedValue(ADMIN_USER);
+
+      const result = await loginUser({
+        email: 'admin@test.com',
+        password: 'password123',
+        tenantId: 'test-tenant',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result).not.toHaveProperty('accessToken');
+      expect(result).not.toHaveProperty('refreshToken');
+      // Las cookies httpOnly sí deben setearse.
+      expect(mockCookies.get('access-token')).toBeDefined();
+      expect(mockCookies.get('refresh-token')).toBeDefined();
     });
 
     it('should fail with wrong password', async () => {
@@ -201,6 +226,29 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
         where: { id: ADMIN_USER.id },
         data: { lastLogin: expect.any(Date) },
       });
+    });
+  });
+
+  describe('refreshAccessToken', () => {
+    it('should rotate cookies but NOT return tokens in the body (A-3)', async () => {
+      const refreshToken = await createRefreshToken({
+        userId: ADMIN_USER.id,
+        tenantId: TENANT.slug,
+      });
+      mockCookies.setToken('refresh-token', refreshToken);
+
+      mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
+      mockPrisma.user.findUnique.mockResolvedValue(ADMIN_USER);
+
+      const result = await refreshAccessToken();
+
+      expect(result.success).toBe(true);
+      expect(result.user).toBeDefined();
+      expect(result).not.toHaveProperty('accessToken');
+      expect(result).not.toHaveProperty('refreshToken');
+      // Las cookies httpOnly sí deben rotarse.
+      expect(mockCookies.get('access-token')).toBeDefined();
+      expect(mockCookies.get('refresh-token')).toBeDefined();
     });
   });
 
