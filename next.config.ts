@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next';
 
+import { buildContentSecurityPolicy } from './src/lib/csp';
+
 const nextConfig: NextConfig = {
   // @opentelemetry/api is reached via observability.ts's dynamic
   // `import('@sentry/nextjs')`; without withSentryConfig() wiring up file
@@ -39,17 +41,9 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://drive.google.com",
-              "font-src 'self'",
-              "connect-src 'self' https://drive.google.com https://www.googleapis.com",
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join('; '),
+            // connect-src incluye el origen de ingest de Sentry derivado
+            // del DSN — sin él el navegador bloquea los envíos (A-7).
+            value: buildContentSecurityPolicy(),
           },
         ],
       },
