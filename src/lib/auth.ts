@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { randomUUID } from 'crypto';
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { logger } from '@/lib/logger';
 
 import type { SessionData, RefreshTokenData } from '@/features/auth/schemas';
@@ -117,6 +118,31 @@ export async function getCurrentUser(): Promise<SessionData | null> {
     });
     return null;
   }
+}
+
+/**
+ * Guard server-side para páginas protegidas (M-9, auditoría 2026-08-25).
+ * Mismo patrón inline usado en /dashboard, /cases, /debtors, /creditors y
+ * /users, factorizado: sin cookie o con token inválido redirige a /login
+ * preservando la ruta de retorno. Defensa en profundidad respecto del
+ * middleware (C-1).
+ */
+export async function requirePageAuth(
+  redirectPath: string,
+): Promise<SessionData> {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get('access-token')?.value;
+
+  if (!accessToken) {
+    redirect(`/login?redirect=${redirectPath}`);
+  }
+
+  const payload = await verifyToken(accessToken);
+  if (!payload) {
+    redirect(`/login?redirect=${redirectPath}`);
+  }
+
+  return payload;
 }
 
 export async function requireAuth(): Promise<SessionData> {

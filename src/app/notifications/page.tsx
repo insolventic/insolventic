@@ -1,8 +1,12 @@
+import { requirePageAuth } from '@/lib/auth';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { DashboardHeader } from '../dashboard/components/dashboard-header';
 import { NotificationManagement } from './components/notification-management';
 
-export default function NotificationsPage() {
+export default async function NotificationsPage() {
+  // Verify authentication server-side before rendering (M-9)
+  await requirePageAuth('/notifications');
+
   return (
     <PermissionGuard
       permission="Ver notificaciones"

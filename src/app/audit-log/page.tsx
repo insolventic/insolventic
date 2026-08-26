@@ -1,8 +1,12 @@
+import { requirePageAuth } from '@/lib/auth';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { DashboardHeader } from '../dashboard/components/dashboard-header';
 import { AuditLogManagement } from './components/audit-log-management';
 
-export default function AuditLogPage() {
+export default async function AuditLogPage() {
+  // Verify authentication server-side before rendering (M-9)
+  await requirePageAuth('/audit-log');
+
   return (
     <PermissionGuard
       permission="Ver auditoría"
