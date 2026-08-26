@@ -4,17 +4,41 @@ import { jwtVerify } from 'jose';
 
 import { getRoutePermissions } from '@/lib/permissions';
 
+// Validado en el primer uso, no en el import — mismo patrón que auth.ts y
+// email.ts: en entornos de build (CI con `vercel pull`) JWT_SECRET no existe.
+let jwtSecretCache: Uint8Array | null = null;
+
 function getJwtSecret(): Uint8Array {
+  if (jwtSecretCache) return jwtSecretCache;
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     throw new Error(
       'JWT_SECRET environment variable is not set. Application cannot start without it.',
     );
   }
-  return new TextEncoder().encode(secret);
+  jwtSecretCache = new TextEncoder().encode(secret);
+  return jwtSecretCache;
 }
 
-const JWT_SECRET = getJwtSecret();
+// Public routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+];
+
+/**
+ * Exact match or sub-path match (`route + '/'`). A naive `startsWith(route)`
+ * with `'/'` in the list treats EVERY path as public and turns the auth gate
+ * into dead code (hallazgo C-1 de la auditoría 2026-08-25).
+ */
+export function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + '/'),
+  );
+}
 
 /**
  * Validates that a redirect path is a safe, relative internal path.
@@ -29,7 +53,7 @@ export function isValidRedirectPath(path: string): boolean {
 
 async function verifyToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return {
       id: payload.id as string,
       name: payload.name as string,
@@ -57,16 +81,7 @@ export async function middleware(request: NextRequest) {
 
   const accessToken = request.cookies.get('access-token')?.value;
 
-  // Public routes that don't require authentication
-  const publicRoutes = [
-    '/',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password',
-  ];
-
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  if (isPublicRoute(pathname)) {
     if (accessToken) {
       const user = await verifyToken(accessToken);
       if (
@@ -119,13 +134,10 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Solo se propaga x-request-id: los headers x-user-* no tenían ningún
+  // consumidor en el repo (grep exhaustivo, auditoría C-1) y duplicaban PII.
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-request-id', requestId);
-  requestHeaders.set('x-user-id', user.id);
-  requestHeaders.set('x-user-email', user.email);
-  requestHeaders.set('x-user-role', user.roleName);
-  requestHeaders.set('x-user-permissions', JSON.stringify(user.permissions));
-  requestHeaders.set('x-user-tenant', user.tenantId);
 
   const response = NextResponse.next({
     request: {
