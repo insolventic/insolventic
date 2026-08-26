@@ -46,12 +46,17 @@ function redirectLocation(response: Response): URL | null {
 }
 
 describe('isPublicRoute — route matching', () => {
-  it.each(['/', '/login', '/register', '/forgot-password', '/reset-password'])(
+  it.each(['/', '/login', '/forgot-password', '/reset-password'])(
     'treats %s as public',
     (path) => {
       expect(isPublicRoute(path)).toBe(true);
     },
   );
+
+  // C-2: el registro autoservicio está cerrado — /register ya no es pública.
+  it('treats /register as protected (registro público cerrado)', () => {
+    expect(isPublicRoute('/register')).toBe(false);
+  });
 
   // Regresión C-1: con `startsWith('/')` TODO era público.
   it.each([
@@ -76,6 +81,16 @@ describe('isPublicRoute — route matching', () => {
   it('does not treat prefix-similar routes as public', () => {
     expect(isPublicRoute('/loginx')).toBe(false);
     expect(isPublicRoute('/register-admin')).toBe(false);
+  });
+});
+
+describe('middleware — /register cerrado (C-2)', () => {
+  it('redirects /register to /login when unauthenticated', async () => {
+    const response = await middleware(makeRequest('/register'));
+
+    const location = redirectLocation(response);
+    expect(location).not.toBeNull();
+    expect(location!.pathname).toBe('/login');
   });
 });
 

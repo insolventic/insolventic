@@ -216,7 +216,62 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
       tenantId: 'test-tenant',
     };
 
+    // C-2: registerUser exige sesión con 'Crear usuarios'. Rol admin de
+    // fixtures no lo incluye, así que se extiende localmente.
+    const USER_ADMIN_ROLE = {
+      ...ADMIN_ROLE,
+      permissions: [
+        ...ADMIN_ROLE.permissions,
+        { permission: { name: 'Crear usuarios' } },
+      ],
+    };
+    const USER_ADMIN = { ...ADMIN_USER, role: USER_ADMIN_ROLE };
+
+    /**
+     * Simula la sesión de un admin con 'Crear usuarios': cookie con JWT
+     * real + los dos lookups de authenticateUser (tenant por slug, user
+     * por id con rol/permisos) encolados con mockResolvedValueOnce para
+     * no interferir con los lookups del cuerpo de registerUser.
+     */
+    async function authenticateAsUserAdmin(user = USER_ADMIN) {
+      const token = await createAccessToken({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roleId: user.roleId,
+        roleName: user.role.name,
+        permissions: user.role.permissions.map(
+          (rp: { permission: { name: string } }) => rp.permission.name,
+        ),
+        tenantId: TENANT.slug,
+        tenantName: TENANT.name,
+        lastLogin: new Date(),
+      });
+      mockCookies.setToken('access-token', token);
+      mockPrisma.tenant.findUnique.mockResolvedValueOnce(TENANT);
+      mockPrisma.user.findUnique.mockResolvedValueOnce(user);
+    }
+
+    it('should reject registration without an authenticated session (C-2)', async () => {
+      const result = await registerUser(validRegisterInput);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('registro público está deshabilitado');
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
+    it('should reject a session without "Crear usuarios" permission (C-2)', async () => {
+      await authenticateAsUserAdmin(LAWYER_USER);
+
+      const result = await registerUser(validRegisterInput);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('registro público está deshabilitado');
+      expect(mockPrisma.user.create).not.toHaveBeenCalled();
+    });
+
     it('should register a new user successfully', async () => {
+      await authenticateAsUserAdmin();
       mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
       mockPrisma.user.findUnique.mockResolvedValue(null); // No existing user
       mockPrisma.role.findFirst.mockResolvedValue(USER_ROLE);
@@ -234,6 +289,7 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
     });
 
     it('should reject duplicate email', async () => {
+      await authenticateAsUserAdmin();
       mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
       mockPrisma.user.findUnique.mockResolvedValue(ADMIN_USER); // User exists
 
@@ -244,6 +300,7 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
     });
 
     it('should hash password with bcrypt before storing', async () => {
+      await authenticateAsUserAdmin();
       mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.role.findFirst.mockResolvedValue(USER_ROLE);
@@ -266,6 +323,7 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
     });
 
     it('should assign default "Usuario" role', async () => {
+      await authenticateAsUserAdmin();
       mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.role.findFirst.mockResolvedValue(USER_ROLE);
@@ -286,6 +344,7 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
     });
 
     it('should fail if default role not found', async () => {
+      await authenticateAsUserAdmin();
       mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
       mockPrisma.user.findUnique.mockResolvedValue(null);
       mockPrisma.role.findFirst.mockResolvedValue(null); // No default role

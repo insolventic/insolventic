@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { P } from '@/lib/permissions';
 import { seedRequestContextFromHeaders } from '@/lib/request-context';
 import { headers } from 'next/headers';
 import {
@@ -629,6 +630,23 @@ export async function switchTenant(targetTenantSlug: string): Promise<{
 
 export async function registerUser(input: unknown): Promise<RegisterResult> {
   try {
+    // C-2 (auditoría 2026-08-25): el registro público está cerrado. Sin
+    // verificación de email, cualquiera podía registrarse con el correo de
+    // un deudor real y acceder a su expediente vía el modo cliente. Solo
+    // una sesión con permiso de crear usuarios puede invocar esta action.
+    try {
+      await requireActionPermission(P.CREAR_USUARIOS);
+    } catch {
+      logger.warn('Public registration attempt blocked', {
+        action: 'registerUser',
+      });
+      return {
+        success: false,
+        message:
+          'El registro público está deshabilitado. Solicite su cuenta al administrador de su centro de conciliación.',
+      };
+    }
+
     const ip = await getClientIp();
     const rateLimitResult = checkRateLimit(
       getRateLimitKey('register', ip),

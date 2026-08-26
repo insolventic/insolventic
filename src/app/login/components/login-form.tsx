@@ -208,12 +208,9 @@ export function LoginForm() {
               >
                 ¿Olvidó su contraseña?
               </Link>
-              <Link
-                href={`/register?db=${selectedDb}`}
-                className="text-muted-foreground block text-sm hover:underline"
-              >
-                ¿No tienes cuenta? Registrarse
-              </Link>
+              <p className="text-muted-foreground text-sm">
+                ¿No tienes cuenta? Solicítala al administrador de tu centro.
+              </p>
             </div>
           </form>
         </CardContent>

@@ -20,14 +20,10 @@ function getJwtSecret(): Uint8Array {
   return jwtSecretCache;
 }
 
-// Public routes that don't require authentication
-const PUBLIC_ROUTES = [
-  '/',
-  '/login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-];
+// Public routes that don't require authentication.
+// '/register' NO es pública: el registro autoservicio está cerrado (C-2) —
+// los usuarios los crea un administrador del centro.
+const PUBLIC_ROUTES = ['/', '/login', '/forgot-password', '/reset-password'];
 
 /**
  * Exact match or sub-path match (`route + '/'`). A naive `startsWith(route)`
