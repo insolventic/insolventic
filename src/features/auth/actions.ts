@@ -142,7 +142,7 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
 
     // Rate limiting
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('login', ip),
       RATE_LIMIT_CONFIGS.login,
     );
@@ -648,7 +648,7 @@ export async function registerUser(input: unknown): Promise<RegisterResult> {
     }
 
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('register', ip),
       RATE_LIMIT_CONFIGS.register,
     );
@@ -775,7 +775,7 @@ export async function forgotPassword(
 ): Promise<PasswordResetResult> {
   try {
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('forgotPassword', ip),
       RATE_LIMIT_CONFIGS.forgotPassword,
     );
@@ -878,7 +878,7 @@ export async function resetPassword(
 ): Promise<PasswordResetResult> {
   try {
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('resetPassword', ip),
       RATE_LIMIT_CONFIGS.resetPassword,
     );
@@ -980,7 +980,7 @@ export async function changePassword(input: unknown): Promise<{
 }> {
   try {
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('changePassword', ip),
       RATE_LIMIT_CONFIGS.changePassword,
     );

@@ -711,7 +711,7 @@ export async function batchGenerateDocuments(input: {
 
     // Rate limit batch generation per user (expensive operation)
     const rlKey = getRateLimitKey('batchDocumentGeneration', user.id);
-    const rl = checkRateLimit(
+    const rl = await checkRateLimit(
       rlKey,
       RATE_LIMIT_CONFIGS.batchDocumentGeneration,
     );
