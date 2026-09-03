@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
-import { getValidTransitions } from '@/lib/case-phases';
+import { INITIAL_CASE_PHASE, validatePhaseTransition } from '@/lib/case-phases';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import {
@@ -420,7 +420,11 @@ export async function createCase(
         caseNumber: finalCaseNumber,
         debtorName: debtor.name,
         tenantId,
-        phase: rest.phase ?? 'Inicial',
+        // C-1: la fase inicial no es negociable desde el cliente. Antes era
+        // `rest.phase ?? 'Inicial'`, así que se podía crear un expediente ya
+        // en "Acuerdo aprobado", saltándose admisión, negociación y toda su
+        // documentación. Todo avance pasa ahora por `updateCasePhase`.
+        phase: INITIAL_CASE_PHASE,
         hearingDate:
           hearingDate && hearingDate.trim() ? new Date(hearingDate) : null,
         filingDate:
@@ -870,18 +874,42 @@ export async function updateCase(
 
     // Wrap debtor + case update in a transaction with optimistic locking
     const updatedCase = await prisma.$transaction(async (tx) => {
+      // Se lee siempre (no solo cuando llega `version`): la fase persistida es
+      // el punto de partida obligatorio del guard de transición (C-1).
+      const current = await tx.case.findUnique({
+        where: { id, tenantId },
+        select: { version: true, phase: true },
+      });
+      if (!current) {
+        throw new Error('Caso no encontrado');
+      }
+
       // Optimistic lock check: if caller sends version, it must match current DB version
-      if (validatedInput.version !== undefined) {
-        const current = await tx.case.findUnique({
-          where: { id, tenantId },
-          select: { version: true },
-        });
-        if (!current) {
-          throw new Error('Caso no encontrado');
+      if (
+        validatedInput.version !== undefined &&
+        current.version !== validatedInput.version
+      ) {
+        throw new Error(
+          'Este caso fue modificado por otro usuario. Recargue la página e intente de nuevo.',
+        );
+      }
+
+      // C-1: `updateCase` era la puerta trasera de la máquina de estados —
+      // escribía `phase` directo desde el spread del payload. Ahora toda
+      // escritura de fase pasa por el mismo guard que `updateCasePhase`.
+      // El formulario de edición reenvía siempre la fase actual sin cambiarla:
+      // ese caso es un no-op válido y no requiere transición.
+      if (safeRestUpdate.phase !== undefined) {
+        const check = validatePhaseTransition(
+          current.phase,
+          safeRestUpdate.phase as string,
+        );
+        if (!check.valid) {
+          throw new Error(check.reason);
         }
-        if (current.version !== validatedInput.version) {
+        if (!check.isNoop) {
           throw new Error(
-            'Este caso fue modificado por otro usuario. Recargue la página e intente de nuevo.',
+            'El cambio de fase no puede hacerse desde la edición del caso. Use la acción "Cambiar fase" para que se registren la auditoría y la documentación asociadas.',
           );
         }
       }
@@ -2253,18 +2281,21 @@ export async function updateCasePhase(input: {
       return { success: false, error: 'Caso no encontrado' };
     }
 
-    const currentPhase = existingCase.phase ?? 'Inicial';
-    const allowed = getValidTransitions(currentPhase);
+    const currentPhase = existingCase.phase ?? INITIAL_CASE_PHASE;
+    const check = validatePhaseTransition(currentPhase, newPhase);
 
-    if (!allowed.includes(newPhase)) {
-      return {
-        success: false,
-        error: `Transición no permitida: ${currentPhase} → ${newPhase}`,
-      };
+    if (!check.valid) {
+      return { success: false, error: check.reason };
+    }
+
+    // Reescribir la misma fase no es una transición: no hay nada que auditar
+    // ni documentación que regenerar.
+    if (check.isNoop) {
+      return { success: true };
     }
 
     await prisma.case.update({
-      where: { id: caseId },
+      where: { id: caseId, tenantId },
       data: { phase: newPhase },
     });
 

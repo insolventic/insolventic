@@ -149,3 +149,81 @@ export function getPackageForPhase(phase: string | null | undefined): number {
   }
   return 1;
 }
+
+// ---------------------------------------------------------------------------
+// Transition guard (C-1) — fuente única de verdad para el backend
+// ---------------------------------------------------------------------------
+//
+// Antes, `updateCasePhase` validaba la transición inline y `updateCase`
+// escribía `phase` directo desde el spread del payload, así que bastaba con
+// llamar a `updateCase` para saltarse la máquina de estados por completo.
+// Estas dos funciones son puras (sin Prisma, sin I/O) para que las consuman
+// por igual las server actions, los componentes cliente y los tests.
+
+/** Fases conocidas del expediente, en orden de avance. */
+export const CASE_PHASE_VALUES = CASE_PHASES.map((p) => p.value);
+
+/** Fase con la que nace todo expediente. */
+export const INITIAL_CASE_PHASE = 'Inicial';
+
+export function isKnownPhase(phase: string | null | undefined): boolean {
+  return typeof phase === 'string' && CASE_PHASE_VALUES.includes(phase);
+}
+
+export type PhaseTransitionCheck =
+  | { valid: true; isNoop: boolean }
+  | { valid: false; reason: string };
+
+/**
+ * Decide si `nextPhase` es alcanzable desde `currentPhase`.
+ *
+ * Reglas:
+ *  - `currentPhase` nulo/desconocido se trata como 'Inicial' (casos legacy).
+ *  - Reescribir la misma fase es un no-op válido: `updateCase` reenvía siempre
+ *    la fase actual en el payload del formulario de edición, y eso no es un
+ *    intento de transición.
+ *  - Una fase destino fuera de CASE_PHASES se rechaza siempre (antes se podía
+ *    escribir cualquier string y romper filtros, dashboard y PACKAGE_PHASE_MAP).
+ *  - En cualquier otro caso debe estar en PHASE_TRANSITIONS[currentPhase].
+ */
+export function validatePhaseTransition(
+  currentPhase: string | null | undefined,
+  nextPhase: string | null | undefined,
+): PhaseTransitionCheck {
+  if (nextPhase == null || nextPhase === '') {
+    return { valid: false, reason: 'La fase destino es requerida' };
+  }
+
+  // Igualdad cruda ANTES de normalizar: un expediente legacy puede tener en BD
+  // una fase que hoy ya no es válida (la columna aceptaba cualquier string
+  // antes de C-1). Reescribir esa misma fase es un no-op y no debe bloquear la
+  // edición del caso; solo se le exige validez a un cambio real de fase.
+  if (currentPhase === nextPhase) {
+    return { valid: true, isNoop: true };
+  }
+
+  const from = isKnownPhase(currentPhase)
+    ? (currentPhase as string)
+    : INITIAL_CASE_PHASE;
+
+  if (!isKnownPhase(nextPhase)) {
+    return { valid: false, reason: `Fase desconocida: "${nextPhase}"` };
+  }
+
+  if (from === nextPhase) {
+    return { valid: true, isNoop: true };
+  }
+
+  const allowed = getValidTransitions(from);
+  if (!allowed.includes(nextPhase)) {
+    return {
+      valid: false,
+      reason:
+        allowed.length > 0
+          ? `Transición no permitida: ${from} → ${nextPhase}. Desde "${from}" solo se puede pasar a: ${allowed.join(', ')}.`
+          : `Transición no permitida: "${from}" es una fase terminal, el expediente no admite más cambios de fase.`,
+    };
+  }
+
+  return { valid: true, isNoop: false };
+}
