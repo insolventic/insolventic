@@ -12,8 +12,18 @@
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
-/** Tipo de generación — una por caso puede estar activa a la vez. */
-export type GenerationKind = 'INITIAL' | 'ADMISSION' | 'AGREEMENT' | 'FAILURE';
+/**
+ * Tipo de generación — una por caso puede estar activa a la vez.
+ * BATCH cubre la generación manual por paquete desde /documents (C-4): era la
+ * única ruta sin lock, así que dos operadores —o un doble click— duplicaban
+ * archivos en Drive y filas en BD.
+ */
+export type GenerationKind =
+  | 'INITIAL'
+  | 'ADMISSION'
+  | 'AGREEMENT'
+  | 'FAILURE'
+  | 'BATCH';
 
 export type GenerationStatus =
   | 'PENDING'
@@ -168,10 +178,19 @@ export async function completeGenerationRequest(
   id: string,
   counts: { total: number; success: number; errors: number },
 ): Promise<void> {
+  // Una generación que no produjo ni un documento no es un éxito, aunque no
+  // haya lanzado ningún error técnico. Con el bloqueo por datos incompletos
+  // (C-3) este caso pasa a ser frecuente: los documentos salen como `skipped`,
+  // que no cuenta como error, y la solicitud quedaba marcada COMPLETED.
+  const producedNothing = counts.total > 0 && counts.success === 0;
+
   await prisma.documentGenerationRequest.update({
     where: { id },
     data: {
-      status: counts.errors > 0 ? 'COMPLETED_WITH_ERRORS' : 'COMPLETED',
+      status:
+        counts.errors > 0 || producedNothing
+          ? 'COMPLETED_WITH_ERRORS'
+          : 'COMPLETED',
       activeKey: null,
       totalDocuments: counts.total,
       successCount: counts.success,

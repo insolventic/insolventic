@@ -1,5 +1,10 @@
 export const dynamic = 'force-dynamic';
 
+// C-4: `createCase` dispara la generación inicial vía `after()`, que consume
+// el mismo presupuesto de ejecución de la función. Con el default de Vercel
+// (10 s en Hobby) el job se cortaba a mitad. 60 s es el máximo en Hobby.
+export const maxDuration = 60;
+
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 

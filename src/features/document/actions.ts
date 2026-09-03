@@ -11,6 +11,12 @@ import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { logger } from '@/lib/logger';
 import { canGenerateDocument } from '../case/validation-rules';
 import {
+  claimGenerationRequest,
+  markGenerationProcessing,
+  completeGenerationRequest,
+  failGenerationRequest,
+} from './generation-request';
+import {
   checkRateLimit,
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
@@ -735,6 +741,9 @@ export async function batchGenerateDocuments(input: {
   packageNumber?: 1 | 2 | 3 | 4 | 5;
   outputFormat?: 'pdf' | 'docx' | 'both';
 }) {
+  // Fuera del try: el catch necesita poder liberar el lock (C-4).
+  let generationRequestId: string | null = null;
+
   try {
     const { user, tenantId } = await authenticateUser();
 
@@ -813,6 +822,30 @@ export async function batchGenerateDocuments(input: {
         'No tienes permisos para generar documentos para este caso',
       );
     }
+
+    // C-4: esta era la única ruta de generación sin el lock anti-duplicados
+    // (solo tenía rate limit). Dos operadores generando el mismo paquete a la
+    // vez —o un doble click— duplicaban archivos en Drive y filas en BD.
+    // Se reclama DESPUÉS del control de acceso para no crear filas de lock a
+    // nombre de quien no puede generar.
+    const claim = await claimGenerationRequest({
+      tenantId,
+      caseId,
+      kind: 'BATCH',
+      requestedById: user.id,
+    });
+
+    if (!claim.claimed) {
+      return {
+        success: false,
+        message: `Ya hay una generación en curso para este caso (estado: ${claim.request.status}). Espere a que termine antes de volver a generar.`,
+        data: null,
+        requestId: claim.request.id,
+      };
+    }
+
+    generationRequestId = claim.request.id;
+    await markGenerationProcessing(generationRequestId);
 
     // Get HTML templates to process
     const {
@@ -1279,6 +1312,14 @@ export async function batchGenerateDocuments(input: {
       });
     }
 
+    // C-4: libera el lock y deja el resultado consultable por el polling.
+    await completeGenerationRequest(generationRequestId, {
+      total: documents.length,
+      success: successfulDocuments,
+      errors: failedDocuments,
+    });
+    generationRequestId = null;
+
     return {
       success: true,
       message: `Generación completada: ${successfulDocuments} exitosos, ${failedDocuments} fallidos${skippedDocuments > 0 ? `, ${skippedDocuments} no generados por datos incompletos` : ''}`,
@@ -1296,7 +1337,16 @@ export async function batchGenerateDocuments(input: {
       },
     };
   } catch (error) {
-    console.error('Error in batch document generation:', error);
+    logger.error('Error in batch document generation', error, {
+      action: 'batch-generate-documents',
+    });
+
+    // C-4: liberar el lock para que el usuario pueda reintentar; si esto
+    // fallara, el recuperador de huérfanos lo libera a los 10 min.
+    if (generationRequestId) {
+      await failGenerationRequest(generationRequestId, error).catch(() => {});
+    }
+
     return {
       success: false,
       message:

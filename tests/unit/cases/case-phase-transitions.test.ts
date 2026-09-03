@@ -47,20 +47,15 @@ import {
   isKnownPhase,
   validatePhaseTransition,
 } from '@/lib/case-phases';
-import {
-  TENANT,
-  ADMIN_USER,
-  DEBTOR,
-  CASE_DATA,
-  PERMISSIONS,
-} from '../../helpers/fixtures';
+import { TENANT, ADMIN_USER, DEBTOR, CASE_DATA } from '../../helpers/fixtures';
+import { P } from '@/lib/permissions';
 import { updateCase, updateCasePhase } from '@/features/case/actions';
 
 const authAsAdmin = () =>
   mockAuthenticateUser.mockResolvedValue({
     user: {
       ...ADMIN_USER,
-      permissions: Object.values(PERMISSIONS),
+      permissions: Object.values(P),
     },
     tenantId: TENANT.id,
   });
@@ -265,7 +260,8 @@ describe('updateCasePhase — server action (C-1)', () => {
 
   it('deniega sin el permiso "Editar casos"', async () => {
     mockAuthenticateUser.mockResolvedValue({
-      user: { ...ADMIN_USER, permissions: [PERMISSIONS.VER_CASOS] },
+      // Puede ver casos pero NO editarlos.
+      user: { ...ADMIN_USER, permissions: [P.VER_CASOS] },
       tenantId: TENANT.id,
     });
 
@@ -373,7 +369,8 @@ describe('updateCase — la puerta trasera de la máquina de estados (C-1)', () 
 
   it('deniega sin el permiso "Editar casos"', async () => {
     mockAuthenticateUser.mockResolvedValue({
-      user: { ...ADMIN_USER, permissions: [PERMISSIONS.VER_CASOS] },
+      // Puede ver casos pero NO editarlos.
+      user: { ...ADMIN_USER, permissions: [P.VER_CASOS] },
       tenantId: TENANT.id,
     });
 

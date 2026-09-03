@@ -50,13 +50,8 @@ import {
   validateMinimaCuantia,
   validateDebtLimits,
 } from '@/features/case/validation-rules';
-import {
-  TENANT,
-  ADMIN_USER,
-  DEBTOR,
-  CASE_DATA,
-  PERMISSIONS,
-} from '../../helpers/fixtures';
+import { TENANT, ADMIN_USER, DEBTOR, CASE_DATA } from '../../helpers/fixtures';
+import { P } from '@/lib/permissions';
 import { createCase } from '@/features/case/actions';
 
 const aDebt = (capital: string) => ({
@@ -258,7 +253,7 @@ describe('createCase — las reglas se aplican en la server action (C-2)', () =>
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
     mockAuthenticateUser.mockResolvedValue({
-      user: { ...ADMIN_USER, permissions: Object.values(PERMISSIONS) },
+      user: { ...ADMIN_USER, permissions: Object.values(P) },
       tenantId: TENANT.id,
     });
     mockPrisma.debtor.findUnique.mockResolvedValue({
