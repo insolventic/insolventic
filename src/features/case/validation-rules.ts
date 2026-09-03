@@ -39,9 +39,33 @@ import type { CreateCaseFormData, CreateCaseFormInput } from './schemas';
 //          declara el Decreto 0159 de 2026).
 //   2024 → $1.300.000. Pendiente de confirmar contra el Decreto 1572 de 2024,
 //          derogado por el 1469 de 2025.
+//
+// ┌───────────────────────────────────────────────────────────────────────────┐
+// │ TODO(legal) — SMMLV 2026 ESTÁ FIJADO POR UNA NORMA TRANSITORIA.           │
+// │                                                                           │
+// │ El valor de 2026 NO proviene de una norma en firme. Viene del Decreto     │
+// │ 0159 de 2026, expedido por orden judicial para cubrir el vacío que dejó   │
+// │ la suspensión provisional del Decreto 1469 de 2025, y su propio artículo  │
+// │ 1º dice "fijar TRANSITORIAMENTE".                                         │
+// │                                                                           │
+// │ REVISAR ESTE VALOR SI OCURRE CUALQUIERA DE ESTAS DOS COSAS:               │
+// │   1. El Consejo de Estado falla de fondo sobre el Decreto 1469 de 2025.   │
+// │   2. Se expide un decreto definitivo de salario mínimo para 2026.         │
+// │                                                                           │
+// │ Que hoy $1.750.905 coincida con el monto del decreto suspendido NO es     │
+// │ garantía de nada: el 0159 conserva el porcentaje por consolidar hechos    │
+// │ cumplidos desde el 1-ene-2026, no porque el monto haya sido validado.     │
+// │ Un fallo de fondo puede cambiarlo.                                        │
+// │                                                                           │
+// │ De este número cuelga la mínima cuantía (40 SMMLV), que decide si el      │
+// │ apoderado judicial es OBLIGATORIO en un expediente real. No se deja       │
+// │ automatizado a propósito: el cambio exige criterio jurídico, no un fetch. │
+// └───────────────────────────────────────────────────────────────────────────┘
 export const SMMLV_BY_YEAR: Readonly<Record<number, number>> = {
   2024: 1_300_000,
   2025: 1_423_500,
+  // ⚠️ TRANSITORIO — Decreto 0159 de 2026. Ver el TODO(legal) de arriba antes
+  // de dar este valor por bueno en una revisión de este archivo.
   2026: 1_750_905,
 };
 
