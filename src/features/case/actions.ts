@@ -7,6 +7,11 @@ import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { INITIAL_CASE_PHASE, validatePhaseTransition } from '@/lib/case-phases';
+import { logger } from '@/lib/logger';
+import {
+  validateCaseBusinessRules,
+  formatValidationErrors,
+} from './validation-rules';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import {
@@ -360,11 +365,37 @@ export async function createCase(
         id: debtorId,
         tenantId,
       },
-      select: { name: true },
+      // maritalStatus alimenta la regla de sociedad conyugal (C-2); vive en
+      // Debtor, no en Case, por eso se trae aquí.
+      select: { name: true, maritalStatus: true },
     });
 
     if (!debtor) {
       return { success: false, error: 'Deudor no encontrado' };
+    }
+
+    // C-2: las reglas del trámite se aplican en el servidor, no solo en el
+    // formulario. Antes este módulo solo lo importaban los componentes de
+    // React, así que un POST directo a esta action las saltaba todas.
+    const rulesCheck = validateCaseBusinessRules(validatedInput, {
+      mode: 'create',
+      debtorMaritalStatus: debtor.maritalStatus,
+      year: new Date().getFullYear(),
+    });
+
+    if (!rulesCheck.isValid) {
+      return {
+        success: false,
+        error: `El expediente no cumple las reglas del trámite: ${formatValidationErrors(rulesCheck)}`,
+      };
+    }
+
+    if (rulesCheck.warnings.length > 0) {
+      logger.warn('Caso creado con advertencias de reglas de negocio', {
+        action: 'create-case',
+        debtorId,
+        warnings: rulesCheck.warnings.map((w) => w.field),
+      });
     }
 
     // Update debtor income/expense info if provided
@@ -891,6 +922,19 @@ export async function updateCase(
       ) {
         throw new Error(
           'Este caso fue modificado por otro usuario. Recargue la página e intente de nuevo.',
+        );
+      }
+
+      // C-2: mismas reglas de negocio que en creación, en modo 'update' (solo
+      // se evalúa lo que trae el payload; una edición parcial no debe fallar
+      // por campos que ni siquiera toca).
+      const rulesCheck = validateCaseBusinessRules(validatedInput, {
+        mode: 'update',
+        year: new Date().getFullYear(),
+      });
+      if (!rulesCheck.isValid) {
+        throw new Error(
+          `El expediente no cumple las reglas del trámite: ${formatValidationErrors(rulesCheck)}`,
         );
       }
 
