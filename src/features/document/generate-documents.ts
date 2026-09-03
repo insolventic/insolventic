@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 import { htmlToPdf } from '@/lib/html-to-pdf';
 import {
   mapCaseToPlaceholders,
-  replacePlaceholders,
+  renderDocumentHtml,
   validatePlaceholderCoverage,
   buildConciliationContext,
 } from './placeholder-mapper';
@@ -425,22 +425,46 @@ async function generateDocument(
       caseData.type === 'CONCILIATION'
         ? buildConciliationContext(caseData)
         : undefined;
-    const filledHtml = replacePlaceholders(
+    const { html: filledHtml, unresolved } = renderDocumentHtml(
       htmlContent,
       placeholders,
       extraContext,
     );
 
-    // Log coverage for debugging (in development)
-    if (
-      process.env.NODE_ENV === 'development' &&
-      coverage.coveragePercentage < 80
-    ) {
-      logger.debug('Low placeholder coverage', {
+    // C-3: un placeholder que el mapper no produce es un hueco silencioso en un
+    // documento legal. Se bloquea la generación en vez de subir el PDF a Drive
+    // con el campo en blanco.
+    if (!options.skipValidation && unresolved.length > 0) {
+      logger.error(
+        'Generación bloqueada: la plantilla referencia variables que el mapper no produce',
+        new Error('unresolved-placeholders'),
+        {
+          action: 'generate-documents',
+          template: template.name,
+          templateId: template.id,
+          unresolved,
+        },
+      );
+      return {
+        templateId: template.id,
+        templateName: template.name,
+        fileName: '',
+        googleDriveId: '',
+        googleDriveUrl: '',
+        status: 'error',
+        error: `No se generó: faltan datos para ${unresolved.length} campo(s) de la plantilla (${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}). Complete la información del expediente y reintente.`,
+        missingVariables: unresolved,
+        coveragePercentage: coverage.coveragePercentage,
+      };
+    }
+
+    if (coverage.coveragePercentage < 80) {
+      logger.warn('Cobertura de placeholders baja', {
         action: 'generate-documents',
         template: template.name,
         coveragePercentage: coverage.coveragePercentage,
         missingVariables: coverage.missing,
+        emptyVariables: coverage.empty,
       });
     }
 
@@ -646,7 +670,12 @@ export async function generateDocumentsForAdmission(
     (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
     'INSOLVENCY';
   const templates = getTemplatesForAdmission(caseType);
-  return generateFromTemplates(templates, caseData, caseFolderId, mergedOptions);
+  return generateFromTemplates(
+    templates,
+    caseData,
+    caseFolderId,
+    mergedOptions,
+  );
 }
 
 /**
@@ -662,7 +691,12 @@ export async function generateDocumentsForAgreement(
     (caseData.type as 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT') ||
     'INSOLVENCY';
   const templates = getTemplatesForAgreement(caseType);
-  return generateFromTemplates(templates, caseData, caseFolderId, mergedOptions);
+  return generateFromTemplates(
+    templates,
+    caseData,
+    caseFolderId,
+    mergedOptions,
+  );
 }
 
 /**
@@ -688,7 +722,12 @@ export async function generateDocumentsForFailure(
     return [];
   }
 
-  return generateFromTemplates(templates, caseData, caseFolderId, mergedOptions);
+  return generateFromTemplates(
+    templates,
+    caseData,
+    caseFolderId,
+    mergedOptions,
+  );
 }
 
 /**
@@ -795,11 +834,19 @@ export async function previewDocument(
     caseData.type === 'CONCILIATION'
       ? buildConciliationContext(caseData)
       : undefined;
-  const filledHtml = replacePlaceholders(
+  const { html: filledHtml, unresolved } = renderDocumentHtml(
     htmlContent,
     placeholders,
     extraContext,
   );
+
+  // C-3: mismo bloqueo que en la generación por lotes — regenerar no puede
+  // ser la puerta por la que sale un documento con huecos.
+  if (unresolved.length > 0) {
+    throw new Error(
+      `No se puede regenerar "${template.name}": faltan datos para ${unresolved.length} campo(s) (${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}).`,
+    );
+  }
 
   if (format === 'pdf') {
     const projectRoot = process.cwd();

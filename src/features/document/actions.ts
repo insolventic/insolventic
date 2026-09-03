@@ -8,6 +8,8 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
+import { logger } from '@/lib/logger';
+import { canGenerateDocument } from '../case/validation-rules';
 import {
   checkRateLimit,
   getRateLimitKey,
@@ -692,6 +694,41 @@ export async function syncDocumentsWithGoogleDrive() {
   }
 }
 
+/**
+ * Reúne los campos obligatorios que faltan para una plantilla (C-3).
+ *
+ * Dos fuentes, deliberadamente distintas:
+ *  1. `unresolved` — placeholders que la plantilla referencia y el mapper no
+ *     produce en absoluto. Es un desajuste plantilla↔mapper: hueco garantizado.
+ *  2. `DOCUMENT_REQUIRED_FIELDS` (vía `canGenerateDocument`) — campos que el
+ *     mapper sí conoce pero que vienen vacíos o con relleno manual (`____`,
+ *     `N/A`) y que ese tipo de documento no admite en blanco.
+ *
+ * Un placeholder conocido y vacío que NO esté en la lista de obligatorios se
+ * considera opcional y no bloquea: así se respeta el render de las plantillas
+ * que dejan campos en blanco a propósito.
+ */
+function collectMissingData(
+  template: DocumentTemplate,
+  unresolved: string[],
+  placeholders: Record<string, string>,
+  htmlContent: string,
+): string[] {
+  const missing = new Set(unresolved);
+
+  const { missingFields } = canGenerateDocument(template.id, placeholders);
+  missingFields.forEach((f) => missing.add(f));
+
+  // Solo se exigen los obligatorios que la plantilla realmente usa.
+  const usedInTemplate = new Set(
+    [...htmlContent.matchAll(/\{\{([A-Za-z0-9_]+)\}\}/g)].map((m) => m[1]),
+  );
+
+  return [...missing].filter(
+    (field) => usedInTemplate.has(field) || unresolved.includes(field),
+  );
+}
+
 export async function batchGenerateDocuments(input: {
   caseId: string;
   templateIds?: string[];
@@ -804,7 +841,7 @@ export async function batchGenerateDocuments(input: {
     // Map case data to placeholders
     const {
       mapCaseToPlaceholders,
-      replacePlaceholders,
+      renderDocumentHtml,
       buildConciliationContext,
     } = await import('./placeholder-mapper');
 
@@ -923,8 +960,10 @@ export async function batchGenerateDocuments(input: {
       documentId: string;
       documentName: string;
       documentUrl: string;
-      status: 'success' | 'error';
+      status: 'success' | 'error' | 'skipped';
       error?: string;
+      /** Campos obligatorios faltantes que bloquearon la generación (C-3). */
+      missingFields?: string[];
     }> = [];
 
     // Phase 1: Read all templates and replace placeholders
@@ -955,11 +994,42 @@ export async function batchGenerateDocuments(input: {
           `[batchGenerateDocuments] Reading template: ${template.name} from ${fullPath}`,
         );
         const htmlContent = await fsPromises.readFile(fullPath, 'utf-8');
-        const filledHtml = replacePlaceholders(
+        const { html: filledHtml, unresolved } = renderDocumentHtml(
           htmlContent,
           placeholders,
           batchExtraCtx,
         );
+
+        // C-3: esta ruta —la que más usan los operadores desde /documents— no
+        // validaba absolutamente nada. Un documento con campos obligatorios
+        // vacíos se subía a Drive indistinguible de uno correcto.
+        const missing = collectMissingData(
+          template,
+          unresolved,
+          placeholders,
+          htmlContent,
+        );
+        if (missing.length > 0) {
+          logger.warn('Documento bloqueado por datos incompletos', {
+            action: 'batch-generate-documents',
+            caseId: caseData.id,
+            template: template.name,
+            templateId: template.id,
+            missing,
+          });
+          documents.push({
+            templateId: template.id,
+            templateName: template.name,
+            documentId: '',
+            documentName: '',
+            documentUrl: '',
+            status: 'skipped',
+            error: `No se generó por datos incompletos. Falta: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ` y ${missing.length - 6} más` : ''}.`,
+            missingFields: missing,
+          });
+          continue;
+        }
+
         const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}.pdf`;
 
         htmlDocuments.push({
@@ -1182,7 +1252,15 @@ export async function batchGenerateDocuments(input: {
     const successfulDocuments = documents.filter(
       (d) => d.status === 'success',
     ).length;
-    const failedDocuments = documents.length - successfulDocuments;
+    // C-3: los bloqueados por datos incompletos no son fallos técnicos; se
+    // cuentan aparte para que el usuario sepa que la acción es completar el
+    // expediente, no reintentar.
+    const skippedDocuments = documents.filter(
+      (d) => d.status === 'skipped',
+    ).length;
+    const failedDocuments = documents.filter(
+      (d) => d.status === 'error',
+    ).length;
 
     revalidatePath('/documents');
 
@@ -1203,7 +1281,7 @@ export async function batchGenerateDocuments(input: {
 
     return {
       success: true,
-      message: `Generación completada: ${successfulDocuments} exitosos, ${failedDocuments} fallidos`,
+      message: `Generación completada: ${successfulDocuments} exitosos, ${failedDocuments} fallidos${skippedDocuments > 0 ? `, ${skippedDocuments} no generados por datos incompletos` : ''}`,
       data: {
         caseId: caseData.id,
         caseNumber: caseData.caseNumber,
@@ -1214,6 +1292,7 @@ export async function batchGenerateDocuments(input: {
         totalDocuments: documents.length,
         successfulDocuments,
         failedDocuments,
+        skippedDocuments,
       },
     };
   } catch (error) {

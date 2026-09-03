@@ -93,13 +93,16 @@ interface GenerationResultData {
     documentId: string;
     documentName: string;
     documentUrl: string;
-    status: 'success' | 'error';
+    status: 'success' | 'error' | 'skipped';
     error?: string;
+    /** Campos obligatorios faltantes que bloquearon la generación (C-3). */
+    missingFields?: string[];
   }>;
   generatedAt: Date;
   totalDocuments: number;
   successfulDocuments: number;
   failedDocuments: number;
+  skippedDocuments?: number;
 }
 
 interface DocumentGenerationProps {
@@ -200,6 +203,12 @@ export function DocumentGeneration({
   );
   const failedDocs = generationResult?.documents.filter(
     (d) => d.status === 'error',
+  );
+  // C-3: documentos NO generados por datos incompletos. Se separan de los
+  // errores técnicos porque la acción del usuario es distinta: completar el
+  // expediente, no reintentar.
+  const incompleteDocs = generationResult?.documents.filter(
+    (d) => d.status === 'skipped',
   );
 
   return (
@@ -512,6 +521,38 @@ export function DocumentGeneration({
                     ),
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Blocked by incomplete data (C-3) */}
+            {incompleteDocs && incompleteDocs.length > 0 && (
+              <div>
+                <h4 className="mb-2 flex items-center gap-1 text-sm font-medium text-amber-700">
+                  <AlertCircle className="h-4 w-4" />
+                  {incompleteDocs.length} documento(s) no generados por datos
+                  incompletos
+                </h4>
+                <div className="space-y-1">
+                  {incompleteDocs.map((doc, index) => (
+                    <div
+                      key={`skip-${index}-${doc.templateId}`}
+                      className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm dark:border-amber-800 dark:bg-amber-950"
+                    >
+                      <span className="font-medium text-amber-800">
+                        {doc.templateName}
+                      </span>
+                      {doc.missingFields && doc.missingFields.length > 0 && (
+                        <p className="mt-0.5 text-xs text-amber-700">
+                          Falta: {doc.missingFields.join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-amber-700">
+                  Complete estos datos en el expediente y vuelva a generar. No
+                  se subió ningún archivo incompleto a Drive.
+                </p>
               </div>
             )}
 

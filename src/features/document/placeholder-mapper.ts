@@ -2717,14 +2717,38 @@ export function mapCaseToPlaceholders(
   });
 }
 
+export interface RenderedDocument {
+  html: string;
+  /**
+   * Placeholders `{{VAR}}` que el HTML referencia y que el mapper NO produce
+   * en absoluto. Son un desajuste real plantilla↔mapper, no un campo opcional
+   * vacío: el documento saldría con un hueco silencioso.
+   */
+  unresolved: string[];
+}
+
 /**
- * Replace placeholders in HTML content and remove empty blocks
+ * Renderiza la plantilla e informa de los placeholders que quedaron sin
+ * resolver (C-3).
+ *
+ * Antes, `replacePlaceholders` borraba en silencio todo `{{VAR}}` que el
+ * contexto no cubriera. Un documento legal salía con campos en blanco —o con
+ * filas de tabla desaparecidas— visualmente indistinguible de uno correcto, se
+ * radicaba, y el defecto aparecía en la audiencia.
+ *
+ * Distinción que hace esta función, y que es la clave del arreglo:
+ *  - placeholder **conocido por el mapper con valor vacío** → campo opcional
+ *    legítimo; se sigue vaciando y la fila vacía se sigue limpiando (no cambia
+ *    el render de las plantillas existentes).
+ *  - placeholder **ausente del mapper** → se reporta en `unresolved` para que
+ *    el llamador BLOQUEE la generación, y en el HTML se deja un marcador
+ *    visible en lugar de la nada, por si algún camino se saltara el bloqueo.
  */
-export function replacePlaceholders(
+export function renderDocumentHtml(
   html: string,
   placeholders: PlaceholderMap,
   extraContext?: Record<string, unknown>,
-): string {
+): RenderedDocument {
   // handlebars-lite takes a merged context (strings + flags + arrays).
   // For legacy insolvency templates with no {{#...}} tokens, the engine
   // short-circuits to plain substitution, preserving byte-for-byte output.
@@ -2732,10 +2756,32 @@ export function replacePlaceholders(
     ...(extraContext ?? {}),
     ...placeholders,
   };
-  let result = renderTemplate(html, ctx);
 
-  // Clean up any remaining unreplaced placeholders (show empty instead of {{VAR}})
-  result = result.replace(/\{\{[A-Za-z0-9_]+\}\}/g, '');
+  // El detector va ANTES del render: `substituteVars` de handlebars-lite ya
+  // sustituye por '' toda variable ausente del contexto (handlebars-lite.ts:62),
+  // así que escanear el HTML ya renderizado no encontraría nada. Hay que
+  // comparar contra la fuente.
+  //
+  // Las variables dentro de bloques `{{#each}}` / `{{#if}}` se resuelven contra
+  // el scope del bloque, no contra el contexto raíz: se excluyen del escaneo
+  // para no reportar falsos faltantes en las plantillas de conciliación.
+  const topLevelHtml = html.replace(
+    /\{\{#\s*[A-Za-z0-9_]+\s*\}\}[\s\S]*?\{\{\/\s*[A-Za-z0-9_]+\s*\}\}/g,
+    '',
+  );
+  const referenced = new Set(
+    [...topLevelHtml.matchAll(/\{\{([A-Za-z0-9_]+)\}\}/g)].map((m) => m[1]),
+  );
+  const unresolved = [...referenced].filter((name) => !(name in ctx));
+
+  // Marcador visible en lugar del hueco silencioso, por si algún camino se
+  // saltara el bloqueo del llamador.
+  const ctxWithMarkers: Record<string, unknown> = { ...ctx };
+  for (const name of unresolved) {
+    ctxWithMarkers[name] = `«FALTA: ${name}»`;
+  }
+
+  let result = renderTemplate(html, ctxWithMarkers);
 
   // Remove empty table rows: <tr> where all <td> content is empty after placeholder replacement
   result = result.replace(/<tr>\s*(?:<td[^>]*>\s*<\/td>\s*)+<\/tr>/g, '');
@@ -2746,7 +2792,19 @@ export function replacePlaceholders(
     '',
   );
 
-  return result;
+  return { html: result, unresolved };
+}
+
+/**
+ * @deprecated Descarta el informe de placeholders sin resolver. Usar
+ * `renderDocumentHtml` y bloquear la generación si `unresolved` no está vacío.
+ */
+export function replacePlaceholders(
+  html: string,
+  placeholders: PlaceholderMap,
+  extraContext?: Record<string, unknown>,
+): string {
+  return renderDocumentHtml(html, placeholders, extraContext).html;
 }
 
 /**
