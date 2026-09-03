@@ -21,16 +21,28 @@ import type { CreateCaseFormData, CreateCaseFormInput } from './schemas';
 // el de 2025, y estaba congelada en código para un sistema que opera en 2026.
 // De ella cuelgan dos umbrales legales: la mínima cuantía (40 SMMLV, que
 // determina si el apoderado judicial es obligatorio) y el tope de 150 SMMLV.
+// Con el valor viejo, la mínima cuantía se calculaba sobre 1.300.000 en vez de
+// sobre 1.750.905: un 35% por debajo del umbral real.
 //
 // Esta tabla resuelve el valor por año de radicación en vez de por constante
-// de compilación. Los valores 2024 y 2025 deben ser confirmados por el área
-// jurídica antes de considerar cerrado este hallazgo; el de 2026 está SIN
-// DEFINIR a propósito — no se inventa un valor del que depende un umbral legal
-// en producción.
+// de compilación.
+//
+// Fuentes normativas (verificadas contra las compilaciones oficiales):
+//   2026 → $1.750.905. Fijado por el Decreto 1469 de 2025 (29-dic-2025, vigente
+//          desde el 1-ene-2026), PERO ese decreto fue suspendido
+//          provisionalmente por el Consejo de Estado el 12-feb-2026. La norma
+//          operativa hoy es el Decreto 0159 de 2026 (19-feb-2026), que fija
+//          "TRANSITORIAMENTE" el mismo valor en cumplimiento de esa orden
+//          judicial. ⚠️ Al ser transitorio, el valor definitivo del año podría
+//          cambiar: revisar antes de cada radicación de alto monto.
+//   2025 → $1.423.500 (cross-check: 1.423.500 × 1,23 = 1.750.905, el 23% que
+//          declara el Decreto 0159 de 2026).
+//   2024 → $1.300.000. Pendiente de confirmar contra el Decreto 1572 de 2024,
+//          derogado por el 1469 de 2025.
 export const SMMLV_BY_YEAR: Readonly<Record<number, number>> = {
   2024: 1_300_000,
   2025: 1_423_500,
-  // 2026: PENDIENTE — completar con el decreto de salario mínimo vigente.
+  2026: 1_750_905,
 };
 
 /** Último año con SMMLV cargado en la tabla. */
@@ -46,10 +58,11 @@ export function isSmmlvYearConfirmed(year: number): boolean {
 /**
  * SMMLV aplicable a un año de radicación.
  *
- * Si el año no está en la tabla (p. ej. 2026 mientras no se cargue el decreto)
- * cae al último año conocido en vez de lanzar: dejar a los dos centros sin
- * poder radicar un expediente sería peor que calcular el umbral con una base
- * conservadora. `isSmmlvYearConfirmed` permite avisar de la degradación.
+ * Si el año no está en la tabla (a partir de 2027, mientras no se cargue el
+ * decreto correspondiente) cae al último año conocido en vez de lanzar: dejar a
+ * los dos centros sin poder radicar un expediente sería peor que calcular el
+ * umbral con una base conservadora. `isSmmlvYearConfirmed` permite avisar de la
+ * degradación.
  */
 export function getSmmlv(year: number = new Date().getFullYear()): number {
   return SMMLV_BY_YEAR[year] ?? SMMLV_BY_YEAR[LATEST_SMMLV_YEAR];

@@ -76,13 +76,28 @@ describe('SMMLV por año (C-2) — PENDIENTE DE VALIDACIÓN JURÍDICA', () => {
   it('resuelve el valor propio de cada año cargado', () => {
     expect(getSmmlv(2024)).toBe(1_300_000);
     expect(getSmmlv(2025)).toBe(1_423_500);
+    // Decreto 0159 de 2026 (norma operativa tras la suspensión del 1469/2025).
+    expect(getSmmlv(2026)).toBe(1_750_905);
+  });
+
+  it('2026 ya NO degrada al valor de 2025', () => {
+    // Regresión: mientras el decreto no estaba cargado, la mínima cuantía de
+    // 2026 se calculaba sobre la base de 2025.
+    expect(isSmmlvYearConfirmed(2026)).toBe(true);
+    expect(getSmmlv(2026)).not.toBe(getSmmlv(2025));
+    expect(LATEST_SMMLV_YEAR).toBe(2026);
+  });
+
+  it('el incremento 2025→2026 es el 23% que declara el decreto', () => {
+    // Cross-check aritmético contra la fuente: valida ambos valores a la vez.
+    expect(Math.round(getSmmlv(2025) * 1.23)).toBe(getSmmlv(2026));
   });
 
   it('marca como no confirmado un año sin decreto cargado', () => {
     expect(isSmmlvYearConfirmed(2024)).toBe(true);
-    expect(isSmmlvYearConfirmed(2025)).toBe(true);
-    // 2026 sigue pendiente a propósito: no se inventa la base de un umbral legal.
-    expect(isSmmlvYearConfirmed(2026)).toBe(false);
+    expect(isSmmlvYearConfirmed(2026)).toBe(true);
+    // 2027 aún no tiene decreto: no se inventa la base de un umbral legal.
+    expect(isSmmlvYearConfirmed(2027)).toBe(false);
   });
 
   it('degrada al último año conocido en vez de lanzar', () => {
@@ -94,6 +109,9 @@ describe('SMMLV por año (C-2) — PENDIENTE DE VALIDACIÓN JURÍDICA', () => {
     // pero sí en 2024 (40 × 1.300.000 = 52.000.000).
     expect(validateMinimaCuantia(55_000_000, false, 2025)).toHaveLength(0);
     expect(validateMinimaCuantia(55_000_000, false, 2024)).toHaveLength(1);
+    // 40 SMMLV 2026 = 70.036.200: el umbral sube otra vez.
+    expect(validateMinimaCuantia(65_000_000, false, 2026)).toHaveLength(0);
+    expect(validateMinimaCuantia(71_000_000, false, 2026)).toHaveLength(1);
   });
 
   it('el tope de 150 SMMLV también sigue el año', () => {
@@ -290,9 +308,14 @@ describe('createCase — las reglas se aplican en la server action (C-2)', () =>
   });
 
   it('BYPASS: rechaza superar la mínima cuantía sin apoderado', async () => {
+    // Derivado del año en curso, no clavado a un SMMLV concreto: `createCase`
+    // resuelve el umbral con `new Date().getFullYear()`.
+    const overMinimaCuantia = String(
+      40 * getSmmlv(new Date().getFullYear()) + 5_000_000,
+    );
     const result = await createCase({
       ...validInsolvency,
-      debts: [aDebt(String(40 * 1_423_500 + 5_000_000))],
+      debts: [aDebt(overMinimaCuantia)],
     });
 
     expect(result.success).toBe(false);

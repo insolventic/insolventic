@@ -60,25 +60,42 @@ Esta semana no escribe reglas nuevas: las cablea donde son obligatorias, extrae 
 
 **Esto es lo que no se puede dar por cerrado sin revisión de un abogado del área.**
 
-**El SMMLV no estaba corregido en ninguna rama.** El brief asumía que venía arreglado de un fix aparte; verificado: `dev`, `origin/dev` y `main` tenían todas `SMMLV_2025 = 1_300_000`, que es el valor de **2024**, no de 2025. De esa constante cuelgan dos umbrales legales.
+**El SMMLV no estaba corregido en ninguna rama.** El brief asumía que venía arreglado de un fix aparte; verificado: `dev`, `origin/dev` y `main` tenían todas `SMMLV_2025 = 1_300_000`, que es el valor de **2024**, no de 2025. De esa constante cuelgan dos umbrales legales. Con la base vieja, la mínima cuantía se calculaba un **35% por debajo** del umbral real de 2026.
 
 Se reemplazó por una tabla resuelta por año de radicación:
 
 ```
-SMMLV_BY_YEAR = { 2024: 1_300_000, 2025: 1_423_500 }
-getSmmlv(year)            // resuelve, degradando al último año conocido
+SMMLV_BY_YEAR = { 2024: 1_300_000, 2025: 1_423_500, 2026: 1_750_905 }
+getSmmlv(year)             // resuelve, degradando al último año conocido
 isSmmlvYearConfirmed(year) // false si el año no tiene decreto cargado
 ```
 
-| Ítem                             | Estado            | Acción requerida                                                                                                                                                                                          |
-| -------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SMMLV 2026**                   | 🔴 **SIN CARGAR** | Cargar el valor del decreto vigente. `getSmmlv` degrada al último año conocido en vez de lanzar (bloquear la radicación sería peor), pero **hoy los umbrales de 2026 se calculan sobre la base de 2025**. |
-| SMMLV 2024 y 2025                | 🟡 A confirmar    | Verificar los dos valores contra el decreto.                                                                                                                                                              |
-| Mínima cuantía = 40 SMMLV        | 🟡 A confirmar    | Confirmar el múltiplo y que la consecuencia correcta sea "apoderado judicial obligatorio".                                                                                                                |
-| Tope de 150 SMMLV                | 🟡 A confirmar    | Hoy es `warning`, no `error`: no bloquea. Confirmar si debe bloquear.                                                                                                                                     |
-| Límite de 150 acreedores         | 🟡 A confirmar    | Hoy es `error` y bloquea la creación.                                                                                                                                                                     |
-| Período de gracia ≤ 24 meses     | 🟡 A confirmar    | Hoy es `error` y bloquea.                                                                                                                                                                                 |
-| Causas obligatorias, ≥1 acreedor | 🟡 A confirmar    | Ahora bloquean la creación de casos de insolvencia.                                                                                                                                                       |
+### Procedencia del valor 2026 — leer antes de citarlo
+
+El valor **$1.750.905 está confirmado** contra dos compilaciones normativas oficiales (MinTIC, Cancillería). Pero **la citación habitual es incorrecta**, y para un sistema que emite documentos legales eso importa:
+
+| Norma                              | Qué hizo                                                                            | Estado                                                                     |
+| ---------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Decreto 1469 de 2025 (29-dic-2025) | Fijó $1.750.905 desde el 1-ene-2026                                                 | 🔴 **Suspendido provisionalmente** por el Consejo de Estado el 12-feb-2026 |
+| Decreto 0159 de 2026 (19-feb-2026) | Fija **transitoriamente** el mismo $1.750.905, en cumplimiento de la orden judicial | 🟡 Norma operativa hoy, pero **transitoria**                               |
+
+La suspensión se fundó en una posible violación del art. 8 de la Ley 278 de 1996 (parámetros para fijar unilateralmente el mínimo sin acuerdo en la Comisión de Concertación). El Decreto 0159 mantiene el mismo 23% y consolida los hechos cumplidos desde el 1-ene-2026.
+
+**Consecuencia práctica:** el valor vigente es correcto, pero es transitorio — el definitivo del año podría cambiar. Conviene revisarlo antes de radicaciones de alto monto, donde decide si el apoderado judicial es obligatorio. La citación en cualquier documento generado debe ser al **Decreto 0159 de 2026**, no al 1469 de 2025.
+
+Cross-check aritmético que valida ambos valores a la vez: 1.423.500 × 1,23 = 1.750.905 exacto, el 23% que declara el propio decreto. Hay un test que lo verifica.
+
+| Ítem                             | Estado                        | Acción requerida                                                                                                                                                                                                       |
+| -------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SMMLV 2026 = $1.750.905          | ✅ Cargado y verificado       | Vigilar si el Consejo de Estado define un valor definitivo distinto                                                                                                                                                    |
+| SMMLV 2025 = $1.423.500          | ✅ Confirmado por cross-check | —                                                                                                                                                                                                                      |
+| SMMLV 2024 = $1.300.000          | 🟡 A confirmar                | Verificar contra el Decreto 1572 de 2024, derogado por el 1469 de 2025                                                                                                                                                 |
+| Mínima cuantía = 40 SMMLV        | 🟡 A confirmar                | Confirmar el múltiplo y que la consecuencia sea "apoderado judicial obligatorio"                                                                                                                                       |
+| Tope de 150 SMMLV                | 🟡 A confirmar                | Hoy es `warning`, no `error`: no bloquea. Confirmar si debe bloquear                                                                                                                                                   |
+| Límite de 150 acreedores         | 🟡 A confirmar                | Hoy es `error` y bloquea la creación                                                                                                                                                                                   |
+| Período de gracia ≤ 24 meses     | 🟡 A confirmar                | Hoy es `error` y bloquea                                                                                                                                                                                               |
+| Causas obligatorias, ≥1 acreedor | 🟡 A confirmar                | Ahora bloquean la creación de casos de insolvencia                                                                                                                                                                     |
+| **Año de resolución del umbral** | 🟡 **Decisión pendiente**     | `createCase` usa `new Date().getFullYear()`, no la `fechaRadicacion` del expediente. Un caso radicado en dic-2025 pero registrado en ene-2026 se evalúa con la base de 2026. Definir cuál es la correcta jurídicamente |
 
 Ninguna de estas reglas se inventó ni se modificó en contenido: son las que ya estaban escritas en `validation-rules.ts` y aplicadas por el formulario. Lo que cambió es **dónde** se aplican y **sobre qué base** se calculan los umbrales. Pero al pasar de "aviso en el formulario" a "rechazo en el servidor", su severidad ahora tiene consecuencias reales, y por eso conviene la revisión.
 
@@ -130,10 +147,22 @@ Ninguna de estas reglas se inventó ni se modificó en contenido: son las que ya
 
 ### 5.1 Lo que C-4 **no** resuelve
 
+**Seguimiento: [issue #3](https://github.com/insolventic/insolventic/issues/3)** (`semana-4`, `performance`), con la estimación de capacidad por lote.
+
 `maxDuration = 60` es el techo del plan Hobby, y compra margen — no elimina el problema de raíz:
 
-- **`htmlToPdf` sigue lanzando un Chromium por documento** (`html-to-pdf.ts:323/355`), en serie. `batchHtmlToPdf`, que reutiliza un solo navegador, existe desde hace tiempo y sólo lo usa la ruta manual. Migrar `generate-documents.ts` a `batchHtmlToPdf` es el P1 pendiente del roadmap y sigue pendiente.
-- **Los lotes grandes (fracaso: hasta 26 plantillas; paquete completo: hasta 77) pueden no caber en 60 s** ni siquiera con un solo navegador. Necesitan trocearse en varias invocaciones.
+- **`htmlToPdf` sigue lanzando un Chromium por documento** (`html-to-pdf.ts:323/355`), en serie. `batchHtmlToPdf`, que reutiliza un solo navegador, existe desde hace tiempo y sólo lo usa la ruta manual.
+- **Capacidad estimada del presupuesto de 60 s: ~11 documentos hoy, ~24 con `batchHtmlToPdf`.** Los conteos de plantillas son exactos; los tiempos son estimación pendiente de medir en preview.
+
+  | Lote                            | Docs | Hoy              | Con `batchHtmlToPdf` |
+  | ------------------------------- | ---: | ---------------- | -------------------- |
+  | Creación INSOLVENCY (`after()`) |    5 | ~29 s ✅         | ~18 s ✅             |
+  | Admisión INSOLVENCY             |    8 | ~44 s ⚠️ al filo | ~24 s ✅             |
+  | Fracaso INSOLVENCY sin filtrar  |   26 | ~136 s 🔴        | ~64 s 🔴             |
+  | Paquete completo `/documents`   |   77 | ~396 s 🔴        | ~176 s 🔴            |
+
+  Conclusión: `batchHtmlToPdf` es necesario pero **no suficiente** — los dos lotes grandes necesitan además trocearse. Mitigación interina barata: filtrar siempre las plantillas de fracaso por `failureType` (`getTemplatesForFailure` ya lo soporta; sin filtro devuelve las 26).
+
 - **La idempotencia de _regeneración_ sigue abierta** (hallazgo 🟠 Alto, no crítico): el lock impide duplicados _concurrentes_, pero regenerar secuencialmente sigue subiendo un archivo nuevo a Drive y creando otra fila. `archiveSupersededDocument` sigue siendo código muerto y `persistGeneratedDocuments` sigue sin persistir `templateId`.
 
 ---
