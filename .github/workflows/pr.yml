@@ -36,8 +36,14 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # El type-check del proyecto necesita >2 GB de heap (el modelo Case tiene
+      # 283 campos y los tipos generados de Prisma son ~22% de los 277k tipos
+      # que instancia tsc). Sin este NODE_OPTIONS el step pasa por poco y es
+      # candidato a empezar a fallar solo.
       - name: Type check
         run: npx tsc --noEmit
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
 
       # Visible en cada PR pero no bloquea el merge: las vulnerabilidades
       # de dependencias se atienden como tarea propia, no frenan features.
@@ -51,5 +57,15 @@ jobs:
           CI: 'true'
           JWT_SECRET: ci-test-secret-key-for-github-actions-only
 
-      - name: Build (type & syntax check)
+      # `next build` volvía a type-chequear todo lo que el step "Type check" de
+      # arriba ya validó, y esa segunda pasada era ~2/3 del pico de memoria:
+      # el build OOM-eaba a los ~2050 MB que da el worker del runner.
+      # CI_SKIP_BUILD_TYPECHECK desactiva SOLO esa comprobación duplicada
+      # (ver el bloque de aviso en next.config.ts). El build sigue validando
+      # sintaxis y bundling; los errores de tipos los sigue bloqueando el step
+      # "Type check", que corre antes en este mismo job.
+      - name: Build (syntax & bundling)
         run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          CI_SKIP_BUILD_TYPECHECK: '1'
