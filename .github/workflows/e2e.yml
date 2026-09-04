@@ -75,8 +75,16 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # Mismo presupuesto de heap y mismo motivo que en pr.yml: sin esto el
+      # build muere con OOM en la fase de type-check (~2050 MB en el runner).
+      # El type-check se omite porque el job `quality-checks` de pr.yml ya
+      # corre `tsc --noEmit` sobre este mismo commit; repetirlo aquí no aporta
+      # cobertura y era el mayor consumo de memoria del job.
       - name: Build Next.js (production mode)
         run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+          CI_SKIP_BUILD_TYPECHECK: '1'
 
       - name: Run Playwright E2E tests
         run: npx playwright test --reporter=list,html

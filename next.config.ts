@@ -10,6 +10,56 @@ const nextConfig: NextConfig = {
   // fails the Vercel deploy with ENOENT. Externalizing it makes Next.js
   // resolve it from node_modules at runtime instead of trying to trace it.
   serverExternalPackages: ['@opentelemetry/api'],
+
+  // ===========================================================================
+  // ⛔ NUNCA CONFIGURAR `CI_SKIP_BUILD_TYPECHECK` EN VERCEL. ⛔
+  //
+  // QUÉ HACE
+  // Desactiva la comprobación de tipos y de ESLint que `next build` ejecuta
+  // como parte del build. NADA MÁS: el bundling y la validación de sintaxis
+  // siguen corriendo igual.
+  //
+  // POR QUÉ EXISTE
+  // El type-check de este proyecto necesita >2 GB de heap: `tsc` instancia
+  // ~277.000 tipos, de los cuales ~22% vienen del cliente generado de Prisma
+  // (el modelo `Case` tiene 283 campos, y Prisma genera Select/Include/Where/
+  // Create/Update con esa aridad). El worker de `next build` en los runners de
+  // GitHub Actions se queda en ~2050 MB y moría con
+  // "FATAL ERROR: Ineffective mark-compacts near heap limit".
+  // Medido: el build sin type-check cabe en 1024 MB; con él necesita >2048.
+  //
+  // En CI esa comprobación es REDUNDANTE: el job `quality-checks` de
+  // .github/workflows/pr.yml ya corre `npx tsc --noEmit` sobre el mismo commit
+  // en un step propio, y ese step sí bloquea el merge. Aquí solo se evita
+  // pagarla dos veces.
+  //
+  // EN VERCEL SERÍA UN AGUJERO
+  // Vercel es el único sitio donde se compila lo que llega a producción, y ahí
+  // NO hay un `tsc --noEmit` previo que haga de red. Si esta variable se
+  // definiera en Vercel, un error de tipos llegaría a producción sin que nada
+  // lo detuviera.
+  //
+  // DOBLE CANDADO — y por qué la comparación es contra el string 'true'
+  // Se exigen DOS condiciones. La segunda es la que protege de un despiste:
+  //   - GitHub Actions define CI='true' (string exacto).
+  //   - Vercel define CI='1' cuando el proyecto tiene activado "Automatically
+  //     expose System Environment Variables".
+  // La comparación es ESTRICTA contra 'true', así que en Vercel es false
+  // aunque alguien añadiera CI_SKIP_BUILD_TYPECHECK por error.
+  //
+  // ⚠️ NO relajar esta comparación. Cambiar `=== 'true'` por algo como
+  // `Boolean(process.env.CI)` o `!= null` haría que el candado dejara de
+  // funcionar en Vercel y degradaría los dos candados a uno solo.
+  // ===========================================================================
+  typescript: {
+    ignoreBuildErrors:
+      process.env.CI === 'true' && process.env.CI_SKIP_BUILD_TYPECHECK === '1',
+  },
+  eslint: {
+    ignoreDuringBuilds:
+      process.env.CI === 'true' && process.env.CI_SKIP_BUILD_TYPECHECK === '1',
+  },
+
   async headers() {
     return [
       {
