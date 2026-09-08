@@ -719,19 +719,36 @@ export const caseSchema = z.object({
   // Causa / resultado (mutual-exclusive enum-like)
   concCausaTerminacion: z.string().optional().nullable(),
   concResultadoInforme: z.string().optional().nullable(),
-  // Repeatable arrays (stored as Json in Prisma)
-  concMenoresAlimentos: z.array(concMenorSchema).optional(),
-  concMenoresUnion: z.array(concMenorUnionSchema).optional(),
+  // Repeatable arrays (stored as Json in Prisma).
+  //
+  // `.nullable()` NO es cosmético: estas 6 columnas son `Json?` en Prisma, que
+  // devuelve `null` (no `undefined`) cuando están vacías — y lo están en todo
+  // caso que no sea de conciliación, porque `sanitizeJsonFields` las borra del
+  // payload a propósito para que queden en NULL. Sin `.nullable()`, `caseSchema`
+  // rechazaba esas filas; como `getAllCasesSchema` es `z.array(caseSchema)`, un
+  // solo caso de insolvencia invalidaba el parse completo y `getAllCases`
+  // devolvía `success: false`. La página lo enmascaraba con `data || []`, así
+  // que /cases mostraba la lista vacía mientras las tarjetas de totales (que no
+  // pasan por este schema) seguían mostrando el número correcto.
+  //
+  // Solo se toca `caseSchema` (camino de LECTURA). `createCaseSchema` y
+  // `updateCaseSchema` validan payloads del cliente, que nunca envía `null`
+  // aquí; aflojarlos sería relajar validación de entrada sin necesidad.
+  concMenoresAlimentos: z.array(concMenorSchema).optional().nullable(),
+  concMenoresUnion: z.array(concMenorUnionSchema).optional().nullable(),
   concClausulasAdicionalesAlimentos: z
     .array(concClausulaAdicionalSchema)
-    .optional(),
+    .optional()
+    .nullable(),
   concClausulasAdicionalesUnion: z
     .array(concClausulaAdicionalSchema)
-    .optional(),
+    .optional()
+    .nullable(),
   concClausulasAdicionalesDisolucion: z
     .array(concClausulaAdicionalSchema)
-    .optional(),
-  concClausulasAcuerdo: z.array(concClausulaSchema).optional(),
+    .optional()
+    .nullable(),
+  concClausulasAcuerdo: z.array(concClausulaSchema).optional().nullable(),
 
   // ============================================================
   // ACUERDO DE APOYO - Campos específicos del servicio
