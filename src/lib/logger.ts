@@ -22,6 +22,10 @@
  *
  * Isomórfico: funciona en server actions, edge y componentes cliente
  * (Sentry se resuelve perezosamente y degrada a no-op sin DSN).
+ *
+ * Serverless: la captura en Sentry se registra en el `waitUntil` de Vercel
+ * (ver `serverlessWaitUntil`) para que la función no se congele antes de
+ * que el evento salga por red.
  */
 
 export interface LogContext {
@@ -44,9 +48,7 @@ type Level = 'error' | 'warn' | 'info' | 'debug';
 let requestIdProvider: (() => string | undefined) | null = null;
 
 /** Registrado por `src/lib/request-context.ts` (solo server). */
-export function setRequestIdProvider(
-  provider: () => string | undefined,
-): void {
+export function setRequestIdProvider(provider: () => string | undefined): void {
   requestIdProvider = provider;
 }
 
@@ -128,7 +130,11 @@ export function redactContext(ctx: LogContext): LogContext {
 type SentryLike = {
   captureException: (err: unknown, context?: unknown) => void;
   captureMessage: (msg: string, level?: string) => void;
+  flush?: (timeout?: number) => Promise<boolean>;
 };
+
+/** Tiempo máximo de espera para vaciar la cola de envío (mismo valor que usa el SDK). */
+const FLUSH_TIMEOUT_MS = 2_000;
 
 let cachedSentry: SentryLike | null | undefined;
 
@@ -146,6 +152,78 @@ async function getSentry(): Promise<SentryLike | null> {
     cachedSentry = null;
   }
   return cachedSentry;
+}
+
+// ---------------------------------------------------------------------------
+// Entrega garantizada en serverless
+//
+// `logger.error/warn` no se esperan (devuelven void) y Sentry envía por red
+// de forma asíncrona. En Vercel la función se congela apenas responde: si el
+// envío quedó pendiente, el evento se pierde aunque la respuesta haya sido
+// correcta (visto en el preview de `fix/sentry-init`, 2026-09-01). El SDK
+// tiene `vercelWaitUntil` para esto, pero es un no-op fuera del runtime edge.
+//
+// Solución: la promesa de captura + flush se registra en el `waitUntil` del
+// contexto de request que Vercel expone como global (el mismo mecanismo que
+// usa `after()` de Next). Fuera de Vercel (dev local, tests, navegador) no
+// hay contexto y la promesa simplemente queda en vuelo, como antes.
+// ---------------------------------------------------------------------------
+
+type WaitUntilContext = { waitUntil?: (task: Promise<unknown>) => void };
+type RequestContextGlobal = { get?: () => WaitUntilContext | undefined };
+
+const REQUEST_CONTEXT_SYMBOLS = [
+  Symbol.for('@next/request-context'),
+  Symbol.for('@vercel/request-context'),
+];
+
+/** `waitUntil` del contexto de request actual, o null fuera de la plataforma. */
+function getWaitUntil(): ((task: Promise<unknown>) => void) | null {
+  const globals = globalThis as unknown as Record<
+    symbol,
+    RequestContextGlobal | undefined
+  >;
+  for (const symbol of REQUEST_CONTEXT_SYMBOLS) {
+    try {
+      const ctx = globals[symbol]?.get?.();
+      if (typeof ctx?.waitUntil === 'function') {
+        return ctx.waitUntil.bind(ctx);
+      }
+    } catch {
+      // Contexto inválido: probar el siguiente símbolo.
+    }
+  }
+  return null;
+}
+
+/**
+ * ¿Hay `waitUntil` disponible en este request? Expuesto para diagnóstico:
+ * si es `false` dentro de una función de Vercel, los eventos que el logger
+ * emite sin esperar pueden perderse al congelarse la función.
+ */
+export function hasServerlessWaitUntil(): boolean {
+  return getWaitUntil() !== null;
+}
+
+/** Registra `task` en el waitUntil de la plataforma si existe; si no, no-op. */
+export function serverlessWaitUntil(task: Promise<unknown>): boolean {
+  const waitUntil = getWaitUntil();
+  if (!waitUntil) return false;
+  waitUntil(task);
+  return true;
+}
+
+/** Captura en Sentry y espera el flush; nunca rechaza. */
+function deliverToSentry(capture: (sentry: SentryLike) => void): Promise<void> {
+  const task = getSentry()
+    .then(async (sentry) => {
+      if (!sentry) return;
+      capture(sentry);
+      await sentry.flush?.(FLUSH_TIMEOUT_MS);
+    })
+    .catch(() => undefined);
+  serverlessWaitUntil(task);
+  return task;
 }
 
 // ---------------------------------------------------------------------------
@@ -188,8 +266,7 @@ export const logger = {
   error(message: string, err?: unknown, ctx?: LogContext): void {
     emit('error', message, ctx, err);
     const requestId = autoRequestId();
-    void getSentry().then((sentry) => {
-      if (!sentry) return;
+    void deliverToSentry((sentry) => {
       const extra = ctx ? redactContext(ctx) : undefined;
       if (err instanceof Error) {
         sentry.captureException(err, {
@@ -204,8 +281,8 @@ export const logger = {
   /** WARN: consola + Sentry.captureMessage(warning). */
   warn(message: string, ctx?: LogContext): void {
     emit('warn', message, ctx);
-    void getSentry().then((sentry) => {
-      sentry?.captureMessage(message, 'warning');
+    void deliverToSentry((sentry) => {
+      sentry.captureMessage(message, 'warning');
     });
   },
 

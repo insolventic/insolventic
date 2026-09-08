@@ -17,8 +17,8 @@ let cachedSentry: SentryLike | null | undefined;
 
 /**
  * Lazy-load Sentry only on server; browsers get the client config via
- * `sentry.client.config.ts`. Silently returns null if the package or DSN
- * is missing.
+ * `src/instrumentation-client.ts` (server/edge: `src/instrumentation.ts`).
+ * Silently returns null if the package or DSN is missing.
  */
 async function getSentry(): Promise<SentryLike | null> {
   if (cachedSentry !== undefined) return cachedSentry;
