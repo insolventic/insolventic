@@ -1,0 +1,60 @@
+name: Smoke Test (post-deploy)
+
+# La integración nativa Vercel↔GitHub emite `deployment_status` cuando un
+# deploy termina. Este workflow NO despliega nada: solo verifica el deploy
+# ya publicado (A-5). No compite con la integración nativa — por eso no
+# revive el `deploy.yml` que se eliminó en la Session 3.
+on:
+  deployment_status:
+  # Permite correrlo a mano contra cualquier URL (rollback, incidente).
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL a verificar (ej. https://insolventic.vercel.app)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    # Solo cuando el deploy terminó bien: los estados `pending`/`failure`
+    # no tienen nada que verificar.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Resolver URL objetivo
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            URL="${{ inputs.url }}"
+          else
+            URL="${{ github.event.deployment_status.environment_url }}"
+          fi
+          if [ -z "$URL" ]; then
+            echo "No se pudo resolver la URL del deploy" >&2
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Verificando: $URL"
+
+      - name: Smoke test
+        run: bash scripts/smoke-test.sh "${{ steps.target.outputs.url }}"
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "### Smoke test post-deploy"
+            echo ""
+            echo "- **URL:** ${{ steps.target.outputs.url }}"
+            echo "- **Entorno:** ${{ github.event.deployment_status.environment || 'manual' }}"
+            echo "- **Resultado:** ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"

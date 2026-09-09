@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { P } from '@/lib/permissions';
 import { seedRequestContextFromHeaders } from '@/lib/request-context';
 import { headers } from 'next/headers';
 import {
@@ -141,7 +142,7 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
 
     // Rate limiting
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('login', ip),
       RATE_LIMIT_CONFIGS.login,
     );
@@ -241,12 +242,12 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
 
     revalidateTag('auth');
 
+    // A-3: los tokens NO se devuelven en el body — viajan solo en las
+    // cookies httpOnly seteadas arriba.
     return {
       success: true,
       message: 'Inicio de sesión exitoso',
       user: sessionData,
-      accessToken,
-      refreshToken,
     };
   } catch (error) {
     logger.error('Login error', error);
@@ -483,12 +484,12 @@ export async function refreshAccessToken(): Promise<AuthResult> {
 
     await setAuthCookies(newAccessToken, newRefreshToken);
 
+    // A-3: los tokens NO se devuelven en el body — viajan solo en las
+    // cookies httpOnly seteadas arriba.
     return {
       success: true,
       message: 'Token actualizado exitosamente',
       user: sessionData,
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
     };
   } catch (error) {
     logger.error('Token refresh error', error);
@@ -629,8 +630,25 @@ export async function switchTenant(targetTenantSlug: string): Promise<{
 
 export async function registerUser(input: unknown): Promise<RegisterResult> {
   try {
+    // C-2 (auditoría 2026-08-25): el registro público está cerrado. Sin
+    // verificación de email, cualquiera podía registrarse con el correo de
+    // un deudor real y acceder a su expediente vía el modo cliente. Solo
+    // una sesión con permiso de crear usuarios puede invocar esta action.
+    try {
+      await requireActionPermission(P.CREAR_USUARIOS);
+    } catch {
+      logger.warn('Public registration attempt blocked', {
+        action: 'registerUser',
+      });
+      return {
+        success: false,
+        message:
+          'El registro público está deshabilitado. Solicite su cuenta al administrador de su centro de conciliación.',
+      };
+    }
+
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('register', ip),
       RATE_LIMIT_CONFIGS.register,
     );
@@ -757,7 +775,7 @@ export async function forgotPassword(
 ): Promise<PasswordResetResult> {
   try {
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('forgotPassword', ip),
       RATE_LIMIT_CONFIGS.forgotPassword,
     );
@@ -860,7 +878,7 @@ export async function resetPassword(
 ): Promise<PasswordResetResult> {
   try {
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('resetPassword', ip),
       RATE_LIMIT_CONFIGS.resetPassword,
     );
@@ -962,7 +980,7 @@ export async function changePassword(input: unknown): Promise<{
 }> {
   try {
     const ip = await getClientIp();
-    const rateLimitResult = checkRateLimit(
+    const rateLimitResult = await checkRateLimit(
       getRateLimitKey('changePassword', ip),
       RATE_LIMIT_CONFIGS.changePassword,
     );

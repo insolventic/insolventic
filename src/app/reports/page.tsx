@@ -1,8 +1,12 @@
+import { requirePageAuth } from '@/lib/auth';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { DashboardHeader } from '../dashboard/components/dashboard-header';
 import { ReportsContent } from './components/reports-content';
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  // Verify authentication server-side before rendering (M-9)
+  await requirePageAuth('/reports');
+
   return (
     <PermissionGuard
       permission="Ver reportes"

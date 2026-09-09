@@ -1,8 +1,12 @@
+import { requirePageAuth } from '@/lib/auth';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { DashboardHeader } from '../dashboard/components/dashboard-header';
 import { CalendarContent } from './components/calendar-content';
 
-export default function CalendarPage() {
+export default async function CalendarPage() {
+  // Verify authentication server-side before rendering (M-9)
+  await requirePageAuth('/calendar');
+
   return (
     <PermissionGuard
       permission="Ver calendario"

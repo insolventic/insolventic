@@ -90,9 +90,9 @@ async function runWithGenerationLock(
  * Per-user rate limit shared by every generation action. Returns an error
  * string when the limit is exceeded, null otherwise.
  */
-function checkGenerationRateLimit(userId: string): string | null {
+async function checkGenerationRateLimit(userId: string): Promise<string | null> {
   const rlKey = getRateLimitKey('documentGeneration', userId);
-  const rl = checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.documentGeneration);
+  const rl = await checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.documentGeneration);
   if (!rl.allowed) {
     return `Demasiadas solicitudes de generación. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`;
   }
@@ -161,7 +161,7 @@ export async function regenerateCaseDocument(input: {
       };
     }
 
-    const rateLimitError = checkGenerationRateLimit(user.id);
+    const rateLimitError = await checkGenerationRateLimit(user.id);
     if (rateLimitError) {
       return { success: false, error: rateLimitError };
     }
@@ -263,7 +263,7 @@ export async function generateInitialDocuments(caseId: string): Promise<{
       };
     }
 
-    const rateLimitError = checkGenerationRateLimit(user.id);
+    const rateLimitError = await checkGenerationRateLimit(user.id);
     if (rateLimitError) {
       return { success: false, error: rateLimitError };
     }
@@ -344,7 +344,7 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
       };
     }
 
-    const rateLimitError = checkGenerationRateLimit(user.id);
+    const rateLimitError = await checkGenerationRateLimit(user.id);
     if (rateLimitError) {
       return { success: false, error: rateLimitError };
     }
@@ -410,7 +410,7 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
       };
     }
 
-    const rateLimitError = checkGenerationRateLimit(user.id);
+    const rateLimitError = await checkGenerationRateLimit(user.id);
     if (rateLimitError) {
       return { success: false, error: rateLimitError };
     }
@@ -479,7 +479,7 @@ export async function generateFailureDocuments(
       };
     }
 
-    const rateLimitError = checkGenerationRateLimit(user.id);
+    const rateLimitError = await checkGenerationRateLimit(user.id);
     if (rateLimitError) {
       return { success: false, error: rateLimitError };
     }

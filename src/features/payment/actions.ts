@@ -1139,7 +1139,7 @@ export async function exportPaymentTrackingToExcel(
     }
 
     const rlKey = getRateLimitKey('reportExport', user.id);
-    const rl = checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.reportExport);
+    const rl = await checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.reportExport);
     if (!rl.allowed) {
       return {
         success: false,
