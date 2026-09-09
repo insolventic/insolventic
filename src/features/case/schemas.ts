@@ -785,7 +785,12 @@ export const caseSchema = z.object({
   apoyoAcuerdo: z.string().optional().nullable(),
   apoyoResultado: z.string().optional().nullable(),
   apoyoCausaTerminacion: z.string().optional().nullable(),
-  apoyoClausulas: z.array(concClausulaSchema).optional(),
+  // Mismo caso que los 6 arrays de conciliación de arriba: `Json?` en Prisma
+  // devuelve `null`, y `.optional()` solo acepta `undefined`. Se quedó fuera de
+  // a54d92e porque aquel fix se buscó por el prefijo `conc*`; este campo es del
+  // bloque ACUERDO DE APOYO y está en NULL en todo caso que no sea
+  // SUPPORT_AGREEMENT — es decir, en los 28 casos de producción.
+  apoyoClausulas: z.array(concClausulaSchema).optional().nullable(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago

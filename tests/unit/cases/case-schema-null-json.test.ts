@@ -14,6 +14,12 @@
  * (case/actions.ts) borra esos campos del payload a propósito para todo caso
  * que no sea de conciliación. Verificado en producción: 28/28 casos de los dos
  * tenants (18 constructores-paz, 10 armonia) tienen al menos uno en NULL.
+ *
+ * SON 7, NO 6. `a54d92e` arregló solo los 6 con prefijo `conc*` y dejó fuera
+ * `apoyoClausulas` (bloque ACUERDO DE APOYO), así que tras aquel despliegue el
+ * síntoma persistió idéntico. La lección: el fixture parte ahora de la fila
+ * completa que devuelve Prisma —derivada de CAMPOS_JSON_NULLABLE— y no de los
+ * campos que se tocaron, que fue justo el error que dejó pasar el 7º.
  */
 
 import {
@@ -23,8 +29,15 @@ import {
 } from '@/features/case/schemas';
 import { CASE_DATA, DEBTOR, ADMIN_USER } from '../../helpers/fixtures';
 
-/** Los 6 campos afectados, con su columna real en Postgres. */
-const CAMPOS_JSON_CONCILIACION = [
+/**
+ * Los 7 campos `Json?` de `caseSchema`, con su columna real en Postgres.
+ *
+ * Son TODOS los que el escaneo Prisma↔Zod encontró: se comparan los 216 campos
+ * nullable del modelo `Case` contra las 270 declaraciones de `caseSchema`, y
+ * estos son los únicos de tipo array. Si se añade otro `Json?` al modelo, debe
+ * entrar aquí Y llevar `.nullable()`.
+ */
+const CAMPOS_JSON_NULLABLE = [
   ['concMenoresAlimentos', 'conc_menores_alimentos'],
   ['concMenoresUnion', 'conc_menores_union'],
   ['concClausulasAdicionalesAlimentos', 'conc_clausulas_adicionales_alimentos'],
@@ -34,6 +47,9 @@ const CAMPOS_JSON_CONCILIACION = [
     'conc_clausulas_adicionales_disolucion',
   ],
   ['concClausulasAcuerdo', 'conc_clausulas_acuerdo'],
+  // 7º campo — bloque ACUERDO DE APOYO. a54d92e lo dejó fuera y por eso el
+  // síntoma persistió idéntico tras aquel deploy.
+  ['apoyoClausulas', 'apoyo_clausulas'],
 ] as const;
 
 /**
@@ -49,13 +65,10 @@ function casoDeInsolvenciaComoLoDevuelvePrisma(
   return {
     ...CASE_DATA,
     type: 'INSOLVENCY',
-    // Así llega de Prisma cuando la columna Json? está en NULL.
-    concMenoresAlimentos: null,
-    concMenoresUnion: null,
-    concClausulasAdicionalesAlimentos: null,
-    concClausulasAdicionalesUnion: null,
-    concClausulasAdicionalesDisolucion: null,
-    concClausulasAcuerdo: null,
+    // Los 7 se derivan de CAMPOS_JSON_NULLABLE en vez de listarse a mano: así
+    // la fila la define el DATO (lo que Prisma devuelve), no el fix. Añadir un
+    // campo a la lista lo mete automáticamente en todos los casos de prueba.
+    ...Object.fromEntries(CAMPOS_JSON_NULLABLE.map(([c]) => [c, null])),
     // Relaciones que `caseSchema` exige (vienen del `include`).
     debtor: DEBTOR,
     operator: {
@@ -68,8 +81,8 @@ function casoDeInsolvenciaComoLoDevuelvePrisma(
   };
 }
 
-describe('caseSchema — columnas Json? en NULL (regresión de /cases)', () => {
-  it('parsea un caso de insolvencia con los 6 campos en null', () => {
+describe('caseSchema — los 7 campos Json? en NULL (regresión de /cases)', () => {
+  it('parsea un caso de insolvencia con los 7 campos Json? en null', () => {
     const result = caseSchema.safeParse(
       casoDeInsolvenciaComoLoDevuelvePrisma(),
     );
@@ -84,17 +97,14 @@ describe('caseSchema — columnas Json? en NULL (regresión de /cases)', () => {
     expect(result.success).toBe(true);
   });
 
-  it.each(CAMPOS_JSON_CONCILIACION)(
-    'acepta null en %s (columna %s)',
-    (campo) => {
-      const fila = casoDeInsolvenciaComoLoDevuelvePrisma({ [campo]: null });
-      expect(caseSchema.safeParse(fila).success).toBe(true);
-    },
-  );
+  it.each(CAMPOS_JSON_NULLABLE)('acepta null en %s (columna %s)', (campo) => {
+    const fila = casoDeInsolvenciaComoLoDevuelvePrisma({ [campo]: null });
+    expect(caseSchema.safeParse(fila).success).toBe(true);
+  });
 
   it('sigue aceptando undefined (campo ausente del objeto)', () => {
     const fila = casoDeInsolvenciaComoLoDevuelvePrisma();
-    for (const [campo] of CAMPOS_JSON_CONCILIACION) {
+    for (const [campo] of CAMPOS_JSON_NULLABLE) {
       delete (fila as Record<string, unknown>)[campo];
     }
     expect(caseSchema.safeParse(fila).success).toBe(true);
