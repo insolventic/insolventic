@@ -733,19 +733,36 @@ export const caseSchema = z.object({
   // Causa / resultado (mutual-exclusive enum-like)
   concCausaTerminacion: z.string().optional().nullable(),
   concResultadoInforme: z.string().optional().nullable(),
-  // Repeatable arrays (stored as Json in Prisma)
-  concMenoresAlimentos: z.array(concMenorSchema).optional(),
-  concMenoresUnion: z.array(concMenorUnionSchema).optional(),
+  // Repeatable arrays (stored as Json in Prisma).
+  //
+  // `.nullable()` NO es cosmético: estas 6 columnas son `Json?` en Prisma, que
+  // devuelve `null` (no `undefined`) cuando están vacías — y lo están en todo
+  // caso que no sea de conciliación, porque `sanitizeJsonFields` las borra del
+  // payload a propósito para que queden en NULL. Sin `.nullable()`, `caseSchema`
+  // rechazaba esas filas; como `getAllCasesSchema` es `z.array(caseSchema)`, un
+  // solo caso de insolvencia invalidaba el parse completo y `getAllCases`
+  // devolvía `success: false`. La página lo enmascaraba con `data || []`, así
+  // que /cases mostraba la lista vacía mientras las tarjetas de totales (que no
+  // pasan por este schema) seguían mostrando el número correcto.
+  //
+  // Solo se toca `caseSchema` (camino de LECTURA). `createCaseSchema` y
+  // `updateCaseSchema` validan payloads del cliente, que nunca envía `null`
+  // aquí; aflojarlos sería relajar validación de entrada sin necesidad.
+  concMenoresAlimentos: z.array(concMenorSchema).optional().nullable(),
+  concMenoresUnion: z.array(concMenorUnionSchema).optional().nullable(),
   concClausulasAdicionalesAlimentos: z
     .array(concClausulaAdicionalSchema)
-    .optional(),
+    .optional()
+    .nullable(),
   concClausulasAdicionalesUnion: z
     .array(concClausulaAdicionalSchema)
-    .optional(),
+    .optional()
+    .nullable(),
   concClausulasAdicionalesDisolucion: z
     .array(concClausulaAdicionalSchema)
-    .optional(),
-  concClausulasAcuerdo: z.array(concClausulaSchema).optional(),
+    .optional()
+    .nullable(),
+  concClausulasAcuerdo: z.array(concClausulaSchema).optional().nullable(),
 
   // ============================================================
   // ACUERDO DE APOYO - Campos específicos del servicio
@@ -782,7 +799,12 @@ export const caseSchema = z.object({
   apoyoAcuerdo: z.string().optional().nullable(),
   apoyoResultado: z.string().optional().nullable(),
   apoyoCausaTerminacion: z.string().optional().nullable(),
-  apoyoClausulas: z.array(concClausulaSchema).optional(),
+  // Mismo caso que los 6 arrays de conciliación de arriba: `Json?` en Prisma
+  // devuelve `null`, y `.optional()` solo acepta `undefined`. Se quedó fuera de
+  // a54d92e porque aquel fix se buscó por el prefijo `conc*`; este campo es del
+  // bloque ACUERDO DE APOYO y está en NULL en todo caso que no sea
+  // SUPPORT_AGREEMENT — es decir, en los 28 casos de producción.
+  apoyoClausulas: z.array(concClausulaSchema).optional().nullable(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
