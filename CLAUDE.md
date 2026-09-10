@@ -24,12 +24,20 @@ npm run test:e2e       # playwright
 
 ## Autoría de commits — REGLA PERMANENTE, NO NEGOCIABLE
 
-**Todo commit de este repositorio debe quedar autorado bajo una de estas dos identidades, y ninguna otra:**
+**Todo commit de este repositorio debe quedar autorado bajo una de estas dos personas, y ninguna otra:**
 
-| Identidad | Cuándo |
-| ------------------------------------ | ---------------------------------------------------------------------------------- |
-| `MaxitoJM <maxitojam@hotmail.com>` | Trabajo normal. Es la config global de git; no hay que hacer nada. |
-| `Insolventic <insolvenic@gmail.com>` | Cuando el commit va a ser el **HEAD** de un push a `main` o `dev` que dispare deploy |
+| # | Identidad | Cuándo |
+| --- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| 1a | `MaxitoJM <maxitojam@hotmail.com>` | Trabajo normal, **commit local**. Es la config global de git; no hay que hacer nada. |
+| 1b | `MaxitoJM <135483965+MaxitoJM@users.noreply.github.com>` | Trabajo normal, **squash o merge hecho desde GitHub** (web o `gh pr merge`). |
+| 2 | `Insolventic <insolvenic@gmail.com>` | Cuando el commit va a ser el **HEAD** de un push a `main` o `dev` que dispare deploy. |
+
+**1a y 1b son la misma persona.** No son dos autores distintos ni hay que elegir entre ellos: la forma la impone la vía por la que se crea el commit, no una decisión. GitHub reescribe el email al `noreply` de la cuenta al hacer squash porque el email real está marcado como privado, y eso **no se puede evitar** desde `gh pr merge`. En la práctica:
+
+- Lo que se commitea en local → `1a`.
+- Lo que se mergea por PR en GitHub → `1b`.
+
+Ambas son válidas y **ninguna de las dos se corrige ni se reescribe** por tener una forma u otra.
 
 Aplica a **todos** los commits sin excepción: `git commit` directo, merge commits, squashes de PR, commits vacíos de trigger, y `--amend`.
 
@@ -58,8 +66,15 @@ git log -1 --format="%an <%ae>%n%s%n---%n%b"
 
 Comprobar dos cosas en esa salida:
 
-1. El autor es una de las dos identidades de la tabla.
+1. El autor es una de las identidades de la tabla — **`1a`, `1b` o `2`, indistintamente**. Que aparezca el `noreply` de GitHub en vez del correo real **no es un error** y no se corrige: es la forma esperada en todo lo que se mergea por PR.
 2. El cuerpo **no** contiene ningún trailer de atribución de agente.
+
+Un chequeo que acepta las tres formas y solo falla ante un autor ajeno:
+
+```bash
+git log -1 --format="%an <%ae>" | grep -qE "^(MaxitoJM <(maxitojam@hotmail\.com|135483965\+MaxitoJM@users\.noreply\.github\.com)>|Insolventic <insolvenic@gmail\.com>)$" \
+  && echo "autor OK" || echo "AUTOR NO PERMITIDO — no pushear"
+```
 
 Si algo no cuadra, corregirlo **antes** del push:
 
