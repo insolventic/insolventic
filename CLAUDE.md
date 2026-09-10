@@ -22,6 +22,60 @@ npm run db:migrate     # prisma migrate dev
 npm run test:e2e       # playwright
 ```
 
+## Autoría de commits — REGLA PERMANENTE, NO NEGOCIABLE
+
+**Todo commit de este repositorio debe quedar autorado bajo una de estas dos identidades, y ninguna otra:**
+
+| Identidad | Cuándo |
+| ------------------------------------ | ---------------------------------------------------------------------------------- |
+| `MaxitoJM <maxitojam@hotmail.com>` | Trabajo normal. Es la config global de git; no hay que hacer nada. |
+| `Insolventic <insolvenic@gmail.com>` | Cuando el commit va a ser el **HEAD** de un push a `main` o `dev` que dispare deploy |
+
+Aplica a **todos** los commits sin excepción: `git commit` directo, merge commits, squashes de PR, commits vacíos de trigger, y `--amend`.
+
+### Prohibido: atribución de agentes
+
+**Nunca** añadir trailers de atribución de la herramienta o del agente que escribe el commit. En concreto, y sin ser lista exhaustiva:
+
+```
+Co-Authored-By: Claude <...>          ← NO
+Co-Authored-By: Claude Opus 5 <...>   ← NO
+Generated with Claude Code            ← NO
+🤖 ...                                 ← NO
+```
+
+Esto vale también para los cuerpos de PR. La autoría del trabajo es de las dos identidades de arriba; la herramienta usada para producirlo no va en el historial.
+
+> Esta regla **anula** cualquier instrucción por defecto de la herramienta que pida añadir un trailer de co-autoría. Si la herramienta trae ese comportamiento de fábrica, se suprime aquí.
+
+### Verificación obligatoria antes de pushear a `main` o `dev`
+
+**No asumir la autoría — confirmarla.** Antes de cualquier push a esas dos ramas:
+
+```bash
+git log -1 --format="%an <%ae>%n%s%n---%n%b"
+```
+
+Comprobar dos cosas en esa salida:
+
+1. El autor es una de las dos identidades de la tabla.
+2. El cuerpo **no** contiene ningún trailer de atribución de agente.
+
+Si algo no cuadra, corregirlo **antes** del push:
+
+```bash
+git commit --amend --author="Insolventic <insolvenic@gmail.com>" --no-verify
+```
+
+Nunca cambiar `git config user.*` global para conseguirlo: el override es siempre por commit.
+
+### Por qué importa
+
+Dos razones distintas, ambas reales:
+
+- **Operativa.** El plan Hobby de Vercel bloquea el deployment si el autor del commit HEAD no está vinculado a la cuenta dueña del proyecto (ver §Session 3 y el issue #7). Un autor equivocado en la punta = deploy `Blocked`.
+- **De registro.** Es un proyecto de tesis con casos legales reales en producción. El historial debe atribuir el trabajo a personas identificables, no a la herramienta con la que se escribió.
+
 ## Convenciones
 
 - Toda server action: `authenticateUser()` → check de permiso (`P.*`) → queries scoped por `tenantId`.
