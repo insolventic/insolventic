@@ -20,8 +20,14 @@ test.describe('Case Management E2E', () => {
     await page.goto('/cases');
     await expect(page).toHaveURL(/\/cases/);
     // Either the table is rendered or we get an empty-state message.
+    // `text=` is a separate engine and cannot be comma-joined with CSS —
+    // use `.or()` to combine them, and `.first()` because the empty-state
+    // copy matches in several places.
     await expect(
-      page.locator('table, [data-testid="cases-table"], text=/caso/i'),
+      page
+        .locator('table, [data-testid="cases-table"]')
+        .or(page.getByText(/caso/i))
+        .first(),
     ).toBeVisible({ timeout: 10_000 });
   });
 
