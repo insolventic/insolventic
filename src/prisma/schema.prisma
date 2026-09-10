@@ -3,9 +3,24 @@ generator client {
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
+// `url` es la conexión que usa la app en runtime: va por el pooler de Neon
+// (host con `-pooler`), que es lo correcto en serverless — muchas invocaciones
+// cortas, sin conexiones persistentes.
+//
+// `directUrl` es la conexión sin pooler, y la usan SOLO los comandos de
+// migración (`migrate deploy`, `migrate dev`, `db push`, `migrate diff`).
+// PgBouncer en modo transacción no sostiene la sesión persistente ni los
+// advisory locks que necesita `migrate deploy`, y lo rechaza con:
+//
+//     Error: P1002 — The database server was reached but timed out.
+//
+// Ese error tumbó deploys de producción de forma intermitente (`702e9ff`
+// recuperado al reintentar, `cc33d2e` no), porque el `buildCommand` de
+// vercel.json corre `prisma migrate deploy` solo cuando VERCEL_ENV=production.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Tenant {

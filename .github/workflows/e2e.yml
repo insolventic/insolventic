@@ -42,6 +42,11 @@ jobs:
       DATABASE_URL: postgresql://insolventic_e2e:insolventic_e2e@localhost:5432/insolventic_e2e
       DATABASE_URL_ARMONIA: postgresql://insolventic_e2e:insolventic_e2e@localhost:5432/insolventic_e2e
       DATABASE_URL_CONSTRUCTORES_PAZ: postgresql://insolventic_e2e:insolventic_e2e@localhost:5432/insolventic_e2e
+      # `directUrl` del datasource. Sin esta var, el step de `prisma db push`
+      # falla con "Environment variable not found: DIRECT_URL".
+      # El Postgres del runner no tiene pooler, así que es idéntica a
+      # DATABASE_URL; en Neon es la misma URL con el host sin `-pooler`.
+      DIRECT_URL: postgresql://insolventic_e2e:insolventic_e2e@localhost:5432/insolventic_e2e
 
       # Test-only secrets. Production values are never used in E2E.
       JWT_SECRET: ci-e2e-jwt-secret-key-for-github-actions-only-123
