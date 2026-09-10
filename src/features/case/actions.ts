@@ -165,6 +165,28 @@ export async function getAllCases(): Promise<{
     const result = getAllCasesSchema.parse(cases);
     return { success: true, data: result };
   } catch (error) {
+    // ⚠️ INSTRUMENTACIÓN TEMPORAL — RETIRAR TRAS EL DIAGNÓSTICO ⚠️
+    //
+    // Este catch solo hacía `console.error`, que en Vercel va únicamente a los
+    // Runtime Logs. Todo `src/features/case/actions.ts` usa console.* (21
+    // ocurrencias, 0 de logger), así que el ZodError que vaciaba /cases NUNCA
+    // podía aparecer en Sentry: su ausencia en el feed no era evidencia de que
+    // el fix hubiera funcionado.
+    //
+    // Captura explícita + flush esperado: en el runtime Node de Vercel la
+    // función se congela al responder y `captureException` sin flush deja el
+    // evento en cola (mismo motivo por el que `instrumentation.ts` no usa
+    // `captureRequestError` a secas). El await cuesta latencia; es aceptable
+    // para instrumentación temporal, no como patrón permanente.
+    //
+    // El comportamiento del catch NO cambia: sigue devolviendo el mismo
+    // { success: false, error } de siempre.
+    const Sentry = await import('@sentry/nextjs');
+    Sentry.captureException(error, {
+      tags: { action: 'getAllCases', diagnostic: 'cases-empty-list' },
+    });
+    await Sentry.flush(2_000);
+
     console.error('Error getting all cases:', error);
     return {
       success: false,
