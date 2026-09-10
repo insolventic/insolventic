@@ -108,6 +108,8 @@ Sin esto, `dev` y la rama de Semana 3 no tienen el fix de `/cases` ni Sentry ser
 
 Rama `fix/login-email-input-type`: el fix de una línea (`type="text"` → `type="email"`) está **sin commitear**, guardado en un stash. Resolvería 6 de los 8 tests de #6 (verificado corriendo la suite E2E local: 6 fallos → 1).
 
+> **Superado el 2026-09-10 — ver §9.** El fix ya está mergeado (PR #11, `767bd32`) y el stash se descartó. La cifra de este párrafo es incorrecta: medido en CI, el resultado es **8 → 3**, no 6 → 1.
+
 ---
 
 ## 7. Lo que sigue abierto y no está en ningún issue
@@ -179,3 +181,53 @@ Consecuencias vivas:
 | `dev`                                 | `8ec70d6` | Fast-forward desde `main`, sin divergencia |
 | `fix/semana-3-logica-negocio`         | `5a963ab` | Actualizada con `dev`; 621 tests en verde  |
 | `chore/remove-sentry-instrumentation` | `c5446ea` | PR #10 abierto, sin mergear                |
+
+---
+
+## 9. Ronda E2E del #6 (2026-09-10) — números reales y hallazgo nuevo
+
+### El fix de login se mergeó: PR #11 (`767bd32`, squash a `dev`)
+
+`type="text"` → `type="email"` en `src/app/login/components/login-form.tsx:161`. El cambio venía sobreviviendo como stash sin respaldo remoto; se commiteó y el stash se descartó.
+
+### Corrección del número: **8 → 3**, no "6 → 1"
+
+El §6 de este checkpoint registraba, desde una corrida local, que el fix bajaba los fallos "de 6 a 1". **Medido en CI es 8 → 3.** Recupera 5 tests, no 6, y quedan 3, no 1.
+
+La comparación es limpia porque hay baseline: la rama de PR #4 corre la misma suite sin este cambio.
+
+| | PR #4 (sin el fix) | PR #11 (con el fix) |
+| ---------- | ------------------ | ------------------- |
+| Fallando   | **8**              | **3**               |
+| Pasando    | 5                  | **10**              |
+| Duración   | 10.3 min           | 2.0 min             |
+
+Confirmación de que el selector era el problema: `auth.e2e.test.ts:44 › login with seeded credentials reaches /dashboard` **ahora pasa**. El login real funciona.
+
+### Los 3 fallos restantes: uno conocido, dos nuevos
+
+**Conocido — `auth.e2e.test.ts:67 › registration page renders its fields`**
+`locator('input#name')` → `element(s) not found`. Falla *porque* C-2 (cierre del registro público) funcionó. Se arregla actualizando la expectativa del test, no el código.
+
+**NUEVO — `cases.e2e.test.ts:19` y `:28`.** No son el mismo bug que el resto del #6 y no los causó el fix de login: estaban tapados detrás de él. Son **dos problemas encadenados**:
+
+1. **Selector mal formado en el test** (causa raíz, `cases.e2e.test.ts:24`):
+
+   ```
+   Error: Unexpected token "=" while parsing css selector
+   "table, [data-testid="cases-table"], text=/caso/i"
+   ```
+
+   No se pueden mezclar motores CSS y `text=` en una lista separada por comas. Es un **bug del test, no de la app**: el primer intento de `:19` falló en 1.2s y su snapshot muestra la app cargando normalmente (`"Cargando casos..."`) — o sea, el login había funcionado y se había llegado a `/cases`.
+
+2. **Rate limiting que enmascara todo lo demás** (efecto secundario). `RATE_LIMIT_CONFIGS.login` es `{ windowMs: 15 min, maxAttempts: 5 }` con clave por IP (`src/lib/rate-limit.ts:43`, `src/features/auth/actions.ts:146`); en CI todos los tests comparten la IP del runner. `auth.e2e.test.ts` gasta 5 intentos (3 `loginAs` + 2 fills directos, uno con credenciales inválidas que también cuenta) antes de que arranque `cases.e2e.test.ts`. Confirmado con el texto literal en pantalla del artefacto de Playwright:
+
+   > Demasiados intentos de inicio de sesión. Intente nuevamente en 15 minutos.
+
+   Desde el retry #1 de `:19` en adelante, **todos** los intentos mueren aquí. `:28` ya nació bloqueado ("en 14 minutos"), así que **su estado real sigue sin observarse**: puede ser el mismo selector, u otra cosa.
+
+### Cómo NO arreglarlo
+
+El límite de 5 intentos/15 min **no se toca**. Existe por una razón de seguridad real en un sistema con expedientes legales; relajarlo en producción para hacer pasar un test sería exactamente el intercambio equivocado. El arreglo va en el entorno de test — desactivar o relajar el limitador solo bajo `NODE_ENV=test`, o dar identidad distinta por test.
+
+Orden sugerido: arreglar primero el selector, luego neutralizar el limitador en test, y recién entonces volver a medir `:28`, cuyo fallo real todavía nadie ha visto.
