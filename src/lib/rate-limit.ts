@@ -51,6 +51,49 @@ export const RATE_LIMIT_CONFIGS = {
   reportExport: { windowMs: 5 * 60 * 1000, maxAttempts: 8 },
 } as const;
 
+// ===========================================================================
+// ⛔ NUNCA CONFIGURAR `E2E_DISABLE_RATE_LIMIT` EN VERCEL. ⛔
+//
+// QUÉ HACE
+// Desactiva por completo la aplicación del rate limiting dentro del proceso.
+// NO cambia RATE_LIMIT_CONFIGS ni el comportamiento del limitador: la
+// definición de los límites es idéntica en todos los entornos.
+//
+// POR QUÉ EXISTE
+// La clave de login es la IP (`getRateLimitKey('login', ip)`), y en CI todos
+// los tests salen de la IP del runner. auth.e2e agota los 5 intentos de la
+// ventana antes de que arranque cases.e2e, que muere en `loginAs` con
+// "Demasiados intentos de inicio de sesión" — un fallo que no dice nada
+// sobre el código bajo prueba. Ver issue #6.
+//
+// EN PRODUCCIÓN SERÍA UN AGUJERO
+// El límite de 5/15min es la única defensa contra fuerza bruta sobre las
+// credenciales de un sistema con expedientes legales reales. Activar esto en
+// Production o Preview deja el login abierto a intentos ilimitados.
+//
+// TRIPLE CANDADO
+//   1. CI === 'true'          → GitHub Actions lo define así (string exacto).
+//                               Vercel define CI='1', que NO iguala 'true'.
+//   2. E2E_DISABLE_RATE_LIMIT === '1'
+//                             → opt-in explícito, solo en el step de E2E.
+//   3. !process.env.VERCEL    → Vercel la define en TODOS sus runtimes, así
+//                               que esto lo hace imposible de activar allí
+//                               aunque alguien configure 1 y 2 en el dashboard.
+//
+// A diferencia de CI_SKIP_BUILD_TYPECHECK (build time), este gate es de
+// RUNTIME, y por eso lleva la tercera condición.
+//
+// ⚠️ NO relajar ninguna comparación. `Boolean(process.env.CI)` o
+// `!= null` degradarían el candado.
+// ===========================================================================
+function isRateLimitDisabledForE2E(): boolean {
+  return (
+    process.env.CI === 'true' &&
+    process.env.E2E_DISABLE_RATE_LIMIT === '1' &&
+    !process.env.VERCEL
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Fallback in-memory (por instancia)
 // ---------------------------------------------------------------------------
@@ -172,6 +215,15 @@ export async function checkRateLimit(
   key: string,
   config: RateLimitConfig,
 ): Promise<RateLimitResult> {
+  if (isRateLimitDisabledForE2E()) {
+    return {
+      allowed: true,
+      remainingAttempts: config.maxAttempts,
+      resetInMs: config.windowMs,
+      degraded: false,
+    };
+  }
+
   const limiter = await getLimiter(config);
   if (!limiter) return checkRateLimitInMemory(key, config);
 
