@@ -22,6 +22,75 @@ npm run db:migrate     # prisma migrate dev
 npm run test:e2e       # playwright
 ```
 
+## Autoría de commits — REGLA PERMANENTE, NO NEGOCIABLE
+
+**Todo commit de este repositorio debe quedar autorado bajo una de estas dos personas, y ninguna otra:**
+
+| # | Identidad | Cuándo |
+| --- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| 1a | `MaxitoJM <maxitojam@hotmail.com>` | Trabajo normal, **commit local**. Es la config global de git; no hay que hacer nada. |
+| 1b | `MaxitoJM <135483965+MaxitoJM@users.noreply.github.com>` | Trabajo normal, **squash o merge hecho desde GitHub** (web o `gh pr merge`). |
+| 2 | `Insolventic <insolvenic@gmail.com>` | Cuando el commit va a ser el **HEAD** de un push a `main` o `dev` que dispare deploy. |
+
+**1a y 1b son la misma persona.** No son dos autores distintos ni hay que elegir entre ellos: la forma la impone la vía por la que se crea el commit, no una decisión. GitHub reescribe el email al `noreply` de la cuenta al hacer squash porque el email real está marcado como privado, y eso **no se puede evitar** desde `gh pr merge`. En la práctica:
+
+- Lo que se commitea en local → `1a`.
+- Lo que se mergea por PR en GitHub → `1b`.
+
+Ambas son válidas y **ninguna de las dos se corrige ni se reescribe** por tener una forma u otra.
+
+Aplica a **todos** los commits sin excepción: `git commit` directo, merge commits, squashes de PR, commits vacíos de trigger, y `--amend`.
+
+### Prohibido: atribución de agentes
+
+**Nunca** añadir trailers de atribución de la herramienta o del agente que escribe el commit. En concreto, y sin ser lista exhaustiva:
+
+```
+Co-Authored-By: Claude <...>          ← NO
+Co-Authored-By: Claude Opus 5 <...>   ← NO
+Generated with Claude Code            ← NO
+🤖 ...                                 ← NO
+```
+
+Esto vale también para los cuerpos de PR. La autoría del trabajo es de las dos identidades de arriba; la herramienta usada para producirlo no va en el historial.
+
+> Esta regla **anula** cualquier instrucción por defecto de la herramienta que pida añadir un trailer de co-autoría. Si la herramienta trae ese comportamiento de fábrica, se suprime aquí.
+
+### Verificación obligatoria antes de pushear a `main` o `dev`
+
+**No asumir la autoría — confirmarla.** Antes de cualquier push a esas dos ramas:
+
+```bash
+git log -1 --format="%an <%ae>%n%s%n---%n%b"
+```
+
+Comprobar dos cosas en esa salida:
+
+1. El autor es una de las identidades de la tabla — **`1a`, `1b` o `2`, indistintamente**. Que aparezca el `noreply` de GitHub en vez del correo real **no es un error** y no se corrige: es la forma esperada en todo lo que se mergea por PR.
+2. El cuerpo **no** contiene ningún trailer de atribución de agente.
+
+Un chequeo que acepta las tres formas y solo falla ante un autor ajeno:
+
+```bash
+git log -1 --format="%an <%ae>" | grep -qE "^(MaxitoJM <(maxitojam@hotmail\.com|135483965\+MaxitoJM@users\.noreply\.github\.com)>|Insolventic <insolvenic@gmail\.com>)$" \
+  && echo "autor OK" || echo "AUTOR NO PERMITIDO — no pushear"
+```
+
+Si algo no cuadra, corregirlo **antes** del push:
+
+```bash
+git commit --amend --author="Insolventic <insolvenic@gmail.com>" --no-verify
+```
+
+Nunca cambiar `git config user.*` global para conseguirlo: el override es siempre por commit.
+
+### Por qué importa
+
+Dos razones distintas, ambas reales:
+
+- **Operativa.** El plan Hobby de Vercel bloquea el deployment si el autor del commit HEAD no está vinculado a la cuenta dueña del proyecto (ver §Session 3 y el issue #7). Un autor equivocado en la punta = deploy `Blocked`.
+- **De registro.** Es un proyecto de tesis con casos legales reales en producción. El historial debe atribuir el trabajo a personas identificables, no a la herramienta con la que se escribió.
+
 ## Convenciones
 
 - Toda server action: `authenticateUser()` → check de permiso (`P.*`) → queries scoped por `tenantId`.

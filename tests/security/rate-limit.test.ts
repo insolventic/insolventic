@@ -296,4 +296,82 @@ describe('Rate Limiting — src/lib/rate-limit.ts', () => {
       expect(blocked.allowed).toBe(false);
     });
   });
+
+  // =========================================================================
+  // Triple candado de E2E_DISABLE_RATE_LIMIT (issue #6)
+  //
+  // El gate desactiva la APLICACIÓN del limite en el proceso de test. Estos
+  // tests lo verifican en los DOS sentidos: que con las tres condiciones
+  // desactiva, y que quitando CUALQUIERA de las tres el limite sigue intacto.
+  // El caso de Vercel (CI='1') tiene test propio porque es el despiste
+  // concreto del que protege la comparacion estricta contra 'true'.
+  // =========================================================================
+  describe('bypass de E2E — triple candado', () => {
+    const ORIGINAL = {
+      CI: process.env.CI,
+      E2E_DISABLE_RATE_LIMIT: process.env.E2E_DISABLE_RATE_LIMIT,
+      VERCEL: process.env.VERCEL,
+    };
+
+    function setEnv(vars: Record<string, string | undefined>) {
+      for (const [k, v] of Object.entries(vars)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+
+    afterEach(() => {
+      setEnv(ORIGINAL);
+    });
+
+    /** Agota la ventana y devuelve si el intento siguiente pasa. */
+    async function exceedsLimit(key: string): Promise<boolean> {
+      const config = RATE_LIMIT_CONFIGS.login; // 5 / 15 min
+      for (let i = 0; i < config.maxAttempts; i++) {
+        await checkRateLimit(key, config);
+      }
+      const next = await checkRateLimit(key, config);
+      return next.allowed;
+    }
+
+    it('DESACTIVA el limite con las tres condiciones a la vez', async () => {
+      setEnv({ CI: 'true', E2E_DISABLE_RATE_LIMIT: '1', VERCEL: undefined });
+
+      // 20 intentos, muy por encima de los 5 de la ventana de login.
+      for (let i = 0; i < 20; i++) {
+        const r = await checkRateLimit('login:runner-ip', RATE_LIMIT_CONFIGS.login);
+        expect(r.allowed).toBe(true);
+      }
+    });
+
+    it('MANTIENE el limite sin E2E_DISABLE_RATE_LIMIT', async () => {
+      setEnv({ CI: 'true', E2E_DISABLE_RATE_LIMIT: undefined, VERCEL: undefined });
+      expect(await exceedsLimit('login:sin-var')).toBe(false);
+    });
+
+    it('MANTIENE el limite sin CI', async () => {
+      setEnv({ CI: undefined, E2E_DISABLE_RATE_LIMIT: '1', VERCEL: undefined });
+      expect(await exceedsLimit('login:sin-ci')).toBe(false);
+    });
+
+    it('MANTIENE el limite en Vercel (VERCEL definida) pese a las otras dos', async () => {
+      setEnv({ CI: 'true', E2E_DISABLE_RATE_LIMIT: '1', VERCEL: '1' });
+      expect(await exceedsLimit('login:en-vercel')).toBe(false);
+    });
+
+    it("MANTIENE el limite con CI='1' — el valor que usa Vercel, no 'true'", async () => {
+      setEnv({ CI: '1', E2E_DISABLE_RATE_LIMIT: '1', VERCEL: undefined });
+      expect(await exceedsLimit('login:ci-numerico')).toBe(false);
+    });
+
+    it('no altera RATE_LIMIT_CONFIGS en ningun caso', async () => {
+      setEnv({ CI: 'true', E2E_DISABLE_RATE_LIMIT: '1', VERCEL: undefined });
+      await checkRateLimit('login:config-intacta', RATE_LIMIT_CONFIGS.login);
+
+      expect(RATE_LIMIT_CONFIGS.login).toEqual({
+        windowMs: 15 * 60 * 1000,
+        maxAttempts: 5,
+      });
+    });
+  });
 });

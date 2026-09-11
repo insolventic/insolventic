@@ -10,6 +10,8 @@
 **Producción dejó de estar congelada en el 18 de agosto: las Semanas 1-2 de seguridad están desplegadas y verificadas, `/cases` vuelve a mostrar los expedientes, y las tres ramas están sincronizadas. La causa raíz de `/cases` NO era el `ZodError` que se diagnosticó al principio, sino deriva de migraciones: 29 columnas `apoyo_*` que el schema declaraba desde abril y que nunca se crearon en la base. Queda pendiente la rotación de la contraseña de Neon y el mismo problema de deriva en otros 9 modelos.**
 
 > **Actualizado 2026-09-10** con el cierre del incidente. Ver §8.
+>
+> **De lo que este párrafo daba por pendiente, al cierre de la sesión del 2026-09-10 solo queda una cosa:** la rotación de la contraseña de Neon **ya se hizo** (§4). Sigue abierta únicamente la deriva de migraciones en los otros 9 modelos (§8). Se sumaron después dos cierres que este resumen no podía anticipar: los deploys de producción (§10) y la suite E2E del #6 (§9, 13/13).
 
 ---
 
@@ -19,11 +21,24 @@
 | ------------------------------ | -------------------------- | -------------------------------------------------------------------- |
 | Semanas 1-2 en producción      | 🟢 **Desplegado**          | PR #8 mergeado; `main` = `f2497a8`; smoke 4/4 en verde               |
 | `DATABASE_URL` en Vercel       | 🟢 **Corregida**           | Contraseña desactualizada vs Neon; corregida en Production y Preview |
-| Rotación de contraseña de Neon | 🔴 **PENDIENTE**           | Ver §4                                                               |
+| Rotación de contraseña de Neon | ~~🔴 PENDIENTE~~ → 🟢 **Hecha** | Resuelta el 2026-09-10 — ver §4                                  |
 | Fix del 7º campo `Json?`       | 🟢 **Desplegado**          | `ebc500b`; smoke 4/4. Pendiente verificación visual de `/cases`      |
 | Sincronización `main` → `dev`  | 🔴 **PENDIENTE**           | Ver §5                                                               |
 | PR #4 (Semana 3)               | ⏸️ **Pendiente de review** | Sin tocar desde el 2026-09-04                                        |
 | Issues abiertos                | 🟡                         | #3, #6, #7 — ver §6                                                  |
+
+> **Esta tabla quedó atrás. Estado real al cierre del 2026-09-10 (§10):**
+>
+> | Frente | Estado |
+> | ----------------------------- | ------------------------------------------------------------------ |
+> | `main` | 🟢 `c73454d` — deploy `success`, smoke 4/4 (era `f2497a8` aquí) |
+> | Sincronización `main` ↔ `dev` | 🟢 **Idénticas** (`c73454d`); ver §10 sobre cómo mantenerlo así |
+> | Deploys de producción | 🟢 **Arreglados** — `DIRECT_URL`, cerrado con log real (§10) |
+> | `/cases` | 🟢 Cerrado (§8) |
+> | E2E del #6 | 🟡 8 → 2 fallos; pasos 2 y 3 pendientes (§9) |
+> | Rotación de contraseña de Neon | 🟢 **Hecha** el 2026-09-10, verificada con `/api/health` (§4) |
+> | PR #4 | ⏸️ **Sigue sin review** |
+> | Issues abiertos | #3, #6, #7 y **#9** |
 
 ---
 
@@ -77,7 +92,9 @@ El commit se autoró como `Insolventic` **antes** del push, aplicando la lecció
 
 ---
 
-## 4. 🔴 Rotación de la contraseña de Neon — PENDIENTE
+## 4. ~~🔴 Rotación de la contraseña de Neon — PENDIENTE~~ → 🟢 HECHA
+
+> **Resuelta el 2026-09-10 por el autor**, durante esta misma sesión. Rotada en Neon, actualizada en Vercel y verificada con `/api/health` en verde después del cambio. El texto de abajo se conserva como registro del motivo.
 
 La contraseña de la BD **estuvo en texto plano varias veces** durante el diagnóstico del smoke fallido y del login roto. Ya está corregida en las env vars de Vercel (Production y Preview), pero **falta generar una nueva** ahora que el incidente está cerrado y nadie más necesita verla.
 
@@ -87,7 +104,13 @@ No es un cambio de código; el repo no se toca.
 
 ---
 
-## 5. 🔴 Sincronización `main` → `dev` — PENDIENTE
+## 5. ~~🔴 Sincronización `main` → `dev` — PENDIENTE~~ → RESUELTO
+
+> **Resuelto el 2026-09-10.** `main` y `dev` están en `c73454d`, idénticas.
+>
+> La divergencia se reabrió **tres veces** en la misma sesión, siempre por el mismo motivo: un PR mergeado contra `main` que no se propagaba de vuelta, o un commit vacío de autoría puesto sobre `main` después del fast-forward. La forma que lo evita —commit de punta sobre `dev` **antes** del fast-forward— está en §10.
+>
+> El texto de abajo se conserva como registro de aquel momento.
 
 `a54d92e`, `ba24ec1` y `ebc500b` viven solo en `main` (los dos primeros llegaron por la rama de emergencia; el tercero se commiteó directo). Son **tres** los commits que faltan en `dev`.
 
@@ -107,6 +130,8 @@ Sin esto, `dev` y la rama de Semana 3 no tienen el fix de `/cases` ni Sentry ser
 | **#7**    | Vercel: bloqueo por autor de commit                   | 🟡 `infra` · vigente; ver la nota operativa de §3.1                                                                |
 
 Rama `fix/login-email-input-type`: el fix de una línea (`type="text"` → `type="email"`) está **sin commitear**, guardado en un stash. Resolvería 6 de los 8 tests de #6 (verificado corriendo la suite E2E local: 6 fallos → 1).
+
+> **Superado el 2026-09-10 — ver §9.** El fix ya está mergeado (PR #11, `767bd32`) y el stash se descartó. La cifra de este párrafo es incorrecta: medido en CI, el resultado es **8 → 3**, no 6 → 1.
 
 ---
 
@@ -179,3 +204,140 @@ Consecuencias vivas:
 | `dev`                                 | `8ec70d6` | Fast-forward desde `main`, sin divergencia |
 | `fix/semana-3-logica-negocio`         | `5a963ab` | Actualizada con `dev`; 621 tests en verde  |
 | `chore/remove-sentry-instrumentation` | `c5446ea` | PR #10 abierto, sin mergear                |
+
+---
+
+## 9. Ronda E2E del #6 (2026-09-10) — números reales y hallazgo nuevo
+
+### El fix de login se mergeó: PR #11 (`767bd32`, squash a `dev`)
+
+`type="text"` → `type="email"` en `src/app/login/components/login-form.tsx:161`. El cambio venía sobreviviendo como stash sin respaldo remoto; se commiteó y el stash se descartó.
+
+### Corrección del número: **8 → 3**, no "6 → 1"
+
+El §6 de este checkpoint registraba, desde una corrida local, que el fix bajaba los fallos "de 6 a 1". **Medido en CI es 8 → 3.** Recupera 5 tests, no 6, y quedan 3, no 1.
+
+La comparación es limpia porque hay baseline: la rama de PR #4 corre la misma suite sin este cambio.
+
+| | PR #4 (sin el fix) | PR #11 (con el fix) |
+| ---------- | ------------------ | ------------------- |
+| Fallando   | **8**              | **3**               |
+| Pasando    | 5                  | **10**              |
+| Duración   | 10.3 min           | 2.0 min             |
+
+Confirmación de que el selector era el problema: `auth.e2e.test.ts:44 › login with seeded credentials reaches /dashboard` **ahora pasa**. El login real funciona.
+
+### Los 3 fallos restantes: uno conocido, dos nuevos
+
+**Conocido — `auth.e2e.test.ts:67 › registration page renders its fields`**
+`locator('input#name')` → `element(s) not found`. Falla *porque* C-2 (cierre del registro público) funcionó. Se arregla actualizando la expectativa del test, no el código.
+
+**NUEVO — `cases.e2e.test.ts:19` y `:28`.** No son el mismo bug que el resto del #6 y no los causó el fix de login: estaban tapados detrás de él. Son **dos problemas encadenados**:
+
+1. **Selector mal formado en el test** (causa raíz, `cases.e2e.test.ts:24`):
+
+   ```
+   Error: Unexpected token "=" while parsing css selector
+   "table, [data-testid="cases-table"], text=/caso/i"
+   ```
+
+   No se pueden mezclar motores CSS y `text=` en una lista separada por comas. Es un **bug del test, no de la app**: el primer intento de `:19` falló en 1.2s y su snapshot muestra la app cargando normalmente (`"Cargando casos..."`) — o sea, el login había funcionado y se había llegado a `/cases`.
+
+2. **Rate limiting que enmascara todo lo demás** (efecto secundario). `RATE_LIMIT_CONFIGS.login` es `{ windowMs: 15 min, maxAttempts: 5 }` con clave por IP (`src/lib/rate-limit.ts:43`, `src/features/auth/actions.ts:146`); en CI todos los tests comparten la IP del runner. `auth.e2e.test.ts` gasta 5 intentos (3 `loginAs` + 2 fills directos, uno con credenciales inválidas que también cuenta) antes de que arranque `cases.e2e.test.ts`. Confirmado con el texto literal en pantalla del artefacto de Playwright:
+
+   > Demasiados intentos de inicio de sesión. Intente nuevamente en 15 minutos.
+
+   Desde el retry #1 de `:19` en adelante, **todos** los intentos mueren aquí. `:28` ya nació bloqueado ("en 14 minutos"), así que **su estado real sigue sin observarse**: puede ser el mismo selector, u otra cosa.
+
+### Cómo NO arreglarlo
+
+El límite de 5 intentos/15 min **no se toca**. Existe por una razón de seguridad real en un sistema con expedientes legales; relajarlo en producción para hacer pasar un test sería exactamente el intercambio equivocado. El arreglo va en el entorno de test — desactivar o relajar el limitador solo bajo `NODE_ENV=test`, o dar identidad distinta por test.
+
+Orden sugerido: arreglar primero el selector, luego neutralizar el limitador en test, y recién entonces volver a medir `:28`, cuyo fallo real todavía nadie ha visto.
+
+---
+
+## 10. Cierre del incidente de deploys de producción — `DIRECT_URL` (2026-09-10)
+
+**Cerrado con evidencia directa del Build Log, no por inferencia.**
+
+### La causa raíz
+
+Los deploys de Production fallaban de forma intermitente. El Build Log lo dijo sin ambigüedad:
+
+```
+Error: P1002
+The database server was reached but timed out.
+```
+
+Ocurría en `prisma migrate deploy`, contra el host **con** `-pooler`. PgBouncer en modo transacción no sostiene la sesión persistente ni los advisory locks que `migrate` necesita, y la rechaza.
+
+Explica el patrón que se venía observando sin entender:
+
+| Deploy | Production | Nota |
+| --------- | ---------- | -------------------------------------- |
+| `8ec70d6` | ✅ | aplicó la migración `apoyo_*` |
+| `702e9ff` | ❌ → ✅ | falló y solo pasó al reintentar |
+| `cc33d2e` | ❌ | sin reintento — quedó como HEAD de `main` |
+
+Los tres corrían `migrate deploy` porque el `buildCommand` de `vercel.json` lo gatea con `VERCEL_ENV=production`. **Los previews lo saltan**, y por eso el Preview de `cc33d2e` salió verde con el mismo código — el experimento que aisló el problema antes de tener el log.
+
+### El arreglo (PR #13, `e9dd65a`)
+
+`directUrl` en el datasource: solo los comandos de migración usan la conexión sin pooler. El runtime de la app sigue por `DATABASE_URL` y el pooler, que es lo correcto en serverless.
+
+| Archivo | Qué |
+| --------------------------- | ----------------------------------------------------------- |
+| `src/prisma/schema.prisma` | `directUrl = env("DIRECT_URL")`, con el porqué documentado |
+| `.env.example` | `DIRECT_URL` + regla de derivación en Neon (sin `-pooler`) |
+| `.github/workflows/e2e.yml` | `DIRECT_URL` en el job; sin ella `prisma db push` corta |
+
+`DIRECT_URL` ya existía en Vercel (Production y Preview).
+
+> **`prisma format` no se corrió, a propósito.** Reformatea las 1041 líneas del schema —nunca había pasado por `format`— y convertía un cambio de 4 líneas en un diff de 917. El bloque nuevo se alineó a mano al estilo que el propio `format` produce. Si alguna vez se quiere normalizar el schema entero, que sea un PR aislado.
+
+### La promoción a producción
+
+`main` estaba congelada en `cc33d2e`, con su deploy en `failure`. Se promovieron **7 commits** por fast-forward hasta `c73454d`.
+
+De 167 líneas, **solo 3 archivos tocan la app**: `schema.prisma` (el `directUrl`), `login-form.tsx` (`type="email"`) y `cases.e2e.test.ts` (que no viaja al runtime). El resto es documentación y CI.
+
+**Sobre el commit de punta:** `c73454d` es un commit vacío autorado por `Insolventic <insolvenic@gmail.com>`, necesario porque el HEAD de `dev` era `MaxitoJM` y el plan Hobby habría dejado el deployment en `Blocked` — sin llegar siquiera a ejecutar `migrate deploy`, que era lo que había que probar.
+
+A diferencia de `f2497a8`, este commit vacío se puso **sobre `dev` antes del fast-forward**, no sobre `main` después. Resultado: `main` y `dev` quedan idénticos y no se reabre la divergencia que hubo que cerrar tres veces en la misma sesión. **Es la forma preferida de aquí en adelante.**
+
+### Verificación
+
+**Estado final del deployment: `success` a la primera.** Deployment `6382037648`, sha `c73454d`, 2026-09-10 22:03:46Z. Una sola entrada en la lista de statuses: sin fallo previo ni reintento, a diferencia de `702e9ff`.
+
+**Build Log — la evidencia directa que cierra el caso:**
+
+- Datasource contra `ep-proud-dream-aioxh4ny.c-4.us-east-1.aws.neon.tech` — **sin el sufijo `-pooler`**. El `directUrl` hizo exactamente lo que debía.
+- Encontró las **3 migraciones**.
+- `No pending migrations to apply`.
+- **Sin `P1002`.**
+
+**Smoke test 4/4** (run `34535502669`), contra la URL de este deployment:
+
+```
+[1/4] /api/health       → ok — app viva y BD respondiendo
+[2/4] / (pública)       → ok — home responde 200
+[3/4] /cases sin sesión → ok — ruta protegida redirige a login
+[4/4] /register cerrado → ok — registro público cerrado
+```
+
+**En vivo:** `/api/health` responde `{"status":"ok","environment":"production","checks":{"database":{"status":"ok","latencyMs":3}}}`.
+
+### La salvedad que queda viva
+
+Este deploy corrió `migrate deploy` **sin migraciones pendientes** — `8ec70d6` ya había aplicado las `apoyo_*`. Fue un no-op.
+
+Eso no invalida el cierre: los fallos anteriores **también** eran sobre no-ops, y es precisamente lo que apuntaba a la conexión y no a la migración en sí. El log confirma el host correcto, que es la parte que importa.
+
+Pero **la prueba de fuego real será el próximo deploy que traiga una migración nueva que aplicar**, con una transacción y advisory locks de verdad. Hasta entonces, lo verificado es que la conexión va por donde debe.
+
+### Nota operativa: el Build Log no es accesible desde la cuenta de trabajo
+
+`vercel inspect --logs` falla con `Can't find the deployment ... under the context "maximilianos-projects-839f5103"`, y `vercel teams ls` devuelve un solo team. **La cuenta de Vercel de `MaxitoJM` no es miembro de `insolventics-projects`** — el alcance del issue #7 es mayor que su título: no es solo que el check rechace commits de ese autor, es que la cuenta no pertenece al equipo.
+
+Consecuencia práctica: cualquier diagnóstico que necesite un Build Log depende de la cuenta `Insolventic`. Vincular la cuenta de `MaxitoJM` al proyecto resolvería el bloqueo de deploys **y** este punto ciego de observabilidad de una sola vez.

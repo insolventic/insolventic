@@ -158,7 +158,7 @@ export function LoginForm() {
                 <Mail className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
                 <Input
                   id="email"
-                  type="text"
+                  type="email"
                   placeholder="Ingrese su correo electrónico"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
