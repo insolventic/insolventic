@@ -64,12 +64,57 @@ test.describe('Authentication E2E', () => {
 });
 
 test.describe('Registration E2E', () => {
-  test('registration page renders its fields', async ({ page }) => {
+  test.beforeEach(async ({ page }) => {
+    await page.context().clearCookies();
+  });
+
+  /**
+   * El registro autoservicio está CERRADO desde C-2 (auditoría 2026-08-25):
+   * sin verificación de email permitía suplantar a un deudor real, porque la
+   * identidad del modo cliente se resuelve por email. Los usuarios los crea
+   * un administrador del centro desde /users.
+   *
+   * Este test afirmaba lo contrario — que /register renderizaba su
+   * formulario — y por eso llevaba rojo desde el despliegue de Semanas 1-2.
+   * No era un bug: el test estaba desactualizado respecto a un cierre
+   * deliberado.
+   *
+   * Hay DOS capas cerrando la puerta:
+   *   1. El middleware (C-1): '/register' no está en PUBLIC_ROUTES
+   *      (src/middleware.ts:26), así que un visitante sin sesión se va a
+   *      /login?redirect=%2Fregister antes de tocar la página.
+   *   2. La página (C-2): src/app/register/page.tsx es un redirect('/login').
+   *
+   * Para un visitante sin sesión gana la primera. La cadena medida contra la
+   * app desplegada es:
+   *
+   *   /register?db=… → /login?redirect=%2Fregister → /
+   *
+   * El último salto es porque ese /login llega sin `db` y rebota al selector
+   * de centro. Por eso el regex es `/\/login|\/$/` y no `/\/login/` a secas:
+   * la URL pasa por /login pero se asienta en /, y acoplarse a un instante
+   * concreto de la cadena haría el test flaky. Es además la misma aserción
+   * que usan los otros cuatro tests de ruta protegida de esta suite
+   * (`/dashboard` aquí arriba, y los tres de Route protection en cases.e2e).
+   *
+   * Si alguien reabriera el registro sin verificación de email, este test se
+   * pone rojo. Esa es su razón de existir ahora.
+   */
+  test('registration is closed — /register redirects away from the form', async ({
+    page,
+  }) => {
     await page.goto(`/register?db=${E2E_TENANT}`);
-    await expect(page.locator('input#name')).toBeVisible();
-    await expect(page.locator('input#email')).toBeVisible();
-    await expect(page.locator('input#password')).toBeVisible();
-    await expect(page.locator('input#confirmPassword')).toBeVisible();
+
+    await expect(page).toHaveURL(/\/login|\/$/, { timeout: 10_000 });
+
+    // Evidencia directa de que la redirección ocurrió, independiente de dónde
+    // acabe asentándose la cadena.
+    expect(new URL(page.url()).pathname).not.toBe('/register');
+
+    // Y el formulario de registro no se renderiza en ninguna de las dos
+    // paradas. `input#name` y `input#confirmPassword` eran exclusivos de él.
+    await expect(page.locator('input#name')).toHaveCount(0);
+    await expect(page.locator('input#confirmPassword')).toHaveCount(0);
   });
 });
 
