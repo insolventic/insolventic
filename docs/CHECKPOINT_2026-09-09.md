@@ -10,6 +10,8 @@
 **Producción dejó de estar congelada en el 18 de agosto: las Semanas 1-2 de seguridad están desplegadas y verificadas, `/cases` vuelve a mostrar los expedientes, y las tres ramas están sincronizadas. La causa raíz de `/cases` NO era el `ZodError` que se diagnosticó al principio, sino deriva de migraciones: 29 columnas `apoyo_*` que el schema declaraba desde abril y que nunca se crearon en la base. Queda pendiente la rotación de la contraseña de Neon y el mismo problema de deriva en otros 9 modelos.**
 
 > **Actualizado 2026-09-10** con el cierre del incidente. Ver §8.
+>
+> **De lo que este párrafo daba por pendiente, al cierre de la sesión del 2026-09-10 solo queda una cosa:** la rotación de la contraseña de Neon **ya se hizo** (§4). Sigue abierta únicamente la deriva de migraciones en los otros 9 modelos (§8). Se sumaron después dos cierres que este resumen no podía anticipar: los deploys de producción (§10) y la suite E2E del #6 (§9, 13/13).
 
 ---
 
@@ -19,7 +21,7 @@
 | ------------------------------ | -------------------------- | -------------------------------------------------------------------- |
 | Semanas 1-2 en producción      | 🟢 **Desplegado**          | PR #8 mergeado; `main` = `f2497a8`; smoke 4/4 en verde               |
 | `DATABASE_URL` en Vercel       | 🟢 **Corregida**           | Contraseña desactualizada vs Neon; corregida en Production y Preview |
-| Rotación de contraseña de Neon | 🔴 **PENDIENTE**           | Ver §4                                                               |
+| Rotación de contraseña de Neon | ~~🔴 PENDIENTE~~ → 🟢 **Hecha** | Resuelta el 2026-09-10 — ver §4                                  |
 | Fix del 7º campo `Json?`       | 🟢 **Desplegado**          | `ebc500b`; smoke 4/4. Pendiente verificación visual de `/cases`      |
 | Sincronización `main` → `dev`  | 🔴 **PENDIENTE**           | Ver §5                                                               |
 | PR #4 (Semana 3)               | ⏸️ **Pendiente de review** | Sin tocar desde el 2026-09-04                                        |
@@ -34,7 +36,7 @@
 > | Deploys de producción | 🟢 **Arreglados** — `DIRECT_URL`, cerrado con log real (§10) |
 > | `/cases` | 🟢 Cerrado (§8) |
 > | E2E del #6 | 🟡 8 → 2 fallos; pasos 2 y 3 pendientes (§9) |
-> | Rotación de contraseña de Neon | 🔴 **Sigue pendiente** — §4 vigente |
+> | Rotación de contraseña de Neon | 🟢 **Hecha** el 2026-09-10, verificada con `/api/health` (§4) |
 > | PR #4 | ⏸️ **Sigue sin review** |
 > | Issues abiertos | #3, #6, #7 y **#9** |
 
@@ -90,7 +92,9 @@ El commit se autoró como `Insolventic` **antes** del push, aplicando la lecció
 
 ---
 
-## 4. 🔴 Rotación de la contraseña de Neon — PENDIENTE
+## 4. ~~🔴 Rotación de la contraseña de Neon — PENDIENTE~~ → 🟢 HECHA
+
+> **Resuelta el 2026-09-10 por el autor**, durante esta misma sesión. Rotada en Neon, actualizada en Vercel y verificada con `/api/health` en verde después del cambio. El texto de abajo se conserva como registro del motivo.
 
 La contraseña de la BD **estuvo en texto plano varias veces** durante el diagnóstico del smoke fallido y del login roto. Ya está corregida en las env vars de Vercel (Production y Preview), pero **falta generar una nueva** ahora que el incidente está cerrado y nadie más necesita verla.
 
