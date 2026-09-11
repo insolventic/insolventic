@@ -96,6 +96,12 @@ jobs:
         env:
           # Start the built app on port 3000 via Playwright's webServer.
           PLAYWRIGHT_WEB_SERVER_COMMAND: 'npm run start'
+          # Ver el bloque ⛔ de src/lib/rate-limit.ts. La clave de login es la
+          # IP y aquí todos los tests comparten la del runner, así que la
+          # ventana se agota entre archivos. Solo desactiva la APLICACIÓN del
+          # límite; RATE_LIMIT_CONFIGS no cambia. Triple candado: además de
+          # esta var exige CI==='true' y ausencia de VERCEL.
+          E2E_DISABLE_RATE_LIMIT: '1'
 
       - name: Upload HTML report
         if: always()
