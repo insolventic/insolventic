@@ -27,18 +27,18 @@
 | PR #4 (Semana 3)               | ~~⏸️ Pendiente~~ → 🟢 **Mergeado** | `17c7de2b` en `dev` el 2026-09-12 — ver §11                           |
 | Issues abiertos                | 🟡                         | #3, #6, #7 — ver §6                                                  |
 
-> **Esta tabla quedó atrás. Estado real al cierre del 2026-09-10 (§10):**
+> **Esta tabla quedó atrás. Estado real al 2026-09-12:**
 >
 > | Frente | Estado |
 > | ----------------------------- | ------------------------------------------------------------------ |
-> | `main` | 🟢 `c73454d` — deploy `success`, smoke 4/4 (era `f2497a8` aquí) |
-> | Sincronización `main` ↔ `dev` | 🟢 **Idénticas** (`c73454d`); ver §10 sobre cómo mantenerlo así |
-> | Deploys de producción | 🟢 **Arreglados** — `DIRECT_URL`, cerrado con log real (§10) |
+> | `main` | 🟢 `d2f7cef` — Semana 3 en producción, deploy `success`, smoke 4/4 (§11, §12) |
+> | Sincronización `main` ↔ `dev` | 🟢 **Idénticas** (`d2f7cef`); ver §10 sobre cómo mantenerlo así |
+> | Deploys de producción | 🟢 **Arreglados** — `DIRECT_URL` verificado con Build Log en 2 despliegues (§10, §12) |
 > | `/cases` | 🟢 Cerrado (§8) |
 > | E2E del #6 | 🟢 **Cerrado** — 13/13 en verde, issue #6 cerrado (§9) |
 > | Rotación de contraseña de Neon | 🟢 **Hecha** el 2026-09-10, verificada con `/api/health` (§4) |
 > | PR #4 | 🟢 **Mergeado** (`17c7de2b`, 2026-09-12) — §11 |
-> | Issues abiertos | #3, #6, #7 y **#9** |
+> | Issues abiertos | #3, #7, #9 y **#16**. El #6 se cerró (§9) |
 
 ---
 
@@ -336,6 +336,8 @@ Eso no invalida el cierre: los fallos anteriores **también** eran sobre no-ops,
 
 Pero **la prueba de fuego real será el próximo deploy que traiga una migración nueva que aplicar**, con una transacción y advisory locks de verdad. Hasta entonces, lo verificado es que la conexión va por donde debe.
 
+> **Actualizado el 2026-09-12 (§12).** Hay una segunda promoción a producción verificada con el Build Log. La salvedad de arriba **sigue en pie**: las dos verificaciones fueron sobre `migrate deploy` sin migraciones pendientes.
+
 ### Nota operativa: el Build Log no es accesible desde la cuenta de trabajo
 
 `vercel inspect --logs` falla con `Can't find the deployment ... under the context "maximilianos-projects-839f5103"`, y `vercel teams ls` devuelve un solo team. **La cuenta de Vercel de `MaxitoJM` no es miembro de `insolventics-projects`** — el alcance del issue #7 es mayor que su título: no es solo que el check rechace commits de ese autor, es que la cuenta no pertenece al equipo.
@@ -374,3 +376,37 @@ Los cuatro hallazgos compartían la misma causa: **la validación existía, pero
 - **Validación jurídica del SMMLV 2026** ($1.750.905): viene del Decreto 0159 de 2026, transitorio tras la suspensión del 1469 de 2025. Queda con `TODO(legal)` en el código.
 - **Completitud de documentos adjuntos**: `validateDocumentsComplete` necesita la lista de archivos subidos, que el servidor no conoce al crear el caso.
 - **Lotes grandes**: `maxDuration=60` compra margen pero no elimina el problema. Seguimiento en **#3**.
+
+---
+
+## 12. `DIRECT_URL` — segunda verificación en producción (2026-09-12)
+
+**Dos promociones consecutivas a producción con `directUrl`, ambas verificadas leyendo el Build Log**, no por ausencia de fallo.
+
+| | Deploy 1 | Deploy 2 |
+| ------------------- | -------------------------- | -------------------------- |
+| Commit              | `c73454d` (2026-09-10)     | `d2f7cef` (2026-09-12)     |
+| Estado              | `success` a la primera     | `success` a la primera     |
+| Host del datasource | **sin** `-pooler`          | **sin** `-pooler`          |
+| Migraciones         | 3 encontradas, sin pendientes | sin pendientes           |
+| `P1002`             | ausente                    | ausente                    |
+| Smoke               | 4/4                        | 4/4                        |
+
+Antes del arreglo el patrón era: `702e9ff` rojo y verde solo al reintentar, `cc33d2e` rojo sin reintento. Después del arreglo, dos despliegues seguidos en verde al primer intento.
+
+### Lo que falta para el cierre total
+
+Las dos verificaciones fueron sobre un `migrate deploy` **sin migraciones pendientes**: confirman que la conexión va por el host correcto, no que una migración real se aplique bien por esa vía.
+
+**La pieza que cierra el incidente es la próxima promoción que traiga una migración de verdad.** Lo más probable es que sea la del diseño de fases nuevas (`docs/DISENO_FASES_NUEVAS_2026-09-11.md`), porque retira las columnas `rejection` y `withdrawal`. Ahí habrá transacción y advisory locks reales, que es justo lo que PgBouncer en modo transacción rechazaba.
+
+### Descartado por el camino: la hipótesis de la reutilización del build
+
+Al ver que el deployment de Production se creaba y pasaba a `success` en el mismo segundo, se sospechó que Vercel pudiera estar reutilizando el build del preview del mismo commit — lo que habría significado que `migrate deploy` no corrió, porque los previews lo saltan por el gate `VERCEL_ENV=production`.
+
+**La hipótesis es falsa, por dos motivos independientes:**
+
+1. Vercel crea el registro de deployment en GitHub **cuando el build termina**, no cuando empieza. Por eso `created_at` y el estado coinciden; el patrón se repite en todos los deployments, incluido el fallido de `702e9ff`. La marca de tiempo no significaba nada.
+2. El Preview y el Production de `d2f7cef` tienen **URLs distintas** (`…jnem764xb…` y `…c5lqbpj9c…`), o sea dos builds independientes.
+
+La deduplicación por SHA que sí existe pertenece a la **API REST** (`POST /v13/deployments`, con el parámetro `forceNew` para desactivarla), no a la integración con Git, que despliega cada push. Las otras vías de reutilización —*Promote*, *Instant Rollback*— son acciones manuales. Y la caché de build **no salta el `buildCommand`**: acelera, pero `migrate deploy` se ejecuta igual.
