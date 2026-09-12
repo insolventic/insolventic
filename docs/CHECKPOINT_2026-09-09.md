@@ -24,7 +24,7 @@
 | Rotación de contraseña de Neon | ~~🔴 PENDIENTE~~ → 🟢 **Hecha** | Resuelta el 2026-09-10 — ver §4                                  |
 | Fix del 7º campo `Json?`       | 🟢 **Desplegado**          | `ebc500b`; smoke 4/4. Pendiente verificación visual de `/cases`      |
 | Sincronización `main` → `dev`  | 🔴 **PENDIENTE**           | Ver §5                                                               |
-| PR #4 (Semana 3)               | ⏸️ **Pendiente de review** | Sin tocar desde el 2026-09-04                                        |
+| PR #4 (Semana 3)               | ~~⏸️ Pendiente~~ → 🟢 **Mergeado** | `17c7de2b` en `dev` el 2026-09-12 — ver §11                           |
 | Issues abiertos                | 🟡                         | #3, #6, #7 — ver §6                                                  |
 
 > **Esta tabla quedó atrás. Estado real al cierre del 2026-09-10 (§10):**
@@ -35,9 +35,9 @@
 > | Sincronización `main` ↔ `dev` | 🟢 **Idénticas** (`c73454d`); ver §10 sobre cómo mantenerlo así |
 > | Deploys de producción | 🟢 **Arreglados** — `DIRECT_URL`, cerrado con log real (§10) |
 > | `/cases` | 🟢 Cerrado (§8) |
-> | E2E del #6 | 🟡 8 → 2 fallos; pasos 2 y 3 pendientes (§9) |
+> | E2E del #6 | 🟢 **Cerrado** — 13/13 en verde, issue #6 cerrado (§9) |
 > | Rotación de contraseña de Neon | 🟢 **Hecha** el 2026-09-10, verificada con `/api/health` (§4) |
-> | PR #4 | ⏸️ **Sigue sin review** |
+> | PR #4 | 🟢 **Mergeado** (`17c7de2b`, 2026-09-12) — §11 |
 > | Issues abiertos | #3, #6, #7 y **#9** |
 
 ---
@@ -124,7 +124,7 @@ Sin esto, `dev` y la rama de Semana 3 no tienen el fix de `/cases` ni Sentry ser
 
 | Ref       | Título                                                | Estado                                                                                                             |
 | --------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **PR #4** | Semana 3 — blindaje de lógica de negocio (4 críticos) | ⏸️ Pendiente de review del autor desde el 2026-09-04. `quality-checks` verde (587 tests); `playwright` rojo por #6 |
+| **PR #4** | Semana 3 — blindaje de lógica de negocio (4 críticos) | 🟢 **Mergeado** el 2026-09-12 (`17c7de2b`). Ver §11 |
 | **#3**    | `batchHtmlToPdf` + troceo de lotes                    | 🟡 `semana-4` · lotes de 26 y 77 documentos no caben en `maxDuration=60s`                                          |
 | **#6**    | E2E: 8 tests obsoletos post Semanas 1-2               | 🟡 `semana-4` · causa raíz identificada (`input[type="email"]` vs `type="text"`); uno falla _porque_ C-2 funcionó  |
 | **#7**    | Vercel: bloqueo por autor de commit                   | 🟡 `infra` · vigente; ver la nota operativa de §3.1                                                                |
@@ -341,3 +341,36 @@ Pero **la prueba de fuego real será el próximo deploy que traiga una migració
 `vercel inspect --logs` falla con `Can't find the deployment ... under the context "maximilianos-projects-839f5103"`, y `vercel teams ls` devuelve un solo team. **La cuenta de Vercel de `MaxitoJM` no es miembro de `insolventics-projects`** — el alcance del issue #7 es mayor que su título: no es solo que el check rechace commits de ese autor, es que la cuenta no pertenece al equipo.
 
 Consecuencia práctica: cualquier diagnóstico que necesite un Build Log depende de la cuenta `Insolventic`. Vincular la cuenta de `MaxitoJM` al proyecto resolvería el bloqueo de deploys **y** este punto ciego de observabilidad de una sola vez.
+
+---
+
+## 11. PR #4 mergeado — Semana 3 en `dev` (2026-09-12)
+
+**Los 4 críticos de la auditoría pre-launch están en `dev`.** PR #4 se mergeó con squash: `17c7de2b`.
+
+| | |
+| ------------------------- | ----------------------------------------------------------- |
+| CI al mergear             | `quality-checks` ✅ · `playwright` ✅ 13/13 · 627 tests       |
+| Vercel                    | ❌ `Deployment was blocked` — bloqueo por autor (#7)          |
+| Contenido validado por CI | Idéntico al que corrió en `656ea34`; `dev` solo añadía el documento de diseño |
+
+Los cuatro hallazgos compartían la misma causa: **la validación existía, pero no se invocaba en el servidor**. Estaba escrita y probada, solo que colgada de componentes de React o de una ruta que casi nadie usa, así que un POST directo a una server action las saltaba todas. El PR no escribe reglas nuevas: las cablea donde son obligatorias.
+
+- **C-1** — `validatePhaseTransition()` como fuente única, sin Prisma ni I/O. `updateCase` deja de ser la puerta trasera de la máquina de estados y los casos nacen siempre en `Inicial`.
+- **C-2** — Las reglas del trámite se aplican en `createCase` y `updateCase`. Además, el SMMLV cargado era el de 2024, con lo que la mínima cuantía se calculaba un **35% por debajo** del umbral real.
+- **C-3** — `renderDocumentHtml` reporta los placeholders que la plantilla pide y el mapper no produce, y bloquea la generación en vez de subir a Drive un PDF con huecos.
+- **C-4** — La generación por lotes de `/documents` era la única ruta sin lock anti-duplicados. Se añade `maxDuration=60` y una generación que no produjo ningún documento deja de contar como exitosa.
+
+### Decisiones tomadas en el review
+
+**El `PHASE_TRANSITIONS` actual se aprueba como paso intermedio, no como modelo definitivo.** El modelo final añade 5 fases —`Rechazo`, `Retiro`, `Desistimiento`, `Acuerdo impugnado`, `Acuerdo reformado`— y elimina `Inicial → Fracaso` y `Admisión → Fracaso`. El diseño está cerrado en `docs/DISENO_FASES_NUEVAS_2026-09-11.md` y se implementa sobre esta base ya mergeada.
+
+**El tope de 150 SMMLV se queda como aviso, no como bloqueo.** Confirmado por el cliente: las deudas no tienen tope real y puede haber montos altos legítimos.
+
+**La regex de `{{#each}}` del detector de C-3 se acepta como deuda menor, no bloqueante.** No coincide con la sintaxis real de las plantillas, que llevan argumento. Hoy es inofensiva **por coincidencia**: la única variable dentro de un `each` (`NOMBRE_MENOR`) también existe en el contexto raíz. El día que alguien añada un `{{#each}}` con un campo que solo exista dentro del bloque, el documento se bloquearía sin motivo.
+
+### Lo que sigue abierto de este frente
+
+- **Validación jurídica del SMMLV 2026** ($1.750.905): viene del Decreto 0159 de 2026, transitorio tras la suspensión del 1469 de 2025. Queda con `TODO(legal)` en el código.
+- **Completitud de documentos adjuntos**: `validateDocumentsComplete` necesita la lista de archivos subidos, que el servidor no conoce al crear el caso.
+- **Lotes grandes**: `maxDuration=60` compra margen pero no elimina el problema. Seguimiento en **#3**.
