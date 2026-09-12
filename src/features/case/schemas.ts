@@ -1,5 +1,19 @@
 import { z } from 'zod';
 
+import { CASE_PHASE_VALUES } from '@/lib/case-phases';
+
+/**
+ * Fase del expediente restringida a las fases conocidas (C-1).
+ *
+ * Antes era `z.string()`: cualquier cadena entraba a la BD y rompía filtros,
+ * dashboard y PACKAGE_PHASE_MAP. La validación de *transición* (qué fase puede
+ * seguir a cuál) vive aparte, en `validatePhaseTransition`, y la aplican
+ * `createCase` / `updateCase` / `updateCasePhase` contra la fase persistida.
+ */
+const casePhaseEnum = z.enum(CASE_PHASE_VALUES as [string, ...string[]], {
+  message: 'Fase de expediente desconocida',
+});
+
 const decimalToNumber = z.any().transform((val) => {
   if (val && typeof val === 'object' && 'toNumber' in val) {
     return val.toNumber();
@@ -898,7 +912,7 @@ export const createCaseSchema = z.object({
     z.string().transform((val) => parseInt(val) || 0),
   ]),
   hearingDate: z.string().optional().nullable(),
-  phase: z.string().optional(),
+  phase: casePhaseEnum.optional(),
   operatorId: z.string().min(1, 'El operador es requerido'),
   caseNumber: z.string().optional(),
   causes: z.array(z.string()).default([]),
@@ -1512,6 +1526,10 @@ export const updateCaseSchema = z.object({
     ])
     .optional(),
   hearingDate: z.string().optional().nullable(),
+  // Deliberadamente `z.string()` y no el enum: un expediente legacy puede
+  // tener persistida una fase que ya no es válida, y el formulario de edición
+  // la reenvía tal cual. `validatePhaseTransition` la acepta como no-op y
+  // rechaza cualquier cambio real de fase desde esta mutación (C-1).
   phase: z.string().optional(),
   operatorId: z.string().optional(),
   causes: z.array(z.string()).optional(),

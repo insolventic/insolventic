@@ -11,7 +11,92 @@ import type { CreateCaseFormData, CreateCaseFormInput } from './schemas';
 // CONSTANTS
 // ============================================
 
-export const SMMLV_2025 = 1300000; // Salario mínimo Colombia 2025
+// ---------------------------------------------------------------------------
+// SMMLV — base de cálculo de los umbrales legales
+// ---------------------------------------------------------------------------
+//
+// ⚠️ PENDIENTE DE VALIDACIÓN JURÍDICA ⚠️
+//
+// La constante anterior (`SMMLV_2025 = 1_300_000`) tenía el valor de 2024, no
+// el de 2025, y estaba congelada en código para un sistema que opera en 2026.
+// De ella cuelgan dos umbrales legales: la mínima cuantía (40 SMMLV, que
+// determina si el apoderado judicial es obligatorio) y el tope de 150 SMMLV.
+// Con el valor viejo, la mínima cuantía se calculaba sobre 1.300.000 en vez de
+// sobre 1.750.905: un 35% por debajo del umbral real.
+//
+// Esta tabla resuelve el valor por año de radicación en vez de por constante
+// de compilación.
+//
+// Fuentes normativas (verificadas contra las compilaciones oficiales):
+//   2026 → $1.750.905. Fijado por el Decreto 1469 de 2025 (29-dic-2025, vigente
+//          desde el 1-ene-2026), PERO ese decreto fue suspendido
+//          provisionalmente por el Consejo de Estado el 12-feb-2026. La norma
+//          operativa hoy es el Decreto 0159 de 2026 (19-feb-2026), que fija
+//          "TRANSITORIAMENTE" el mismo valor en cumplimiento de esa orden
+//          judicial. ⚠️ Al ser transitorio, el valor definitivo del año podría
+//          cambiar: revisar antes de cada radicación de alto monto.
+//   2025 → $1.423.500 (cross-check: 1.423.500 × 1,23 = 1.750.905, el 23% que
+//          declara el Decreto 0159 de 2026).
+//   2024 → $1.300.000. Pendiente de confirmar contra el Decreto 1572 de 2024,
+//          derogado por el 1469 de 2025.
+//
+// ┌───────────────────────────────────────────────────────────────────────────┐
+// │ TODO(legal) — SMMLV 2026 ESTÁ FIJADO POR UNA NORMA TRANSITORIA.           │
+// │                                                                           │
+// │ El valor de 2026 NO proviene de una norma en firme. Viene del Decreto     │
+// │ 0159 de 2026, expedido por orden judicial para cubrir el vacío que dejó   │
+// │ la suspensión provisional del Decreto 1469 de 2025, y su propio artículo  │
+// │ 1º dice "fijar TRANSITORIAMENTE".                                         │
+// │                                                                           │
+// │ REVISAR ESTE VALOR SI OCURRE CUALQUIERA DE ESTAS DOS COSAS:               │
+// │   1. El Consejo de Estado falla de fondo sobre el Decreto 1469 de 2025.   │
+// │   2. Se expide un decreto definitivo de salario mínimo para 2026.         │
+// │                                                                           │
+// │ Que hoy $1.750.905 coincida con el monto del decreto suspendido NO es     │
+// │ garantía de nada: el 0159 conserva el porcentaje por consolidar hechos    │
+// │ cumplidos desde el 1-ene-2026, no porque el monto haya sido validado.     │
+// │ Un fallo de fondo puede cambiarlo.                                        │
+// │                                                                           │
+// │ De este número cuelga la mínima cuantía (40 SMMLV), que decide si el      │
+// │ apoderado judicial es OBLIGATORIO en un expediente real. No se deja       │
+// │ automatizado a propósito: el cambio exige criterio jurídico, no un fetch. │
+// └───────────────────────────────────────────────────────────────────────────┘
+export const SMMLV_BY_YEAR: Readonly<Record<number, number>> = {
+  2024: 1_300_000,
+  2025: 1_423_500,
+  // ⚠️ TRANSITORIO — Decreto 0159 de 2026. Ver el TODO(legal) de arriba antes
+  // de dar este valor por bueno en una revisión de este archivo.
+  2026: 1_750_905,
+};
+
+/** Último año con SMMLV cargado en la tabla. */
+export const LATEST_SMMLV_YEAR = Math.max(
+  ...Object.keys(SMMLV_BY_YEAR).map(Number),
+);
+
+/** true si el año pedido tiene un valor propio (no heredado del fallback). */
+export function isSmmlvYearConfirmed(year: number): boolean {
+  return year in SMMLV_BY_YEAR;
+}
+
+/**
+ * SMMLV aplicable a un año de radicación.
+ *
+ * Si el año no está en la tabla (a partir de 2027, mientras no se cargue el
+ * decreto correspondiente) cae al último año conocido en vez de lanzar: dejar a
+ * los dos centros sin poder radicar un expediente sería peor que calcular el
+ * umbral con una base conservadora. `isSmmlvYearConfirmed` permite avisar de la
+ * degradación.
+ */
+export function getSmmlv(year: number = new Date().getFullYear()): number {
+  return SMMLV_BY_YEAR[year] ?? SMMLV_BY_YEAR[LATEST_SMMLV_YEAR];
+}
+
+/**
+ * @deprecated Nombre histórico conservado para no romper call-sites; su valor
+ * era el de 2024. Usar `getSmmlv(year)`.
+ */
+export const SMMLV_2025 = SMMLV_BY_YEAR[2025];
 
 export const CREDITOR_CLASSES = {
   PRIMERA: '1ª Clase – Tributarias',
@@ -188,7 +273,9 @@ export function validateIncomeExpenses(
 export function validateDebtLimits(
   totalDebt: number,
   creditorCount: number,
+  year: number = new Date().getFullYear(),
 ): ValidationIssue[] {
+  const smmlv = getSmmlv(year);
   const issues: ValidationIssue[] = [];
 
   // Check 150 creditor limit
@@ -201,7 +288,7 @@ export function validateDebtLimits(
   }
 
   // Check if debt exceeds 150 SMMLV (may require different procedure)
-  if (totalDebt > 150 * SMMLV_2025) {
+  if (totalDebt > 150 * smmlv) {
     issues.push({
       field: 'totalDebt',
       message:
@@ -484,9 +571,10 @@ export function validateAssetConditionals(
 export function validateMinimaCuantia(
   totalDebt: number,
   hasAttorney: boolean,
+  year: number = new Date().getFullYear(),
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  const minimaCuantia = 40 * SMMLV_2025;
+  const minimaCuantia = 40 * getSmmlv(year);
 
   if (totalDebt > minimaCuantia) {
     if (!hasAttorney) {
@@ -868,4 +956,163 @@ export function canGenerateDocument(
     canGenerate: missingFields.length === 0,
     missingFields,
   };
+}
+
+// ============================================
+// BACKEND ENTRY POINT (C-2)
+// ============================================
+
+/**
+ * Punto de entrada único de las reglas de negocio para las server actions.
+ *
+ * Hasta C-2 este módulo solo lo importaban los componentes del formulario de
+ * creación, así que un POST directo a `createCase` / `updateCase` —trivial de
+ * construir contra una server action— saltaba todas las reglas del trámite.
+ *
+ * Diferencias deliberadas respecto de `validateCaseComplete` (que sigue siendo
+ * el validador del formulario, más exigente):
+ *
+ *  - **Se segmenta por tipo de caso.** Las reglas de umbral (mínima cuantía,
+ *    150 SMMLV, 150 acreedores) y los campos obligatorios del formulario de
+ *    insolvencia no aplican a CONCILIATION ni a SUPPORT_AGREEMENT, que se
+ *    radican con otro soporte documental. Aplicarlas a todo bloquearía la
+ *    operación real de los dos centros.
+ *  - **No valida documentos adjuntos.** `validateDocumentsComplete` necesita
+ *    la lista de archivos subidos, que el servidor no conoce en el momento de
+ *    crear el caso (la carga va por otro flujo). Queda como brecha conocida.
+ *  - **En update solo valida lo que llega.** Una edición parcial no debe
+ *    fallar por campos que el payload ni siquiera toca.
+ *
+ * ⚠️ PENDIENTE DE VALIDACIÓN JURÍDICA: ver `SMMLV_BY_YEAR` y la lista de
+ * reglas marcadas en docs/IMPLEMENTACION_SEMANA_3.md.
+ */
+export type CaseValidationMode = 'create' | 'update';
+
+export interface BusinessRulesOptions {
+  mode: CaseValidationMode;
+  /** Año de radicación; determina el SMMLV aplicable. */
+  year?: number;
+  /**
+   * Estado civil del deudor. Vive en `Debtor`, no en `Case`, así que la server
+   * action lo pasa explícitamente; sin él la regla de sociedad conyugal no se
+   * evalúa (no se asume soltería).
+   */
+  debtorMaritalStatus?: string | null;
+}
+
+export function validateCaseBusinessRules(
+  data: Partial<CreateCaseFormInput>,
+  options: BusinessRulesOptions = { mode: 'create' },
+): ValidationResult {
+  const issues: ValidationIssue[] = [];
+  const warnings: ValidationIssue[] = [];
+  const year = options.year ?? new Date().getFullYear();
+  const isInsolvency = (data.type ?? 'INSOLVENCY') === 'INSOLVENCY';
+  const isCreate = options.mode === 'create';
+
+  const push = (list: ValidationIssue[]) =>
+    list.forEach((issue) => {
+      if (issue.type === 'error') issues.push(issue);
+      else warnings.push(issue);
+    });
+
+  // --- Reglas aplicables a todo tipo de caso -------------------------------
+
+  const debts = data.debts ?? [];
+  const totalDebt = debts.reduce((sum, d) => {
+    const capital =
+      typeof d.capitalAmount === 'string'
+        ? parseFloat(d.capitalAmount) || 0
+        : (d.capitalAmount ?? 0);
+    const interest =
+      typeof d.interestAmount === 'string'
+        ? parseFloat(d.interestAmount) || 0
+        : (d.interestAmount ?? 0);
+    return sum + capital + interest;
+  }, 0);
+
+  if (data.monthlyIncome !== undefined || data.monthlyExpenses !== undefined) {
+    push(
+      validateIncomeExpenses(
+        typeof data.monthlyIncome === 'number' ? data.monthlyIncome : undefined,
+        typeof data.monthlyExpenses === 'number'
+          ? data.monthlyExpenses
+          : undefined,
+      ),
+    );
+  }
+
+  push(validatePaymentProposal(data));
+
+  if (options.debtorMaritalStatus) {
+    push(
+      validateSpouseData(options.debtorMaritalStatus, {
+        spouseName: data.spouseName,
+        spouseIdNumber: data.spouseIdNumber,
+      }),
+    );
+  }
+
+  // `validateAssetConditionals` queda fuera a propósito: depende de la lista de
+  // documentos ya cargados, que el servidor no conoce al crear el caso.
+  // Brecha conocida — ver docs/IMPLEMENTACION_SEMANA_3.md.
+
+  if (data.hasLegalProcesses !== undefined) {
+    push(
+      validateLegalProcesses(
+        data.hasLegalProcesses || false,
+        (data.legalProcesses ?? []).length,
+      ),
+    );
+  }
+
+  // --- Reglas específicas del trámite de insolvencia ------------------------
+
+  if (isInsolvency) {
+    if (debts.length > 0 || isCreate) {
+      push(validateDebtLimits(totalDebt, debts.length, year));
+    }
+
+    if (totalDebt > 0) {
+      push(validateMinimaCuantia(totalDebt, Boolean(data.attorney), year));
+    }
+
+    push(
+      validateAttorneyData(Boolean(data.attorney), { attorney: data.attorney }),
+    );
+
+    if (isCreate) {
+      if (!data.debtorId) {
+        issues.push({
+          field: 'debtorId',
+          message: 'Debe seleccionar un deudor',
+          type: 'error',
+        });
+      }
+      if (!data.causes || data.causes.length === 0) {
+        issues.push({
+          field: 'causes',
+          message: 'Debe seleccionar al menos una causa',
+          type: 'error',
+        });
+      }
+      if (debts.length === 0) {
+        issues.push({
+          field: 'debts',
+          message: 'Debe agregar al menos un acreedor',
+          type: 'error',
+        });
+      }
+    }
+  }
+
+  return { isValid: issues.length === 0, issues, warnings };
+}
+
+/**
+ * Aplana los errores en un mensaje único apto para el `error` que devuelven
+ * las server actions (que solo transportan string).
+ */
+export function formatValidationErrors(result: ValidationResult): string {
+  return result.issues.map((i) => i.message).join(' | ');
 }

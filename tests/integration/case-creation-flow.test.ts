@@ -23,7 +23,8 @@ jest.mock('@/features/auth/actions', () => ({
 
 const mockGenerateDocuments = jest.fn().mockResolvedValue(undefined);
 jest.mock('@/features/document/generate-documents', () => ({
-  generateDocumentsForNewCase: (...args: unknown[]) => mockGenerateDocuments(...args),
+  generateDocumentsForNewCase: (...args: unknown[]) =>
+    mockGenerateDocuments(...args),
 }));
 
 // P4: createCase programa el job post-response con after() de next/server.
@@ -52,7 +53,36 @@ import {
   PERMISSIONS,
 } from '../helpers/fixtures';
 
-import { createCase, getAllCases, getCaseById, deleteCase } from '@/features/case/actions';
+import {
+  createCase,
+  getAllCases,
+  getCaseById,
+  deleteCase,
+} from '@/features/case/actions';
+
+/**
+ * Payload mínimo que SÍ satisface las reglas de negocio del trámite de
+ * insolvencia que `createCase` valida en servidor desde C-2 (causa del
+ * sobreendeudamiento + al menos un acreedor). Es lo que envía el formulario
+ * real: `create-case-dialog` manda el form completo, incluidos `debts`.
+ */
+const VALID_CASE_PAYLOAD = {
+  debtorId: DEBTOR.id,
+  type: 'INSOLVENCY' as const,
+  totalDebt: '50000000',
+  creditors: '3',
+  operatorId: ADMIN_USER.id,
+  causes: ['SOBREENDEUDAMIENTO'],
+  debts: [
+    {
+      creditor: 'Banco Test',
+      type: 'TARJETA_CREDITO',
+      interestRate: '2.5',
+      capitalAmount: '50000000',
+      interestAmount: '0',
+    },
+  ],
+};
 
 describe('Integration: Case Creation Flow', () => {
   beforeEach(() => {
@@ -98,10 +128,7 @@ describe('Integration: Case Creation Flow', () => {
       mockPrisma.case.create.mockResolvedValue(createdCase);
 
       const result = await createCase({
-        debtorId: DEBTOR.id,
-        type: 'INSOLVENCY',
-        totalDebt: '50000000',
-        creditors: '3',
+        ...VALID_CASE_PAYLOAD,
         operatorId: ADMIN_USER.id,
       });
 
@@ -115,7 +142,11 @@ describe('Integration: Case Creation Flow', () => {
           id: ADMIN_USER.id,
           name: ADMIN_USER.name,
           email: ADMIN_USER.email,
-          permissions: [PERMISSIONS.VIEW_CASES, PERMISSIONS.CREATE_CASES, PERMISSIONS.VIEW_ALL_CASES],
+          permissions: [
+            PERMISSIONS.VIEW_CASES,
+            PERMISSIONS.CREATE_CASES,
+            PERMISSIONS.VIEW_ALL_CASES,
+          ],
         },
         tenantId: TENANT.id,
       });
@@ -157,10 +188,7 @@ describe('Integration: Case Creation Flow', () => {
       });
 
       await createCase({
-        debtorId: DEBTOR.id,
-        type: 'INSOLVENCY',
-        totalDebt: '50000000',
-        creditors: '3',
+        ...VALID_CASE_PAYLOAD,
         operatorId: ADMIN_USER.id,
       });
 
@@ -272,7 +300,12 @@ describe('Integration: Case Creation Flow', () => {
         const userId = role === 'Abogado' ? LAWYER_USER.id : ADMIN_USER.id;
 
         mockAuthenticateUser.mockResolvedValue({
-          user: { id: userId, name: role, email: `${role}@test.com`, permissions },
+          user: {
+            id: userId,
+            name: role,
+            email: `${role}@test.com`,
+            permissions,
+          },
           tenantId: TENANT.id,
         });
 
