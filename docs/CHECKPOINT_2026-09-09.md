@@ -138,7 +138,11 @@ Rama `fix/login-email-input-type`: el fix de una línea (`type="text"` → `type
 ## 7. Lo que sigue abierto y no está en ningún issue
 
 - **Deriva del historial de migraciones.** El schema declara 70 columnas `conc_*` (+ `layout_version`, `section`, `superseded_by_id`, secciones del Formulario Definitivo) y **ninguna migración las contiene**. Solo existen 2 migraciones: `20260205212559_init` y `20260711000000_add_document_generation_request`. Producción se construyó con `db push`. Consecuencia: el camino de recuperación del RUNBOOK **no reconstruye la base real** — restaurar y migrar da un schema de febrero de 2026.
-- **`src/app/api/sentry-test-temporal/`** sigue en `dev` marcado _"ELIMINAR ANTES DE PRODUCCIÓN"_. No entró en el despliegue (excluido a propósito del PR #8), pero sigue en la rama.
+- ~~**`src/app/api/sentry-test-temporal/`** sigue en `dev` marcado _"ELIMINAR ANTES DE PRODUCCIÓN"_. No entró en el despliegue (excluido a propósito del PR #8), pero sigue en la rama.~~ → 🟢 **CERRADO. Y este punto era incorrecto ya cuando se escribió** (verificado el 2026-09-17).
+
+  La ruta **nunca estuvo en `dev`**. Vivía solo en `fix/sentry-init`, rama que ya no existe en `origin`; `git log --all` no devuelve ni un commit para `src/app/api/sentry-test-temporal/route.ts`, y `git cat-file -e` la da por ausente tanto en el `dev` de hoy como en `8ec70d6`, que era el HEAD el día que se redactó este checkpoint. Su test (`tests/unit/observability/sentry-test-route.test.ts`) tampoco está: en `tests/unit/observability/` solo quedan `instrumentation`, `logger-sentry`, `observability` y `request-context.smoke`.
+
+  No hay nada que borrar. `docs/IMPLEMENTACION_SEMANA_3.md:178` ya lo decía —_"esa ruta no existe en `dev`"_— al atribuir los 3 errores de `tsc` sobre `.next/types/app/api/sentry-test-temporal/` a artefactos stale de un build de aquella rama.
 - **SMMLV 2026 transitorio.** El valor cargado ($1.750.905) viene del Decreto 0159 de 2026, que lo fija _transitoriamente_ tras la suspensión del 1469 de 2025 por el Consejo de Estado. Documentado con TODO(legal) en `validation-rules.ts`. Revisar si hay fallo de fondo o decreto definitivo.
 
 ---
