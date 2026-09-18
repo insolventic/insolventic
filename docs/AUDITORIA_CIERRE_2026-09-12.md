@@ -53,50 +53,30 @@ El hallazgo más grave es nuevo y no estaba en ninguna auditoría previa: **las 
 
 ---
 
-## 3. 🔴 CRÍTICO — Deriva de esquema sin verificar en 10 modelos
+## 3. ✅ VERIFICADA Y SANA — Deriva de esquema en 9 modelos (`Case` ya se había confirmado antes)
 
-**No pude ejecutar esta verificación.** El `.env` local apunta a `localhost/insolventic_e2e`, no a producción, y no tengo credenciales de la base real.
+**Actualización 2026-09-17:** verificado contra la base de **producción** real en Neon con `scripts/verificar-deriva-esquema.sql` (comparación columna por columna contra `information_schema.columns`, solo lectura). Resultado: **0 filas — sin deriva** en `Acreedor`, `Debtor`, `Bien`, `Payment`, `ProcesoJudicial`, `AuditLog`, `ConciliationCenter`, `Document` y `Notification`. Este riesgo queda cerrado; ya no es una incógnita.
 
-**Consultar la base local habría reproducido el error que ya costó meses.** Esa base se construyó con `db push`, así que tiene todas las columnas; es exactamente el motivo por el que el bug de `/cases` se diagnosticó mal dos veces (§8 del checkpoint). **El método por diff contra migraciones tampoco sirve**: para `Case` predijo 186 columnas faltantes cuando eran 29.
+Antes de correrlo se re-chequeó el script contra el `schema.prisma` vigente y se encontró que el script mismo tenía un hueco (le faltaba la fila de `Document.templateFolderPath`) — corregido antes de ejecutar contra producción. La tabla de abajo queda con las cifras reales usadas en esa corrida.
 
-El único método fiable es comparar contra `information_schema.columns` de la base real.
+| Modelo | Tabla real | Declaradas | Estado |
+| ------------------ | --------------------- | ---------: | :---: |
+| Case | `Case` | 265 | ✅ (verificado antes, §8 checkpoint) |
+| Debtor | `Debtor` | 51 | ✅ |
+| Acreedor | `acreedores` | 35 | ✅ |
+| Bien | `bienes` | 17 | ✅ |
+| Payment | `payments` | 17 | ✅ |
+| Document | `Document` | 16 | ✅ |
+| User | `User` | 12 | ✅ |
+| AuditLog | `audit_logs` | 12 | ✅ |
+| ProcesoJudicial | `procesos_judiciales` | 11 | ✅ |
+| Notification | `notifications` | 10 | ✅ |
+| ConciliationCenter | `ConciliationCenter` | 8 | ✅ |
+| **Total** | | **454** | |
 
-### Columnas declaradas (lado que sí se puede calcular)
+**Método:** consultar la base local o diffear contra migraciones no sirve para esto (la base local se construyó con `db push`, así que tiene todas las columnas — exactamente el motivo por el que el bug de `/cases` se diagnosticó mal dos veces, §8 del checkpoint; y el diff contra migraciones predijo 186 columnas faltantes para `Case` cuando eran 29). El único método fiable, y el que se usó, es comparar contra `information_schema.columns` de la base real.
 
-| Modelo | Tabla real | Declaradas |
-| ------------------ | --------------------- | ---------: |
-| Case | `Case` | 265 |
-| Debtor | `Debtor` | 51 |
-| Acreedor | `acreedores` | 35 |
-| Bien | `bienes` | 17 |
-| Payment | `payments` | 17 |
-| Document | `Document` | 15 |
-| User | `User` | 12 |
-| AuditLog | `audit_logs` | 12 |
-| ProcesoJudicial | `procesos_judiciales` | 11 |
-| Notification | `notifications` | 10 |
-| ConciliationCenter | `ConciliationCenter` | 8 |
-| **Total** | | **453** |
-
-> Conteo aproximado (±2 por el tratamiento de relaciones). La cifra que manda es la del SQL.
-
-### Cómo completar la tabla
-
-Ejecutar contra la base de **producción**, en solo lectura, sin leer datos de usuario:
-
-```sql
-SELECT table_name, count(*) AS columnas_reales
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name IN ('Case','Debtor','acreedores','bienes','payments',
-                     'Document','User','audit_logs','procesos_judiciales',
-                     'notifications','ConciliationCenter')
-GROUP BY table_name ORDER BY table_name;
-```
-
-Cualquier modelo cuyo número real sea menor que el declarado tiene deriva, y **cualquier consulta que lo lea sin `select` explícito falla como falló `/cases`**.
-
-**Por qué sigue siendo Crítico:** este defecto ya tumbó una pantalla durante meses sin que nadie lo viera. Nueve modelos siguen sin comprobar.
+**Por qué importaba:** este mismo defecto tumbó `/cases` durante meses sin que nadie lo viera. Con los 10 modelos ya verificados sanos, no hay evidencia de que se repita en otro módulo hoy.
 
 ---
 
@@ -186,7 +166,7 @@ No es una decisión mía; es el orden que propongo para discutirlo.
 **Antes de considerar el sistema maduro:**
 
 1. **Identidad del centro en las plantillas** (§2). Es el único hallazgo que produce documentos legalmente incorrectos hoy, en cada generación de uno de los dos centros.
-2. **Verificar la deriva de esquema** (§3). La consulta es de minutos; el riesgo que descarta es una caída silenciosa de meses.
+2. ~~Verificar la deriva de esquema~~ (§3) — **cerrado el 2026-09-17**, 0 filas de deriva en los 10 modelos.
 3. **`globalSearch`** (A-9). La auditoría original ya lo calificaba de corrección de minutos con impacto alto.
 4. **Visibilidad por rol en mutaciones y reportes** (A-1 y §5.2). Comparten solución: un `assertCaseAccess` reutilizable.
 
@@ -200,7 +180,7 @@ No es una decisión mía; es el orden que propongo para discutirlo.
 
 Lo que **no** cubre, para que no se lea como una revisión completa:
 
-- La Fase 2 quedó **sin ejecutar**: solo se calculó el lado declarado.
+- La Fase 2 (verificación de deriva de esquema contra producción) se completó el 2026-09-17 — ver §3.
 - La Fase 3 fue una **revisión estructural** —permisos, validación, manejo de errores, locks—, no una lectura línea por línea de la lógica de negocio de cada módulo.
 - No se revisaron los módulos de autenticación, casos ni documentos: ya los cubrieron las auditorías anteriores.
 - No se evaluó el frontend más allá de comprobar dónde vive cada validación.

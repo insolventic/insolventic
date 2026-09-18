@@ -1,5 +1,6 @@
 -- Deriva de esquema: columnas declaradas en schema.prisma que NO existen en la base real.
--- Generado desde schema.prisma el 2026-09-12. Solo lectura.
+-- Generado desde schema.prisma el 2026-09-12, reverificado el 2026-09-17
+-- (se corrigio un hueco propio del script: faltaba Document.templateFolderPath). Solo lectura.
 -- Ejecutar contra la base de PRODUCCION (Neon). Devuelve 0 filas si no hay deriva.
 
 WITH declaradas(tabla, columna) AS (VALUES
@@ -167,6 +168,7 @@ WITH declaradas(tabla, columna) AS (VALUES
   ('Document','fileName'),
   ('Document','mimeType'),
   ('Document','isGenerated'),
+  ('Document','templateFolderPath'),
   ('Document','section'),
   ('Document','superseded_by_id'),
   ('notifications','id'),

@@ -11,7 +11,7 @@
 
 > **Actualizado 2026-09-10** con el cierre del incidente. Ver §8.
 >
-> **De lo que este párrafo daba por pendiente, al cierre de la sesión del 2026-09-10 solo queda una cosa:** la rotación de la contraseña de Neon **ya se hizo** (§4). Sigue abierta únicamente la deriva de migraciones en los otros 9 modelos (§8). Se sumaron después dos cierres que este resumen no podía anticipar: los deploys de producción (§10) y la suite E2E del #6 (§9, 13/13).
+> **De lo que este párrafo daba por pendiente, al cierre de la sesión del 2026-09-10 solo quedaba una cosa:** la rotación de la contraseña de Neon **ya se hizo** (§4). La deriva de migraciones en los otros 9 modelos (§8) siguió abierta hasta el **2026-09-17**, cuando se verificó contra `information_schema.columns` de producción real: **0 filas de deriva** en los 9 modelos. Ver `docs/AUDITORIA_CIERRE_2026-09-12.md` §3. Se sumaron después dos cierres que este resumen no podía anticipar: los deploys de producción (§10) y la suite E2E del #6 (§9, 13/13).
 
 ---
 
@@ -137,7 +137,7 @@ Rama `fix/login-email-input-type`: el fix de una línea (`type="text"` → `type
 
 ## 7. Lo que sigue abierto y no está en ningún issue
 
-- **Deriva del historial de migraciones.** El schema declara 70 columnas `conc_*` (+ `layout_version`, `section`, `superseded_by_id`, secciones del Formulario Definitivo) y **ninguna migración las contiene**. Solo existen 2 migraciones: `20260205212559_init` y `20260711000000_add_document_generation_request`. Producción se construyó con `db push`. Consecuencia: el camino de recuperación del RUNBOOK **no reconstruye la base real** — restaurar y migrar da un schema de febrero de 2026.
+- **Deriva del historial de migraciones.** El schema declara 70 columnas `conc_*` (+ `layout_version`, `section`, `superseded_by_id`, secciones del Formulario Definitivo) y **ninguna migración las contiene**. Solo existen 2 migraciones: `20260205212559_init` y `20260711000000_add_document_generation_request`. Producción se construyó con `db push`. Consecuencia: el camino de recuperación del RUNBOOK **no reconstruye la base real** — restaurar y migrar da un schema de febrero de 2026. (Esto sigue siendo cierto y abierto — es un riesgo de *recuperación ante desastre*, distinto de la deriva de *columnas faltantes* del punto siguiente, que sí se cerró el 2026-09-17.)
 - ~~**`src/app/api/sentry-test-temporal/`** sigue en `dev` marcado _"ELIMINAR ANTES DE PRODUCCIÓN"_. No entró en el despliegue (excluido a propósito del PR #8), pero sigue en la rama.~~ → 🟢 **CERRADO. Y este punto era incorrecto ya cuando se escribió** (verificado el 2026-09-17).
 
   La ruta **nunca estuvo en `dev`**. Vivía solo en `fix/sentry-init`, rama que ya no existe en `origin`; `git log --all` no devuelve ni un commit para `src/app/api/sentry-test-temporal/route.ts`, y `git cat-file -e` la da por ausente tanto en el `dev` de hoy como en `8ec70d6`, que era el HEAD el día que se redactó este checkpoint. Su test (`tests/unit/observability/sentry-test-route.test.ts`) tampoco está: en `tests/unit/observability/` solo quedan `instrumentation`, `logger-sentry`, `observability` y `request-context.smoke`.
@@ -195,7 +195,7 @@ Este incidente es un síntoma de un problema mayor: **el historial de migracione
 Consecuencias vivas:
 
 1. **El camino de recuperación del RUNBOOK no reconstruye la base real.** Restaurar y migrar produce un schema de febrero de 2026.
-2. **Quedan 9 modelos con columnas sin respaldo en migraciones** (`Acreedor`, `Debtor`, `Bien`, `Payment`, `ProcesoJudicial`, `AuditLog`, `ConciliationCenter`, `Document`, `Notification`/`User`). Cualquier ruta de código que lea uno de ellos sin `select` puede romper igual que rompió `/cases`.
+2. **Quedan 9 modelos con columnas sin respaldo en migraciones** (`Acreedor`, `Debtor`, `Bien`, `Payment`, `ProcesoJudicial`, `AuditLog`, `ConciliationCenter`, `Document`, `Notification`/`User`). Cualquier ruta de código que lea uno de ellos sin `select` puede romper igual que rompió `/cases`. → **Verificado el 2026-09-17 contra `information_schema.columns` de producción: los 9 modelos tienen 0 columnas faltantes.** El riesgo de que rompan como `/cases` queda descartado; sigue viviendo el riesgo de recuperación ante desastre del punto 1 (las migraciones no alcanzan para reconstruir la base).
 3. **La estimación por diff contra migraciones sobreestima mucho.** Para `Case` predijo 186 columnas faltantes y el alcance real era 29, porque el `db push` histórico ya había creado las de conciliación. El método fiable es comparar contra `information_schema.columns` de la base real, modelo por modelo.
 
 **No se abordan aquí por decisión explícita:** se planifican aparte, con calma. Análisis de partida en `docs/DERIVA_MIGRACIONES_2026-09-10.md` (con la salvedad del punto 3).
