@@ -44,6 +44,7 @@ jest.mock('@/features/payment/actions', () => ({
 import {
   CASE_PHASE_VALUES,
   INITIAL_CASE_PHASE,
+  getPackageForPhase,
   isKnownPhase,
   validatePhaseTransition,
 } from '@/lib/case-phases';
@@ -70,16 +71,76 @@ describe('validatePhaseTransition — guard puro (C-1)', () => {
       ['Acuerdo aprobado', 'Post-acuerdo'],
       ['Post-acuerdo', 'Terminado'],
       ['Fracaso', 'Terminado'],
+      // Fases nuevas (docs/DISENO_FASES_NUEVAS_2026-09-11.md §2)
+      ['Inicial', 'Rechazo'],
+      ['Inicial', 'Retiro'],
+      ['Rechazo', 'Terminado'],
+      ['Retiro', 'Terminado'],
+      ['Admisión', 'Desistimiento'],
+      ['En negociación', 'Desistimiento'],
+      ['Audiencia programada', 'Desistimiento'],
+      ['Desistimiento', 'Terminado'],
+      ['Acuerdo aprobado', 'Acuerdo impugnado'],
+      ['Acuerdo impugnado', 'Post-acuerdo'], // ⓐ
+      ['Acuerdo impugnado', 'Acuerdo reformado'], // ⓑ
+      ['Acuerdo reformado', 'Post-acuerdo'], // ⓒ
+      ['Acuerdo reformado', 'Terminado'], // ⓓ
     ])('permite la transición %s → %s', (from, to) => {
       const result = validatePhaseTransition(from, to);
       expect(result).toEqual({ valid: true, isNoop: false });
     });
 
-    it('permite abortar a Fracaso desde cualquier fase no terminal', () => {
+    it('permite abortar a Fracaso solo desde una fase donde ya se intentó negociar', () => {
+      // §2.1: se elimina Inicial→Fracaso y Admisión→Fracaso. El fracaso solo
+      // existe después de notificar e intentar negociar.
+      const puedenFracasar = [
+        'En negociación',
+        'Audiencia programada',
+        'Acuerdo aprobado',
+        'Post-acuerdo',
+      ];
       for (const phase of CASE_PHASE_VALUES) {
         if (phase === 'Fracaso' || phase === 'Terminado') continue;
-        expect(validatePhaseTransition(phase, 'Fracaso').valid).toBe(true);
+        const result = validatePhaseTransition(phase, 'Fracaso');
+        expect(result.valid).toBe(puedenFracasar.includes(phase));
       }
+    });
+
+    it('ya no permite fracasar desde Inicial ni Admisión (§2.1)', () => {
+      expect(validatePhaseTransition('Inicial', 'Fracaso').valid).toBe(false);
+      expect(validatePhaseTransition('Admisión', 'Fracaso').valid).toBe(false);
+    });
+
+    it('Rechazo y Retiro solo son alcanzables desde Inicial', () => {
+      for (const phase of CASE_PHASE_VALUES) {
+        // Reescribir la misma fase es un no-op válido (no una transición real);
+        // lo cubren los tests de no-op de más abajo.
+        if (phase === 'Inicial' || phase === 'Rechazo' || phase === 'Retiro') {
+          continue;
+        }
+        expect(validatePhaseTransition(phase, 'Rechazo').valid).toBe(false);
+        expect(validatePhaseTransition(phase, 'Retiro').valid).toBe(false);
+      }
+    });
+
+    it('Desistimiento no es alcanzable desde Inicial (todavía no hay admisión)', () => {
+      expect(validatePhaseTransition('Inicial', 'Desistimiento').valid).toBe(
+        false,
+      );
+    });
+
+    it('una reforma ya no se puede volver a impugnar', () => {
+      expect(
+        validatePhaseTransition('Acuerdo reformado', 'Acuerdo impugnado').valid,
+      ).toBe(false);
+    });
+
+    it('un acuerdo impugnado resuelto (ⓐ) no reabre Acuerdo aprobado', () => {
+      // El cliente confirmó que un acuerdo, resuelta la impugnación, queda en
+      // firme: ⓐ va a Post-acuerdo, nunca de vuelta a Acuerdo aprobado.
+      expect(
+        validatePhaseTransition('Acuerdo impugnado', 'Acuerdo aprobado').valid,
+      ).toBe(false);
     });
 
     it('trata reescribir la misma fase como no-op válido', () => {
@@ -156,12 +217,39 @@ describe('validatePhaseTransition — guard puro (C-1)', () => {
     });
   });
 
-  it('isKnownPhase reconoce exactamente las 8 fases declaradas', () => {
-    expect(CASE_PHASE_VALUES).toHaveLength(8);
+  it('isKnownPhase reconoce exactamente las 13 fases declaradas', () => {
+    expect(CASE_PHASE_VALUES).toHaveLength(13);
     expect(CASE_PHASE_VALUES.every(isKnownPhase)).toBe(true);
     expect(isKnownPhase('Terminada')).toBe(false);
     expect(isKnownPhase(null)).toBe(false);
     expect(INITIAL_CASE_PHASE).toBe('Inicial');
+  });
+});
+
+describe('getPackageForPhase — mapa de paquetes por fase (Fase 2 paso 1)', () => {
+  it('mapea Fracaso al paquete 5, donde viven sus 27 plantillas (bug corregido)', () => {
+    // Antes de este fix, PACKAGE_PHASE_MAP no incluía 'Fracaso' y
+    // getPackageForPhase caía al paquete 1 (Solicitud) para un caso fracasado.
+    expect(getPackageForPhase('Fracaso')).toBe(5);
+  });
+
+  it('mapea Desistimiento al paquete 4, donde vive su plantilla existente', () => {
+    expect(getPackageForPhase('Desistimiento')).toBe(4);
+  });
+
+  it.each(['Rechazo', 'Retiro', 'Acuerdo impugnado', 'Acuerdo reformado'])(
+    'cae al paquete 1 para %s: sus plantillas aún no existen (paso 4, bloqueado por el abogado)',
+    (phase) => {
+      expect(getPackageForPhase(phase)).toBe(1);
+    },
+  );
+
+  it('mantiene el camino feliz existente', () => {
+    expect(getPackageForPhase('Inicial')).toBe(1);
+    expect(getPackageForPhase('En negociación')).toBe(2);
+    expect(getPackageForPhase('Audiencia programada')).toBe(3);
+    expect(getPackageForPhase('Acuerdo aprobado')).toBe(4);
+    expect(getPackageForPhase('Terminado')).toBe(5);
   });
 });
 
