@@ -19,12 +19,8 @@ import {
   inferMimeType,
 } from './persistence';
 import {
-  claimGenerationRequest,
-  markGenerationProcessing,
-  completeGenerationRequest,
-  failGenerationRequest,
   getGenerationRequests,
-  type GenerationKind,
+  runWithGenerationLock,
   type GenerationRequestSummary,
 } from './generation-request';
 import type { CaseWithRelations } from '../case/schemas';
@@ -35,62 +31,12 @@ import {
 } from '@/lib/rate-limit';
 
 /**
- * Ejecuta `produce` protegido por el lock anti-duplicados (P3): reclama la
- * solicitud (caseId, kind), la marca PROCESSING, registra los conteos al
- * terminar y libera el lock. Si ya hay una generación activa devuelve la
- * solicitud existente (equivalente al 409 + requestId del patrón REST).
- */
-async function runWithGenerationLock(
-  params: {
-    tenantId: string;
-    caseId: string;
-    kind: GenerationKind;
-    userId: string;
-  },
-  produce: () => Promise<GeneratedDocument[]>,
-): Promise<
-  | { ok: true; requestId: string; documents: GeneratedDocument[] }
-  | { ok: false; requestId: string; error: string }
-> {
-  const claim = await claimGenerationRequest({
-    tenantId: params.tenantId,
-    caseId: params.caseId,
-    kind: params.kind,
-    requestedById: params.userId,
-  });
-
-  if (!claim.claimed) {
-    return {
-      ok: false,
-      requestId: claim.request.id,
-      error: `Ya hay una generación de documentos en curso para este caso (estado: ${claim.request.status}). Espere a que termine o consulte su estado.`,
-    };
-  }
-
-  const requestId = claim.request.id;
-  try {
-    await markGenerationProcessing(requestId);
-    const documents = await produce();
-    const success = documents.filter((d) => d.status === 'success').length;
-    const errors = documents.filter((d) => d.status === 'error').length;
-    await completeGenerationRequest(requestId, {
-      total: documents.length,
-      success,
-      errors,
-    });
-    return { ok: true, requestId, documents };
-  } catch (error) {
-    // Liberar el lock para permitir reintento; el error sube al catch de la action.
-    await failGenerationRequest(requestId, error).catch(() => {});
-    throw error;
-  }
-}
-
-/**
  * Per-user rate limit shared by every generation action. Returns an error
  * string when the limit is exceeded, null otherwise.
  */
-async function checkGenerationRateLimit(userId: string): Promise<string | null> {
+async function checkGenerationRateLimit(
+  userId: string,
+): Promise<string | null> {
   const rlKey = getRateLimitKey('documentGeneration', userId);
   const rl = await checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.documentGeneration);
   if (!rl.allowed) {

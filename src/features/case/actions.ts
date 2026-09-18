@@ -19,8 +19,16 @@ import {
   generateDocumentsForAgreement,
   generateDocumentsForFailure,
 } from '@/features/document/generate-documents';
+import {
+  fetchCaseForGeneration,
+  asCaseWithRelations,
+  persistGeneratedDocuments,
+} from '@/features/document/persistence';
+import {
+  runWithGenerationLock,
+  type GenerationKind,
+} from '@/features/document/generation-request';
 import { generatePaymentSchedule } from '@/features/payment/actions';
-import type { CaseWithRelations } from './schemas';
 
 import {
   createCaseFormSchema,
@@ -2385,78 +2393,74 @@ export async function updateCasePhase(input: {
     );
 
     // ---------------------------------------------------------------
-    // Phase-specific side effects (async, non-blocking)
+    // Phase-specific side effects: documentos por cambio de fase.
+    //
+    // Antes: fire-and-forget sin lock ni after() — en Vercel podía cortarse
+    // al devolver la respuesta, y Fracaso nunca generaba nada porque
+    // 'general' no está en failureTypeMap (bug preexistente, sin resolver
+    // aquí — depende de la UI de subtipo del paso 3). Ahora usa el mismo
+    // runWithGenerationLock que la generación manual: se espera el
+    // resultado, protegido por el lock anti-duplicados (P3).
     // ---------------------------------------------------------------
     const PHASES_WITH_DOCUMENTS = ['Admisión', 'Acuerdo aprobado', 'Fracaso'];
     if (PHASES_WITH_DOCUMENTS.includes(newPhase)) {
-      // Fetch full case with relations for document generation
-      const fullCase = await prisma.case.findUnique({
-        where: { id: caseId, tenantId },
-        include: {
-          debtor: true,
-          operator: { select: { id: true, name: true, email: true } },
-          documents: true,
-          debts: { include: { creditor: { select: { name: true } } } },
-          assets: true,
-          libranzas: true,
-          suspendedServices: true,
-          dependents: true,
-          legalProcesses: true,
-          acreedores: true,
-          bienes: true,
-          procesosJudiciales: true,
-          _count: { select: { documents: true } },
-        },
-      });
+      const fullCase = await fetchCaseForGeneration(caseId, tenantId);
 
       if (fullCase?.driveFolderId) {
-        const caseForDocs = fullCase as unknown as CaseWithRelations;
+        const caseForDocs = asCaseWithRelations(fullCase);
         const folderId = fullCase.driveFolderId;
-
-        // Choose the correct document generator per phase
-        const generateFn =
+        const kind: GenerationKind =
           newPhase === 'Admisión'
-            ? () => generateDocumentsForAdmission(caseForDocs, folderId)
+            ? 'ADMISSION'
             : newPhase === 'Acuerdo aprobado'
-              ? () => generateDocumentsForAgreement(caseForDocs, folderId)
-              : () =>
-                  generateDocumentsForFailure(
-                    caseForDocs,
-                    folderId,
-                    fullCase.failureType ?? 'general',
-                  );
+              ? 'AGREEMENT'
+              : 'FAILURE';
 
-        // Generate documents in background
-        generateFn()
-          .then(async (documents) => {
-            for (const doc of documents) {
-              if (doc.status === 'success' && doc.googleDriveId) {
-                await prisma.document.create({
-                  data: {
-                    name: doc.templateName,
-                    type: 'generated',
-                    status: 'completed',
-                    url: doc.googleDriveUrl,
-                    caseId,
-                    tenantId,
-                    googleDriveId: doc.googleDriveId,
-                    fileName: doc.fileName,
-                    mimeType: 'application/pdf',
-                    isGenerated: true,
-                  },
-                });
-              }
-            }
-            console.log(
-              `[Phase → ${newPhase}] Generated ${documents.length} documents for case ${existingCase.caseNumber}`,
-            );
-          })
-          .catch((err) => {
-            console.error(
-              `[Phase → ${newPhase}] Error generating documents for case ${existingCase.caseNumber}:`,
-              err,
-            );
+        try {
+          const lock = await runWithGenerationLock(
+            { tenantId, caseId, kind, userId: user.id },
+            async () => {
+              const documents =
+                newPhase === 'Admisión'
+                  ? await generateDocumentsForAdmission(caseForDocs, folderId)
+                  : newPhase === 'Acuerdo aprobado'
+                    ? await generateDocumentsForAgreement(caseForDocs, folderId)
+                    : await generateDocumentsForFailure(
+                        caseForDocs,
+                        folderId,
+                        fullCase.failureType ?? 'general',
+                      );
+              await persistGeneratedDocuments(documents, caseId, tenantId);
+              return documents;
+            },
+          );
+
+          if (!lock.ok) {
+            logger.warn('Generación por cambio de fase ya en curso', {
+              action: 'update-case-phase',
+              caseId,
+              newPhase,
+              requestId: lock.requestId,
+            });
+          } else {
+            logger.info('Documentos generados por cambio de fase', {
+              action: 'update-case-phase',
+              caseId,
+              newPhase,
+              requestId: lock.requestId,
+              documentCount: lock.documents.length,
+            });
+          }
+        } catch (error) {
+          // El cambio de fase ya se persistió arriba; un fallo de Drive/PDF
+          // no debe revertirlo — se loguea y queda disponible el reintento
+          // manual desde /documents.
+          logger.error('Generación por cambio de fase falló', error, {
+            action: 'update-case-phase',
+            caseId,
+            newPhase,
           });
+        }
       }
     }
 

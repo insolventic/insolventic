@@ -891,18 +891,24 @@ export const ALL_TEMPLATES: DocumentTemplate[] = [
     description: 'Auto de solicitud por incumplimiento',
   },
   {
-    id: 'rechazo-inasistencia',
+    // Renombrada de 'rechazo-inasistencia': el archivo y el texto son sobre
+    // inasistencia del DEUDOR a una audiencia ya programada/celebrada, no un
+    // rechazo de entrada (docs/DISENO_FASES_NUEVAS_2026-09-11.md §3.1.5). La
+    // inasistencia de ACREEDORES ya está cubierta por 'inasistencia-vencimiento'
+    // e 'inasistencia-animo'.
+    id: 'inasistencia-deudor',
     name: 'Cierre por Inasistencia',
     fileName: 'Auto Cierre Tramite por Inasistencia del Deudor.html',
     caseType: 'INSOLVENCY',
-    category: 'rechazo',
+    category: 'fracaso',
     packageNumber: 5,
     packageName: 'Fracaso',
+    subPackage: 'Fracaso por inasistencia del deudor',
     generateOnCreate: false,
     generateOnAdmission: false,
     generateOnAgreement: false,
-    generateOnFailure: false,
-    folderPath: ['Tipos de Rechazo'],
+    generateOnFailure: true,
+    folderPath: ['Tipos De Fracaso', 'Fracaso por inasistencia del deudor'],
     description: 'Auto de cierre por inasistencia del deudor',
   },
 
@@ -1273,6 +1279,7 @@ export function getTemplatesForFailure(
     'inasistencia-vencimiento':
       'Fracaso por inasistencia y vencimiento de terminos',
     'inasistencia-animo': 'Fracaso por inasistencia-Animo de conciliar',
+    'inasistencia-deudor': 'Fracaso por inasistencia del deudor',
     incumplimiento: 'Fracaso por incumplimiento',
     'muerte-deudor': 'Fracaso por muerte del deudor',
     'propuesta-mala': 'Fracaso por propuesta mala',
@@ -1321,6 +1328,11 @@ export function getFailureTypes(): Array<{
       id: 'inasistencia-animo',
       name: 'Inasistencia sin Ánimo',
       description: 'Fracaso por inasistencia sin ánimo de conciliar',
+    },
+    {
+      id: 'inasistencia-deudor',
+      name: 'Inasistencia del Deudor',
+      description: 'Fracaso por inasistencia del deudor a audiencia programada',
     },
     {
       id: 'incumplimiento',

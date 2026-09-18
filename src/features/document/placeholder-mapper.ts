@@ -857,18 +857,20 @@ function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
     ANO_CONSTANCIA: getYear(now),
     ANO_BILATERAL: getYear(now),
     ANO_FRACASO: getYear(now),
-    ANO_DESISTIMIENTO: getYear(now),
+    // resultDate guarda la fecha del desistimiento (docs/DISENO_FASES_NUEVAS_2026-09-11.md
+    // §6); cae a "now" si todavía no se registró, igual que ANO_RADICADO con filingDate.
+    ANO_DESISTIMIENTO: getYear(caseData.resultDate) || getYear(now),
     ANO_INICIO_PAGO: '', // Manual - post-agreement
     ANO_VIGENCIA: '', // Manual - post-agreement
 
     // Day variables
     DIA: getDayNumber(now),
-    DIA_DESISTIMIENTO: '', // Manual
+    DIA_DESISTIMIENTO: getDayNumber(caseData.resultDate) || getDayNumber(now),
     DIA_FRACASO: '', // Manual
 
     // Month variables
     MES: getMonthName(now),
-    MES_DESISTIMIENTO: '', // Manual
+    MES_DESISTIMIENTO: getMonthName(caseData.resultDate) || getMonthName(now),
     MES_FRACASO: '', // Manual
 
     // Complete date

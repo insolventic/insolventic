@@ -375,6 +375,120 @@ describe('updateCasePhase — server action (C-1)', () => {
   });
 });
 
+describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.3)', () => {
+  beforeEach(() => {
+    resetAllMocks();
+    mockAuthenticateUser.mockReset();
+    jest.clearAllMocks();
+    authAsAdmin();
+  });
+
+  const caseWithFolder = (
+    phase: string,
+    overrides: Record<string, unknown> = {},
+  ) => ({
+    id: 'case-1',
+    phase,
+    caseNumber: 'INSOL-000001',
+    debtorName: 'Juan Pérez',
+    driveFolderId: 'drive-folder-1',
+    failureType: null,
+    ...overrides,
+  });
+
+  it('genera documentos protegido por el lock al pasar a Admisión', async () => {
+    mockPrisma.case.findUnique.mockResolvedValue(caseWithFolder('Inicial'));
+    const {
+      generateDocumentsForAdmission,
+    } = require('@/features/document/generate-documents');
+
+    const result = await updateCasePhase({
+      caseId: 'case-1',
+      newPhase: 'Admisión',
+    });
+
+    expect(result.success).toBe(true);
+    expect(generateDocumentsForAdmission).toHaveBeenCalledTimes(1);
+    // El lock reclama vía DocumentGenerationRequest antes de generar (P3).
+    expect(mockPrisma.documentGenerationRequest.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ caseId: 'case-1', kind: 'ADMISSION' }),
+      }),
+    );
+  });
+
+  it('usa generateDocumentsForFailure con el failureType del caso (o "general")', async () => {
+    mockPrisma.case.findUnique.mockResolvedValue(
+      caseWithFolder('En negociación', { failureType: null }),
+    );
+    const {
+      generateDocumentsForFailure,
+    } = require('@/features/document/generate-documents');
+
+    await updateCasePhase({ caseId: 'case-1', newPhase: 'Fracaso' });
+
+    expect(generateDocumentsForFailure).toHaveBeenCalledWith(
+      expect.anything(),
+      'drive-folder-1',
+      'general',
+    );
+  });
+
+  it('no genera documentos si el caso no tiene carpeta de Drive', async () => {
+    mockPrisma.case.findUnique.mockResolvedValue(
+      caseWithFolder('Inicial', { driveFolderId: null }),
+    );
+    const {
+      generateDocumentsForAdmission,
+    } = require('@/features/document/generate-documents');
+
+    const result = await updateCasePhase({
+      caseId: 'case-1',
+      newPhase: 'Admisión',
+    });
+
+    expect(result.success).toBe(true);
+    expect(generateDocumentsForAdmission).not.toHaveBeenCalled();
+  });
+
+  it('no genera documentos para fases fuera de PHASES_WITH_DOCUMENTS', async () => {
+    mockPrisma.case.findUnique.mockResolvedValue(caseWithFolder('Admisión'));
+    const {
+      generateDocumentsForAdmission,
+      generateDocumentsForAgreement,
+      generateDocumentsForFailure,
+    } = require('@/features/document/generate-documents');
+
+    await updateCasePhase({ caseId: 'case-1', newPhase: 'En negociación' });
+
+    expect(generateDocumentsForAdmission).not.toHaveBeenCalled();
+    expect(generateDocumentsForAgreement).not.toHaveBeenCalled();
+    expect(generateDocumentsForFailure).not.toHaveBeenCalled();
+  });
+
+  it('un fallo en la generación no revierte el cambio de fase ya persistido', async () => {
+    mockPrisma.case.findUnique.mockResolvedValue(caseWithFolder('Inicial'));
+    const {
+      generateDocumentsForAdmission,
+    } = require('@/features/document/generate-documents');
+    generateDocumentsForAdmission.mockRejectedValueOnce(
+      new Error('Drive caído'),
+    );
+
+    const result = await updateCasePhase({
+      caseId: 'case-1',
+      newPhase: 'Admisión',
+    });
+
+    // La fase ya se persistió antes del bloque de documentos (antiguo bug:
+    // el fire-and-forget no distinguía esto porque nunca se esperaba).
+    expect(result.success).toBe(true);
+    expect(mockPrisma.case.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { phase: 'Admisión' } }),
+    );
+  });
+});
+
 describe('updateCase — la puerta trasera de la máquina de estados (C-1)', () => {
   beforeEach(() => {
     resetAllMocks();
