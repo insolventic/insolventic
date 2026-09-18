@@ -375,6 +375,195 @@ describe('updateCasePhase — server action (C-1)', () => {
   });
 });
 
+describe('updateCasePhase — subtipo y fecha obligatorios (Fase 2 paso 3)', () => {
+  beforeEach(() => {
+    resetAllMocks();
+    mockAuthenticateUser.mockReset();
+    jest.clearAllMocks();
+    authAsAdmin();
+  });
+
+  const existingNoFolder = (phase: string) => ({
+    id: 'case-1',
+    phase,
+    caseNumber: 'INSOL-000001',
+    debtorName: 'Juan Pérez',
+    driveFolderId: null,
+  });
+
+  describe('Fracaso', () => {
+    it('rechaza sin subtipo, sin escribir en BD', async () => {
+      mockPrisma.case.findUnique.mockResolvedValue(
+        existingNoFolder('En negociación'),
+      );
+
+      const result = await updateCasePhase({
+        caseId: 'case-1',
+        newPhase: 'Fracaso',
+        resultDate: '2026-03-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('subtipo es obligatorio');
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
+    });
+
+    it('rechaza sin fecha, sin escribir en BD', async () => {
+      mockPrisma.case.findUnique.mockResolvedValue(
+        existingNoFolder('En negociación'),
+      );
+
+      const result = await updateCasePhase({
+        caseId: 'case-1',
+        newPhase: 'Fracaso',
+        subtype: 'vencimiento-terminos',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('fecha es obligatoria');
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
+    });
+
+    it('rechaza un subtipo desconocido', async () => {
+      mockPrisma.case.findUnique.mockResolvedValue(
+        existingNoFolder('En negociación'),
+      );
+
+      const result = await updateCasePhase({
+        caseId: 'case-1',
+        newPhase: 'Fracaso',
+        subtype: 'motivo-inventado',
+        resultDate: '2026-03-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Subtipo desconocido');
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
+    });
+
+    it('acepta cualquiera de los 13 subtipos oficiales (incluye inasistencia-deudor)', async () => {
+      const {
+        getFailureTypes,
+      } = require('@/features/document/templates-config');
+      expect(getFailureTypes().length).toBe(13);
+
+      for (const { id } of getFailureTypes()) {
+        mockPrisma.case.findUnique.mockResolvedValue(
+          existingNoFolder('En negociación'),
+        );
+        mockPrisma.case.update.mockClear();
+
+        const result = await updateCasePhase({
+          caseId: 'case-1',
+          newPhase: 'Fracaso',
+          subtype: id,
+          resultDate: '2026-03-01',
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockPrisma.case.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ failureType: id }),
+          }),
+        );
+      }
+    });
+
+    it('persiste failureType/failureDate, no resultType/resultDate', async () => {
+      mockPrisma.case.findUnique.mockResolvedValue(
+        existingNoFolder('En negociación'),
+      );
+
+      await updateCasePhase({
+        caseId: 'case-1',
+        newPhase: 'Fracaso',
+        subtype: 'incumplimiento',
+        resultDate: '2026-03-01',
+      });
+
+      const data = mockPrisma.case.update.mock.calls[0][0].data;
+      expect(data).toEqual({
+        phase: 'Fracaso',
+        failureType: 'incumplimiento',
+        failureDate: new Date('2026-03-01'),
+      });
+    });
+  });
+
+  describe('Desistimiento', () => {
+    it('rechaza sin subtipo, sin escribir en BD', async () => {
+      mockPrisma.case.findUnique.mockResolvedValue(
+        existingNoFolder('Admisión'),
+      );
+
+      const result = await updateCasePhase({
+        caseId: 'case-1',
+        newPhase: 'Desistimiento',
+        resultDate: '2026-03-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('subtipo es obligatorio');
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
+    });
+
+    it('rechaza un subtipo que no es ni "no-pago-tarifas" ni "abandono-total"', async () => {
+      mockPrisma.case.findUnique.mockResolvedValue(
+        existingNoFolder('Admisión'),
+      );
+
+      const result = await updateCasePhase({
+        caseId: 'case-1',
+        newPhase: 'Desistimiento',
+        subtype: 'porque-si',
+        resultDate: '2026-03-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Subtipo desconocido');
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
+    });
+
+    it.each(['no-pago-tarifas', 'abandono-total'])(
+      'acepta "%s" y persiste resultType/resultDate, no failureType/failureDate',
+      async (subtype) => {
+        mockPrisma.case.findUnique.mockResolvedValue(
+          existingNoFolder('Admisión'),
+        );
+
+        const result = await updateCasePhase({
+          caseId: 'case-1',
+          newPhase: 'Desistimiento',
+          subtype,
+          resultDate: '2026-03-01',
+        });
+
+        expect(result.success).toBe(true);
+        const data = mockPrisma.case.update.mock.calls[0][0].data;
+        expect(data).toEqual({
+          phase: 'Desistimiento',
+          resultType: subtype,
+          resultDate: new Date('2026-03-01'),
+        });
+      },
+    );
+  });
+
+  it('no exige subtipo para fases que no lo necesitan (ej. Admisión)', async () => {
+    mockPrisma.case.findUnique.mockResolvedValue(existingNoFolder('Inicial'));
+
+    const result = await updateCasePhase({
+      caseId: 'case-1',
+      newPhase: 'Admisión',
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockPrisma.case.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { phase: 'Admisión' } }),
+    );
+  });
+});
+
 describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.3)', () => {
   beforeEach(() => {
     resetAllMocks();
@@ -417,7 +606,7 @@ describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.
     );
   });
 
-  it('usa generateDocumentsForFailure con el failureType del caso (o "general")', async () => {
+  it('usa generateDocumentsForFailure con el subtype validado del input', async () => {
     mockPrisma.case.findUnique.mockResolvedValue(
       caseWithFolder('En negociación', { failureType: null }),
     );
@@ -425,12 +614,26 @@ describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.
       generateDocumentsForFailure,
     } = require('@/features/document/generate-documents');
 
-    await updateCasePhase({ caseId: 'case-1', newPhase: 'Fracaso' });
+    const result = await updateCasePhase({
+      caseId: 'case-1',
+      newPhase: 'Fracaso',
+      subtype: 'vencimiento-terminos',
+      resultDate: '2026-03-01',
+    });
 
+    expect(result.success).toBe(true);
     expect(generateDocumentsForFailure).toHaveBeenCalledWith(
       expect.anything(),
       'drive-folder-1',
-      'general',
+      'vencimiento-terminos',
+    );
+    expect(mockPrisma.case.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          failureType: 'vencimiento-terminos',
+          failureDate: new Date('2026-03-01'),
+        }),
+      }),
     );
   });
 

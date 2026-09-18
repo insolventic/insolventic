@@ -163,6 +163,39 @@ export const PHASE_TRANSITIONS: Record<string, string[]> = {
 };
 
 // ---------------------------------------------------------------------------
+// Subtipo + fecha obligatorios al transicionar (Fase 2 paso 3)
+// ---------------------------------------------------------------------------
+//
+// docs/DISENO_FASES_NUEVAS_2026-09-11.md §4: Fracaso y Desistimiento
+// necesitan un subtipo (y su fecha) para generar el documento correcto.
+// Rechazo, Retiro, Acuerdo impugnado y Acuerdo reformado no tienen subtipo
+// definido en el diseño — no se les exige nada aquí.
+
+export const PHASES_REQUIRING_SUBTYPE = ['Fracaso', 'Desistimiento'] as const;
+
+export function phaseRequiresSubtype(
+  phase: string | null | undefined,
+): boolean {
+  return (PHASES_REQUIRING_SUBTYPE as readonly string[]).includes(phase ?? '');
+}
+
+/**
+ * Subtipos de Desistimiento (§4.1). Se guardan en `resultType` — a
+ * diferencia de Fracaso (que tiene sus propios `failureType`/`failureDate`),
+ * no se crean campos nuevos. Los de Fracaso viven en
+ * `@/features/document/templates-config` (`getFailureTypes`), no aquí,
+ * porque ese módulo sí depende de la config de plantillas del documento.
+ */
+export const DESISTIMIENTO_SUBTYPES = [
+  { id: 'no-pago-tarifas', label: 'No pago de tarifas' },
+  { id: 'abandono-total', label: 'Abandono total' },
+] as const;
+
+export function isValidDesistimientoSubtype(id: string): boolean {
+  return DESISTIMIENTO_SUBTYPES.some((s) => s.id === id);
+}
+
+// ---------------------------------------------------------------------------
 // Document Package → Phase Mapping
 // ---------------------------------------------------------------------------
 

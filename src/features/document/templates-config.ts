@@ -1372,6 +1372,11 @@ export function getFailureTypes(): Array<{
   ];
 }
 
+/** Valida un id de subtipo de fracaso (case.failureType) contra la lista oficial. */
+export function isValidFailureType(id: string): boolean {
+  return getFailureTypes().some((t) => t.id === id);
+}
+
 // =============================================
 // GENERAL QUERY FUNCTIONS
 // =============================================

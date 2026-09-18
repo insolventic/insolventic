@@ -6,7 +6,12 @@ import { z } from 'zod';
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
-import { INITIAL_CASE_PHASE, validatePhaseTransition } from '@/lib/case-phases';
+import {
+  INITIAL_CASE_PHASE,
+  validatePhaseTransition,
+  phaseRequiresSubtype,
+  isValidDesistimientoSubtype,
+} from '@/lib/case-phases';
 import { logger } from '@/lib/logger';
 import {
   validateCaseBusinessRules,
@@ -19,6 +24,7 @@ import {
   generateDocumentsForAgreement,
   generateDocumentsForFailure,
 } from '@/features/document/generate-documents';
+import { isValidFailureType } from '@/features/document/templates-config';
 import {
   fetchCaseForGeneration,
   asCaseWithRelations,
@@ -2312,11 +2318,27 @@ export async function getDashboardStats(): Promise<{
 const updateCasePhaseSchema = z.object({
   caseId: z.string().min(1),
   newPhase: z.string().min(1),
+  subtype: z.string().min(1).optional(),
+  resultDate: z.coerce.date().optional(),
 });
+
+/**
+ * Fracaso valida contra `getFailureTypes()` (templates-config.ts, ya la
+ * fuente de verdad de sus 13 subtipos); Desistimiento contra
+ * `isValidDesistimientoSubtype` (case-phases.ts, sin campos propios en el
+ * módulo de documentos). Devuelve false para cualquier otra fase.
+ */
+function isValidSubtypeForPhase(phase: string, subtype: string): boolean {
+  if (phase === 'Fracaso') return isValidFailureType(subtype);
+  if (phase === 'Desistimiento') return isValidDesistimientoSubtype(subtype);
+  return false;
+}
 
 export async function updateCasePhase(input: {
   caseId: string;
   newPhase: string;
+  subtype?: string;
+  resultDate?: string | Date;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const { user, tenantId } = await authenticateUser();
@@ -2325,7 +2347,8 @@ export async function updateCasePhase(input: {
       return { success: false, error: 'No tienes permisos para editar casos' };
     }
 
-    const { caseId, newPhase } = updateCasePhaseSchema.parse(input);
+    const { caseId, newPhase, subtype, resultDate } =
+      updateCasePhaseSchema.parse(input);
 
     const existingCase = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
@@ -2349,9 +2372,42 @@ export async function updateCasePhase(input: {
       return { success: true };
     }
 
+    // Fracaso y Desistimiento exigen subtipo + fecha para generar el
+    // documento correcto (docs/DISENO_FASES_NUEVAS_2026-09-11.md §4). El
+    // frontend ya deshabilita el botón de confirmar sin estos datos, pero
+    // esa es solo UX — esta es la fuente de verdad real, mismo principio
+    // que validatePhaseTransition para la fase en sí.
+    if (phaseRequiresSubtype(newPhase)) {
+      if (!subtype) {
+        return {
+          success: false,
+          error: `El subtipo es obligatorio para pasar a "${newPhase}"`,
+        };
+      }
+      if (!resultDate) {
+        return {
+          success: false,
+          error: `La fecha es obligatoria para pasar a "${newPhase}"`,
+        };
+      }
+      if (!isValidSubtypeForPhase(newPhase, subtype)) {
+        return {
+          success: false,
+          error: `Subtipo desconocido para "${newPhase}": "${subtype}"`,
+        };
+      }
+    }
+
+    const phaseUpdateData =
+      newPhase === 'Fracaso'
+        ? { phase: newPhase, failureType: subtype, failureDate: resultDate }
+        : newPhase === 'Desistimiento'
+          ? { phase: newPhase, resultType: subtype, resultDate: resultDate }
+          : { phase: newPhase };
+
     await prisma.case.update({
       where: { id: caseId, tenantId },
-      data: { phase: newPhase },
+      data: phaseUpdateData,
     });
 
     revalidateTag('cases');
@@ -2397,10 +2453,11 @@ export async function updateCasePhase(input: {
     //
     // Antes: fire-and-forget sin lock ni after() — en Vercel podía cortarse
     // al devolver la respuesta, y Fracaso nunca generaba nada porque
-    // 'general' no está en failureTypeMap (bug preexistente, sin resolver
-    // aquí — depende de la UI de subtipo del paso 3). Ahora usa el mismo
-    // runWithGenerationLock que la generación manual: se espera el
-    // resultado, protegido por el lock anti-duplicados (P3).
+    // 'general' no está en failureTypeMap. Con el subtipo ahora obligatorio
+    // (arriba) ese bug queda resuelto de raíz: `subtype` siempre viene
+    // validado cuando newPhase es Fracaso. Usa el mismo runWithGenerationLock
+    // que la generación manual: se espera el resultado, protegido por el
+    // lock anti-duplicados (P3).
     // ---------------------------------------------------------------
     const PHASES_WITH_DOCUMENTS = ['Admisión', 'Acuerdo aprobado', 'Fracaso'];
     if (PHASES_WITH_DOCUMENTS.includes(newPhase)) {
@@ -2428,7 +2485,7 @@ export async function updateCasePhase(input: {
                     : await generateDocumentsForFailure(
                         caseForDocs,
                         folderId,
-                        fullCase.failureType ?? 'general',
+                        subtype ?? fullCase.failureType ?? 'general',
                       );
               await persistGeneratedDocuments(documents, caseId, tenantId);
               return documents;
