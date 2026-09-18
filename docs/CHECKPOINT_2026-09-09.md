@@ -137,6 +137,12 @@ Rama `fix/login-email-input-type`: el fix de una línea (`type="text"` → `type
 
 ## 7. Lo que sigue abierto y no está en ningún issue
 
+- **Pre-commit hook roto en Windows: `husky` → `npx lint-staged` no encuentra `node`.** Diagnosticado el 2026-09-17, sin arreglar a propósito — registrado como [issue #17](https://github.com/insolventic/insolventic/issues/17) para no repetir el diagnóstico ni mezclarlo con el trabajo de fases nuevas en curso. Reproducible con:
+  ```
+  & "C:\Program Files\Git\bin\sh.exe" -c "node --version; npx lint-staged --version"
+  ```
+  `node --version` funciona bien dentro de ese `sh.exe`; `npx lint-staged` falla con `""node"" no se reconoce como un comando interno o externo` (nótese las comillas dobladas en el mensaje — indicio de un problema de quoting, no de que `node` falte). `npx lint-staged --version` corre perfecto si se lanza directo desde PowerShell, sin pasar por `git commit`. Conclusión: el hook siempre se ejecuta a través del `sh.exe` (MSYS) que trae Git para Windows —sin importar qué terminal use quien corre `git commit`— y ahí el shim `.cmd` de `npx` no resuelve `node` correctamente, probablemente por cómo MSYS traduce `C:\Program Files\nodejs\` (espacio en el path) al invocar el `.cmd` desde `sh`. Mitigación actual: `git commit --no-verify` puntual, con autorización explícita cada vez — no se debe generalizar a un salteo permanente del hook.
+
 - **Deriva del historial de migraciones.** El schema declara 70 columnas `conc_*` (+ `layout_version`, `section`, `superseded_by_id`, secciones del Formulario Definitivo) y **ninguna migración las contiene**. Solo existen 2 migraciones: `20260205212559_init` y `20260711000000_add_document_generation_request`. Producción se construyó con `db push`. Consecuencia: el camino de recuperación del RUNBOOK **no reconstruye la base real** — restaurar y migrar da un schema de febrero de 2026. (Esto sigue siendo cierto y abierto — es un riesgo de *recuperación ante desastre*, distinto de la deriva de *columnas faltantes* del punto siguiente, que sí se cerró el 2026-09-17.)
 - ~~**`src/app/api/sentry-test-temporal/`** sigue en `dev` marcado _"ELIMINAR ANTES DE PRODUCCIÓN"_. No entró en el despliegue (excluido a propósito del PR #8), pero sigue en la rama.~~ → 🟢 **CERRADO. Y este punto era incorrecto ya cuando se escribió** (verificado el 2026-09-17).
 
