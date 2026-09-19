@@ -358,8 +358,6 @@ export function CreateCaseDialog({
         notificationCity: '',
         notificationPhone: '',
         notificationEmail: '',
-        notificationOutsideBogota: false,
-        outsideBogotaReason: '',
         applicantSignatureName: '',
         applicantSignatureId: '',
         applicantSignature: '',
