@@ -23,20 +23,6 @@ import {
   updateCaseSchema,
 } from '@/features/case/schemas';
 
-/**
- * Claves que HOY no son campo de Case y siguen sin resolverse a propósito:
- * el checkbox "fuera de Bogotá" se agregó el 2026-04-01 (77898bd) y se quitó
- * de la UI el 04-02 (3a1621e); solo quedaron los valores por defecto ocultos.
- * Pendiente de decisión legal con la abogada del centro (borrarlas o agregar
- * columnas). Cuando se resuelva, este arreglo debe quedar vacío — el test
- * falla a propósito si la lista no coincide EXACTAMENTE con la realidad, para
- * que la excepción no sobreviva a la decisión.
- */
-const PENDING_LEGAL_DECISION = [
-  'notificationOutsideBogota',
-  'outsideBogotaReason',
-];
-
 const caseModel = Prisma.dmmf.datamodel.models.find((m) => m.name === 'Case');
 const CASE_FIELDS = new Set((caseModel?.fields ?? []).map((f) => f.name));
 
@@ -82,7 +68,7 @@ describe('Contrato Zod de entrada <-> modelo Case', () => {
       extracted,
     );
 
-    expect(orphans).toEqual([...PENDING_LEGAL_DECISION].sort());
+    expect(orphans).toEqual([]);
   });
 
   it('updateCase: toda clave que llega a case.update() es un campo de Case', () => {
@@ -91,13 +77,6 @@ describe('Contrato Zod de entrada <-> modelo Case', () => {
 
     const orphans = orphanKeys(Object.keys(updateCaseSchema.shape), extracted);
 
-    expect(orphans).toEqual([...PENDING_LEGAL_DECISION].sort());
-  });
-
-  it('las claves de la excepción siguen existiendo en el Zod (si no, quitar la excepción)', () => {
-    const createKeys = new Set(Object.keys(createCaseFormSchema.shape));
-    for (const key of PENDING_LEGAL_DECISION) {
-      expect(createKeys.has(key)).toBe(true);
-    }
+    expect(orphans).toEqual([]);
   });
 });
