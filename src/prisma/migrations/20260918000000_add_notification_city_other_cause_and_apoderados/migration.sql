@@ -1,6 +1,6 @@
 -- AlterTable
-ALTER TABLE "Case" ADD COLUMN     "otherCauseDetail" TEXT,
-ADD COLUMN     "notificationCity" TEXT;
+ALTER TABLE "Case" ADD COLUMN     "notificationCity" TEXT,
+ADD COLUMN     "otherCauseDetail" TEXT;
 
 -- CreateTable
 CREATE TABLE "apoderados" (
