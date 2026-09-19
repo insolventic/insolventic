@@ -789,6 +789,7 @@ export async function batchGenerateDocuments(input: {
         acreedores: true,
         bienes: true,
         procesosJudiciales: true,
+        apoderados: { orderBy: { orden: 'asc' } },
       },
     });
 
