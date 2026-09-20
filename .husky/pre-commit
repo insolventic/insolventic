@@ -1,1 +1,12 @@
+# Windows + Git for Windows: git ejecuta este hook con su sh.exe (MSYS), que
+# traduce el PATH a formato POSIX y de vuelta. Si alguna entrada del PATH de
+# Windows lleva comillas (p. ej. "C:\...\maven\bin"\bin, que cmd y PowerShell
+# toleran porque quedan balanceadas), la traduccion deja UNA comilla sin cerrar
+# y cmd.exe deja de ver todo lo que le sigue en el PATH, incluido node: `npx`
+# (que pasa por cmd.exe) falla con `""node"" no se reconoce como un comando`.
+# Quitar las comillas del PATH lo evita; donde el PATH no las tiene (Linux,
+# macOS, CI) es un no-op. Ver issue #17.
+PATH=$(printf '%s' "$PATH" | tr -d '"')
+export PATH
+
 npx lint-staged
