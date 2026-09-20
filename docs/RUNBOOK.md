@@ -164,16 +164,18 @@ estados en la tabla `document_generation_requests`.
 
 ### 3.4 Google Drive falla (subidas, carpetas)
 
-Síntoma típico: errores `invalid_grant`, `401` o `403` en Sentry con
-`action: 'drive-upload'`.
+Síntoma típico: errores `invalid_grant`, `401` o `403`. Sentry los muestra
+como `Error generating document` con `action: 'generate-documents'`; el
+error original de Google (`invalid_grant`) está en Vercel → Logs (Runtime),
+porque `src/lib/google-drive.ts` lo registra con `console.error`.
 
 - **`invalid_grant`** → el refresh token de OAuth se revocó o expiró. Es la
-  causa más común y requiere **rotar el token**:
-  1. Regenerar el refresh token con el flujo OAuth (ver `docs/ARQUITECTURA.md`,
-     sección de Google Drive) usando la cuenta `insolvenic@gmail.com`.
-  2. Actualizar `GOOGLE_DRIVE_REFRESH_TOKEN` en Vercel (todos los entornos
-     que correspondan).
-  3. Redeploy.
+  causa más común y requiere **rotar el token**. Procedimiento completo
+  (OAuth Playground, variables, verificación y el aviso sobre el modo
+  "Testing" de Google, que expira el token a los 7 días):
+  `docs/RUNBOOK_ROTACION_DRIVE.md`. Resumen: regenerar el token con la cuenta
+  `insolvenic@gmail.com`, actualizar `GOOGLE_DRIVE_REFRESH_TOKEN` en Vercel
+  (Production y Preview) y redeployar.
 - **`403 quota`** → límite de la API de Drive. Esperar la ventana o pedir
   aumento de cuota en Google Cloud Console.
 - Las subidas ya tienen reintento con backoff exponencial (3 intentos), así
@@ -265,7 +267,7 @@ un repositorio público, o salida de una persona con acceso).
 | Secreto | Cómo se rota | Impacto de rotar |
 |---|---|---|
 | `JWT_SECRET` | Generar: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` | **Cierra todas las sesiones activas.** Todos los usuarios deben volver a entrar. Avisar antes. |
-| `GOOGLE_DRIVE_REFRESH_TOKEN` | Rehacer el flujo OAuth (§3.4) | Ninguno si se hace de corrido; entre medio fallan las subidas. |
+| `GOOGLE_DRIVE_REFRESH_TOKEN` | Rehacer el flujo OAuth: `docs/RUNBOOK_ROTACION_DRIVE.md` | Ninguno si se hace de corrido; entre medio fallan las subidas. |
 | `SMTP_PASSWORD` | Nueva app password en https://myaccount.google.com/apppasswords | Ninguno; los emails en vuelo pueden fallar. |
 | `CRON_SECRET` | Generar random y actualizar en Vercel | El cron falla hasta que Vercel tome el valor nuevo (redeploy). |
 | `UPSTASH_REDIS_REST_TOKEN` | Rotar en la consola de Upstash | Rate limiting degrada a in-memory hasta actualizar (no bloquea usuarios). |
@@ -305,3 +307,5 @@ cuándo, qué se hizo, y qué haría falta para que no vuelva a pasar.
   `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md`
 - Convenciones de código y decisiones por sesión: `CLAUDE.md`
 - Variables de entorno: `.env.example`
+- Rotación del refresh token de Google Drive:
+  `docs/RUNBOOK_ROTACION_DRIVE.md`
