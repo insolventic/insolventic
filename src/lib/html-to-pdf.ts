@@ -55,6 +55,21 @@ async function getExecutablePath(): Promise<string> {
     return await chromiumModule.default.executablePath();
   }
 
+  // Local development: CHROME_PATH tiene prioridad sobre las rutas habituales
+  // (Chrome/Edge/Chromium en otra ubicación, WSL, CI…). Si está definida pero no
+  // existe se falla diciendo cuál: caer en silencio a otra ruta ocultaría el
+  // error de configuración. En serverless (arriba) no se lee.
+  const customPath = process.env.CHROME_PATH?.trim();
+  if (customPath) {
+    const fs = await import('fs');
+    if (fs.existsSync(customPath)) {
+      return customPath;
+    }
+    throw new Error(
+      `CHROME_PATH apunta a un archivo que no existe: ${customPath}`,
+    );
+  }
+
   // Local development - try common paths
   const possiblePaths = [
     // Windows
@@ -81,7 +96,7 @@ async function getExecutablePath(): Promise<string> {
   }
 
   throw new Error(
-    'No se encontro Chromium. Instale Google Chrome o configure CHROME_PATH.',
+    'No se encontro Chromium. Instale Google Chrome o defina CHROME_PATH con la ruta al ejecutable.',
   );
 }
 
