@@ -118,8 +118,9 @@ estable, un segundo release borra lo viejo.
    - Restaurar a una **instancia nueva**, nunca encima de la productiva.
    - Verificar contra la instancia restaurada antes de repuntar
      `DATABASE_URL`.
-   - Cambiar la env var en Vercel y **redeploy** (las env vars se leen en
-     runtime, pero un redeploy garantiza instancias limpias).
+   - Cambiar la env var en Vercel y **redeploy** (obligatorio: Vercel aplica
+     los cambios de variables solo a deployments nuevos; ver
+     `docs/RUNBOOK_ENV_VARS.md` §2).
    - Avisar a ambos centros: los expedientes creados después del punto de
      restauración se perdieron y hay que recargarlos.
 
@@ -269,7 +270,7 @@ un repositorio público, o salida de una persona con acceso).
 | `SMTP_PASSWORD` | Nueva app password en https://myaccount.google.com/apppasswords | Ninguno; los emails en vuelo pueden fallar. |
 | `CRON_SECRET` | Generar random y actualizar en Vercel | El cron falla hasta que Vercel tome el valor nuevo (redeploy). |
 | `UPSTASH_REDIS_REST_TOKEN` | Rotar en la consola de Upstash | Rate limiting degrada a in-memory hasta actualizar (no bloquea usuarios). |
-| `DATABASE_URL` | Cambiar credenciales en el proveedor | Requiere redeploy; hay downtime breve. |
+| `DATABASE_URL` + `DIRECT_URL` | Reset de la contraseña de `neondb_owner` en Neon y actualizar **ambas** variables en Production **y** Preview: `docs/RUNBOOK_ENV_VARS.md` §4 | Requiere redeploy; hay downtime breve. Rotar solo una deja una falla silenciosa (`DIRECT_URL` vieja rompe el próximo build de producción). |
 
 Después de cualquier rotación: actualizar en Vercel → **redeploy** →
 smoke test.
@@ -305,3 +306,5 @@ cuándo, qué se hizo, y qué haría falta para que no vuelva a pasar.
   `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md`
 - Convenciones de código y decisiones por sesión: `CLAUDE.md`
 - Variables de entorno: `.env.example`
+- Conexión a la base (`DATABASE_URL` / `DIRECT_URL`) y rotación de la
+  contraseña de Neon: `docs/RUNBOOK_ENV_VARS.md`
