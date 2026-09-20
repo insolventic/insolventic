@@ -14,6 +14,17 @@ import { logger } from '@/lib/logger';
 
 type AuthUser = NonNullable<ValidateSessionResult['user']>;
 
+/**
+ * ¿Es el error con el que Next señala una redirección (`redirect()`)? Next lo
+ * marca con un `digest` que empieza por "NEXT_REDIRECT;" — el mismo criterio
+ * que su `isRedirectError` interno, sin importar de `next/dist`.
+ */
+function isNextRedirectError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const digest = (error as { digest?: unknown }).digest;
+  return typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT;');
+}
+
 interface UseAuthReturn {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -159,10 +170,20 @@ export function useAuth(): UseAuthReturn {
       setUser(null);
       await switchDatabase();
     } catch (error) {
-      // If there's an error, still redirect to home page as fallback
-      logger.error('Switch database error', error, {
-        action: 'switchDatabase',
-      });
+      if (isNextRedirectError(error)) {
+        // switchDatabase termina en redirect('/') en el servidor y Next rechaza
+        // la promesa de la action con un error de redirección: es el camino
+        // normal, no un fallo (mismo criterio que logout y switchTenant).
+        logger.debug('Switch database redirect triggered (expected behavior)', {
+          action: 'switchDatabase',
+        });
+      } else {
+        logger.error('Switch database error', error, {
+          action: 'switchDatabase',
+        });
+      }
+      // En ambos casos, navegar a home: el usuario no debe quedarse en una
+      // página autenticada.
       router.push('/');
     }
   }, [router]);
