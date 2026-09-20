@@ -14,6 +14,17 @@ import { logger } from '@/lib/logger';
 
 type AuthUser = NonNullable<ValidateSessionResult['user']>;
 
+/**
+ * ¿Es el error con el que Next señala una redirección (`redirect()`)? Next lo
+ * marca con un `digest` que empieza por "NEXT_REDIRECT;" — el mismo criterio
+ * que su `isRedirectError` interno, sin importar de `next/dist`.
+ */
+function isNextRedirectError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const digest = (error as { digest?: unknown }).digest;
+  return typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT;');
+}
+
 interface UseAuthReturn {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -178,12 +189,26 @@ export function useAuth(): UseAuthReturn {
         // This line is unlikely to be reached due to the redirect
         await refreshSession();
         return result;
-      } catch {
-        // redirect() throws an error by design in Next.js
-        logger.debug('Tenant switch redirect triggered (expected behavior)', {
+      } catch (error) {
+        if (isNextRedirectError(error)) {
+          // El cambio exitoso termina en redirect('/dashboard') en el servidor y
+          // Next rechaza la promesa de la action con un error de redirección:
+          // es el camino normal. (También redirige a /login si la sesión ya no
+          // es válida.) En ambos casos Next navega.
+          logger.debug('Tenant switch redirect triggered (expected behavior)', {
+            action: 'switchTenant',
+          });
+          return { success: true };
+        }
+        // Cualquier otra excepción (red caída, 5xx, server action inexistente
+        // tras un deploy…) es un fallo real: NO puede reportarse como éxito o
+        // el usuario cree que cambió de centro cuando no lo hizo. Los fallos de
+        // negocio ya vuelven como { success: false } sin lanzar.
+        logger.error('Switch tenant error', error, {
           action: 'switchTenant',
+          targetTenantSlug,
         });
-        return { success: true };
+        return { success: false, error: 'Error al cambiar de organización' };
       }
     },
     [refreshSession],
