@@ -11,19 +11,9 @@ import {
 } from '@/features/auth/actions';
 import type { ValidateSessionResult } from '@/features/auth/schemas';
 import { logger } from '@/lib/logger';
+import { isNextRedirectError } from '@/lib/next-redirect';
 
 type AuthUser = NonNullable<ValidateSessionResult['user']>;
-
-/**
- * ¿Es el error con el que Next señala una redirección (`redirect()`)? Next lo
- * marca con un `digest` que empieza por "NEXT_REDIRECT;" — el mismo criterio
- * que su `isRedirectError` interno, sin importar de `next/dist`.
- */
-function isNextRedirectError(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const digest = (error as { digest?: unknown }).digest;
-  return typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT;');
-}
 
 interface UseAuthReturn {
   user: AuthUser | null;
