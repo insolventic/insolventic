@@ -14,6 +14,17 @@ import { logger } from '@/lib/logger';
 
 type AuthUser = NonNullable<ValidateSessionResult['user']>;
 
+/**
+ * ¿Es el error con el que Next señala una redirección (`redirect()`)? Next lo
+ * marca con un `digest` que empieza por "NEXT_REDIRECT;" — el mismo criterio
+ * que su `isRedirectError` interno, sin importar de `next/dist`.
+ */
+function isNextRedirectError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const digest = (error as { digest?: unknown }).digest;
+  return typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT;');
+}
+
 interface UseAuthReturn {
   user: AuthUser | null;
   isAuthenticated: boolean;
@@ -143,15 +154,25 @@ export function useAuth(): UseAuthReturn {
       // where components might try to fetch data during logout
       setUser(null);
       await logoutUser();
-    } catch {
-      // Next.js redirect() throws an error by design to perform the redirect
-      // This is expected behavior, so we just clear the user state
-      // The server-side redirect will handle navigation
-      logger.debug('Logout redirect triggered (expected behavior)', {
-        action: 'logout',
-      });
+    } catch (error) {
+      if (isNextRedirectError(error)) {
+        // logoutUser termina en redirect('/') en el servidor y Next rechaza la
+        // promesa de la action con un error de redirección: es el camino normal.
+        // El usuario ya quedó limpio arriba y Next se encarga de navegar.
+        logger.debug('Logout redirect triggered (expected behavior)', {
+          action: 'logout',
+        });
+        return;
+      }
+      // Fallo real (red caída, 5xx, server action inexistente tras un deploy…):
+      // no se confirmó que la sesión se cerró. Antes se absorbía como debug y
+      // la UI, ya con user = null, aparentaba una sesión cerrada que seguía
+      // viva en el servidor. Se registra y se reconcilia la UI con la sesión
+      // real: si sigue válida se restaura el usuario; si no, queda cerrada.
+      logger.error('Logout error', error, { action: 'logout' });
+      await refreshSession();
     }
-  }, []);
+  }, [refreshSession]);
 
   const switchDatabaseHandler = useCallback(async () => {
     try {
