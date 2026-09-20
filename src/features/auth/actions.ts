@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { isNextRedirectError } from '@/lib/next-redirect';
 import { P } from '@/lib/permissions';
 import { seedRequestContextFromHeaders } from '@/lib/request-context';
 import { headers } from 'next/headers';
@@ -504,14 +505,16 @@ export async function switchDatabase(): Promise<void> {
   try {
     await clearAuthCookies();
     revalidateTag('auth');
-
-    // Redirect immediately on server side to prevent race condition
-    redirect('/');
   } catch (error) {
     logger.error('Tenant switch error', error);
-    // Even on error, redirect to prevent staying on authenticated page
-    redirect('/');
   }
+
+  // redirect() señala la redirección lanzando NEXT_REDIRECT, así que NO puede
+  // estar dentro del try: el catch lo registraría como un error falso y lo
+  // confundiría con un fallo real de clearAuthCookies. Va fuera para que se
+  // ejecute siempre — también tras un error — y el usuario no se quede en una
+  // página autenticada (mismo patrón que logoutUser).
+  redirect('/');
 }
 
 export async function switchTenant(targetTenantSlug: string): Promise<{
@@ -616,8 +619,9 @@ export async function switchTenant(targetTenantSlug: string): Promise<{
     revalidateTag('auth');
     redirect('/dashboard');
   } catch (error) {
-    // redirect() throws an error by design in Next.js
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+    // redirect() señala la redirección lanzando un error por diseño: debe
+    // propagarse. Se reconoce por su digest, no por el message.
+    if (isNextRedirectError(error)) {
       throw error;
     }
     logger.error('Error switching tenant', error);
