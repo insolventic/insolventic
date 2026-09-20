@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { isNextRedirectError } from '@/lib/next-redirect';
 import { P } from '@/lib/permissions';
 import { seedRequestContextFromHeaders } from '@/lib/request-context';
 import { headers } from 'next/headers';
@@ -616,8 +617,9 @@ export async function switchTenant(targetTenantSlug: string): Promise<{
     revalidateTag('auth');
     redirect('/dashboard');
   } catch (error) {
-    // redirect() throws an error by design in Next.js
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+    // redirect() señala la redirección lanzando un error por diseño: debe
+    // propagarse. Se reconoce por su digest, no por el message.
+    if (isNextRedirectError(error)) {
       throw error;
     }
     logger.error('Error switching tenant', error);
