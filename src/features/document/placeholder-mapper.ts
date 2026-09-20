@@ -856,7 +856,10 @@ function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
     ANO_TRAMITE: getYear(filingDate) || getYear(now),
     ANO_CONSTANCIA: getYear(now),
     ANO_BILATERAL: getYear(now),
-    ANO_FRACASO: getYear(now),
+    // DIA/MES/ANO_FRACASO no se definen aquí: los produce mapFracasoVariables
+    // desde failureDate (con marcador manual si falta). Tenerlos duplicados
+    // con valores distintos dependía del orden del spread en
+    // mapCaseToPlaceholders, y el "// Manual" de aquí nunca llegaba al documento.
     ANO_DESISTIMIENTO: getYear(now),
     ANO_INICIO_PAGO: '', // Manual - post-agreement
     ANO_VIGENCIA: '', // Manual - post-agreement
@@ -864,12 +867,10 @@ function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
     // Day variables
     DIA: getDayNumber(now),
     DIA_DESISTIMIENTO: '', // Manual
-    DIA_FRACASO: '', // Manual
 
     // Month variables
     MES: getMonthName(now),
     MES_DESISTIMIENTO: '', // Manual
-    MES_FRACASO: '', // Manual
 
     // Complete date
     FECHA_COMPLETA: formatDateComplete(now),
