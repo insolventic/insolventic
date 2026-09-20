@@ -32,7 +32,7 @@ import {
   uploadCaseDocumentsInputSchema,
   uploadCaseDocumentsOutputSchema,
 } from './schemas';
-import type { CaseWithRelations } from '../case/schemas';
+import { asCaseWithRelations } from './persistence';
 
 export async function getTemplatesFromDatabase() {
   try {
@@ -790,6 +790,10 @@ export async function batchGenerateDocuments(input: {
         bienes: true,
         procesosJudiciales: true,
         apoderados: { orderBy: { orden: 'asc' } },
+        // CaseWithRelations exige `_count`. El mapper no lo lee, pero el
+        // compilador ya verifica este objeto contra ese tipo (antes lo tapaba
+        // un doble cast) y sin esto faltaba la clave.
+        _count: { select: { documents: true } },
       },
     });
 
@@ -928,18 +932,17 @@ export async function batchGenerateDocuments(input: {
           estimatedValue: asset.value ? Number(asset.value) : null,
         })) || [],
       // Debtor Decimal fields
-      debtor: caseData.debtor
-        ? {
-            ...caseData.debtor,
-            monthlyIncome: toNum(caseData.debtor.monthlyIncome),
-            monthlyExpenses: toNum(caseData.debtor.monthlyExpenses),
-            otherIncomeAmount: toNum(caseData.debtor.otherIncomeAmount),
-          }
-        : null,
+      // Case.debtor es una relación obligatoria (FK requerida): nunca es null.
+      debtor: {
+        ...caseData.debtor,
+        monthlyIncome: toNum(caseData.debtor.monthlyIncome),
+        monthlyExpenses: toNum(caseData.debtor.monthlyExpenses),
+        otherIncomeAmount: toNum(caseData.debtor.otherIncomeAmount),
+      },
     };
 
     const placeholders = mapCaseToPlaceholders(
-      transformedCaseData as unknown as CaseWithRelations,
+      asCaseWithRelations(transformedCaseData),
     );
 
     // Read HTML templates, replace placeholders, generate PDFs
@@ -1015,9 +1018,7 @@ export async function batchGenerateDocuments(input: {
     // Pre-compute conciliation context once (flags + arrays for handlebars-lite)
     const batchExtraCtx =
       caseData.type === 'CONCILIATION'
-        ? buildConciliationContext(
-            transformedCaseData as unknown as import('@/features/case/schemas').CaseWithRelations,
-          )
+        ? buildConciliationContext(asCaseWithRelations(transformedCaseData))
         : undefined;
 
     for (const template of templatesToProcess) {
