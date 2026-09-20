@@ -27,7 +27,8 @@ const config: Config = {
   transformIgnorePatterns: ['/node_modules/(?!jose)'],
   setupFiles: ['<rootDir>/tests/setup.ts'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
-  testPathIgnorePatterns: ['tests/e2e/'],
+  // tests/db necesita una base Postgres viva: se corre aparte (`npm run test:db`).
+  testPathIgnorePatterns: ['tests/e2e/', 'tests/db/'],
   collectCoverageFrom: [
     'src/features/**/actions.ts',
     'src/features/**/schemas.ts',
