@@ -504,14 +504,16 @@ export async function switchDatabase(): Promise<void> {
   try {
     await clearAuthCookies();
     revalidateTag('auth');
-
-    // Redirect immediately on server side to prevent race condition
-    redirect('/');
   } catch (error) {
     logger.error('Tenant switch error', error);
-    // Even on error, redirect to prevent staying on authenticated page
-    redirect('/');
   }
+
+  // redirect() señala la redirección lanzando NEXT_REDIRECT, así que NO puede
+  // estar dentro del try: el catch lo registraría como un error falso y lo
+  // confundiría con un fallo real de clearAuthCookies. Va fuera para que se
+  // ejecute siempre — también tras un error — y el usuario no se quede en una
+  // página autenticada (mismo patrón que logoutUser).
+  redirect('/');
 }
 
 export async function switchTenant(targetTenantSlug: string): Promise<{
