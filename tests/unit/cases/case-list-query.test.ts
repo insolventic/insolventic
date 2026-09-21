@@ -41,7 +41,7 @@ import {
   PERMISSIONS,
 } from '../../helpers/fixtures';
 
-import { getAllCases } from '@/features/case/actions';
+import { getAllCases, deleteCase } from '@/features/case/actions';
 import {
   CASE_LIST_COLUMNS,
   caseSchema,
@@ -197,5 +197,51 @@ describe('CASE_LIST_COLUMNS', () => {
     for (const name of Object.keys(CASE_LIST_COLUMNS)) {
       expect(Object.keys(caseSchema.shape)).toContain(name);
     }
+  });
+});
+
+describe('deleteCase — solo comprueba existencia', () => {
+  it('lee únicamente el id del caso (no la fila) y sigue borrando en transacción', async () => {
+    asAdmin();
+    mockPrisma.case.findUnique.mockResolvedValue({ id: 'case-1' });
+    mockPrisma.$transaction.mockImplementation(async (fn: Function) =>
+      fn({
+        document: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        debt: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        asset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        legalProcess: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        libranza: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        suspendedService: {
+          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+        },
+        dependent: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+        case: {
+          delete: jest
+            .fn()
+            .mockResolvedValue({ ...CASE_DATA, debtorName: 'Test' }),
+        },
+      }),
+    );
+
+    const result = await deleteCase({ id: 'case-1' });
+
+    expect(result.success).toBe(true);
+    expect(mockPrisma.case.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'case-1', tenantId: TENANT.id },
+        select: { id: true },
+      }),
+    );
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+  });
+
+  it('un caso inexistente sigue devolviendo error', async () => {
+    asAdmin();
+    mockPrisma.case.findUnique.mockResolvedValue(null);
+
+    const result = await deleteCase({ id: 'no-existe' });
+
+    expect(result.success).toBe(false);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
   });
 });
