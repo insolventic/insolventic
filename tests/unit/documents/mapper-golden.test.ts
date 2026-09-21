@@ -232,7 +232,10 @@ function computeRender(): Record<string, RenderEntry> {
       };
       continue;
     }
-    const html = fs.readFileSync(file, 'utf8');
+    // Finales de línea normalizados a LF: en Windows (autocrlf) las plantillas se
+    // descargan con CRLF y en Linux/CI con LF; sin esto el hash cambiaría según el
+    // sistema operativo aunque nadie tocara nada.
+    const html = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
     for (const name of RENDER_SCENARIOS[template.caseType]) {
       if (!built.has(name)) {
         const caseData = SCENARIOS[name].build();
