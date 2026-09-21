@@ -31,36 +31,36 @@ npm run test:e2e          # Playwright (pendiente CI)
 
 ## 3. Inventario de suites
 
-| #   | Suite                                                       | Foco                                                            | Tests   |
-| --- | ------------------------------------------------------------ | ---------------------------------------------------------------- | ------- |
-| 1   | `tests/form-request/document-requirements.test.ts`           | Reglas required / conditional / optional                         | ~24     |
-| 2   | `tests/form-request/drive-storage.test.ts`                   | Resolución de storage/Drive por request                          | ~8      |
-| 3   | `tests/form-request/file-validation.test.ts`                 | Validación de archivos adjuntos (tipo, tamaño)                   | ~19     |
-| 4   | `tests/form-request/form-validation.test.ts`                 | Validación de formularios de caso                                | ~24     |
-| 5   | `tests/integration/case-creation-flow.test.ts`                | createCase → updateCase → transitionPhase                        | ~6      |
-| 6   | `tests/integration/drive-centro.test.ts`                     | Resolución de folder root por centro                              | ~65     |
-| 7   | `tests/security/auth-hardening.test.ts`                      | Hardening de autenticación                                       | ~13     |
-| 8   | `tests/security/input-validation.test.ts`                    | Sanitización de inputs                                            | ~12     |
-| 9   | `tests/security/password-policy.test.ts`                     | Política de contraseñas                                          | ~8      |
-| 10  | `tests/security/rate-limit.test.ts`                          | Rate limiting                                                     | ~11     |
-| 11  | `tests/security/redirect-validation.test.ts`                 | Validación de redirects (open redirect)                          | ~11     |
-| 12  | `tests/unit/auth/auth-actions.test.ts`                       | login / register / validateSession / logout                      | ~23     |
-| 13  | `tests/unit/auth/auth-schemas.test.ts`                       | Validación Zod de esquemas de auth                                | ~27     |
-| 14  | `tests/unit/auth/auth-tokens.test.ts`                        | JWT (create/verify/expire/wrong secret)                          | ~16     |
-| 15  | `tests/unit/cases/case-actions.test.ts`                      | CRUD y transiciones de caso                                       | ~12     |
-| 16  | `tests/unit/components/document-generation.test.tsx`         | UI de generación (paquete + formato)                              | ~36     |
-| 17  | `tests/unit/components/help-tooltip.test.tsx`                | Tooltip de ayuda contextual                                       | ~6      |
-| 18  | `tests/unit/cron/alerts-route.test.ts`                       | 401/503 auth + constant-time compare + per-tenant isolation      | ~7      |
-| 19  | `tests/unit/debtors/debtor-actions.test.ts`                  | CRUD deudores                                                     | ~5      |
-| 20  | `tests/unit/documents/generation-job.test.ts`                | P4: job de generación en background (`after()`)                  | ~3      |
-| 21  | `tests/unit/documents/generation-request.test.ts`            | P3: lock anti-duplicados (`activeKey`, huérfanos)                 | ~8      |
-| 22  | `tests/unit/documents/handlebars-lite.test.ts`                | Motor de placeholders (reemplaza a `docxtemplater` en la doc vieja) | ~20     |
-| 23  | `tests/unit/documents/placeholder-mapper.test.ts`             | `mapCaseToPlaceholders` + escapado OWASP (P2)                     | ~35     |
-| 24  | `tests/unit/documents/retry.test.ts`                          | Backoff exponencial (Drive uploads)                               | ~4      |
-| 25  | `tests/unit/notifications/alerts.test.ts`                    | scanUpcomingHearings / scanOverduePayments + dedupe               | ~7      |
-| 26  | `tests/unit/observability/observability.test.ts`              | reportError / reportMessage / Sentry no-op                        | ~3      |
-| 27  | `tests/unit/observability/request-context.smoke.test.ts`      | Propagación de `requestId` vía `AsyncLocalStorage`                | ~2      |
-|     | **TOTAL**                                                     |                                                                    | **447** |
+| #   | Suite                                                    | Foco                                                                                | Tests   |
+| --- | -------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------- |
+| 1   | `tests/form-request/document-requirements.test.ts`       | Reglas required / conditional / optional                                            | ~24     |
+| 2   | `tests/form-request/drive-storage.test.ts`               | Resolución de storage/Drive por request                                             | ~8      |
+| 3   | `tests/form-request/file-validation.test.ts`             | Validación de archivos adjuntos (tipo, tamaño)                                      | ~19     |
+| 4   | `tests/form-request/form-validation.test.ts`             | Validación de formularios de caso                                                   | ~24     |
+| 5   | `tests/integration/case-creation-flow.test.ts`           | createCase → updateCase → transitionPhase                                           | ~6      |
+| 6   | `tests/integration/drive-centro.test.ts`                 | Resolución de folder root por centro                                                | ~65     |
+| 7   | `tests/security/auth-hardening.test.ts`                  | Hardening de autenticación                                                          | ~13     |
+| 8   | `tests/security/input-validation.test.ts`                | Sanitización de inputs                                                              | ~12     |
+| 9   | `tests/security/password-policy.test.ts`                 | Política de contraseñas                                                             | ~8      |
+| 10  | `tests/security/rate-limit.test.ts`                      | Rate limiting                                                                       | ~11     |
+| 11  | `tests/security/redirect-validation.test.ts`             | Validación de redirects (open redirect)                                             | ~11     |
+| 12  | `tests/unit/auth/auth-actions.test.ts`                   | login / register / validateSession / logout                                         | ~23     |
+| 13  | `tests/unit/auth/auth-schemas.test.ts`                   | Validación Zod de esquemas de auth                                                  | ~27     |
+| 14  | `tests/unit/auth/auth-tokens.test.ts`                    | JWT (create/verify/expire/wrong secret)                                             | ~16     |
+| 15  | `tests/unit/cases/case-actions.test.ts`                  | CRUD y transiciones de caso                                                         | ~12     |
+| 16  | `tests/unit/components/document-generation.test.tsx`     | UI de generación (paquete + formato)                                                | ~36     |
+| 17  | `tests/unit/components/help-tooltip.test.tsx`            | Tooltip de ayuda contextual                                                         | ~6      |
+| 18  | `tests/unit/cron/alerts-route.test.ts`                   | 401/503 auth + constant-time compare + per-tenant isolation                         | ~7      |
+| 19  | `tests/unit/debtors/debtor-actions.test.ts`              | CRUD deudores                                                                       | ~5      |
+| 20  | `tests/unit/documents/generation-job.test.ts`            | P4: job de generación en background (`after()`)                                     | ~3      |
+| 21  | `tests/unit/documents/generation-request.test.ts`        | P3: lock anti-duplicados (`activeKey`, huérfanos)                                   | ~8      |
+| 22  | `tests/unit/documents/handlebars-lite.test.ts`           | Motor de placeholders (reemplaza a `docxtemplater` en la doc vieja)                 | ~20     |
+| 23  | `tests/unit/documents/placeholder-mapper.test.ts`        | `mapCaseToPlaceholders` + escapado OWASP (P2)                                       | ~35     |
+| 24  | `tests/unit/documents/retry.test.ts`                     | Backoff exponencial (Drive uploads)                                                 | ~4      |
+| 25  | `tests/unit/notifications/alerts.test.ts`                | scanUpcomingHearings / scanOverduePayments + dedupe                                 | ~7      |
+| 26  | `tests/unit/observability/logger-sentry.test.ts`         | Logger como único wrapper de Sentry: waitUntil + flush, tag `action`, no-op sin DSN | ~13     |
+| 27  | `tests/unit/observability/request-context.smoke.test.ts` | Propagación de `requestId` vía `AsyncLocalStorage`                                  | ~2      |
+|     | **TOTAL**                                                |                                                                                     | **447** |
 
 > Conteos `~N`: recuento estático de llamadas `it(`/`test(` por archivo (415 en total) — jest reporta 447 al ejecutar; la diferencia son casos generados dinámicamente en loops de código (este proyecto no usa `it.each`, así que no es eso). La cifra de suites (27) y el total (447) están verificados; los conteos por fila son una aproximación razonable, igual que en la versión anterior de este documento.
 >
@@ -161,13 +161,13 @@ Para que `cookies()` retorne `get/set/delete` mockeables en server actions.
 
 ## 6. Pendientes de ampliación futura
 
-| Superficie                                        | Estado       | Recomendación                                                                           |
-| -------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------- |
-| Playwright E2E en CI                               | ✅ Ya en CI  | `e2e.yml` corre en cada PR a `dev`/`main` (chromium + Postgres service) — fila obsoleta |
-| Rate-limit en login                                | ✅ Ya existe | `tests/security/rate-limit.test.ts` — fila obsoleta                                     |
-| Test de conversión PDF real (Puppeteer/Chromium)   | Mockeado     | Suite separada con archivos de fixture (nota: la doc vieja decía `pdf-lib`, que nunca existió en el proyecto — ver `ARQUITECTURA.md` §6) |
-| Snapshot de schema vs migration                     | No existe    | Script que compare `prisma migrate diff --from-schema-datasource --to-schema-datamodel` |
-| Tests de carga / concurrencia (jest)                | Parcial      | k6 ya existe (`tests/load/`, scripts `test:load:*`) para carga; falta concurrencia real contra el lock P3 (`DocumentGenerationRequest`) |
+| Superficie                                       | Estado       | Recomendación                                                                                                                            |
+| ------------------------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Playwright E2E en CI                             | ✅ Ya en CI  | `e2e.yml` corre en cada PR a `dev`/`main` (chromium + Postgres service) — fila obsoleta                                                  |
+| Rate-limit en login                              | ✅ Ya existe | `tests/security/rate-limit.test.ts` — fila obsoleta                                                                                      |
+| Test de conversión PDF real (Puppeteer/Chromium) | Mockeado     | Suite separada con archivos de fixture (nota: la doc vieja decía `pdf-lib`, que nunca existió en el proyecto — ver `ARQUITECTURA.md` §6) |
+| Snapshot de schema vs migration                  | No existe    | Script que compare `prisma migrate diff --from-schema-datasource --to-schema-datamodel`                                                  |
+| Tests de carga / concurrencia (jest)             | Parcial      | k6 ya existe (`tests/load/`, scripts `test:load:*`) para carga; falta concurrencia real contra el lock P3 (`DocumentGenerationRequest`)  |
 
 ---
 
