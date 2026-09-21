@@ -39,6 +39,19 @@ const emptyStats = (): DashboardStats =>
 describe('DashboardChartsLazy', () => {
   beforeEach(() => mockChartsModule.mockClear());
 
+  // ORDEN: este es el único test que puede afirmar "el módulo pesado no se pidió".
+  // La fábrica de jest.mock corre una sola vez, al primer import; en cuanto un test
+  // carga los gráficos, el módulo queda en el registro y `not.toHaveBeenCalled()`
+  // pasaría siempre. Por eso va primero. (El guardián de código fuente cubre el resto.)
+  it('sin nada que graficar: no renderiza nada y NO pide el chunk de gráficos', async () => {
+    const { container } = render(<DashboardChartsLazy stats={emptyStats()} />);
+
+    expect(container).toBeEmptyDOMElement();
+    // Dejar pasar microtareas: el módulo pesado no debe cargarse nunca.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(mockChartsModule).not.toHaveBeenCalled();
+  });
+
   it('con datos: muestra un esqueleto y luego carga los gráficos', async () => {
     const stats = {
       ...emptyStats(),
@@ -54,15 +67,6 @@ describe('DashboardChartsLazy', () => {
     await waitFor(() =>
       expect(screen.queryByRole('status')).not.toBeInTheDocument(),
     );
-  });
-
-  it('sin nada que graficar: no renderiza nada y NO pide el chunk de gráficos', async () => {
-    const { container } = render(<DashboardChartsLazy stats={emptyStats()} />);
-
-    expect(container).toBeEmptyDOMElement();
-    // Dejar pasar microtareas: el módulo pesado no debe cargarse nunca.
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(mockChartsModule).not.toHaveBeenCalled();
   });
 
   it.each([
