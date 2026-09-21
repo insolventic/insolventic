@@ -164,8 +164,6 @@ export const CASE_DATA = {
   admissionDate: null,
   firstHearingDate: null,
   firstHearingTime: null,
-  rejection: false,
-  withdrawal: false,
   hasLegalProcesses: false,
   courtNumber: null,
   city: null,

@@ -232,8 +232,6 @@ export function EditCaseDialog({
                 ? fullCase.firstHearingDate.toISOString().split('T')[0]
                 : '',
               firstHearingTime: fullCase.firstHearingTime ?? '',
-              rejection: fullCase.rejection ?? false,
-              withdrawal: fullCase.withdrawal ?? false,
               hasLegalProcesses: fullCase.hasLegalProcesses ?? false,
               riskCenterCommunication:
                 fullCase.riskCenterCommunication ?? false,
@@ -431,8 +429,6 @@ export function EditCaseDialog({
         admissionDate: data.admissionDate,
         firstHearingDate: data.firstHearingDate,
         firstHearingTime: data.firstHearingTime,
-        rejection: data.rejection,
-        withdrawal: data.withdrawal,
         hasLegalProcesses: data.hasLegalProcesses,
         riskCenterCommunication: data.riskCenterCommunication,
 
