@@ -1263,11 +1263,13 @@ export async function addLibranzaToCase(
       productAndCreditor,
     } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1414,11 +1416,13 @@ export async function addSuspendedServiceToCase(
       serviceType,
     } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1586,11 +1590,13 @@ export async function addAssetToCase(
       material,
     } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1776,11 +1782,13 @@ export async function addDependentToCase(
     const validatedInput = addDependentToCaseSchema.parse(input);
     const { caseId, name, age, relationship } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1916,11 +1924,13 @@ export async function deleteCase(
     const { id } = validatedInput;
 
     // Get case info before deleting for the notification
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseToDelete = await prisma.case.findUnique({
       where: {
         id,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseToDelete) {
