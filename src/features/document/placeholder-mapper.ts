@@ -480,8 +480,13 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
     return items.map((a) => a.description || a.name || a.type).join('; ');
   };
 
-  const sumValues = (items: typeof personalProperty) =>
-    items.reduce((sum, a) => sum + (a.value || 0), 0);
+  // `value` llega como `Prisma.Decimal` por la ruta automática (ver
+  // asCaseWithRelations) y `Decimal.valueOf()` devuelve un STRING: con
+  // `sum + a.value` el `+` concatena en vez de sumar (1 inmueble de $100M sale
+  // como $1.000M; con 2 activos, cifras de 15 dígitos). `Number()` en cada
+  // sumando lo evita, igual que en el resto de las sumas de este archivo.
+  const sumValues = (items: typeof assets) =>
+    items.reduce((sum, a) => sum + (Number(a.value) || 0), 0);
 
   // Format vehicles with full details
   const formatVehicleList = (vehicles: typeof personalProperty) => {
@@ -520,14 +525,8 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
       : 'N/A';
 
   // Totals
-  const totalRealEstate = realEstate.reduce(
-    (sum, a) => sum + (a.value || 0),
-    0,
-  );
-  const totalPersonal = personalProperty.reduce(
-    (sum, a) => sum + (a.value || 0),
-    0,
-  );
+  const totalRealEstate = sumValues(realEstate);
+  const totalPersonal = sumValues(personalProperty);
   result['TOTAL_INMUEBLES'] = formatCurrency(totalRealEstate);
   result['TOTAL_MUEBLES'] = formatCurrency(totalPersonal);
   result['TOTAL_BIENES'] = formatCurrency(totalRealEstate + totalPersonal);
