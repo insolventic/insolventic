@@ -1,0 +1,1803 @@
+{
+ "INSOLVENCY/solicitud-insolvencia|insolvencia-completa": {
+  "t": "27a84045518f",
+  "h": "31074ae260b5",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-insolvencia|insolvencia-minima": {
+  "t": "27a84045518f",
+  "h": "94157c128446",
+  "u": [
+   "AC1_CODEUDOR_DIRECCION",
+   "AC1_CODEUDOR_DOMICILIO",
+   "AC1_CODEUDOR_NOMBRE",
+   "AC1_DIRECCION",
+   "AC1_DOMICILIO",
+   "AC1_EMAIL",
+   "AC1_FECHA_OTORGAMIENTO",
+   "AC1_FECHA_VENCIMIENTO",
+   "AC1_POSTERGADO",
+   "AC1_TASA",
+   "AC2_CODEUDOR_DIRECCION",
+   "AC2_CODEUDOR_DOMICILIO",
+   "AC2_CODEUDOR_NOMBRE",
+   "AC2_DIRECCION",
+   "AC2_DOMICILIO",
+   "AC2_EMAIL",
+   "AC2_FECHA_OTORGAMIENTO",
+   "AC2_FECHA_VENCIMIENTO",
+   "AC2_POSTERGADO",
+   "AC2_TASA",
+   "AC3_CODEUDOR_DIRECCION",
+   "AC3_CODEUDOR_DOMICILIO",
+   "AC3_CODEUDOR_NOMBRE",
+   "AC3_DIRECCION",
+   "AC3_DOMICILIO",
+   "AC3_EMAIL",
+   "AC3_FECHA_OTORGAMIENTO",
+   "AC3_FECHA_VENCIMIENTO",
+   "AC3_POSTERGADO",
+   "AC3_TASA"
+  ]
+ },
+ "INSOLVENCY/solicitud-insolvencia|insolvencia-acuerdo-aprobado": {
+  "t": "27a84045518f",
+  "h": "0facedc54eab",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-insolvencia|insolvencia-fracaso-con-datos": {
+  "t": "27a84045518f",
+  "h": "31074ae260b5",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-insolvencia|insolvencia-desistimiento": {
+  "t": "27a84045518f",
+  "h": "31074ae260b5",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-insolvencia|insolvencia-xss": {
+  "t": "27a84045518f",
+  "h": "e498e88aefe7",
+  "u": []
+ },
+ "INSOLVENCY/certificado-ingresos|insolvencia-completa": {
+  "t": "51a785a3aee0",
+  "h": "b9382fe91375",
+  "u": []
+ },
+ "INSOLVENCY/certificado-ingresos|insolvencia-minima": {
+  "t": "51a785a3aee0",
+  "h": "ea4a39cef412",
+  "u": []
+ },
+ "INSOLVENCY/certificado-ingresos|insolvencia-acuerdo-aprobado": {
+  "t": "51a785a3aee0",
+  "h": "b9382fe91375",
+  "u": []
+ },
+ "INSOLVENCY/certificado-ingresos|insolvencia-fracaso-con-datos": {
+  "t": "51a785a3aee0",
+  "h": "b9382fe91375",
+  "u": []
+ },
+ "INSOLVENCY/certificado-ingresos|insolvencia-desistimiento": {
+  "t": "51a785a3aee0",
+  "h": "b9382fe91375",
+  "u": []
+ },
+ "INSOLVENCY/certificado-ingresos|insolvencia-xss": {
+  "t": "51a785a3aee0",
+  "h": "cbbef4157c0b",
+  "u": []
+ },
+ "INSOLVENCY/declaracion-juramentada-domicilio|insolvencia-completa": {
+  "t": "b8ea937f5d07",
+  "h": "bd440e0ffc34",
+  "u": []
+ },
+ "INSOLVENCY/declaracion-juramentada-domicilio|insolvencia-minima": {
+  "t": "b8ea937f5d07",
+  "h": "cf6aa99dfd84",
+  "u": []
+ },
+ "INSOLVENCY/declaracion-juramentada-domicilio|insolvencia-acuerdo-aprobado": {
+  "t": "b8ea937f5d07",
+  "h": "bd440e0ffc34",
+  "u": []
+ },
+ "INSOLVENCY/declaracion-juramentada-domicilio|insolvencia-fracaso-con-datos": {
+  "t": "b8ea937f5d07",
+  "h": "bd440e0ffc34",
+  "u": []
+ },
+ "INSOLVENCY/declaracion-juramentada-domicilio|insolvencia-desistimiento": {
+  "t": "b8ea937f5d07",
+  "h": "bd440e0ffc34",
+  "u": []
+ },
+ "INSOLVENCY/declaracion-juramentada-domicilio|insolvencia-xss": {
+  "t": "b8ea937f5d07",
+  "h": "52e90e1ca3e7",
+  "u": []
+ },
+ "INSOLVENCY/check-list|insolvencia-completa": {
+  "t": "a912ad4de7a4",
+  "h": "13dfda2efefd",
+  "u": [
+   "NO_PARAGRAFO_1",
+   "NO_PARAGRAFO_2",
+   "NO_PARAGRAFO_3",
+   "SI_PARAGRAFO_1",
+   "SI_PARAGRAFO_2",
+   "SI_PARAGRAFO_3"
+  ]
+ },
+ "INSOLVENCY/check-list|insolvencia-minima": {
+  "t": "a912ad4de7a4",
+  "h": "a3873201c6e8",
+  "u": [
+   "NO_PARAGRAFO_1",
+   "NO_PARAGRAFO_2",
+   "NO_PARAGRAFO_3",
+   "SI_PARAGRAFO_1",
+   "SI_PARAGRAFO_2",
+   "SI_PARAGRAFO_3"
+  ]
+ },
+ "INSOLVENCY/check-list|insolvencia-acuerdo-aprobado": {
+  "t": "a912ad4de7a4",
+  "h": "13dfda2efefd",
+  "u": [
+   "NO_PARAGRAFO_1",
+   "NO_PARAGRAFO_2",
+   "NO_PARAGRAFO_3",
+   "SI_PARAGRAFO_1",
+   "SI_PARAGRAFO_2",
+   "SI_PARAGRAFO_3"
+  ]
+ },
+ "INSOLVENCY/check-list|insolvencia-fracaso-con-datos": {
+  "t": "a912ad4de7a4",
+  "h": "13dfda2efefd",
+  "u": [
+   "NO_PARAGRAFO_1",
+   "NO_PARAGRAFO_2",
+   "NO_PARAGRAFO_3",
+   "SI_PARAGRAFO_1",
+   "SI_PARAGRAFO_2",
+   "SI_PARAGRAFO_3"
+  ]
+ },
+ "INSOLVENCY/check-list|insolvencia-desistimiento": {
+  "t": "a912ad4de7a4",
+  "h": "13dfda2efefd",
+  "u": [
+   "NO_PARAGRAFO_1",
+   "NO_PARAGRAFO_2",
+   "NO_PARAGRAFO_3",
+   "SI_PARAGRAFO_1",
+   "SI_PARAGRAFO_2",
+   "SI_PARAGRAFO_3"
+  ]
+ },
+ "INSOLVENCY/check-list|insolvencia-xss": {
+  "t": "a912ad4de7a4",
+  "h": "ff4cb4ba0fe8",
+  "u": [
+   "NO_PARAGRAFO_1",
+   "NO_PARAGRAFO_2",
+   "NO_PARAGRAFO_3",
+   "SI_PARAGRAFO_1",
+   "SI_PARAGRAFO_2",
+   "SI_PARAGRAFO_3"
+  ]
+ },
+ "INSOLVENCY/cyg-tramite|insolvencia-completa": {
+  "t": "9cac1cdd5b6a",
+  "h": "97d629f2923a",
+  "u": []
+ },
+ "INSOLVENCY/cyg-tramite|insolvencia-minima": {
+  "t": "9cac1cdd5b6a",
+  "h": "0962b0d46682",
+  "u": []
+ },
+ "INSOLVENCY/cyg-tramite|insolvencia-acuerdo-aprobado": {
+  "t": "9cac1cdd5b6a",
+  "h": "97d629f2923a",
+  "u": []
+ },
+ "INSOLVENCY/cyg-tramite|insolvencia-fracaso-con-datos": {
+  "t": "9cac1cdd5b6a",
+  "h": "e600d7120396",
+  "u": []
+ },
+ "INSOLVENCY/cyg-tramite|insolvencia-desistimiento": {
+  "t": "9cac1cdd5b6a",
+  "h": "97d629f2923a",
+  "u": []
+ },
+ "INSOLVENCY/cyg-tramite|insolvencia-xss": {
+  "t": "9cac1cdd5b6a",
+  "h": "424b0b6fd88d",
+  "u": []
+ },
+ "INSOLVENCY/inadmision|insolvencia-completa": {
+  "t": "f631bfa58118",
+  "h": "eb86ba105e17",
+  "u": []
+ },
+ "INSOLVENCY/inadmision|insolvencia-minima": {
+  "t": "f631bfa58118",
+  "h": "6a4cdf2f5a8f",
+  "u": []
+ },
+ "INSOLVENCY/inadmision|insolvencia-acuerdo-aprobado": {
+  "t": "f631bfa58118",
+  "h": "eb86ba105e17",
+  "u": []
+ },
+ "INSOLVENCY/inadmision|insolvencia-fracaso-con-datos": {
+  "t": "f631bfa58118",
+  "h": "eb86ba105e17",
+  "u": []
+ },
+ "INSOLVENCY/inadmision|insolvencia-desistimiento": {
+  "t": "f631bfa58118",
+  "h": "eb86ba105e17",
+  "u": []
+ },
+ "INSOLVENCY/inadmision|insolvencia-xss": {
+  "t": "f631bfa58118",
+  "h": "7fd457b8a52e",
+  "u": []
+ },
+ "INSOLVENCY/auto-admision|insolvencia-completa": {
+  "t": "c261a4430d3c",
+  "h": "f87092881a00",
+  "u": []
+ },
+ "INSOLVENCY/auto-admision|insolvencia-minima": {
+  "t": "c261a4430d3c",
+  "h": "0eb0b99e8a78",
+  "u": []
+ },
+ "INSOLVENCY/auto-admision|insolvencia-acuerdo-aprobado": {
+  "t": "c261a4430d3c",
+  "h": "2c303c2ac373",
+  "u": []
+ },
+ "INSOLVENCY/auto-admision|insolvencia-fracaso-con-datos": {
+  "t": "c261a4430d3c",
+  "h": "ac3c3e9ae5cd",
+  "u": []
+ },
+ "INSOLVENCY/auto-admision|insolvencia-desistimiento": {
+  "t": "c261a4430d3c",
+  "h": "f87092881a00",
+  "u": []
+ },
+ "INSOLVENCY/auto-admision|insolvencia-xss": {
+  "t": "c261a4430d3c",
+  "h": "9d60a569f35c",
+  "u": []
+ },
+ "INSOLVENCY/designacion-conciliador|insolvencia-completa": {
+  "t": "d9598eba2fdb",
+  "h": "b587465b3576",
+  "u": []
+ },
+ "INSOLVENCY/designacion-conciliador|insolvencia-minima": {
+  "t": "d9598eba2fdb",
+  "h": "25541152e558",
+  "u": []
+ },
+ "INSOLVENCY/designacion-conciliador|insolvencia-acuerdo-aprobado": {
+  "t": "d9598eba2fdb",
+  "h": "b587465b3576",
+  "u": []
+ },
+ "INSOLVENCY/designacion-conciliador|insolvencia-fracaso-con-datos": {
+  "t": "d9598eba2fdb",
+  "h": "b587465b3576",
+  "u": []
+ },
+ "INSOLVENCY/designacion-conciliador|insolvencia-desistimiento": {
+  "t": "d9598eba2fdb",
+  "h": "b587465b3576",
+  "u": []
+ },
+ "INSOLVENCY/designacion-conciliador|insolvencia-xss": {
+  "t": "d9598eba2fdb",
+  "h": "406d0a3fa234",
+  "u": []
+ },
+ "INSOLVENCY/aceptacion-cargo|insolvencia-completa": {
+  "t": "bc525e057fa1",
+  "h": "89e3072001bd",
+  "u": []
+ },
+ "INSOLVENCY/aceptacion-cargo|insolvencia-minima": {
+  "t": "bc525e057fa1",
+  "h": "ec8132011d80",
+  "u": []
+ },
+ "INSOLVENCY/aceptacion-cargo|insolvencia-acuerdo-aprobado": {
+  "t": "bc525e057fa1",
+  "h": "89e3072001bd",
+  "u": []
+ },
+ "INSOLVENCY/aceptacion-cargo|insolvencia-fracaso-con-datos": {
+  "t": "bc525e057fa1",
+  "h": "89e3072001bd",
+  "u": []
+ },
+ "INSOLVENCY/aceptacion-cargo|insolvencia-desistimiento": {
+  "t": "bc525e057fa1",
+  "h": "89e3072001bd",
+  "u": []
+ },
+ "INSOLVENCY/aceptacion-cargo|insolvencia-xss": {
+  "t": "bc525e057fa1",
+  "h": "9cbae4d3f709",
+  "u": []
+ },
+ "INSOLVENCY/edicto-emplazatorio|insolvencia-completa": {
+  "t": "080df2a93689",
+  "h": "3f96874a6e71",
+  "u": []
+ },
+ "INSOLVENCY/edicto-emplazatorio|insolvencia-minima": {
+  "t": "080df2a93689",
+  "h": "3c11136bdc66",
+  "u": []
+ },
+ "INSOLVENCY/edicto-emplazatorio|insolvencia-acuerdo-aprobado": {
+  "t": "080df2a93689",
+  "h": "aa1b270c313d",
+  "u": []
+ },
+ "INSOLVENCY/edicto-emplazatorio|insolvencia-fracaso-con-datos": {
+  "t": "080df2a93689",
+  "h": "3f96874a6e71",
+  "u": []
+ },
+ "INSOLVENCY/edicto-emplazatorio|insolvencia-desistimiento": {
+  "t": "080df2a93689",
+  "h": "3f96874a6e71",
+  "u": []
+ },
+ "INSOLVENCY/edicto-emplazatorio|insolvencia-xss": {
+  "t": "080df2a93689",
+  "h": "837f2f4a962b",
+  "u": []
+ },
+ "INSOLVENCY/notificacion-acreedores|insolvencia-completa": {
+  "t": "9af8e41e907a",
+  "h": "22ee439a8bd2",
+  "u": []
+ },
+ "INSOLVENCY/notificacion-acreedores|insolvencia-minima": {
+  "t": "9af8e41e907a",
+  "h": "abb70b9bb9da",
+  "u": []
+ },
+ "INSOLVENCY/notificacion-acreedores|insolvencia-acuerdo-aprobado": {
+  "t": "9af8e41e907a",
+  "h": "22ee439a8bd2",
+  "u": []
+ },
+ "INSOLVENCY/notificacion-acreedores|insolvencia-fracaso-con-datos": {
+  "t": "9af8e41e907a",
+  "h": "22ee439a8bd2",
+  "u": []
+ },
+ "INSOLVENCY/notificacion-acreedores|insolvencia-desistimiento": {
+  "t": "9af8e41e907a",
+  "h": "22ee439a8bd2",
+  "u": []
+ },
+ "INSOLVENCY/notificacion-acreedores|insolvencia-xss": {
+  "t": "9af8e41e907a",
+  "h": "15958c3ef019",
+  "u": []
+ },
+ "INSOLVENCY/suspension-juzgados|insolvencia-completa": {
+  "t": "ba6fd64dc17c",
+  "h": "42e94b94d921",
+  "u": []
+ },
+ "INSOLVENCY/suspension-juzgados|insolvencia-minima": {
+  "t": "ba6fd64dc17c",
+  "h": "1ba18fbcb0c0",
+  "u": []
+ },
+ "INSOLVENCY/suspension-juzgados|insolvencia-acuerdo-aprobado": {
+  "t": "ba6fd64dc17c",
+  "h": "42e94b94d921",
+  "u": []
+ },
+ "INSOLVENCY/suspension-juzgados|insolvencia-fracaso-con-datos": {
+  "t": "ba6fd64dc17c",
+  "h": "82942d97d639",
+  "u": []
+ },
+ "INSOLVENCY/suspension-juzgados|insolvencia-desistimiento": {
+  "t": "ba6fd64dc17c",
+  "h": "42e94b94d921",
+  "u": []
+ },
+ "INSOLVENCY/suspension-juzgados|insolvencia-xss": {
+  "t": "ba6fd64dc17c",
+  "h": "52ee3face5a0",
+  "u": []
+ },
+ "INSOLVENCY/envio-pagador-suspension|insolvencia-completa": {
+  "t": "64a8652368e0",
+  "h": "2153420fbdb6",
+  "u": []
+ },
+ "INSOLVENCY/envio-pagador-suspension|insolvencia-minima": {
+  "t": "64a8652368e0",
+  "h": "028cc68555a2",
+  "u": []
+ },
+ "INSOLVENCY/envio-pagador-suspension|insolvencia-acuerdo-aprobado": {
+  "t": "64a8652368e0",
+  "h": "2153420fbdb6",
+  "u": []
+ },
+ "INSOLVENCY/envio-pagador-suspension|insolvencia-fracaso-con-datos": {
+  "t": "64a8652368e0",
+  "h": "2153420fbdb6",
+  "u": []
+ },
+ "INSOLVENCY/envio-pagador-suspension|insolvencia-desistimiento": {
+  "t": "64a8652368e0",
+  "h": "2153420fbdb6",
+  "u": []
+ },
+ "INSOLVENCY/envio-pagador-suspension|insolvencia-xss": {
+  "t": "64a8652368e0",
+  "h": "736fb3058044",
+  "u": []
+ },
+ "INSOLVENCY/restablecimiento-servicios|insolvencia-completa": {
+  "t": "f94a1111068b",
+  "h": "12e9829daf4d",
+  "u": []
+ },
+ "INSOLVENCY/restablecimiento-servicios|insolvencia-minima": {
+  "t": "f94a1111068b",
+  "h": "99c2fc1e5917",
+  "u": []
+ },
+ "INSOLVENCY/restablecimiento-servicios|insolvencia-acuerdo-aprobado": {
+  "t": "f94a1111068b",
+  "h": "12e9829daf4d",
+  "u": []
+ },
+ "INSOLVENCY/restablecimiento-servicios|insolvencia-fracaso-con-datos": {
+  "t": "f94a1111068b",
+  "h": "8a5539a372db",
+  "u": []
+ },
+ "INSOLVENCY/restablecimiento-servicios|insolvencia-desistimiento": {
+  "t": "f94a1111068b",
+  "h": "12e9829daf4d",
+  "u": []
+ },
+ "INSOLVENCY/restablecimiento-servicios|insolvencia-xss": {
+  "t": "f94a1111068b",
+  "h": "fff4819e06b0",
+  "u": []
+ },
+ "INSOLVENCY/tramite-audiencia|insolvencia-completa": {
+  "t": "4100530d0585",
+  "h": "9784b88cb976",
+  "u": []
+ },
+ "INSOLVENCY/tramite-audiencia|insolvencia-minima": {
+  "t": "4100530d0585",
+  "h": "51db619ffd3a",
+  "u": []
+ },
+ "INSOLVENCY/tramite-audiencia|insolvencia-acuerdo-aprobado": {
+  "t": "4100530d0585",
+  "h": "9784b88cb976",
+  "u": []
+ },
+ "INSOLVENCY/tramite-audiencia|insolvencia-fracaso-con-datos": {
+  "t": "4100530d0585",
+  "h": "589df92b0105",
+  "u": []
+ },
+ "INSOLVENCY/tramite-audiencia|insolvencia-desistimiento": {
+  "t": "4100530d0585",
+  "h": "9784b88cb976",
+  "u": []
+ },
+ "INSOLVENCY/tramite-audiencia|insolvencia-xss": {
+  "t": "4100530d0585",
+  "h": "82f3b295f614",
+  "u": []
+ },
+ "INSOLVENCY/sentido-voto|insolvencia-completa": {
+  "t": "cc593feecf1f",
+  "h": "564fa80f576b",
+  "u": []
+ },
+ "INSOLVENCY/sentido-voto|insolvencia-minima": {
+  "t": "cc593feecf1f",
+  "h": "6c140b93fa46",
+  "u": []
+ },
+ "INSOLVENCY/sentido-voto|insolvencia-acuerdo-aprobado": {
+  "t": "cc593feecf1f",
+  "h": "9d4a6a41b279",
+  "u": []
+ },
+ "INSOLVENCY/sentido-voto|insolvencia-fracaso-con-datos": {
+  "t": "cc593feecf1f",
+  "h": "c8bc84b800d0",
+  "u": []
+ },
+ "INSOLVENCY/sentido-voto|insolvencia-desistimiento": {
+  "t": "cc593feecf1f",
+  "h": "564fa80f576b",
+  "u": []
+ },
+ "INSOLVENCY/sentido-voto|insolvencia-xss": {
+  "t": "cc593feecf1f",
+  "h": "1d39344c0cb9",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-pago|insolvencia-completa": {
+  "t": "65928a2560ce",
+  "h": "c4f6cd0197d4",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-pago|insolvencia-minima": {
+  "t": "65928a2560ce",
+  "h": "707c8fc6e467",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-pago|insolvencia-acuerdo-aprobado": {
+  "t": "65928a2560ce",
+  "h": "0417ea809699",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-pago|insolvencia-fracaso-con-datos": {
+  "t": "65928a2560ce",
+  "h": "a6fdc17cc710",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-pago|insolvencia-desistimiento": {
+  "t": "65928a2560ce",
+  "h": "c4f6cd0197d4",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-pago|insolvencia-xss": {
+  "t": "65928a2560ce",
+  "h": "e3b31fc9fa45",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-bilateral|insolvencia-completa": {
+  "t": "7ff37e3ae12c",
+  "h": "14d35f3d4204",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-bilateral|insolvencia-minima": {
+  "t": "7ff37e3ae12c",
+  "h": "ffe65cd383e1",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-bilateral|insolvencia-acuerdo-aprobado": {
+  "t": "7ff37e3ae12c",
+  "h": "c5f22bbc9aac",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-bilateral|insolvencia-fracaso-con-datos": {
+  "t": "7ff37e3ae12c",
+  "h": "d663fbed70af",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-bilateral|insolvencia-desistimiento": {
+  "t": "7ff37e3ae12c",
+  "h": "14d35f3d4204",
+  "u": []
+ },
+ "INSOLVENCY/acuerdo-bilateral|insolvencia-xss": {
+  "t": "7ff37e3ae12c",
+  "h": "fbfb5dea3f48",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-reforma|insolvencia-completa": {
+  "t": "8cd29075f830",
+  "h": "fb5b19ac9b06",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-reforma|insolvencia-minima": {
+  "t": "8cd29075f830",
+  "h": "dfcb6356455b",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-reforma|insolvencia-acuerdo-aprobado": {
+  "t": "8cd29075f830",
+  "h": "2a093bc08ef3",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-reforma|insolvencia-fracaso-con-datos": {
+  "t": "8cd29075f830",
+  "h": "0f149f82ed06",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-reforma|insolvencia-desistimiento": {
+  "t": "8cd29075f830",
+  "h": "fb5b19ac9b06",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-reforma|insolvencia-xss": {
+  "t": "8cd29075f830",
+  "h": "dda6391d5bf8",
+  "u": []
+ },
+ "INSOLVENCY/reforma-acuerdo|insolvencia-completa": {
+  "t": "465051008f29",
+  "h": "e1ff93337e82",
+  "u": []
+ },
+ "INSOLVENCY/reforma-acuerdo|insolvencia-minima": {
+  "t": "465051008f29",
+  "h": "3ae10acd267c",
+  "u": []
+ },
+ "INSOLVENCY/reforma-acuerdo|insolvencia-acuerdo-aprobado": {
+  "t": "465051008f29",
+  "h": "aa81c34c8dc8",
+  "u": []
+ },
+ "INSOLVENCY/reforma-acuerdo|insolvencia-fracaso-con-datos": {
+  "t": "465051008f29",
+  "h": "6aa3f5c4b3b1",
+  "u": []
+ },
+ "INSOLVENCY/reforma-acuerdo|insolvencia-desistimiento": {
+  "t": "465051008f29",
+  "h": "e1ff93337e82",
+  "u": []
+ },
+ "INSOLVENCY/reforma-acuerdo|insolvencia-xss": {
+  "t": "465051008f29",
+  "h": "14dbf6edba7c",
+  "u": []
+ },
+ "INSOLVENCY/desistimiento|insolvencia-completa": {
+  "t": "d3c11121f069",
+  "h": "b03b26b808a9",
+  "u": []
+ },
+ "INSOLVENCY/desistimiento|insolvencia-minima": {
+  "t": "d3c11121f069",
+  "h": "a2031f0cb440",
+  "u": []
+ },
+ "INSOLVENCY/desistimiento|insolvencia-acuerdo-aprobado": {
+  "t": "d3c11121f069",
+  "h": "b03b26b808a9",
+  "u": []
+ },
+ "INSOLVENCY/desistimiento|insolvencia-fracaso-con-datos": {
+  "t": "d3c11121f069",
+  "h": "9a7424df8e56",
+  "u": []
+ },
+ "INSOLVENCY/desistimiento|insolvencia-desistimiento": {
+  "t": "d3c11121f069",
+  "h": "b03b26b808a9",
+  "u": []
+ },
+ "INSOLVENCY/desistimiento|insolvencia-xss": {
+  "t": "d3c11121f069",
+  "h": "9c9a4a127a64",
+  "u": []
+ },
+ "INSOLVENCY/remision-resultado|insolvencia-completa": {
+  "t": "a5aaccf6cf38",
+  "h": "9d01354f4446",
+  "u": []
+ },
+ "INSOLVENCY/remision-resultado|insolvencia-minima": {
+  "t": "a5aaccf6cf38",
+  "h": "227e383cab07",
+  "u": []
+ },
+ "INSOLVENCY/remision-resultado|insolvencia-acuerdo-aprobado": {
+  "t": "a5aaccf6cf38",
+  "h": "9d01354f4446",
+  "u": []
+ },
+ "INSOLVENCY/remision-resultado|insolvencia-fracaso-con-datos": {
+  "t": "a5aaccf6cf38",
+  "h": "88a2d1c4c2ed",
+  "u": []
+ },
+ "INSOLVENCY/remision-resultado|insolvencia-desistimiento": {
+  "t": "a5aaccf6cf38",
+  "h": "9d01354f4446",
+  "u": []
+ },
+ "INSOLVENCY/remision-resultado|insolvencia-xss": {
+  "t": "a5aaccf6cf38",
+  "h": "3e6f2bc8cf4f",
+  "u": []
+ },
+ "INSOLVENCY/hoja-guia|insolvencia-completa": {
+  "t": "9f25d331370a",
+  "h": "eac93e748694",
+  "u": []
+ },
+ "INSOLVENCY/hoja-guia|insolvencia-minima": {
+  "t": "9f25d331370a",
+  "h": "a764b5d28c23",
+  "u": []
+ },
+ "INSOLVENCY/hoja-guia|insolvencia-acuerdo-aprobado": {
+  "t": "9f25d331370a",
+  "h": "eac93e748694",
+  "u": []
+ },
+ "INSOLVENCY/hoja-guia|insolvencia-fracaso-con-datos": {
+  "t": "9f25d331370a",
+  "h": "eba3298c5bf5",
+  "u": []
+ },
+ "INSOLVENCY/hoja-guia|insolvencia-desistimiento": {
+  "t": "9f25d331370a",
+  "h": "eac93e748694",
+  "u": []
+ },
+ "INSOLVENCY/hoja-guia|insolvencia-xss": {
+  "t": "9f25d331370a",
+  "h": "e0e570c5de2d",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-acuerdo-bilateral|insolvencia-completa": {
+  "t": "1f8d8065aa2d",
+  "h": "277e20576741",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-acuerdo-bilateral|insolvencia-minima": {
+  "t": "1f8d8065aa2d",
+  "h": "a9ae6d65b70d",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-acuerdo-bilateral|insolvencia-acuerdo-aprobado": {
+  "t": "1f8d8065aa2d",
+  "h": "524f2c8ce009",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-acuerdo-bilateral|insolvencia-fracaso-con-datos": {
+  "t": "1f8d8065aa2d",
+  "h": "346dc4b088d6",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-acuerdo-bilateral|insolvencia-desistimiento": {
+  "t": "1f8d8065aa2d",
+  "h": "277e20576741",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-acuerdo-bilateral|insolvencia-xss": {
+  "t": "1f8d8065aa2d",
+  "h": "decb583fa765",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-acuerdo-bilateral|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-acuerdo-bilateral|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-acuerdo-bilateral|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-acuerdo-bilateral|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-acuerdo-bilateral|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-acuerdo-bilateral|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-falta-pago-gastos|insolvencia-completa": {
+  "t": "f7d78abbcdd1",
+  "h": "b76a523ecd10",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-falta-pago-gastos|insolvencia-minima": {
+  "t": "f7d78abbcdd1",
+  "h": "e661baf7d039",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-falta-pago-gastos|insolvencia-acuerdo-aprobado": {
+  "t": "f7d78abbcdd1",
+  "h": "b76a523ecd10",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-falta-pago-gastos|insolvencia-fracaso-con-datos": {
+  "t": "f7d78abbcdd1",
+  "h": "6767915d5f01",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-falta-pago-gastos|insolvencia-desistimiento": {
+  "t": "f7d78abbcdd1",
+  "h": "b76a523ecd10",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-falta-pago-gastos|insolvencia-xss": {
+  "t": "f7d78abbcdd1",
+  "h": "2c30dd547422",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-falta-pago-gastos|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-falta-pago-gastos|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-falta-pago-gastos|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-falta-pago-gastos|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-falta-pago-gastos|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-falta-pago-gastos|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-impugnacion|insolvencia-completa": {
+  "t": "d7213fbe8946",
+  "h": "bbe236baec0e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-impugnacion|insolvencia-minima": {
+  "t": "d7213fbe8946",
+  "h": "f83974bccdd1",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-impugnacion|insolvencia-acuerdo-aprobado": {
+  "t": "d7213fbe8946",
+  "h": "745a5da1f0df",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-impugnacion|insolvencia-fracaso-con-datos": {
+  "t": "d7213fbe8946",
+  "h": "abf97b95a09e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-impugnacion|insolvencia-desistimiento": {
+  "t": "d7213fbe8946",
+  "h": "bbe236baec0e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-impugnacion|insolvencia-xss": {
+  "t": "d7213fbe8946",
+  "h": "eeb6d57dd393",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-impugnacion|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-impugnacion|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-impugnacion|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-impugnacion|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-impugnacion|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-impugnacion|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-vencimiento|insolvencia-completa": {
+  "t": "7321a13c4d26",
+  "h": "eb6c04bef6b5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-vencimiento|insolvencia-minima": {
+  "t": "7321a13c4d26",
+  "h": "9cbe25137877",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-vencimiento|insolvencia-acuerdo-aprobado": {
+  "t": "7321a13c4d26",
+  "h": "eb6c04bef6b5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-vencimiento|insolvencia-fracaso-con-datos": {
+  "t": "7321a13c4d26",
+  "h": "336ba7c6e656",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-vencimiento|insolvencia-desistimiento": {
+  "t": "7321a13c4d26",
+  "h": "eb6c04bef6b5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-vencimiento|insolvencia-xss": {
+  "t": "7321a13c4d26",
+  "h": "58568900a236",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-vencimiento|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-vencimiento|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-vencimiento|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-vencimiento|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-vencimiento|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-vencimiento|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-animo|insolvencia-completa": {
+  "t": "6d86c46a4d10",
+  "h": "76fee201384e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-animo|insolvencia-minima": {
+  "t": "6d86c46a4d10",
+  "h": "1476d4b37d89",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-animo|insolvencia-acuerdo-aprobado": {
+  "t": "6d86c46a4d10",
+  "h": "76fee201384e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-animo|insolvencia-fracaso-con-datos": {
+  "t": "6d86c46a4d10",
+  "h": "9b03c8841533",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-animo|insolvencia-desistimiento": {
+  "t": "6d86c46a4d10",
+  "h": "76fee201384e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-inasistencia-animo|insolvencia-xss": {
+  "t": "6d86c46a4d10",
+  "h": "d0437500aa91",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-animo|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-animo|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-animo|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-animo|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-animo|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-inasistencia-animo|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-incumplimiento|insolvencia-completa": {
+  "t": "9d1a74d84e1a",
+  "h": "eef19163d0f3",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-incumplimiento|insolvencia-minima": {
+  "t": "9d1a74d84e1a",
+  "h": "883ae03bfbbb",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-incumplimiento|insolvencia-acuerdo-aprobado": {
+  "t": "9d1a74d84e1a",
+  "h": "4ceab82bd017",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-incumplimiento|insolvencia-fracaso-con-datos": {
+  "t": "9d1a74d84e1a",
+  "h": "b588df66194e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-incumplimiento|insolvencia-desistimiento": {
+  "t": "9d1a74d84e1a",
+  "h": "eef19163d0f3",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-incumplimiento|insolvencia-xss": {
+  "t": "9d1a74d84e1a",
+  "h": "47111022753e",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-incumplimiento|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-incumplimiento|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-incumplimiento|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-incumplimiento|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-incumplimiento|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-incumplimiento|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-muerte-deudor|insolvencia-completa": {
+  "t": "3948b52f5e0a",
+  "h": "e2e1eed0cb7f",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-muerte-deudor|insolvencia-minima": {
+  "t": "3948b52f5e0a",
+  "h": "a6cfb4fff1bc",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-muerte-deudor|insolvencia-acuerdo-aprobado": {
+  "t": "3948b52f5e0a",
+  "h": "e2e1eed0cb7f",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-muerte-deudor|insolvencia-fracaso-con-datos": {
+  "t": "3948b52f5e0a",
+  "h": "8107097da826",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-muerte-deudor|insolvencia-desistimiento": {
+  "t": "3948b52f5e0a",
+  "h": "e2e1eed0cb7f",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-muerte-deudor|insolvencia-xss": {
+  "t": "3948b52f5e0a",
+  "h": "aade0355ad0b",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-muerte-deudor|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-muerte-deudor|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-muerte-deudor|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-muerte-deudor|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-muerte-deudor|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-muerte-deudor|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-mala|insolvencia-completa": {
+  "t": "25070f295487",
+  "h": "d8c88a02871e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-mala|insolvencia-minima": {
+  "t": "25070f295487",
+  "h": "20be4853b6dc",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-mala|insolvencia-acuerdo-aprobado": {
+  "t": "25070f295487",
+  "h": "243b12a40fd1",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-mala|insolvencia-fracaso-con-datos": {
+  "t": "25070f295487",
+  "h": "6c11d586d8cf",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-mala|insolvencia-desistimiento": {
+  "t": "25070f295487",
+  "h": "d8c88a02871e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-mala|insolvencia-xss": {
+  "t": "25070f295487",
+  "h": "1eb94257f8f5",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-mala|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-mala|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-mala|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-mala|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-mala|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-mala|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-vencimiento|insolvencia-completa": {
+  "t": "ea4e54c320de",
+  "h": "cb89553d4f48",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-vencimiento|insolvencia-minima": {
+  "t": "ea4e54c320de",
+  "h": "96bfeb3dc0e5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-vencimiento|insolvencia-acuerdo-aprobado": {
+  "t": "ea4e54c320de",
+  "h": "249116c8a94a",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-vencimiento|insolvencia-fracaso-con-datos": {
+  "t": "ea4e54c320de",
+  "h": "e48dcbddefff",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-vencimiento|insolvencia-desistimiento": {
+  "t": "ea4e54c320de",
+  "h": "cb89553d4f48",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-vencimiento|insolvencia-xss": {
+  "t": "ea4e54c320de",
+  "h": "a54b28304f48",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-vencimiento|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-vencimiento|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-vencimiento|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-vencimiento|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-vencimiento|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-vencimiento|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-quorum|insolvencia-completa": {
+  "t": "3b1dbb1c3820",
+  "h": "9e35ac534063",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-quorum|insolvencia-minima": {
+  "t": "3b1dbb1c3820",
+  "h": "1008d7f8d8de",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-quorum|insolvencia-acuerdo-aprobado": {
+  "t": "3b1dbb1c3820",
+  "h": "f1dd6c9b858f",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-quorum|insolvencia-fracaso-con-datos": {
+  "t": "3b1dbb1c3820",
+  "h": "0531a635ca1c",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-quorum|insolvencia-desistimiento": {
+  "t": "3b1dbb1c3820",
+  "h": "9e35ac534063",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-propuesta-quorum|insolvencia-xss": {
+  "t": "3b1dbb1c3820",
+  "h": "b454cd59c525",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-quorum|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-quorum|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-quorum|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-quorum|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-quorum|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-propuesta-quorum|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-reforma-acuerdo|insolvencia-completa": {
+  "t": "9e05ea7c5df1",
+  "h": "b835a7185292",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-reforma-acuerdo|insolvencia-minima": {
+  "t": "9e05ea7c5df1",
+  "h": "999da9b3f02e",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-reforma-acuerdo|insolvencia-acuerdo-aprobado": {
+  "t": "9e05ea7c5df1",
+  "h": "16f8ec982528",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-reforma-acuerdo|insolvencia-fracaso-con-datos": {
+  "t": "9e05ea7c5df1",
+  "h": "017f979af0f1",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-reforma-acuerdo|insolvencia-desistimiento": {
+  "t": "9e05ea7c5df1",
+  "h": "b835a7185292",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-reforma-acuerdo|insolvencia-xss": {
+  "t": "9e05ea7c5df1",
+  "h": "c1501cf7b370",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-reforma-acuerdo|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-reforma-acuerdo|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-reforma-acuerdo|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-reforma-acuerdo|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-reforma-acuerdo|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-reforma-acuerdo|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-vencimiento-terminos|insolvencia-completa": {
+  "t": "1ed710b3a59c",
+  "h": "873603a626fd",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-vencimiento-terminos|insolvencia-minima": {
+  "t": "1ed710b3a59c",
+  "h": "ad99c561a66d",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-vencimiento-terminos|insolvencia-acuerdo-aprobado": {
+  "t": "1ed710b3a59c",
+  "h": "873603a626fd",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-vencimiento-terminos|insolvencia-fracaso-con-datos": {
+  "t": "1ed710b3a59c",
+  "h": "8bcd8f5df956",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-vencimiento-terminos|insolvencia-desistimiento": {
+  "t": "1ed710b3a59c",
+  "h": "873603a626fd",
+  "u": []
+ },
+ "INSOLVENCY/fracaso-vencimiento-terminos|insolvencia-xss": {
+  "t": "1ed710b3a59c",
+  "h": "0886582fe979",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-vencimiento-terminos|insolvencia-completa": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-vencimiento-terminos|insolvencia-minima": {
+  "t": "6d27f5d0a90f",
+  "h": "9eeaf87f057d",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-vencimiento-terminos|insolvencia-acuerdo-aprobado": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-vencimiento-terminos|insolvencia-fracaso-con-datos": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-vencimiento-terminos|insolvencia-desistimiento": {
+  "t": "6d27f5d0a90f",
+  "h": "145964c90977",
+  "u": []
+ },
+ "INSOLVENCY/remision-juzgado-vencimiento-terminos|insolvencia-xss": {
+  "t": "6d27f5d0a90f",
+  "h": "951da51fa5c5",
+  "u": []
+ },
+ "INSOLVENCY/suspension-garantia-mobiliaria|insolvencia-completa": {
+  "t": "2f3998418746",
+  "h": "a64c159a5b43",
+  "u": []
+ },
+ "INSOLVENCY/suspension-garantia-mobiliaria|insolvencia-minima": {
+  "t": "2f3998418746",
+  "h": "9cd7e17c8521",
+  "u": []
+ },
+ "INSOLVENCY/suspension-garantia-mobiliaria|insolvencia-acuerdo-aprobado": {
+  "t": "2f3998418746",
+  "h": "a64c159a5b43",
+  "u": []
+ },
+ "INSOLVENCY/suspension-garantia-mobiliaria|insolvencia-fracaso-con-datos": {
+  "t": "2f3998418746",
+  "h": "a64c159a5b43",
+  "u": []
+ },
+ "INSOLVENCY/suspension-garantia-mobiliaria|insolvencia-desistimiento": {
+  "t": "2f3998418746",
+  "h": "a64c159a5b43",
+  "u": []
+ },
+ "INSOLVENCY/suspension-garantia-mobiliaria|insolvencia-xss": {
+  "t": "2f3998418746",
+  "h": "257fa2b35495",
+  "u": []
+ },
+ "INSOLVENCY/solicitud-incumplimiento|insolvencia-completa": {
+  "t": "9835af58d84b",
+  "h": "8ccfe19c284b",
+  "u": [
+   "NOMBRE_REPRESENTANTE"
+  ]
+ },
+ "INSOLVENCY/solicitud-incumplimiento|insolvencia-minima": {
+  "t": "9835af58d84b",
+  "h": "ce4cc8fe4c04",
+  "u": [
+   "NOMBRE_REPRESENTANTE"
+  ]
+ },
+ "INSOLVENCY/solicitud-incumplimiento|insolvencia-acuerdo-aprobado": {
+  "t": "9835af58d84b",
+  "h": "7ed3cfae543b",
+  "u": [
+   "NOMBRE_REPRESENTANTE"
+  ]
+ },
+ "INSOLVENCY/solicitud-incumplimiento|insolvencia-fracaso-con-datos": {
+  "t": "9835af58d84b",
+  "h": "589af033c8db",
+  "u": [
+   "NOMBRE_REPRESENTANTE"
+  ]
+ },
+ "INSOLVENCY/solicitud-incumplimiento|insolvencia-desistimiento": {
+  "t": "9835af58d84b",
+  "h": "8ccfe19c284b",
+  "u": [
+   "NOMBRE_REPRESENTANTE"
+  ]
+ },
+ "INSOLVENCY/solicitud-incumplimiento|insolvencia-xss": {
+  "t": "9835af58d84b",
+  "h": "4a2eb5ccb8cf",
+  "u": [
+   "NOMBRE_REPRESENTANTE"
+  ]
+ },
+ "INSOLVENCY/rechazo-inasistencia|insolvencia-completa": {
+  "t": "807e6424af97",
+  "h": "20ff69e0b5bd",
+  "u": []
+ },
+ "INSOLVENCY/rechazo-inasistencia|insolvencia-minima": {
+  "t": "807e6424af97",
+  "h": "356e9142c5cc",
+  "u": []
+ },
+ "INSOLVENCY/rechazo-inasistencia|insolvencia-acuerdo-aprobado": {
+  "t": "807e6424af97",
+  "h": "20ff69e0b5bd",
+  "u": []
+ },
+ "INSOLVENCY/rechazo-inasistencia|insolvencia-fracaso-con-datos": {
+  "t": "807e6424af97",
+  "h": "c8ff0d12c118",
+  "u": []
+ },
+ "INSOLVENCY/rechazo-inasistencia|insolvencia-desistimiento": {
+  "t": "807e6424af97",
+  "h": "20ff69e0b5bd",
+  "u": []
+ },
+ "INSOLVENCY/rechazo-inasistencia|insolvencia-xss": {
+  "t": "807e6424af97",
+  "h": "d76d4a20fa4a",
+  "u": []
+ },
+ "CONCILIATION/conc-solicitud|conciliacion-basica": {
+  "t": "216a95713467",
+  "h": "46480d147256",
+  "u": []
+ },
+ "CONCILIATION/conc-solicitud|conciliacion-con-fechas": {
+  "t": "216a95713467",
+  "h": "46480d147256",
+  "u": []
+ },
+ "CONCILIATION/conc-solicitud|conciliacion-xss": {
+  "t": "216a95713467",
+  "h": "f0c47c15017d",
+  "u": []
+ },
+ "CONCILIATION/conc-notificacion-convocatoria|conciliacion-basica": {
+  "t": "103767243014",
+  "h": "31ebbf0344e7",
+  "u": []
+ },
+ "CONCILIATION/conc-notificacion-convocatoria|conciliacion-con-fechas": {
+  "t": "103767243014",
+  "h": "31ebbf0344e7",
+  "u": []
+ },
+ "CONCILIATION/conc-notificacion-convocatoria|conciliacion-xss": {
+  "t": "103767243014",
+  "h": "11d8655259e5",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-general|conciliacion-basica": {
+  "t": "f40773745161",
+  "h": "d4638416c6dd",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-general|conciliacion-con-fechas": {
+  "t": "f40773745161",
+  "h": "d4638416c6dd",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-general|conciliacion-xss": {
+  "t": "f40773745161",
+  "h": "da68d274576b",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-alimentos|conciliacion-basica": {
+  "t": "16e5c2d067a1",
+  "h": "076dbea4825b",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-alimentos|conciliacion-con-fechas": {
+  "t": "16e5c2d067a1",
+  "h": "f9a12caa071c",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-alimentos|conciliacion-xss": {
+  "t": "16e5c2d067a1",
+  "h": "f02eacd39173",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-disolucion-union|conciliacion-basica": {
+  "t": "d1b4c2bdb1d4",
+  "h": "ab81f42b597b",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-disolucion-union|conciliacion-con-fechas": {
+  "t": "d1b4c2bdb1d4",
+  "h": "87d995a2ff10",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-disolucion-union|conciliacion-xss": {
+  "t": "d1b4c2bdb1d4",
+  "h": "80b6da1728b6",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-union-marital|conciliacion-basica": {
+  "t": "9a25b7e2cd4d",
+  "h": "0fa7141549bd",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-union-marital|conciliacion-con-fechas": {
+  "t": "9a25b7e2cd4d",
+  "h": "95c02d3213dc",
+  "u": []
+ },
+ "CONCILIATION/conc-acta-union-marital|conciliacion-xss": {
+  "t": "9a25b7e2cd4d",
+  "h": "a74ad69524c3",
+  "u": []
+ },
+ "CONCILIATION/conc-aclaracion-acta|conciliacion-basica": {
+  "t": "2ec0387ddffa",
+  "h": "59cd7a9b4b56",
+  "u": []
+ },
+ "CONCILIATION/conc-aclaracion-acta|conciliacion-con-fechas": {
+  "t": "2ec0387ddffa",
+  "h": "9e261e38e700",
+  "u": []
+ },
+ "CONCILIATION/conc-aclaracion-acta|conciliacion-xss": {
+  "t": "2ec0387ddffa",
+  "h": "424cdc5d9a48",
+  "u": []
+ },
+ "CONCILIATION/conc-constancia-inasistencia|conciliacion-basica": {
+  "t": "f13e925e8055",
+  "h": "5ba6cb631a24",
+  "u": []
+ },
+ "CONCILIATION/conc-constancia-inasistencia|conciliacion-con-fechas": {
+  "t": "f13e925e8055",
+  "h": "5ba6cb631a24",
+  "u": []
+ },
+ "CONCILIATION/conc-constancia-inasistencia|conciliacion-xss": {
+  "t": "f13e925e8055",
+  "h": "7f4a8557aa7f",
+  "u": []
+ },
+ "CONCILIATION/conc-constancia-no-acuerdo|conciliacion-basica": {
+  "t": "7223bc3bbecb",
+  "h": "29c13f59ab1a",
+  "u": []
+ },
+ "CONCILIATION/conc-constancia-no-acuerdo|conciliacion-con-fechas": {
+  "t": "7223bc3bbecb",
+  "h": "1f8b44e9095f",
+  "u": []
+ },
+ "CONCILIATION/conc-constancia-no-acuerdo|conciliacion-xss": {
+  "t": "7223bc3bbecb",
+  "h": "144445396612",
+  "u": []
+ },
+ "CONCILIATION/conc-informe-conciliador|conciliacion-basica": {
+  "t": "4fcb29e2339d",
+  "h": "aaaf7c1e3669",
+  "u": []
+ },
+ "CONCILIATION/conc-informe-conciliador|conciliacion-con-fechas": {
+  "t": "4fcb29e2339d",
+  "h": "885ce3a52855",
+  "u": []
+ },
+ "CONCILIATION/conc-informe-conciliador|conciliacion-xss": {
+  "t": "4fcb29e2339d",
+  "h": "39e1a579cc46",
+  "u": []
+ },
+ "CONCILIATION/conc-terminacion-anormal|conciliacion-basica": {
+  "t": "c8e5adbc81d9",
+  "h": "5a0a4e36604b",
+  "u": []
+ },
+ "CONCILIATION/conc-terminacion-anormal|conciliacion-con-fechas": {
+  "t": "c8e5adbc81d9",
+  "h": "0174fd193ace",
+  "u": []
+ },
+ "CONCILIATION/conc-terminacion-anormal|conciliacion-xss": {
+  "t": "c8e5adbc81d9",
+  "h": "513a06d93183",
+  "u": []
+ },
+ "CONCILIATION/conc-desistimiento|conciliacion-basica": {
+  "t": "50bfb7707a98",
+  "h": "5bf77000bf09",
+  "u": []
+ },
+ "CONCILIATION/conc-desistimiento|conciliacion-con-fechas": {
+  "t": "50bfb7707a98",
+  "h": "d8dee5848f1e",
+  "u": []
+ },
+ "CONCILIATION/conc-desistimiento|conciliacion-xss": {
+  "t": "50bfb7707a98",
+  "h": "4f466144be62",
+  "u": []
+ },
+ "SUPPORT_AGREEMENT/apoyo-solicitud|apoyo-completo": {
+  "t": "90cd910b4ae0",
+  "h": "d8cdc17fe003",
+  "u": []
+ },
+ "SUPPORT_AGREEMENT/apoyo-solicitud|apoyo-minimo": {
+  "t": "90cd910b4ae0",
+  "h": "48f1cd214aff",
+  "u": []
+ },
+ "SUPPORT_AGREEMENT/apoyo-acuerdo|apoyo-completo": {
+  "t": "94f27f79f48e",
+  "h": "5b239ce01749",
+  "u": [
+   "NUMERO_CLAUSULA",
+   "TEXTO_CLAUSULA"
+  ]
+ },
+ "SUPPORT_AGREEMENT/apoyo-acuerdo|apoyo-minimo": {
+  "t": "94f27f79f48e",
+  "h": "acb2415bbf85",
+  "u": [
+   "NUMERO_CLAUSULA",
+   "TEXTO_CLAUSULA"
+  ]
+ },
+ "SUPPORT_AGREEMENT/apoyo-incumplimiento|apoyo-completo": {
+  "t": "1e5c1f801eb9",
+  "h": "71cacb1af512",
+  "u": []
+ },
+ "SUPPORT_AGREEMENT/apoyo-incumplimiento|apoyo-minimo": {
+  "t": "1e5c1f801eb9",
+  "h": "1321753f1753",
+  "u": []
+ }
+}
