@@ -56,6 +56,7 @@ model Tenant {
   acreedores          Acreedor[]
   bienes              Bien[]
   procesosJudiciales  ProcesoJudicial[]
+  apoderados          Apoderado[]
   auditLogs           AuditLog[]
   payments            Payment[]
   conciliationCenters ConciliationCenter[]
@@ -91,6 +92,7 @@ model Case {
   hearingDate             DateTime?
   phase                   String?
   causes                  String[]       @default([])
+  otherCauseDetail        String?
   debtorId                String
   operatorId              String
   tenantId                String
@@ -162,6 +164,7 @@ model Case {
 
   // Notificaciones (legacy)
   notificationAddress     String?
+  notificationCity        String?
   notificationPhone       String?
   notificationEmail       String?
 
@@ -454,6 +457,7 @@ model Case {
   acreedores              Acreedor[]
   bienes                  Bien[]
   procesosJudiciales      ProcesoJudicial[]
+  apoderados              Apoderado[]
   payments                Payment[]
   generationRequests      DocumentGenerationRequest[]
 
@@ -827,6 +831,34 @@ model ProcesoJudicial {
   tenant   Tenant @relation(fields: [tenantId], references: [id])
 
   @@map("procesos_judiciales")
+}
+
+// ============================================================
+// FORMULARIO DEFINITIVO - Sección XI: Apoderados (múltiples)
+// ============================================================
+// Migración gradual (strangler): esta tabla es la fuente de la lista completa,
+// y `createCase` espeja el apoderado principal (orden 0) en las 8 columnas
+// escalares `apoderado_*` de Case, que siguen leyendo los documentos y la
+// vista de detalle de casos ya existentes.
+model Apoderado {
+  id                  String  @id @default(cuid())
+  caseId              String
+  tenantId            String
+  orden               Int     @default(0)
+  nombreCompleto      String  @map("nombre_completo")
+  tipoIdentificacion  String? @map("tipo_identificacion")
+  identificacion      String?
+  tarjetaProfesional  String? @map("tarjeta_profesional")
+  direccion           String?
+  telefono            String?
+  correo              String?
+  existePoderOtorgado Boolean @default(false) @map("existe_poder_otorgado")
+
+  case   Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([caseId])
+  @@map("apoderados")
 }
 
 model User {

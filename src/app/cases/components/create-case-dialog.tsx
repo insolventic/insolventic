@@ -358,8 +358,6 @@ export function CreateCaseDialog({
         notificationCity: '',
         notificationPhone: '',
         notificationEmail: '',
-        notificationOutsideBogota: false,
-        outsideBogotaReason: '',
         applicantSignatureName: '',
         applicantSignatureId: '',
         applicantSignature: '',
@@ -496,7 +494,9 @@ export function CreateCaseDialog({
       parseFloat(String(formData.totalDebt || '0').replace(/[^0-9.-]/g, '')) ||
       0;
     const hasAttorney = !!(
-      formData.attorney || formData.apoderadoNombreCompleto
+      formData.attorney ||
+      formData.apoderadoNombreCompleto ||
+      formData.apoderados?.some((a) => a?.nombreCompleto?.trim())
     );
     if (totalDebt > 40 * SMMLV_2025 && !hasAttorney) {
       warnings.push({
@@ -1398,7 +1398,12 @@ export function CreateCaseDialog({
                   <DocumentsSection
                     applicantScope={form.watch('applicantScope') ?? []}
                     assets={form.watch('assets') ?? []}
-                    hasAttorney={!!form.watch('apoderadoNombreCompleto')}
+                    hasAttorney={
+                      !!form.watch('apoderadoNombreCompleto') ||
+                      !!form
+                        .watch('apoderados')
+                        ?.some((a) => a?.nombreCompleto?.trim())
+                    }
                     onFilesSelected={(sel) => {
                       documentsToUploadRef.current = sel;
                     }}

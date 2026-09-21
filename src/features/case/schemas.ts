@@ -472,6 +472,19 @@ const procesoJudicialForCaseSchema = z.object({
   estadoProceso: z.string().nullable(),
 });
 
+const apoderadoForCaseSchema = z.object({
+  id: z.string(),
+  orden: z.number(),
+  nombreCompleto: z.string(),
+  tipoIdentificacion: z.string().nullable(),
+  identificacion: z.string().nullable(),
+  tarjetaProfesional: z.string().nullable(),
+  direccion: z.string().nullable(),
+  telefono: z.string().nullable(),
+  correo: z.string().nullable(),
+  existePoderOtorgado: z.boolean(),
+});
+
 const legalProcessForCaseSchema = z.object({
   id: z.string(),
   description: z.string(),
@@ -494,6 +507,7 @@ export const caseSchema = z.object({
   hearingDate: z.coerce.date().nullable(),
   phase: z.string().nullable(),
   causes: z.array(z.string()),
+  otherCauseDetail: z.string().nullable().optional(),
   debtorId: z.string(),
   operatorId: z.string(),
 
@@ -577,8 +591,6 @@ export const caseSchema = z.object({
   notificationCity: z.string().optional().nullable(),
   notificationPhone: z.string().optional().nullable(),
   notificationEmail: z.string().optional().nullable(),
-  notificationOutsideBogota: z.boolean().optional().nullable(),
-  outsideBogotaReason: z.string().optional().nullable(),
 
   // Firma
   applicantSignatureName: z.string().optional().nullable(),
@@ -884,6 +896,7 @@ export const caseWithRelationsSchema = caseSchema.extend({
   acreedores: z.array(acreedorForCaseSchema).optional(),
   bienes: z.array(bienForCaseSchema).optional(),
   procesosJudiciales: z.array(procesoJudicialForCaseSchema).optional(),
+  apoderados: z.array(apoderadoForCaseSchema).optional(),
 });
 
 export type CaseWithRelations = z.infer<typeof caseWithRelationsSchema>;
@@ -1075,8 +1088,6 @@ export const createCaseSchema = z.object({
   notificationCity: z.string().optional(),
   notificationPhone: z.string().optional(),
   notificationEmail: z.string().optional(),
-  notificationOutsideBogota: z.boolean().optional(),
-  outsideBogotaReason: z.string().optional(),
 
   // Firma
   applicantSignatureName: z.string().optional(),
@@ -1691,8 +1702,6 @@ export const updateCaseSchema = z.object({
   notificationCity: z.string().optional(),
   notificationPhone: z.string().optional(),
   notificationEmail: z.string().optional(),
-  notificationOutsideBogota: z.boolean().optional(),
-  outsideBogotaReason: z.string().optional(),
 
   // Firma
   applicantSignatureName: z.string().optional(),
@@ -2418,7 +2427,10 @@ export const deleteCaseSchema = z.object({ id: z.string() });
 
 // Apoderado (attorney) form schema for dynamic array
 const apoderadoFormSchema = z.object({
-  nombreCompleto: z.string().optional(),
+  nombreCompleto: z
+    .string()
+    .trim()
+    .min(1, 'El nombre completo del apoderado es requerido'),
   tipoIdentificacion: z.string().optional(),
   identificacion: z.string().optional(),
   tarjetaProfesional: z.string().optional(),

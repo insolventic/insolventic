@@ -36,6 +36,7 @@ export const CASE_GENERATION_INCLUDE = {
   acreedores: true,
   bienes: true,
   procesosJudiciales: true,
+  apoderados: { orderBy: { orden: 'asc' } },
   _count: { select: { documents: true } },
 } as const;
 

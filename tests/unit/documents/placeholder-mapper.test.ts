@@ -409,6 +409,72 @@ describe('Placeholder Mapper — HTML escaping (P2)', () => {
   });
 });
 
+describe('Placeholder Mapper — apoderados desde la lista nueva (Sección XI)', () => {
+  // Cambia SI/NO_APODERADO y SI/NO_DOC_PODER en Check List, Sentido Del Voto y
+  // Tramite Audiencia: el mapper ya leía `caseData.apoderados`; lo que faltaba
+  // era que el `include` de la generación trajera la relación.
+  const {
+    mapCaseToPlaceholders,
+  } = require('@/features/document/placeholder-mapper');
+
+  const makeCase = (overrides: Record<string, unknown> = {}) =>
+    ({
+      type: 'INSOLVENCY',
+      caseNumber: 'INS-2026-010',
+      debtor: {
+        name: 'Ana Torres',
+        idNumber: '987654321',
+        address: 'Calle 8 # 3-20',
+        city: 'Medellín',
+        email: 'ana@example.com',
+        phone: '3001112222',
+        occupation: 'Comerciante',
+      },
+      debts: [],
+      assets: [],
+      documents: [],
+      legalProcesses: [],
+      libranzas: [],
+      suspendedServices: [],
+      dependents: [],
+      causes: [],
+      applicantScope: [],
+      operator: null,
+      ...overrides,
+    }) as never;
+
+  const apoderado = { id: 'a1', orden: 0, nombreCompleto: 'Ana Torres' };
+
+  it('sin apoderado de ningún tipo: marca NO_APODERADO y no exige poder', () => {
+    const p = mapCaseToPlaceholders(makeCase());
+    expect(p.SI_APODERADO).not.toBe('X');
+    expect(p.NO_APODERADO).toBe('X');
+    expect(p.SI_DOC_PODER).not.toBe('X');
+    expect(p.NO_DOC_PODER).not.toBe('X');
+  });
+
+  it('con apoderados solo en la lista nueva: marca SI_APODERADO y el poder', () => {
+    const p = mapCaseToPlaceholders(makeCase({ apoderados: [apoderado] }));
+    expect(p.SI_APODERADO).toBe('X');
+    expect(p.NO_APODERADO).not.toBe('X');
+    expect(p.NO_DOC_PODER).toBe('X');
+  });
+
+  it('con apoderado solo en las columnas escalares (caso anterior): sigue igual', () => {
+    const p = mapCaseToPlaceholders(
+      makeCase({ apoderadoNombreCompleto: 'Dr. Legado' }),
+    );
+    expect(p.SI_APODERADO).toBe('X');
+    expect(p.NO_APODERADO).not.toBe('X');
+  });
+
+  it('una lista vacía equivale a no tener apoderado', () => {
+    const p = mapCaseToPlaceholders(makeCase({ apoderados: [] }));
+    expect(p.SI_APODERADO).not.toBe('X');
+    expect(p.NO_APODERADO).toBe('X');
+  });
+});
+
 describe('Placeholder Mapper — fecha de desistimiento (Fase 2 paso 2.2)', () => {
   const {
     mapCaseToPlaceholders,

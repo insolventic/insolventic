@@ -35,6 +35,53 @@ const formatBoolean = (value: boolean | null | undefined): string => {
   return value ? 'Sí' : 'No';
 };
 
+interface ApoderadoCardData {
+  nombreCompleto: string;
+  tipoIdentificacion?: string | null;
+  identificacion?: string | null;
+  tarjetaProfesional?: string | null;
+  direccion?: string | null;
+  telefono?: string | null;
+  correo?: string | null;
+  existePoderOtorgado?: boolean | null;
+}
+
+function ApoderadoCard({
+  title,
+  data,
+}: Readonly<{ title: string; data: ApoderadoCardData }>) {
+  const fields: Array<[string, string]> = [
+    ['Nombre', data.nombreCompleto || 'N/A'],
+    ['Tipo Documento', data.tipoIdentificacion || 'N/A'],
+    ['Número Documento', data.identificacion || 'N/A'],
+    ['Tarjeta Profesional', data.tarjetaProfesional || 'N/A'],
+    ['Dirección', data.direccion || 'N/A'],
+    ['Teléfono', data.telefono || 'N/A'],
+    ['Email', data.correo || 'N/A'],
+    ['Poder Otorgado', formatBoolean(data.existePoderOtorgado)],
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {fields.map(([label, value]) => (
+            <div key={label}>
+              <p className="text-muted-foreground text-sm font-medium">
+                {label}
+              </p>
+              <p className="text-sm">{value}</p>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function DefinitivoSection({
   caseData,
 }: Readonly<DefinitivoSectionProps>) {
@@ -691,78 +738,37 @@ export function DefinitivoSection({
         </CardContent>
       </Card>
 
-      {/* Card 10: Apoderado */}
-      {caseData.apoderadoNombreCompleto && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Apoderado</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Nombre
-                </p>
-                <p className="text-sm">
-                  {caseData.apoderadoNombreCompleto || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Tipo Documento
-                </p>
-                <p className="text-sm">
-                  {caseData.apoderadoTipoIdentificacion || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Número Documento
-                </p>
-                <p className="text-sm">
-                  {caseData.apoderadoIdentificacion || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Tarjeta Profesional
-                </p>
-                <p className="text-sm">
-                  {caseData.apoderadoTarjetaProfesional || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Dirección
-                </p>
-                <p className="text-sm">
-                  {caseData.apoderadoDireccion || 'N/A'}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Teléfono
-                </p>
-                <p className="text-sm">{caseData.apoderadoTelefono || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Email
-                </p>
-                <p className="text-sm">{caseData.apoderadoCorreo || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Poder Otorgado
-                </p>
-                <p className="text-sm">
-                  {formatBoolean(caseData.existePoderOtorgado)}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Card 10: Apoderado(s). La lista nueva (tabla apoderados) manda; las 8
+          columnas escalares son el respaldo para casos anteriores a la lista. */}
+      {caseData.apoderados && caseData.apoderados.length > 0
+        ? caseData.apoderados.map((apoderado, index) => (
+            <ApoderadoCard
+              key={apoderado.id}
+              title={
+                caseData.apoderados && caseData.apoderados.length > 1
+                  ? index === 0
+                    ? 'Apoderado principal'
+                    : `Apoderado ${index + 1}`
+                  : 'Apoderado'
+              }
+              data={apoderado}
+            />
+          ))
+        : caseData.apoderadoNombreCompleto && (
+            <ApoderadoCard
+              title="Apoderado"
+              data={{
+                nombreCompleto: caseData.apoderadoNombreCompleto,
+                tipoIdentificacion: caseData.apoderadoTipoIdentificacion,
+                identificacion: caseData.apoderadoIdentificacion,
+                tarjetaProfesional: caseData.apoderadoTarjetaProfesional,
+                direccion: caseData.apoderadoDireccion,
+                telefono: caseData.apoderadoTelefono,
+                correo: caseData.apoderadoCorreo,
+                existePoderOtorgado: caseData.existePoderOtorgado,
+              }}
+            />
+          )}
 
       {/* Card 11: Radicación Interna */}
       {(caseData.fechaRadicacion || caseData.expedienteNumero) && (

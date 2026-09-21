@@ -35,6 +35,7 @@ import {
   type GenerationKind,
 } from '@/features/document/generation-request';
 import { generatePaymentSchedule } from '@/features/payment/actions';
+import { buildApoderadosCreate, mirrorPrincipalApoderado } from './apoderados';
 
 import {
   createCaseFormSchema,
@@ -240,6 +241,7 @@ export async function getCaseById(id: string): Promise<{
         acreedores: true,
         bienes: true,
         procesosJudiciales: true,
+        apoderados: { orderBy: { orden: 'asc' } },
         _count: {
           select: {
             documents: true,
@@ -345,6 +347,7 @@ export async function createCase(
       acreedores,
       bienes,
       procesosJudiciales,
+      apoderados,
       // Formulario definitivo date fields (strings -> Date)
       fechaCesacionPagos,
       propuestaFechaInicioPago,
@@ -716,6 +719,10 @@ export async function createCase(
                 ),
               }
             : undefined,
+        // Apoderados (Sección XI): lista completa en la tabla nueva + espejo del
+        // principal en las 8 columnas escalares (solo si vienen vacías).
+        apoderados: buildApoderadosCreate(apoderados, tenantId),
+        ...mirrorPrincipalApoderado(apoderados, rest),
       },
     });
 

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
+
 import { useAuth } from './use-auth';
 
 interface UseSessionTimeoutOptions {
@@ -82,7 +84,9 @@ export function useSessionTimeout(
   const isWarningActiveRef = useRef(false);
 
   const handleLogout = useCallback(async () => {
-    console.log('🚨 [SessionTimeout] Auto-logout triggered due to inactivity');
+    logger.info('Auto-logout triggered due to inactivity', {
+      action: 'sessionTimeout',
+    });
     toast.error('Su sesión ha expirado por inactividad', {
       description: 'Por su seguridad, hemos cerrado su sesión automáticamente.',
       duration: 5000,
@@ -91,10 +95,13 @@ export function useSessionTimeout(
     try {
       // Server-side redirect will handle navigation to home page
       await logout();
-    } catch {
-      // Next.js redirect() throws an error by design
-      // This is expected, so we don't need to log it as an error
-      console.log('✅ [SessionTimeout] Logout completed, server redirecting');
+    } catch (error) {
+      // logout() ya absorbe la redirección esperada del servidor y registra por
+      // sí mismo sus fallos reales, así que en el flujo normal no rechaza. Si
+      // llega algo aquí es inesperado y no puede quedar oculto: este handler lo
+      // dispara un setTimeout, sin nadie más que lo atrape. Antes se absorbía
+      // con un console.log "Logout completed" que lo presentaba como éxito.
+      logger.error('Auto-logout failed', error, { action: 'sessionTimeout' });
     }
   }, [logout]);
 
