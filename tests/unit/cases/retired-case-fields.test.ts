@@ -49,3 +49,56 @@ describe('campos retirados del modelo Case: rejection y withdrawal', () => {
     expect(keys.length).toBeGreaterThan(50);
   });
 });
+
+describe('migración que retira rejection y withdrawal', () => {
+  const fs = jest.requireActual('fs') as typeof import('fs');
+  const path = jest.requireActual('path') as typeof import('path');
+
+  const dir = path.join(process.cwd(), 'src', 'prisma', 'migrations');
+  const name = fs
+    .readdirSync(dir)
+    .find((d) => d.endsWith('_drop_rejection_withdrawal_from_case'));
+  const raw = name
+    ? fs.readFileSync(path.join(dir, name, 'migration.sql'), 'utf8')
+    : '';
+  // Solo el SQL ejecutable: sin los comentarios `-- ...` del encabezado.
+  const sql = raw
+    .split('\n')
+    .filter((l) => !l.trim().startsWith('--'))
+    .join('\n');
+
+  it('existe y es posterior a la última migración previa', () => {
+    expect(name).toBeDefined();
+    const previous = fs
+      .readdirSync(dir)
+      .filter((d) => /^\d{14}_/.test(d) && d !== name)
+      .sort()
+      .pop()!;
+    expect(name! > previous).toBe(true);
+  });
+
+  it('borra exactamente estas dos columnas de "Case", con IF EXISTS', () => {
+    const drops = sql.match(/DROP COLUMN[^,;]*/g) ?? [];
+    expect(drops).toEqual([
+      'DROP COLUMN IF EXISTS "rejection"',
+      'DROP COLUMN IF EXISTS "withdrawal"',
+    ]);
+    expect(sql).toMatch(/ALTER TABLE "Case"/);
+  });
+
+  it('no hace nada más destructivo (ni tablas, ni filas, ni otras columnas)', () => {
+    expect(sql).not.toMatch(
+      /DROP TABLE|TRUNCATE|DELETE FROM|ALTER COLUMN|RENAME/i,
+    );
+    expect((sql.match(/ALTER TABLE/g) ?? []).length).toBe(1);
+  });
+
+  it('aborta antes del DROP si algún caso tiene alguna de las dos en true', () => {
+    expect(sql).toMatch(/RAISE EXCEPTION/);
+    expect(sql).toMatch(/IS TRUE/);
+    // La guarda va antes del DROP.
+    expect(sql.indexOf('RAISE EXCEPTION')).toBeLessThan(
+      sql.indexOf('DROP COLUMN'),
+    );
+  });
+});
