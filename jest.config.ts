@@ -25,6 +25,7 @@ const config: Config = {
     ],
   },
   transformIgnorePatterns: ['/node_modules/(?!jose)'],
+  globalSetup: '<rootDir>/tests/global-setup.js',
   setupFiles: ['<rootDir>/tests/setup.ts'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   testPathIgnorePatterns: ['tests/e2e/'],
