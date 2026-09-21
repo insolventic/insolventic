@@ -20,10 +20,10 @@ import {
 } from '@/components/ui/table';
 import { getAllCases } from '@/features/case/actions';
 import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
-import type { Case } from '@/features/case/schemas';
+import type { CaseListItem } from '@/features/case/schemas';
 
 export function RecentCases() {
-  const [cases, setCases] = useState<Case[]>([]);
+  const [cases, setCases] = useState<CaseListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
