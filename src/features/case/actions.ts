@@ -44,6 +44,7 @@ import {
   assetResponseSchema,
   dependentResponseSchema,
   getAllCasesSchema,
+  CASE_LIST_COLUMNS,
   getCaseByIdSchema,
   deleteCaseSchema,
   caseStatsSchema,
@@ -146,9 +147,13 @@ export async function getAllCases(): Promise<{
       return { success: true, data: [] };
     }
 
+    // Solo las columnas que usa el listado (CASE_LIST_COLUMNS), no las 269 de
+    // cada caso: menos datos por fila y sin depender de columnas que la
+    // pantalla no lee. El detalle sí trae todo (getCaseById).
     const cases = await prisma.case.findMany({
       where: whereClause,
-      include: {
+      select: {
+        ...CASE_LIST_COLUMNS,
         debtor: true,
         operator: {
           select: {

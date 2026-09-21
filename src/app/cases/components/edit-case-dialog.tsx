@@ -22,7 +22,7 @@ import { uploadCaseDocuments } from '@/features/document/actions';
 import {
   updateCaseFormSchema,
   type UpdateCaseFormData,
-  type Case,
+  type CaseListItem,
   type DebtorOption,
   type CreditorOption,
 } from '@/features/case/schemas';
@@ -57,7 +57,7 @@ import { ApoderadoSection } from './create-case-dialog/apoderado-section';
 interface EditCaseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  case: Case;
+  case: CaseListItem;
   onCaseUpdated: () => void;
 }
 
