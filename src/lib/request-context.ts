@@ -6,7 +6,8 @@
  * AsyncLocalStorage.run() dentro del middleware no se propaga a las actions.
  *
  * Flujo real:
- *   1. middleware.ts emite `x-request-id` y lo reenvía en los headers.
+ *   1. middleware.ts genera SIEMPRE un `x-request-id` propio (ignora el que
+ *      envíe el cliente) y lo reenvía en los headers.
  *   2. `authenticateUser()` (entry point de casi toda server action) llama
  *      a `seedRequestContextFromHeaders()`, que lee ese header y siembra el
  *      AsyncLocalStorage con `enterWith()` — se usa enterWith (y no run)
@@ -22,6 +23,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 import { randomUUID } from 'crypto';
 import { setRequestIdProvider } from './logger';
+import { parseRequestId } from './request-id';
 
 interface RequestContext {
   requestId: string;
@@ -52,7 +54,10 @@ export async function seedRequestContextFromHeaders(): Promise<string> {
   try {
     const { headers } = await import('next/headers');
     const h = await headers();
-    requestId = h.get('x-request-id') ?? randomUUID();
+    // Defensa en profundidad: el middleware sobrescribe este header en toda
+    // ruta que intercepta, pero aquí solo se acepta un UUID bien formado; un
+    // valor con cualquier otra forma se descarta y se genera uno propio.
+    requestId = parseRequestId(h.get('x-request-id')) ?? randomUUID();
   } catch {
     requestId = randomUUID();
   }
