@@ -120,6 +120,7 @@ const operatorForCaseSchema = z.object({
 
 const creditorForDebtSchema = z.object({
   name: z.string(),
+  representative: z.string().optional().nullable(),
 });
 
 const documentForCaseSchema = z.object({
