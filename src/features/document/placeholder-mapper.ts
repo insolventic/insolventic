@@ -2446,6 +2446,12 @@ export function mapCaseToPlaceholders(
     // Aliases for Reforma Acuerdo and Acuerdo Bilateral templates
     NOMBRE_ACREEDOR:
       caseData.debts?.[0]?.creditor?.name || '________________________________',
+    // Representante del acreedor que reporta el incumplimiento (mismo acreedor
+    // que NOMBRE_ACREEDOR) — no confundir con NOMBRE_REPRESENTANTE_LEGAL, que es
+    // el representante legal de una parte en conciliación (otro dato).
+    NOMBRE_REPRESENTANTE:
+      caseData.debts?.[0]?.creditor?.representative ||
+      '________________________________',
     NUMERO_CUOTAS: caseData.paymentTermMonths?.toString() || '____',
     PORCENTAJE_RECONOCIMIENTO:
       caseData.approvalPercentage?.toString() || '____',

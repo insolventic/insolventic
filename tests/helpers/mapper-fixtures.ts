@@ -135,6 +135,23 @@ export const CREDITORS = [
   'Banco de Occidente',
 ];
 
+/** Representante legal de cada acreedor (mismo índice que CREDITORS). */
+export const CREDITOR_REPRESENTATIVES = [
+  'Andrés Felipe Cortés',
+  'Marcela Ibáñez Trujillo',
+  'Rodrigo Salazar Uribe',
+  'Diana Patricia Loaiza',
+  'Julián Restrepo Vélez',
+  'Carolina Muñoz Escobar',
+  'Fernando Bustamante Ríos',
+  'Ángela Sofía Palacios',
+  'Camilo Andrés Zapata',
+  'Luz Elena Cárdenas',
+  'Sebastián Gaviria Torres',
+  'Paula Andrea Mesa',
+  'Gustavo Adolfo Henao',
+];
+
 export function makeDebt(
   i: number,
   overrides: Row = {},
@@ -148,7 +165,11 @@ export function makeDebt(
     interestAmount: 1_200_000,
     interestRate: 1.9 + (i % 3) * 0.2,
     creditorId: `cred-${i}`,
-    creditor: { name: CREDITORS[i % CREDITORS.length] },
+    creditor: {
+      name: CREDITORS[i % CREDITORS.length],
+      representative:
+        CREDITOR_REPRESENTATIVES[i % CREDITOR_REPRESENTATIVES.length],
+    },
     creditorClass: i % 2 === 0 ? 'Quirografario' : 'Hipotecario',
     daysOverdue: 30 * (i + 1),
     hasActiveLibranza: i === 1,

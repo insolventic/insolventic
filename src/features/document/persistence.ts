@@ -25,7 +25,7 @@ export const CASE_GENERATION_INCLUDE = {
   documents: true,
   debts: {
     include: {
-      creditor: { select: { name: true } },
+      creditor: { select: { name: true, representative: true } },
     },
   },
   assets: true,
