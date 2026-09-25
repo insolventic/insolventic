@@ -240,7 +240,7 @@ export const SCENARIOS: Record<string, Scenario> = {
   'insolvencia-acuerdo-aprobado': {
     kind: 'INSOLVENCY',
     covers:
-      'Acuerdo aprobado: con fecha de inicio de pago y de vigencia. Colisión base<mapExtendedDates: ANO_INICIO_PAGO y ANO_VIGENCIA se calculan en el bloque base desde esas fechas y mapExtendedDates los pisa con "" (el último gana).',
+      'Acuerdo aprobado: con fecha de inicio de pago y de vigencia. ANO_INICIO_PAGO y ANO_VIGENCIA se calculan en el bloque base desde esas fechas (ya no hay colisión: mapExtendedDates dejó de pisarlos con "", Hallazgo 2).',
     build: () =>
       completa({
         phase: 'Acuerdo aprobado',
