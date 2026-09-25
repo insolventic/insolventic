@@ -2130,7 +2130,7 @@ function mapConciliationFields(caseData: CaseWithRelations): PlaceholderMap {
 
     // Case/process identification
     NUMERO_ACTA: caseData.caseNumber || '',
-    ANO_ACTA: now.getFullYear().toString(),
+    ANO_ACTA: getYear(now),
     ASUNTO: asunto,
 
     // Solicitud content
@@ -2259,7 +2259,7 @@ export function mapCaseToPlaceholders(
     NUMERO_RADICADO: caseData.caseNumber.replace(/[^0-9]/g, ''),
     NUMERO_TRAMITE: caseData.caseNumber,
     NUMERO_ACUERDO: caseData.caseNumber.replace(/[^0-9]/g, ''),
-    ANO_ACUERDO: nowColombia().getFullYear().toString(),
+    ANO_ACUERDO: getYear(nowColombia()),
     DIA_ACUERDO: '____', // MANUAL - día del acuerdo
     MES_ACUERDO: '____________', // MANUAL - mes del acuerdo
     CIUDAD: debtor.city || caseData.city || 'Bogotá',
@@ -2500,8 +2500,8 @@ export function mapCaseToPlaceholders(
     // Signature and current year
     DIA_FIRMA: getDayNumber(nowColombia()),
     MES_FIRMA: getMonthName(nowColombia()),
-    ANO_FIRMA: nowColombia().getFullYear().toString(),
-    ANO_ACTUAL: nowColombia().getFullYear().toString(),
+    ANO_FIRMA: getYear(nowColombia()),
+    ANO_ACTUAL: getYear(nowColombia()),
   };
 
   // Build dynamic anexos list — only documents actually uploaded (not auto-generated)

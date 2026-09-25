@@ -315,15 +315,20 @@ describe('golden master — render de cada plantilla', () => {
 // 3) Comportamiento conocido (documentado, NO aprobado)
 // ---------------------------------------------------------------------------
 
-describe('BUG CONOCIDO — fecha del día anterior entre las 00:00 y las 05:00 (hora de Colombia)', () => {
+describe('Zona horaria: el día ya no retrocede entre las 00:00 y las 05:00 (hora de Colombia)', () => {
   /**
-   * nowColombia() devuelve un Date cuyos getters LOCALES ya muestran la hora de
-   * Colombia; los helpers (getDayNumber, formatDate…) vuelven a convertir con
-   * `timeZone: 'America/Bogota'`, así que en un servidor UTC la conversión se
-   * aplica dos veces. A las 12:00 no se nota (el día no cambia); de madrugada, sí.
+   * Hallazgo 1 (PR #43). nowColombia() pre-convertía a hora de Colombia y LUEGO
+   * los helpers (getDayNumber, formatDate…) volvían a convertir con
+   * `timeZone: 'America/Bogota'` — doble conversión. En un servidor UTC, entre las
+   * 00:00 y las 05:00 hora de Colombia, el día salía retrocedido un día.
    *
-   * Este test FIJA el comportamiento actual para que un refactor no lo cambie sin
-   * darse cuenta. Si se arregla nowColombia(), actualizá los valores esperados.
+   * Fix: `nowColombia()` ahora devuelve el instante real (sin pre-conversión);
+   * los helpers de `placeholders/format.ts` siguen haciendo su única conversión,
+   * como ya hacían correctamente con cualquier fecha guardada en el caso
+   * (`admissionDate`, `filingDate`, etc.) — esos ~50 usos no se tocaron.
+   *
+   * Este test antes fijaba el bug ("sale 15, debería ser 16"); ahora fija el
+   * comportamiento correcto. Si vuelve a romperse, es una regresión real.
    */
   const build = () => SCENARIOS['insolvencia-completa'].build();
 
@@ -338,12 +343,34 @@ describe('BUG CONOCIDO — fecha del día anterior entre las 00:00 y las 05:00 (
     expect(p.FECHA_COMPLETA).toBe('16 de marzo de 2026');
   });
 
-  it('a las 03:00 en Bogotá, un servidor UTC muestra el día ANTERIOR', () => {
+  it('a las 03:00 en Bogotá, el día ya NO retrocede (antes salía 15)', () => {
     jest.setSystemTime(new Date('2026-03-16T08:00:00Z')); // 16-mar 03:00 COT
     const p = mapCaseToPlaceholders(build() as never);
-    // Lo correcto sería 16; hoy sale 15.
-    expect(p.DIA).toBe('15');
-    expect(p.FECHA_COMPLETA).toBe('15 de marzo de 2026');
-    expect(p.NUMERO_DIA_LETRAS).toBe('quince');
+    expect(p.DIA).toBe('16');
+    expect(p.FECHA_COMPLETA).toBe('16 de marzo de 2026');
+    expect(p.NUMERO_DIA_LETRAS).toBe('dieciseis');
+  });
+
+  it('año nuevo: a las 23:00 del 31-dic en Bogotá (04:00 UTC del 1-ene), el año sigue siendo el anterior', () => {
+    // Cubre ANO_ACUERDO / ANO_FIRMA / ANO_ACTUAL, que antes leían .getFullYear()
+    // crudo apoyados en la pre-conversión de nowColombia() — también había que
+    // corregirlos al sacarla, o hubieran roto este caso (antes invisible: la fecha
+    // congelada del golden, 15-mar, nunca cruza fin de año).
+    jest.setSystemTime(new Date('2026-01-01T04:00:00Z')); // 31-dic 23:00 COT
+    const p = mapCaseToPlaceholders(build() as never);
+    expect(p.ANO_ACUERDO).toBe('2025');
+    expect(p.ANO_FIRMA).toBe('2025');
+    expect(p.ANO_ACTUAL).toBe('2025');
+  });
+
+  it('año nuevo en conciliación: ANO_ACTA sigue siendo el año anterior', () => {
+    // ANO_ACTA sale de mapConciliationFields (spreadeado en mapCaseToPlaceholders
+    // solo para type === 'CONCILIATION'), no de buildConciliationContext (que solo
+    // arma el contexto de los bloques {{#each}}, sin fechas).
+    jest.setSystemTime(new Date('2026-01-01T04:00:00Z')); // 31-dic 23:00 COT
+    const p = mapCaseToPlaceholders(
+      SCENARIOS['conciliacion-basica'].build() as never,
+    );
+    expect(p.ANO_ACTA).toBe('2025');
   });
 });
