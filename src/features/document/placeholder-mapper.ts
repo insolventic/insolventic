@@ -722,8 +722,6 @@ function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
     ANO_BILATERAL: getYear(now),
     ANO_FRACASO: getYear(now),
     ANO_DESISTIMIENTO: getYear(now),
-    ANO_INICIO_PAGO: '', // Manual - post-agreement
-    ANO_VIGENCIA: '', // Manual - post-agreement
 
     // Day variables
     DIA: getDayNumber(now),

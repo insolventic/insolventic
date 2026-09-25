@@ -2,7 +2,7 @@
  * Contrato del ORDEN DE FUSIÓN del mapper de placeholders.
  *
  * `mapCaseToPlaceholders` junta el literal `basePlaceholders` con ~22 sub-mappers
- * usando `...spread`: cuando dos emiten la misma clave, GANA EL ÚLTIMO. Hay 21
+ * usando `...spread`: cuando dos emiten la misma clave, GANA EL ÚLTIMO. Hay 19
  * claves así. Cualquier refactor que reordene los spreads, o que mueva un mapper
  * a otro módulo y cambie cuándo se aplica, cambiaría el documento final sin que
  * ningún tipo ni ningún test de una sola clave lo note.
@@ -73,8 +73,6 @@ const EXPECTED_MERGE_ORDER = [
 /** clave → fuentes, de la primera a la última (gana la última). */
 const EXPECTED_COLLISIONS: Record<string, string[]> = {
   // Bloque base vs sub-mapper
-  ANO_INICIO_PAGO: ['basePlaceholders', 'mapExtendedDates'],
-  ANO_VIGENCIA: ['basePlaceholders', 'mapExtendedDates'],
   ANO_FIRMA: ['basePlaceholders', 'mapAgreementResult'],
   CUADRO_CALIFICACION_GRADUACION: ['basePlaceholders', 'mapDynamicTables'],
   DETALLE_BIENES: ['basePlaceholders', 'mapDynamicTables'],
@@ -204,17 +202,21 @@ describe('orden de fusión — lectura estática del código fuente', () => {
     expect(order).toEqual(EXPECTED_MERGE_ORDER);
   });
 
-  it('las colisiones de claves entre fuentes son exactamente estas 21', () => {
+  it('las colisiones de claves entre fuentes son exactamente estas 19', () => {
     // Si falla porque APARECIÓ una colisión nueva: alguien agregó una clave que otro
     // mapper ya emite. Decidí quién debe ganar, documentala arriba y agregá un caso
     // de comportamiento abajo. Si DESAPARECIÓ una: quitala de la lista.
+    //
+    // Bajó de 21 a 19: ANO_INICIO_PAGO/ANO_VIGENCIA dejaron de colisionar al sacar
+    // los stubs vacíos de mapExtendedDates (Hallazgo 2, ver "bloque base < mapExtendedDates"
+    // más abajo) — ya no hay dos fuentes emitiendo esas claves, solo el bloque base.
     expect(Object.keys(collisions).sort()).toEqual(
       Object.keys(EXPECTED_COLLISIONS).sort(),
     );
     for (const [key, sources] of Object.entries(EXPECTED_COLLISIONS)) {
       expect({ key, sources: collisions[key] }).toEqual({ key, sources });
     }
-    expect(Object.keys(collisions)).toHaveLength(21);
+    expect(Object.keys(collisions)).toHaveLength(19);
   });
 });
 
@@ -293,13 +295,16 @@ describe('mapExternalEntities < mapFracasoVariables (gana el segundo)', () => {
   });
 });
 
-describe('bloque base < mapExtendedDates', () => {
-  it('CONOCIDO: ANO_INICIO_PAGO y ANO_VIGENCIA salen VACÍOS aunque el caso tenga las fechas (mapExtendedDates pisa lo que calcula el bloque base)', () => {
+describe('bloque base: ANO_INICIO_PAGO/ANO_VIGENCIA (Hallazgo 2, arreglado)', () => {
+  it('ya NO salen vacíos — mapExtendedDates dejó de pisarlos (antes: FIX)', () => {
     const p = run('insolvencia-acuerdo-aprobado');
-    // El bloque base los calcula desde paymentStartDate (2026) y agreementValidityDate (2029)...
-    expect(p.ANO_INICIO_PAGO).toBe('');
-    expect(p.ANO_VIGENCIA).toBe('');
-    // ...y los hermanos DIA_/MES_/FECHA_ (que nadie pisa) sí salen con valor.
+    // El bloque base los calcula desde paymentStartDate (2026) y agreementValidityDate
+    // (2029); antes mapExtendedDates los pisaba con '' incondicionalmente (dos stubs
+    // "Manual" que sobraban desde el commit inicial, 4 días antes de que se agregara
+    // el cálculo real). Al sacar los stubs, ya no hay colisión: gana el único valor.
+    expect(p.ANO_INICIO_PAGO).toBe('2026');
+    expect(p.ANO_VIGENCIA).toBe('2029');
+    // Los hermanos DIA_/MES_/FECHA_ (que nadie pisaba) seguían con valor y no cambian.
     expect(p.DIA_INICIO_PAGO).toBe('1');
     expect(p.MES_INICIO_PAGO).toBe('mayo');
     expect(p.FECHA_INICIO_PAGO).not.toBe('________________');
