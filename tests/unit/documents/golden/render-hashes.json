@@ -1734,18 +1734,12 @@
  "SUPPORT_AGREEMENT/apoyo-acuerdo|apoyo-completo": {
   "t": "e301129a0c39",
   "h": "9e2d583515ca",
-  "u": [
-   "NUMERO_CLAUSULA",
-   "TEXTO_CLAUSULA"
-  ]
+  "u": []
  },
  "SUPPORT_AGREEMENT/apoyo-acuerdo|apoyo-minimo": {
   "t": "e301129a0c39",
   "h": "4716373f8343",
-  "u": [
-   "NUMERO_CLAUSULA",
-   "TEXTO_CLAUSULA"
-  ]
+  "u": []
  },
  "SUPPORT_AGREEMENT/apoyo-incumplimiento|apoyo-completo": {
   "t": "7af5cd15624a",
