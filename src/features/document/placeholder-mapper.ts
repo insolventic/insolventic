@@ -220,10 +220,20 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
       result[`AC${idx}_INTERESES_RAW`] = interest.toString();
     } else {
       result[`AC${idx}_NOMBRE`] = '';
+      result[`AC${idx}_DOMICILIO`] = '';
+      result[`AC${idx}_DIRECCION`] = '';
+      result[`AC${idx}_EMAIL`] = '';
       result[`AC${idx}_CAPITAL`] = '';
       result[`AC${idx}_INTERESES`] = '';
-      result[`AC${idx}_CLASIFICACION`] = '';
+      result[`AC${idx}_POSTERGADO`] = '';
+      result[`AC${idx}_TASA`] = '';
       result[`AC${idx}_DOCUMENTO`] = '';
+      result[`AC${idx}_FECHA_OTORGAMIENTO`] = '';
+      result[`AC${idx}_FECHA_VENCIMIENTO`] = '';
+      result[`AC${idx}_CLASIFICACION`] = '';
+      result[`AC${idx}_CODEUDOR_NOMBRE`] = '';
+      result[`AC${idx}_CODEUDOR_DOMICILIO`] = '';
+      result[`AC${idx}_CODEUDOR_DIRECCION`] = '';
       result[`AC${idx}_APODERADO`] = '';
       result[`AC${idx}_CAPITAL_RAW`] = '';
       result[`AC${idx}_INTERESES_RAW`] = '';
