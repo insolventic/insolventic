@@ -2614,13 +2614,28 @@ export function renderDocumentHtml(
   // así que escanear el HTML ya renderizado no encontraría nada. Hay que
   // comparar contra la fuente.
   //
-  // Las variables dentro de bloques `{{#each}}` / `{{#if}}` se resuelven contra
-  // el scope del bloque, no contra el contexto raíz: se excluyen del escaneo
-  // para no reportar falsos faltantes en las plantillas de conciliación.
-  const topLevelHtml = html.replace(
-    /\{\{#\s*[A-Za-z0-9_]+\s*\}\}[\s\S]*?\{\{\/\s*[A-Za-z0-9_]+\s*\}\}/g,
-    '',
-  );
+  // Las variables dentro de bloques `{{#each}}` / `{{#if}}` / `{{#unless}}` se
+  // resuelven contra el scope del bloque, no contra el contexto raíz: se
+  // excluyen del escaneo para no reportar falsos faltantes.
+  //
+  // La sintaxis real (handlebars-lite.ts) siempre lleva DOS tokens en el tag de
+  // apertura -`{{#if FLAG}}`, `{{#each LISTA}}`- nunca uno solo. El cierre puede
+  // venir con o sin el identificador repetido (`{{/if}}` o `{{/if FLAG}}`, este
+  // último es el que usan las plantillas de conciliación). El backreference \1
+  // exige que abra y cierre el mismo tipo de bloque.
+  //
+  // Igual que `resolveBlocks`, se aplica en pasadas hasta estabilizar: cada
+  // pasada solo puede quitar el bloque MÁS interno (la negative lookahead evita
+  // que `[\s\S]*?` se coma un `{{#if/each/unless` anidado), así que los bloques
+  // anidados se pelan de adentro hacia afuera.
+  const BLOCK_RE =
+    /\{\{#(if|each|unless)\s+[A-Za-z0-9_]+\s*\}\}((?:(?!\{\{#(?:if|each|unless)\b)[\s\S])*?)\{\{\/\1(?:\s+[A-Za-z0-9_]+)?\s*\}\}/g;
+  let topLevelHtml = html;
+  for (let pass = 0; pass < 32; pass++) {
+    const before = topLevelHtml;
+    topLevelHtml = topLevelHtml.replace(BLOCK_RE, '');
+    if (topLevelHtml === before) break;
+  }
   const referenced = new Set(
     [...topLevelHtml.matchAll(/\{\{([A-Za-z0-9_]+)\}\}/g)].map((m) => m[1]),
   );
