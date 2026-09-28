@@ -112,7 +112,6 @@ const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
   hasEmployerCertification: 'debtor',
   operatorId: 'debtor',
   phase: 'debtor',
-  filingDate: 'debtor',
   caseNumber: 'debtor',
   // Tab 2 – Situación
   conyuge: 'situation',
@@ -304,7 +303,6 @@ export function CreateCaseDialog({
         phase: 'Inicial',
         hearingDate: null,
         caseNumber: '',
-        filingDate: '',
         attorney: '',
         rejection: false,
         withdrawal: false,
@@ -896,7 +894,6 @@ export function CreateCaseDialog({
       'Disminución de ingresos',
     ]);
     form.setValue('phase', 'Inicial');
-    form.setValue('filingDate', new Date().toISOString().split('T')[0]);
     form.setValue('attorney', 'Dr. Juan Pérez');
     form.setValue('hasLegalProcesses', true);
 
