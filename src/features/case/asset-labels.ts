@@ -32,3 +32,18 @@ export function isInmueble(assetType: string | undefined | null): boolean {
 export function assetValueLabel(assetType: string | undefined | null): string {
   return isInmueble(assetType) ? 'Valor comercial ($)' : 'Valor ($)';
 }
+
+/**
+ * Ejemplos del campo nombre/descripción.
+ *
+ * El placeholder único anterior ("Ej: Casa, Carro Toyota") mezclaba un inmueble
+ * con un mueble en la misma pista, así que no orientaba en ninguno de los dos
+ * casos: quien cargaba una casa veía un ejemplo de carro y al revés.
+ */
+export function assetNamePlaceholder(
+  assetType: string | undefined | null,
+): string {
+  return isInmueble(assetType)
+    ? 'Ej: Casa, Apartamento, Lote'
+    : 'Ej: Carro Toyota, Nevera, Anillo de oro';
+}

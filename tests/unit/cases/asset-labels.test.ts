@@ -10,6 +10,7 @@ import {
   ASSET_TYPE_INMUEBLE,
   isInmueble,
   assetValueLabel,
+  assetNamePlaceholder,
 } from '@/features/case/asset-labels';
 
 describe('asset-labels', () => {
@@ -57,6 +58,28 @@ describe('asset-labels', () => {
 
     it('sin tipo elegido usa el rótulo genérico', () => {
       expect(assetValueLabel(undefined)).toBe('Valor ($)');
+    });
+  });
+
+  describe('assetNamePlaceholder', () => {
+    it('en inmuebles solo da ejemplos de inmueble', () => {
+      const pista = assetNamePlaceholder('INMUEBLE');
+      expect(pista).toBe('Ej: Casa, Apartamento, Lote');
+      expect(pista.toLowerCase()).not.toContain('carro');
+    });
+
+    it('en muebles solo da ejemplos de mueble', () => {
+      const pista = assetNamePlaceholder('VEHICULO');
+      expect(pista).toBe('Ej: Carro Toyota, Nevera, Anillo de oro');
+      expect(pista.toLowerCase()).not.toContain('casa');
+    });
+
+    it('ya no mezcla inmueble y mueble en la misma pista', () => {
+      // Regresión del placeholder único anterior: "Ej: Casa, Carro Toyota".
+      for (const tipo of ['INMUEBLE', 'VEHICULO', 'JOYA', undefined]) {
+        const pista = assetNamePlaceholder(tipo).toLowerCase();
+        expect(pista.includes('casa') && pista.includes('carro')).toBe(false);
+      }
     });
   });
 });

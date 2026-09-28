@@ -20,7 +20,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { assetValueLabel } from '@/features/case/asset-labels';
+import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
 import {
   Select,
   SelectContent,
@@ -122,7 +125,10 @@ const AssetItem = memo(function AssetItem({
                 Nombre/Descripción <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input {...formField} placeholder="Ej: Casa, Carro Toyota" />
+                <Input
+                  {...formField}
+                  placeholder={assetNamePlaceholder(assetType)}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

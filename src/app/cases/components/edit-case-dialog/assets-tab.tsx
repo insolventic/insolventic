@@ -11,7 +11,10 @@ import {
   addAssetToCaseSchema,
   type AddAssetToCaseData,
 } from '@/features/case/schemas';
-import { assetValueLabel } from '@/features/case/asset-labels';
+import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -296,7 +299,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                 <Input
                   id="name"
                   {...newAssetForm.register('name')}
-                  placeholder="Ej: Casa, Carro Toyota"
+                  placeholder={assetNamePlaceholder(assetType)}
                 />
                 {newAssetForm.formState.errors.name && (
                   <p className="text-destructive text-sm">
