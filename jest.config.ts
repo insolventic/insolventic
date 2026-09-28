@@ -25,6 +25,7 @@ const config: Config = {
     ],
   },
   transformIgnorePatterns: ['/node_modules/(?!jose)'],
+  globalSetup: '<rootDir>/tests/global-setup.js',
   setupFiles: ['<rootDir>/tests/setup.ts'],
   testMatch: ['**/*.test.ts', '**/*.test.tsx'],
   // tests/db necesita una base Postgres viva: se corre aparte (`npm run test:db`).

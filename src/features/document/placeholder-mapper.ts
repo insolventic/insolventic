@@ -7,6 +7,20 @@ import type { CaseWithRelations } from '../case/schemas';
 import { nowColombia, COLOMBIA_TZ } from '@/lib/date-colombia';
 import { getDebtClass } from '../case/validation-rules';
 import { renderTemplate } from './handlebars-lite';
+import {
+  formatCurrency,
+  formatDate,
+  formatShortDate,
+  getDayNumber,
+  getDayInWords,
+  getMonthName,
+  getYear,
+  formatDateComplete,
+  boolToSiNo,
+  getGenderPrefix,
+  getGenderArticle,
+  formatIdNumber,
+} from './placeholders/format';
 
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
@@ -71,156 +85,6 @@ function escapeAllUnlessHtml(map: PlaceholderMap): PlaceholderMap {
       : escapePlaceholder(value);
   }
   return escaped;
-}
-
-// Helper to format currency
-function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '$0';
-  // Ensure Prisma Decimal objects are converted to number
-  const num = Number(value);
-  if (isNaN(num)) return '$0';
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(num);
-}
-
-// Helper to format date (Colombia timezone)
-function formatDate(date: Date | string | null | undefined): string {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    timeZone: COLOMBIA_TZ,
-  });
-}
-
-// Helper to format short date (Colombia timezone)
-function formatShortDate(date: Date | string | null | undefined): string {
-  if (!date) return '';
-  if (String(date) === 'DESCONOZCO') return 'Desconoce';
-  const d = new Date(date);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: COLOMBIA_TZ,
-  });
-}
-
-// Helper to get day number (Colombia timezone)
-function getDayNumber(date: Date | string | null | undefined): string {
-  if (!date) return '';
-  const d = new Date(date);
-  const colombiaDay = parseInt(
-    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
-  );
-  return colombiaDay.toString();
-}
-
-// Helper to get day in words (Colombia timezone)
-function getDayInWords(date: Date | string | null | undefined): string {
-  if (!date) return '';
-  const d = new Date(date);
-  const day = parseInt(
-    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
-  );
-  const words = [
-    '',
-    'uno',
-    'dos',
-    'tres',
-    'cuatro',
-    'cinco',
-    'seis',
-    'siete',
-    'ocho',
-    'nueve',
-    'diez',
-    'once',
-    'doce',
-    'trece',
-    'catorce',
-    'quince',
-    'dieciseis',
-    'diecisiete',
-    'dieciocho',
-    'diecinueve',
-    'veinte',
-    'veintiuno',
-    'veintidos',
-    'veintitres',
-    'veinticuatro',
-    'veinticinco',
-    'veintiseis',
-    'veintisiete',
-    'veintiocho',
-    'veintinueve',
-    'treinta',
-    'treinta y uno',
-  ];
-  return words[day] || day.toString();
-}
-
-// Helper to get month name (Colombia timezone)
-function getMonthName(date: Date | string | null | undefined): string {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('es-CO', {
-    month: 'long',
-    timeZone: COLOMBIA_TZ,
-  });
-}
-
-// Helper to get year (Colombia timezone)
-function getYear(date: Date | string | null | undefined): string {
-  if (!date) return '';
-  const d = new Date(date);
-  return d.toLocaleDateString('es-CO', {
-    year: 'numeric',
-    timeZone: COLOMBIA_TZ,
-  });
-}
-
-// Helper for complete date in words (Colombia timezone)
-function formatDateComplete(date: Date | string | null | undefined): string {
-  if (!date) return '';
-  const d = new Date(date);
-  const day = parseInt(
-    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
-  );
-  const month = d.toLocaleDateString('es-CO', {
-    month: 'long',
-    timeZone: COLOMBIA_TZ,
-  });
-  const year = d.toLocaleDateString('es-CO', {
-    year: 'numeric',
-    timeZone: COLOMBIA_TZ,
-  });
-  return `${day} de ${month} de ${year}`;
-}
-
-// Helper for SI/NO values
-function boolToSiNo(value: boolean | null | undefined): string {
-  return value ? 'SI' : 'NO';
-}
-
-// Helper to get gender prefix
-function getGenderPrefix(name: string): string {
-  // Simple heuristic - names ending in 'a' are typically female in Spanish
-  const lowerName = name.toLowerCase().trim();
-  const femaleEndings = ['a', 'ia', 'ita'];
-  for (const ending of femaleEndings) {
-    if (lowerName.endsWith(ending)) {
-      return 'La señora';
-    }
-  }
-  return 'El señor';
 }
 
 // Map causes to individual placeholders
@@ -356,10 +220,20 @@ function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
       result[`AC${idx}_INTERESES_RAW`] = interest.toString();
     } else {
       result[`AC${idx}_NOMBRE`] = '';
+      result[`AC${idx}_DOMICILIO`] = '';
+      result[`AC${idx}_DIRECCION`] = '';
+      result[`AC${idx}_EMAIL`] = '';
       result[`AC${idx}_CAPITAL`] = '';
       result[`AC${idx}_INTERESES`] = '';
-      result[`AC${idx}_CLASIFICACION`] = '';
+      result[`AC${idx}_POSTERGADO`] = '';
+      result[`AC${idx}_TASA`] = '';
       result[`AC${idx}_DOCUMENTO`] = '';
+      result[`AC${idx}_FECHA_OTORGAMIENTO`] = '';
+      result[`AC${idx}_FECHA_VENCIMIENTO`] = '';
+      result[`AC${idx}_CLASIFICACION`] = '';
+      result[`AC${idx}_CODEUDOR_NOMBRE`] = '';
+      result[`AC${idx}_CODEUDOR_DOMICILIO`] = '';
+      result[`AC${idx}_CODEUDOR_DIRECCION`] = '';
       result[`AC${idx}_APODERADO`] = '';
       result[`AC${idx}_CAPITAL_RAW`] = '';
       result[`AC${idx}_INTERESES_RAW`] = '';
@@ -858,8 +732,6 @@ function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
     ANO_BILATERAL: getYear(now),
     ANO_FRACASO: getYear(now),
     ANO_DESISTIMIENTO: getYear(now),
-    ANO_INICIO_PAGO: '', // Manual - post-agreement
-    ANO_VIGENCIA: '', // Manual - post-agreement
 
     // Day variables
     DIA: getDayNumber(now),
@@ -969,32 +841,6 @@ function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
     NOMBRE_DEUDOR_MAYUSCULAS: caseData.debtor.name?.toUpperCase() || '',
     CEDULA_DEUDOR_FORMATO: formatIdNumber(caseData.debtor.idNumber),
   };
-}
-
-// Helper to get gender article (el/la)
-function getGenderArticle(name: string): string {
-  if (!name) return 'el';
-  const firstName = name.split(' ')[0].toLowerCase();
-  // Common female name endings in Spanish
-  const femaleEndings = ['a', 'ia', 'na', 'da', 'ta', 'sa', 'za', 'ía'];
-  // Common male names that end in 'a'
-  const maleExceptions = ['joshua', 'josua', 'garcia', 'borja', 'kocha'];
-
-  if (maleExceptions.includes(firstName)) return 'el';
-
-  for (const ending of femaleEndings) {
-    if (firstName.endsWith(ending)) return 'la';
-  }
-  return 'el';
-}
-
-// Helper to format ID number with dots
-function formatIdNumber(idNumber: string): string {
-  if (!idNumber) return '';
-  // Remove any existing formatting
-  const cleaned = idNumber.replace(/\D/g, '');
-  // Add thousand separators (Colombian format)
-  return cleaned.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
 // Map fracaso (failure) specific variables
@@ -2292,7 +2138,7 @@ function mapConciliationFields(caseData: CaseWithRelations): PlaceholderMap {
 
     // Case/process identification
     NUMERO_ACTA: caseData.caseNumber || '',
-    ANO_ACTA: now.getFullYear().toString(),
+    ANO_ACTA: getYear(now),
     ASUNTO: asunto,
 
     // Solicitud content
@@ -2421,7 +2267,7 @@ export function mapCaseToPlaceholders(
     NUMERO_RADICADO: caseData.caseNumber.replace(/[^0-9]/g, ''),
     NUMERO_TRAMITE: caseData.caseNumber,
     NUMERO_ACUERDO: caseData.caseNumber.replace(/[^0-9]/g, ''),
-    ANO_ACUERDO: nowColombia().getFullYear().toString(),
+    ANO_ACUERDO: getYear(nowColombia()),
     DIA_ACUERDO: '____', // MANUAL - día del acuerdo
     MES_ACUERDO: '____________', // MANUAL - mes del acuerdo
     CIUDAD: debtor.city || caseData.city || 'Bogotá',
@@ -2610,6 +2456,12 @@ export function mapCaseToPlaceholders(
     // Aliases for Reforma Acuerdo and Acuerdo Bilateral templates
     NOMBRE_ACREEDOR:
       caseData.debts?.[0]?.creditor?.name || '________________________________',
+    // Representante del acreedor que reporta el incumplimiento (mismo acreedor
+    // que NOMBRE_ACREEDOR) — no confundir con NOMBRE_REPRESENTANTE_LEGAL, que es
+    // el representante legal de una parte en conciliación (otro dato).
+    NOMBRE_REPRESENTANTE:
+      caseData.debts?.[0]?.creditor?.representative ||
+      '________________________________',
     NUMERO_CUOTAS: caseData.paymentTermMonths?.toString() || '____',
     PORCENTAJE_RECONOCIMIENTO:
       caseData.approvalPercentage?.toString() || '____',
@@ -2662,8 +2514,8 @@ export function mapCaseToPlaceholders(
     // Signature and current year
     DIA_FIRMA: getDayNumber(nowColombia()),
     MES_FIRMA: getMonthName(nowColombia()),
-    ANO_FIRMA: nowColombia().getFullYear().toString(),
-    ANO_ACTUAL: nowColombia().getFullYear().toString(),
+    ANO_FIRMA: getYear(nowColombia()),
+    ANO_ACTUAL: getYear(nowColombia()),
   };
 
   // Build dynamic anexos list — only documents actually uploaded (not auto-generated)
@@ -2762,13 +2614,28 @@ export function renderDocumentHtml(
   // así que escanear el HTML ya renderizado no encontraría nada. Hay que
   // comparar contra la fuente.
   //
-  // Las variables dentro de bloques `{{#each}}` / `{{#if}}` se resuelven contra
-  // el scope del bloque, no contra el contexto raíz: se excluyen del escaneo
-  // para no reportar falsos faltantes en las plantillas de conciliación.
-  const topLevelHtml = html.replace(
-    /\{\{#\s*[A-Za-z0-9_]+\s*\}\}[\s\S]*?\{\{\/\s*[A-Za-z0-9_]+\s*\}\}/g,
-    '',
-  );
+  // Las variables dentro de bloques `{{#each}}` / `{{#if}}` / `{{#unless}}` se
+  // resuelven contra el scope del bloque, no contra el contexto raíz: se
+  // excluyen del escaneo para no reportar falsos faltantes.
+  //
+  // La sintaxis real (handlebars-lite.ts) siempre lleva DOS tokens en el tag de
+  // apertura -`{{#if FLAG}}`, `{{#each LISTA}}`- nunca uno solo. El cierre puede
+  // venir con o sin el identificador repetido (`{{/if}}` o `{{/if FLAG}}`, este
+  // último es el que usan las plantillas de conciliación). El backreference \1
+  // exige que abra y cierre el mismo tipo de bloque.
+  //
+  // Igual que `resolveBlocks`, se aplica en pasadas hasta estabilizar: cada
+  // pasada solo puede quitar el bloque MÁS interno (la negative lookahead evita
+  // que `[\s\S]*?` se coma un `{{#if/each/unless` anidado), así que los bloques
+  // anidados se pelan de adentro hacia afuera.
+  const BLOCK_RE =
+    /\{\{#(if|each|unless)\s+[A-Za-z0-9_]+\s*\}\}((?:(?!\{\{#(?:if|each|unless)\b)[\s\S])*?)\{\{\/\1(?:\s+[A-Za-z0-9_]+)?\s*\}\}/g;
+  let topLevelHtml = html;
+  for (let pass = 0; pass < 32; pass++) {
+    const before = topLevelHtml;
+    topLevelHtml = topLevelHtml.replace(BLOCK_RE, '');
+    if (topLevelHtml === before) break;
+  }
   const referenced = new Set(
     [...topLevelHtml.matchAll(/\{\{([A-Za-z0-9_]+)\}\}/g)].map((m) => m[1]),
   );
