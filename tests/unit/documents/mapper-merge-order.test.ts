@@ -358,17 +358,22 @@ describe('conciliación: mapConciliationFields va el último', () => {
     expect(p.ANO_CONSTANCIA).toBe('2026');
   });
 
-  it('sin fechas escritas: caen a la fecha de hoy (mapExtendedDates daría vacío en día y mes)', () => {
+  it('sin fechas escritas: caen a la fecha de hoy (gana mapConciliationFields, no importa qué calcule mapExtendedDates)', () => {
     const p = run('conciliacion-sin-fechas');
     expect(p.DIA_DESISTIMIENTO).toBe('15');
     expect(p.MES_DESISTIMIENTO).toBe('marzo');
     expect(p.ANO_DESISTIMIENTO).toBe('2026');
   });
 
-  it('en insolvencia (sin mapConciliationFields) DIA/MES_DESISTIMIENTO siguen vacíos y ANO_DESISTIMIENTO es el año de hoy', () => {
+  // PR #40: mapExtendedDates ahora deriva DIA/MES/ANO_DESISTIMIENTO de
+  // resultDate (con fallback a hoy), igual que ANO_RADICADO con filingDate.
+  // Antes quedaban vacíos ('' / '') salvo ANO, que caía a getYear(now). Solo
+  // importa en insolvencia/apoyo: en conciliación siempre gana
+  // mapConciliationFields (test de arriba).
+  it('en insolvencia (sin mapConciliationFields) DIA/MES/ANO_DESISTIMIENTO salen de resultDate', () => {
     const p = run('insolvencia-desistimiento');
-    expect(p.DIA_DESISTIMIENTO).toBe('');
-    expect(p.MES_DESISTIMIENTO).toBe('');
+    expect(p.DIA_DESISTIMIENTO).toBe('1');
+    expect(p.MES_DESISTIMIENTO).toBe('marzo');
     expect(p.ANO_DESISTIMIENTO).toBe('2026');
   });
 });
