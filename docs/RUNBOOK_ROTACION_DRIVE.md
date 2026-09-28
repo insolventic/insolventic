@@ -284,7 +284,7 @@ el repo; decidirla antes de usarla⟩`.
 - [ ] Después del Redeploy, en **Vercel → Logs**, sin `invalid_grant` en
       los últimos 15 minutos.
 - [ ] Sentry sin `Error generating document` nuevos (`action:
-    'generate-documents'`).
+  'generate-documents'`).
 - [ ] Anotar en algún lado la **fecha de rotación** y el estado del consent
       screen (`Publishing status`) en ese momento.
 
