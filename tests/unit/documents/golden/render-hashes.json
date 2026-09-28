@@ -643,32 +643,32 @@
  },
  "INSOLVENCY/desistimiento|insolvencia-completa": {
   "t": "c2191fc72536",
-  "h": "19dbc838c8e1",
+  "h": "f061574a07cf",
   "u": []
  },
  "INSOLVENCY/desistimiento|insolvencia-minima": {
   "t": "c2191fc72536",
-  "h": "615413f3effd",
+  "h": "201e03add836",
   "u": []
  },
  "INSOLVENCY/desistimiento|insolvencia-acuerdo-aprobado": {
   "t": "c2191fc72536",
-  "h": "19dbc838c8e1",
+  "h": "f061574a07cf",
   "u": []
  },
  "INSOLVENCY/desistimiento|insolvencia-fracaso-con-datos": {
   "t": "c2191fc72536",
-  "h": "fca148dc14f0",
+  "h": "6eb5c47e9b17",
   "u": []
  },
  "INSOLVENCY/desistimiento|insolvencia-desistimiento": {
   "t": "c2191fc72536",
-  "h": "19dbc838c8e1",
+  "h": "021a2112dabe",
   "u": []
  },
  "INSOLVENCY/desistimiento|insolvencia-xss": {
   "t": "c2191fc72536",
-  "h": "d8fed2f6a696",
+  "h": "3c5768c7f251",
   "u": []
  },
  "INSOLVENCY/remision-resultado|insolvencia-completa": {
@@ -1511,32 +1511,32 @@
   "h": "5c15c47ac53d",
   "u": []
  },
- "INSOLVENCY/rechazo-inasistencia|insolvencia-completa": {
+ "INSOLVENCY/inasistencia-deudor|insolvencia-completa": {
   "t": "fd1489c1ad49",
   "h": "63b9ec69e7c4",
   "u": []
  },
- "INSOLVENCY/rechazo-inasistencia|insolvencia-minima": {
+ "INSOLVENCY/inasistencia-deudor|insolvencia-minima": {
   "t": "fd1489c1ad49",
   "h": "1a1102c983be",
   "u": []
  },
- "INSOLVENCY/rechazo-inasistencia|insolvencia-acuerdo-aprobado": {
+ "INSOLVENCY/inasistencia-deudor|insolvencia-acuerdo-aprobado": {
   "t": "fd1489c1ad49",
   "h": "63b9ec69e7c4",
   "u": []
  },
- "INSOLVENCY/rechazo-inasistencia|insolvencia-fracaso-con-datos": {
+ "INSOLVENCY/inasistencia-deudor|insolvencia-fracaso-con-datos": {
   "t": "fd1489c1ad49",
   "h": "8fad8c087d70",
   "u": []
  },
- "INSOLVENCY/rechazo-inasistencia|insolvencia-desistimiento": {
+ "INSOLVENCY/inasistencia-deudor|insolvencia-desistimiento": {
   "t": "fd1489c1ad49",
   "h": "63b9ec69e7c4",
   "u": []
  },
- "INSOLVENCY/rechazo-inasistencia|insolvencia-xss": {
+ "INSOLVENCY/inasistencia-deudor|insolvencia-xss": {
   "t": "fd1489c1ad49",
   "h": "183b3286484c",
   "u": []
