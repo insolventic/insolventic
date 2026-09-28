@@ -5,6 +5,14 @@ on:
     branches:
       - dev
       - main
+  # Hasta ahora este workflow solo corría en el PR, contra el commit que
+  # todavía no está en dev. Un merge (rebase, merge commit o squash) produce
+  # un commit NUEVO en dev que nunca se compiló ni testeó como tal — la única
+  # verificación posterior era local, a mano, por quien mergeaba. Este trigger
+  # corre quality-checks también sobre ese commit real.
+  push:
+    branches:
+      - dev
 
 permissions:
   contents: read
