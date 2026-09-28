@@ -8,23 +8,37 @@
 
 - [ ] #40 revisado y mergeado a `dev` (por vos).
 - [ ] `dev` sano: suite completa, `tsc`, `eslint` en verde sobre el commit que vas a promover (protocolo de siempre).
-- [ ] **Hallazgo a resolver antes de promover — ver §1.1**: el commit que retira `rejection`/`withdrawal` del código (`f8cb595` en la rama de #40) **no incluye** el fix del archivo de plantilla movido a medias (`92b13c2`, ya en la rama). Si promovés el "paso 1" tal como está hoy el historial, sale a producción con el mismo bug que encontré: `inasistencia-deudor` no genera nada (`ARCHIVO-NO-ENCONTRADO`) porque el archivo físico no se movió. Necesitás reordenar (rebase) o cherry-pickear ese fix a un commit anterior al de la migración antes de definir el punto de corte del "paso 1". Sin este paso, no se repite el incidente de `apoyo_*` en las columnas — pero sí uno nuevo, silencioso, en un documento de Fracaso.
+- [x] **Hallazgo del §1.1 (histórico), resuelto**: el commit que retira `rejection`/`withdrawal` del código (`f8cb595`) no incluía el fix del archivo de plantilla movido a medias (`92b13c2`) — promover el "paso 1" literal hasta `f8cb595` habría sacado `inasistencia-deudor` a producción sin generar nada (`ARCHIVO-NO-ENCONTRADO`). Resuelto **sin tocar la rama de #40**: el fix vive ahora, además, en `deploy/pr40-paso1` (cherry-pick sobre `f8cb595`), que es la rama que hay que promover en el despliegue 1 — ver §1.
 
 ---
 
-## 1. Los dos commits que definen los pasos
+## 1. Las dos fuentes que definen los pasos
 
-Identificados en la rama `feat/fases-nuevas-case-phases` (PR #40), tal como está hoy (2026-09-28). Si mergeás #40 con `--merge` (tiene su propio merge commit interno, igual que #34/#41 en esta sesión), estos SHA se preservan intactos en `dev`; si en algún momento se rebasea o squashea, hay que re-identificarlos por su **mensaje/nombre de archivo**, no asumir que el hash sigue siendo el mismo — las referencias de abajo dan ambos.
-
-### Paso 1 — código que deja de usar `rejection`/`withdrawal`
+### Paso 1 — rama `deploy/pr40-paso1` (código que deja de usar `rejection`/`withdrawal`, ya con el fix de plantilla incluido)
 
 ```
+git log --oneline origin/deploy/pr40-paso1
+f60ea85 fix(documentos): mover Auto Cierre por Inasistencia del Deudor a la carpeta de Fracaso
 f8cb595 refactor(fases): retirar rejection y withdrawal del codigo y del schema (paso 5, fase de expansion)
 ```
 
-Qué cambia: `schema.prisma` deja de declarar los dos campos; `schemas.ts` los saca de `caseSchema`/`createCaseSchema`/`updateCaseSchema`; los diálogos de creación/edición de caso dejan de leerlos y escribirlos; `seed.ts` y los fixtures de test se actualizan. **Las columnas siguen existiendo en la base** (`NOT NULL DEFAULT false`) — el propio mensaje del commit lo dice: "el código viejo y el nuevo conviven sin problema" porque nadie deja de escribir un valor requerido (el default lo cubre).
+Esta rama **no es la de #40** — es una rama nueva, creada específicamente para este despliegue, sin tocar `feat/fases-nuevas-case-phases` (que sigue intacta, con su propio historial y su propio CI, para cuando la mergees a `dev` como PR normal). Se construyó así (ver §1.1 para el porqué):
 
-### Paso 2 — la migración que borra las columnas
+```bash
+git checkout -b deploy/pr40-paso1 f8cb595   # el commit real de #40 que retira rejection/withdrawal del código
+git cherry-pick 92b13c2                     # el fix de la plantilla, cherry-pickeado desde la rama de #40
+git push -u origin deploy/pr40-paso1
+```
+
+`f8cb595`: `schema.prisma` deja de declarar los dos campos; `schemas.ts` los saca de `caseSchema`/`createCaseSchema`/`updateCaseSchema`; los diálogos de creación/edición de caso dejan de leerlos y escribirlos; `seed.ts` y los fixtures de test se actualizan. **Las columnas siguen existiendo en la base** (`NOT NULL DEFAULT false`) — el propio mensaje del commit lo dice: "el código viejo y el nuevo conviven sin problema" porque nadie deja de escribir un valor requerido (el default lo cubre).
+
+`f60ea85`: rename puro (`git mv`, 0 inserciones/0 borrados), cherry-pick verificado sin conflicto de `92b13c2`. Ver §1.1.
+
+**Esta es la rama que se promueve a `main` en el despliegue 1** (§3), no un commit suelto de la rama de #40.
+
+### Paso 2 — rama `feat/fases-nuevas-case-phases` completa (PR #40), mergeada a `dev` y de ahí a `main`
+
+La migración vive en la rama de #40, sin cambios:
 
 ```
 e559b28 feat(db): migracion que retira las columnas rejection y withdrawal de Case (paso 5, fase de contraccion)
@@ -39,16 +53,18 @@ Contenido (verificado, no resumido de memoria):
 
 El propio encabezado del archivo (comentario SQL) ya trae la query de verificación de solo lectura y el rollback manual — citados tal cual en §4 y §5 de este documento para no depender de que alguien vaya a buscarlos.
 
-### 1.1 Por qué el paso 1, tal como está hoy, no alcanza
+**El paso 2 no sale de `deploy/pr40-paso1`.** Sale de mergear #40 completa (con `92b13c2` en su posición original, más todo lo que se agregó después: la regeneración del golden master, el test de invariante de plantillas, el fix de `case-reads-select.test.ts`, etc.) a `dev` como PR normal, y de ahí promover `dev` a `main` de la forma de siempre. Para ese momento, `92b13c2` ya no aporta nada nuevo — su contenido ya está en producción desde el despliegue 1 vía `f60ea85` — pero no hace falta sacarlo de la rama de #40 ni tratarlo de forma especial: un merge normal reconcilia dos ramas que renombraron el mismo archivo al mismo destino sin generar conflicto (ver §1.1).
 
-`4a6dbc3` (commit anterior a `f8cb595`, también parte de #40) reclasifica la plantilla `rechazo-inasistencia` → `inasistencia-deudor` **en el config** (`templates-config.ts`), pero nunca mueve el archivo físico de `templates/insolvency/Tipos de Rechazo/` a la carpeta nueva. Lo until encontré porque el golden master (infraestructura que no existía cuando se creó la rama de #40) comparó por primera vez su código contra un baseline real. Con `generateOnFailure: true`, esa plantilla fallaría en silencio (`ARCHIVO-NO-ENCONTRADO`) en cuanto un caso pasara a Fracaso con ese subtipo — y esto **ya está roto hoy en la rama**, antes de la migración, nada tiene que ver con el paso 2.
+### 1.1 Por qué se resolvió con una rama nueva (cherry-pick) y no reordenando la rama de #40
 
-El fix (`92b13c2`, `git mv` puro, sin tocar contenido) vive en la rama de #40 pero **después** de `e559b28` en el historial. Si el "paso 1" se promueve literalmente hasta `f8cb595`, este bug viaja a producción igual. Antes de fijar el punto de corte real:
+`4a6dbc3` (commit de #40, anterior a `f8cb595`) reclasifica la plantilla `rechazo-inasistencia` → `inasistencia-deudor` **en el config** (`templates-config.ts`), pero nunca movió el archivo físico. El fix real (`92b13c2`) quedó, en la rama de #40, **después** de la migración (`e559b28`) en el historial — si el paso 1 se promovía literal hasta `f8cb595`, el bug viajaba a producción.
 
-- Reordená (rebase interactivo) para que `92b13c2` quede antes de `f8cb595`, o
-- Cherry-pickeá `92b13c2` sobre el commit que efectivamente vayas a usar como tope del paso 1.
+Se evaluaron dos formas de resolverlo, ambas probadas primero en un worktree descartable (sin tocar la rama real ni pushear nada):
 
-Los otros commits que agregué hoy sobre la rama de #40 (fix de fechas de Desistimiento, regeneración del golden master, test de invariante de plantillas, ajuste de `case-reads-select.test.ts`) no tienen esta urgencia — son mejoras de robustez, no bugs que se disparen en producción apenas se despliega — pero conviene el mismo tratamiento (adelantarlos al paso 1) ya que tampoco dependen de la migración.
+- **Reordenar la rama de #40 (rebase)**: descartado. `--rebase-merges` desde el punto donde arrancó #40 resultó en **85 pasos** (la rama tiene más de una decena de merges de `dev` encadenados), y se confirmó que reproduce, letra por letra, el mismo conflicto de `DESISTIMIENTO` en `placeholder-mapper.ts` que ya se había resuelto una vez al mergear `dev` en #40 — hay que resolverlo a mano de nuevo. Además reescribe el hash de los 85 commits (no solo los posteriores a la migración), lo que exige `--force-with-lease` sobre una rama ya pusheada, con CI corrido y en revisión.
+- **Cherry-pick a una rama nueva**: la elegida. `git cherry-pick 92b13c2` sobre `f8cb595` aplica limpio (0 conflictos, verificado) porque es un rename puro que no toca ningún archivo que la migración o el merge de `dev` hayan tocado. Cero force-push, la rama de #40 queda completamente intacta — su propio historial, su CI y su revisión en curso no se ven afectados en absoluto.
+
+Los demás commits que se agregaron hoy sobre la rama de #40 (fix de fechas de Desistimiento, regeneración del golden master, el test de invariante de plantillas, el ajuste de `case-reads-select.test.ts`) se quedan donde están, sin tocar — no son necesarios para el despliegue 1 (no son bugs que se disparen apenas se despliega, son mejoras de robustez) y llegan solos con el despliegue 2, al mergear la rama completa.
 
 ---
 
@@ -70,18 +86,19 @@ Promoviendo primero el commit que deja de usar las columnas (código viejo y nue
 
 ### Despliegue 1 — código
 
-1. Fijar el commit exacto de corte (ver §1.1 — probablemente no es `f8cb595` literal, sino el resultado de reordenar/cherry-pickear `92b13c2` antes).
-2. Confirmar autoría (§6) del commit que va a quedar como HEAD de este push.
-3. Push a `main` (fast-forward si el punto de corte es ancestro directo de `main`; si no, el mecanismo exacto depende de cómo haya quedado el historial tras el paso 1 de arriba).
+1. Punto de partida: `origin/deploy/pr40-paso1` (`f60ea85`, dos commits sobre `dev` — ver §1). Ya pusheada, no requiere ningún paso de git adicional para "fijarla".
+2. Confirmar autoría (§6) de `f60ea85` — hoy es `MaxitoJM` local (autor `1a`), válido tal cual, no necesita `--amend` salvo que algo cambie antes de promover.
+3. Promover: `main` no es ancestro de `deploy/pr40-paso1` (esta rama arranca en un punto de `dev` bastante posterior a `main`, que sigue en `d2f7cef` del 2026-09-12), así que **no es un fast-forward simple**. Ojo con lo que trae exactamente: `f8cb595` viene de un merge de `dev` hecho el **2026-09-20** (hasta `d03da4f`, el lote de fixes de auth de ese día) — **no** el `dev` de hoy. Todo lo que `dev` sumó **después** del 20 (la red de seguridad del mapper, el fix de `Decimal` en totales de bienes, la Fase 0 de lecturas explícitas de `Case`, el CI en push a `dev` — ver `docs/CHECKPOINT_2026-09-28.md` §3) **no** viaja en este despliegue 1. Llega recién en el despliegue 2, al mergear la rama completa de #40 (que sí trae el `dev` de hoy, vía su propio segundo merge) a `dev` y de ahí a `main`. Si promover código de fases nuevas sin el resto de las mejoras de esta semana no es aceptable, esa es una decisión aparte, anterior a este plan.
 4. Verificar el deploy (§4) **antes** de tocar nada del paso 2.
 
 ### Despliegue 2 — migración
 
 1. Antes de promover nada: correr la query de solo lectura de §5 contra producción (Neon) para confirmar `0` y `0`. Si da distinto de cero, **no promover** — la migración va a abortar sola (eso es lo que la guarda hace), pero mejor saberlo antes que durante un build.
-2. Traer a `main` el resto de los commits de `dev` hasta incluir `e559b28` (y todo lo posterior: docs del diccionario de datos, y cualquier otro fix que haya quedado después en la rama).
-3. Confirmar autoría (§6) del commit que va a quedar como HEAD de este segundo push — **es un push nuevo, necesita su propia verificación**, no alcanza con la del despliegue 1.
-4. Push a `main`.
-5. Verificar el deploy (§4), y además el Build Log específicamente por la migración (§4.2).
+2. Mergear #40 (rama `feat/fases-nuevas-case-phases`, completa, sin tocar) a `dev` como PR normal — con el mismo protocolo de verificación de siempre (CI en verde, suite/`tsc`/`eslint` sobre `dev` después del merge).
+3. Promover `dev` a `main`. Como `main` quedó en `f60ea85` (con un commit — el cherry-pick — que `dev` no tiene en esa forma exacta, aunque sí tiene el mismo cambio vía `92b13c2` en su lugar original), esto **va a ser un merge, no un fast-forward puro**. Se espera que reconcilie sin conflicto real: ambos lados terminan queriendo el mismo archivo en la misma carpeta (mismo caso que un rename idéntico de los dos lados, sin contenido en disputa).
+4. Confirmar autoría (§6) del commit de punta de ese merge — **es un push nuevo, necesita su propia verificación**, no alcanza con la del despliegue 1.
+5. Push a `main`.
+6. Verificar el deploy (§4), y además el Build Log específicamente por la migración (§4.2).
 
 ---
 
@@ -156,11 +173,11 @@ Si el commit de punta natural de alguno de los dos despliegues ya tiene autor v�
 
 ### Nota sobre el despliegue 1 específicamente
 
-Si terminaste reordenando/cherry-pickeando commits (§1.1) para fijar el punto de corte del paso 1, el commit resultante de esa reescritura casi seguro te queda autorado como `MaxitoJM` local (`1a`) — vas a necesitar el `--amend` de arriba si ese es el commit que efectivamente empuja a `main`.
+El commit de punta de `deploy/pr40-paso1` (`f60ea85`, el cherry-pick) quedó autorado como `MaxitoJM <maxitojam@hotmail.com>` (`1a`) — válido tal cual según la tabla de `CLAUDE.md`, no necesita `--amend` hoy. Si pasa tiempo entre este documento y el despliegue real y algo se vuelve a tocar en esa rama, reverificar antes de promover.
 
 ### Nota sobre el despliegue 2
 
-Si al traer el resto de `dev` a `main` el mecanismo termina siendo un merge (en vez de un fast-forward puro, posible si el despliegue 1 dejó a `main` con un commit que `dev` no tiene — el propio commit de autoría de Insolventic del despliegue 1), el commit de punta de ese merge es el que necesita la verificación, no ninguno de sus dos padres.
+Al mergear `dev` (ya con #40 adentro) a `main`, el mecanismo va a ser un merge, no un fast-forward puro — `main` quedó con `f60ea85` (el cherry-pick), que `dev` no tiene en esa forma exacta (tiene el mismo cambio, pero vía `92b13c2` en su lugar original dentro de la rama de #40). El commit de punta de ese merge es el que necesita la verificación de autoría, no ninguno de sus dos padres.
 
 ---
 
