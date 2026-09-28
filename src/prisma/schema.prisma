@@ -627,6 +627,8 @@ model Debt {
   coDebtorName         String?
   coDebtorCity         String?
   coDebtorAddress      String?
+  coDebtorPhone        String?
+  coDebtorEmail        String?
 
   case         Case     @relation(fields: [caseId], references: [id])
   creditor     Creditor @relation(fields: [creditorId], references: [id])

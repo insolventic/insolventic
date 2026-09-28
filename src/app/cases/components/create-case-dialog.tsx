@@ -933,6 +933,8 @@ export function CreateCaseDialog({
         coDebtorName: '',
         coDebtorCity: '',
         coDebtorAddress: '',
+        coDebtorPhone: '',
+        coDebtorEmail: '',
       },
       {
         creditor: 'Financiera XYZ',
@@ -955,6 +957,8 @@ export function CreateCaseDialog({
         coDebtorName: 'Pedro López',
         coDebtorCity: 'Medellín',
         coDebtorAddress: 'Cra 45 #30-12',
+        coDebtorPhone: '3109876543',
+        coDebtorEmail: 'pedro.lopez@ejemplo.com',
       },
     ]);
 
