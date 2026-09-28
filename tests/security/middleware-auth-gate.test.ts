@@ -32,8 +32,12 @@ async function makeToken(permissions: string[]): Promise<string> {
     .sign(JWT_SECRET);
 }
 
-function makeRequest(pathname: string, accessToken?: string): NextRequest {
-  const headers: Record<string, string> = {};
+function makeRequest(
+  pathname: string,
+  accessToken?: string,
+  extraHeaders: Record<string, string> = {},
+): NextRequest {
+  const headers: Record<string, string> = { ...extraHeaders };
   if (accessToken) {
     headers.cookie = `access-token=${accessToken}`;
   }
@@ -168,5 +172,54 @@ describe('middleware — auth gate', () => {
     const location = redirectLocation(response);
     expect(location).not.toBeNull();
     expect(location!.pathname).toBe('/dashboard');
+  });
+});
+
+// Hallazgo de la investigación del logger (2026-09-20): el middleware reenviaba
+// tal cual el x-request-id del cliente. Quien lo fijaba podía colisionar con el
+// id de otro request en los logs/Sentry o meter valores arbitrarios en cada línea.
+describe('x-request-id — el id lo emite siempre el servidor', () => {
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+  const FORWARDED = 'x-middleware-request-x-request-id';
+
+  it.each([
+    ['un valor arbitrario', 'atacante-controla-esto'],
+    ['un UUID bien formado', '11111111-2222-4333-8444-555555555555'],
+    ['un valor larguísimo', 'a'.repeat(5000)],
+  ])(
+    'ignora un x-request-id del cliente (%s) en rutas públicas',
+    async (_n, spoof) => {
+      const response = await middleware(
+        makeRequest('/login', undefined, { 'x-request-id': spoof }),
+      );
+
+      const id = response.headers.get('x-request-id');
+      expect(id).toMatch(UUID);
+      expect(id).not.toBe(spoof);
+      // Y lo que llega a las server actions es el id del servidor, no el del cliente.
+      expect(response.headers.get(FORWARDED)).toBe(id);
+    },
+  );
+
+  it('ignora un x-request-id del cliente en rutas protegidas', async () => {
+    const token = await makeToken(['Ver casos']);
+    const spoof = 'atacante-controla-esto';
+    const response = await middleware(
+      makeRequest('/cases', token, { 'x-request-id': spoof }),
+    );
+
+    const id = response.headers.get('x-request-id');
+    expect(id).toMatch(UUID);
+    expect(id).not.toBe(spoof);
+    expect(response.headers.get(FORWARDED)).toBe(id);
+  });
+
+  it('emite un id distinto por request (el cliente no puede reutilizar uno)', async () => {
+    const a = await middleware(makeRequest('/login'));
+    const b = await middleware(makeRequest('/login'));
+
+    expect(a.headers.get('x-request-id')).not.toBe(
+      b.headers.get('x-request-id'),
+    );
   });
 });

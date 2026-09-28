@@ -1645,7 +1645,7 @@ async function createNotifications(
   prisma: PrismaClient,
   tenantId: string,
 ) {
-  const case1 = await prisma.case.findFirst();
+  const case1 = await prisma.case.findFirst({ select: { id: true } });
 
   const notifications = [
     {

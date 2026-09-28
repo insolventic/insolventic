@@ -77,6 +77,15 @@ jobs:
       - name: Seed deterministic fixtures
         run: npm run db:seed
 
+      # Smoke del wizard de creación de casos contra el Postgres de este job y
+      # con el cliente de Prisma REAL. `npm test` (pr.yml) mockea Prisma y no ve
+      # errores como "Unknown argument" o una fecha que la base rechaza, que es
+      # como se rompió la creación de casos sin que ningún test lo notara. Crea
+      # su propio tenant y lo borra al terminar; tests/db/db-guard.ts aborta si
+      # DATABASE_URL no es local (aquí lo es: el servicio de arriba).
+      - name: DB smoke tests (wizard de casos, Prisma real)
+        run: npm run test:db
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 

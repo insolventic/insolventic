@@ -14,6 +14,7 @@ import {
 } from './generate-documents';
 import { getAllTemplates } from './templates-config';
 import {
+  asCaseWithRelations,
   fetchCaseForGeneration,
   persistGeneratedDocuments,
   inferMimeType,
@@ -23,7 +24,6 @@ import {
   runWithGenerationLock,
   type GenerationRequestSummary,
 } from './generation-request';
-import type { CaseWithRelations } from '../case/schemas';
 import {
   checkRateLimit,
   getRateLimitKey,
@@ -129,7 +129,7 @@ export async function regenerateCaseDocument(input: {
     }
 
     const result = await regenerateDocument(
-      caseData as unknown as CaseWithRelations,
+      asCaseWithRelations(caseData),
       templateId,
       caseData.driveFolderId,
     );
@@ -230,7 +230,7 @@ export async function generateInitialDocuments(caseId: string): Promise<{
       { tenantId, caseId, kind: 'INITIAL', userId: user.id },
       async () => {
         const result = await generateDocumentsForNewCase(
-          caseData as unknown as CaseWithRelations,
+          asCaseWithRelations(caseData),
           {},
           centerFolderName,
         );
@@ -313,7 +313,7 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
       { tenantId, caseId, kind: 'ADMISSION', userId: user.id },
       async () => {
         const result = await generateDocumentsForAdmission(
-          caseData as unknown as CaseWithRelations,
+          asCaseWithRelations(caseData),
           driveFolderId,
         );
         await persistGeneratedDocuments(result, caseId, tenantId);
@@ -379,7 +379,7 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
       { tenantId, caseId, kind: 'AGREEMENT', userId: user.id },
       async () => {
         const result = await generateDocumentsForAgreement(
-          caseData as unknown as CaseWithRelations,
+          asCaseWithRelations(caseData),
           driveFolderId,
         );
         await persistGeneratedDocuments(result, caseId, tenantId);
@@ -448,7 +448,7 @@ export async function generateFailureDocuments(
       { tenantId, caseId, kind: 'FAILURE', userId: user.id },
       async () => {
         const result = await generateDocumentsForFailure(
-          caseData as unknown as CaseWithRelations,
+          asCaseWithRelations(caseData),
           driveFolderId,
           failureType,
         );

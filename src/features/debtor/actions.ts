@@ -231,12 +231,14 @@ export async function getDebtorById(id: string): Promise<{
       return { success: true, data: validated };
     } else if (canViewOwnCases) {
       // Can only see debtors from cases they are working on
+      // Solo importa si existe algún caso que lo vincule: basta con el id.
       const hasAccessToDebtor = await prisma.case.findFirst({
         where: {
           debtorId: debtor.id,
           operatorId: user.id,
           tenantId,
         },
+        select: { id: true },
       });
 
       if (hasAccessToDebtor) {
