@@ -99,20 +99,42 @@ const EXPECTED_COLLISIONS: Record<string, string[]> = {
   RADICADO_BILATERAL: ['mapExternalEntities', 'mapFracasoVariables'],
 };
 
-function analyzeMapperSource() {
-  const text = fs.readFileSync(MAPPER_FILE, 'utf8');
-  const sf = ts.createSourceFile(
-    MAPPER_FILE,
-    text,
-    ts.ScriptTarget.Latest,
-    true,
-  );
-
+/**
+ * Junta las `FunctionDeclaration` de un archivo con las de cualquier módulo
+ * relativo que importe (`./placeholders/*`) — una sola pasada, no recursiva
+ * (alcanza mientras los sub-mappers no importen sub-mappers entre sí). Así el
+ * contrato sigue viendo los sub-mappers aunque el Paso N de la división los
+ * haya movido de `placeholder-mapper.ts` a su propio archivo.
+ */
+function collectFunctions(
+  filePath: string,
+  text: string,
+): Map<string, ts.FunctionDeclaration> {
+  const sf = ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, true);
   const functions = new Map<string, ts.FunctionDeclaration>();
   for (const st of sf.statements) {
     if (ts.isFunctionDeclaration(st) && st.name)
       functions.set(st.name.text, st);
+    if (
+      ts.isImportDeclaration(st) &&
+      ts.isStringLiteral(st.moduleSpecifier) &&
+      st.moduleSpecifier.text.startsWith('./placeholders/')
+    ) {
+      const importedPath =
+        path.join(path.dirname(filePath), st.moduleSpecifier.text) + '.ts';
+      if (fs.existsSync(importedPath)) {
+        const importedText = fs.readFileSync(importedPath, 'utf8');
+        for (const [name, fn] of collectFunctions(importedPath, importedText))
+          functions.set(name, fn);
+      }
+    }
   }
+  return functions;
+}
+
+function analyzeMapperSource() {
+  const text = fs.readFileSync(MAPPER_FILE, 'utf8');
+  const functions = collectFunctions(MAPPER_FILE, text);
   const orchestrator = functions.get('mapCaseToPlaceholders')!;
 
   const staticKeys = (obj: ts.ObjectLiteralExpression) =>
