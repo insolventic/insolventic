@@ -11,6 +11,7 @@ import {
 } from '@/features/auth/actions';
 import type { ValidateSessionResult } from '@/features/auth/schemas';
 import { logger } from '@/lib/logger';
+import { isNextRedirectError } from '@/lib/next-redirect';
 
 type AuthUser = NonNullable<ValidateSessionResult['user']>;
 
@@ -143,15 +144,25 @@ export function useAuth(): UseAuthReturn {
       // where components might try to fetch data during logout
       setUser(null);
       await logoutUser();
-    } catch {
-      // Next.js redirect() throws an error by design to perform the redirect
-      // This is expected behavior, so we just clear the user state
-      // The server-side redirect will handle navigation
-      logger.debug('Logout redirect triggered (expected behavior)', {
-        action: 'logout',
-      });
+    } catch (error) {
+      if (isNextRedirectError(error)) {
+        // logoutUser termina en redirect('/') en el servidor y Next rechaza la
+        // promesa de la action con un error de redirección: es el camino normal.
+        // El usuario ya quedó limpio arriba y Next se encarga de navegar.
+        logger.debug('Logout redirect triggered (expected behavior)', {
+          action: 'logout',
+        });
+        return;
+      }
+      // Fallo real (red caída, 5xx, server action inexistente tras un deploy…):
+      // no se confirmó que la sesión se cerró. Antes se absorbía como debug y
+      // la UI, ya con user = null, aparentaba una sesión cerrada que seguía
+      // viva en el servidor. Se registra y se reconcilia la UI con la sesión
+      // real: si sigue válida se restaura el usuario; si no, queda cerrada.
+      logger.error('Logout error', error, { action: 'logout' });
+      await refreshSession();
     }
-  }, []);
+  }, [refreshSession]);
 
   const switchDatabaseHandler = useCallback(async () => {
     try {
@@ -159,10 +170,20 @@ export function useAuth(): UseAuthReturn {
       setUser(null);
       await switchDatabase();
     } catch (error) {
-      // If there's an error, still redirect to home page as fallback
-      logger.error('Switch database error', error, {
-        action: 'switchDatabase',
-      });
+      if (isNextRedirectError(error)) {
+        // switchDatabase termina en redirect('/') en el servidor y Next rechaza
+        // la promesa de la action con un error de redirección: es el camino
+        // normal, no un fallo (mismo criterio que logout y switchTenant).
+        logger.debug('Switch database redirect triggered (expected behavior)', {
+          action: 'switchDatabase',
+        });
+      } else {
+        logger.error('Switch database error', error, {
+          action: 'switchDatabase',
+        });
+      }
+      // En ambos casos, navegar a home: el usuario no debe quedarse en una
+      // página autenticada.
       router.push('/');
     }
   }, [router]);
@@ -178,12 +199,26 @@ export function useAuth(): UseAuthReturn {
         // This line is unlikely to be reached due to the redirect
         await refreshSession();
         return result;
-      } catch {
-        // redirect() throws an error by design in Next.js
-        logger.debug('Tenant switch redirect triggered (expected behavior)', {
+      } catch (error) {
+        if (isNextRedirectError(error)) {
+          // El cambio exitoso termina en redirect('/dashboard') en el servidor y
+          // Next rechaza la promesa de la action con un error de redirección:
+          // es el camino normal. (También redirige a /login si la sesión ya no
+          // es válida.) En ambos casos Next navega.
+          logger.debug('Tenant switch redirect triggered (expected behavior)', {
+            action: 'switchTenant',
+          });
+          return { success: true };
+        }
+        // Cualquier otra excepción (red caída, 5xx, server action inexistente
+        // tras un deploy…) es un fallo real: NO puede reportarse como éxito o
+        // el usuario cree que cambió de centro cuando no lo hizo. Los fallos de
+        // negocio ya vuelven como { success: false } sin lanzar.
+        logger.error('Switch tenant error', error, {
           action: 'switchTenant',
+          targetTenantSlug,
         });
-        return { success: true };
+        return { success: false, error: 'Error al cambiar de organización' };
       }
     },
     [refreshSession],

@@ -19,6 +19,8 @@
     "test": "jest --verbose",
     "test:unit": "jest --verbose tests/unit",
     "test:integration": "jest --verbose tests/integration",
+    "test:db": "jest --config jest.db.config.ts --runInBand",
+    "test:golden:update": "node scripts/update-golden.mjs",
     "test:coverage": "jest --coverage",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",

@@ -9,6 +9,8 @@
  *      of truth for mimeType inference and record shape).
  */
 
+import type { Prisma } from '@prisma/client';
+
 import prisma from '@/lib/prisma';
 import type { GeneratedDocument } from './generate-documents';
 import type { CaseWithRelations } from '../case/schemas';
@@ -25,7 +27,7 @@ export const CASE_GENERATION_INCLUDE = {
   documents: true,
   debts: {
     include: {
-      creditor: { select: { name: true } },
+      creditor: { select: { name: true, representative: true } },
     },
   },
   assets: true,
@@ -52,20 +54,69 @@ export async function fetchCaseForGeneration(caseId: string, tenantId: string) {
 }
 
 /**
- * ADR (mini): puente único entre el payload de Prisma (Decimal, relaciones)
- * y el tipo CaseWithRelations (Zod, number) que consume el mapper de
- * placeholders. Ambos tipos son estructuralmente compatibles en los campos
- * que la generación usa, pero difieren en Decimal vs number, por lo que un
- * assert directo no compila. Centralizar el cast aquí (en vez de repetir
- * `as unknown as` en cada call-site) acota el punto ciego a una función
- * documentada. La eliminación real —derivar el tipo con
- * Prisma.CaseGetPayload<typeof CASE_GENERATION_INCLUDE> + un transformador
- * Decimal→number— está planificada para la sesión de refactor de tipos.
+ * Columnas `Json?` de Prisma que el schema Zod (`CaseWithRelations`) tipa como
+ * filas estructuradas: en Prisma son `JsonValue` (forma desconocida), en el
+ * schema son arrays de objetos con claves concretas. Son la ÚNICA diferencia
+ * de tipos entre el payload de Prisma y `CaseWithRelations` (medido comparando
+ * las ~280 claves y sus relaciones), y por eso antes hacía falta un doble
+ * cast a través de `unknown` en cada sitio.
+ */
+type JsonRowKey =
+  | 'concMenoresAlimentos'
+  | 'concMenoresUnion'
+  | 'concClausulasAdicionalesAlimentos'
+  | 'concClausulasAdicionalesUnion'
+  | 'concClausulasAdicionalesDisolucion'
+  | 'concClausulasAcuerdo'
+  | 'apoyoClausulas';
+
+/**
+ * Lo que `asCaseWithRelations` acepta: todo `CaseWithRelations` salvo las 7
+ * columnas JSON, que se admiten con su tipo real de Prisma. Cualquier otra
+ * clave o relación cuyo tipo deje de coincidir con el schema hace FALLAR LA
+ * COMPILACIÓN aquí, en vez de pasar en silencio como con el doble cast.
+ */
+type CaseFromPrisma = Omit<CaseWithRelations, JsonRowKey> & {
+  [K in JsonRowKey]?: Prisma.JsonValue | null;
+};
+
+/**
+ * Puente único entre el payload de Prisma (o el objeto armado a mano a partir
+ * de él) y el tipo `CaseWithRelations` que consume el mapper de placeholders.
+ *
+ * Reemplaza el doble cast a través de `unknown` que se repetía en cada
+ * llamador: ese cast apagaba toda la comprobación de tipos. Aquí solo
+ * quedan 7 aserciones explícitas y con nombre (las columnas JSON de arriba); el
+ * resto lo verifica el compilador.
+ *
+ * NO cambia ningún valor: las 7 columnas se devuelven tal cual las entrega
+ * Prisma, sin validar su forma, igual que antes. Decidir si esa forma se valida
+ * en tiempo de ejecución (y qué hacer con un JSON mal formado en un documento
+ * legal) es una decisión de diseño pendiente; ver el resumen del PR. Tampoco
+ * convierte Decimal: los campos Decimal están tipados `any` en el schema
+ * (`decimalToNumber = z.any().transform(...)`), por lo que el compilador no
+ * puede vigilarlos.
  */
 export function asCaseWithRelations(
-  caseData: NonNullable<Awaited<ReturnType<typeof fetchCaseForGeneration>>>,
+  caseData: CaseFromPrisma,
 ): CaseWithRelations {
-  return caseData as unknown as CaseWithRelations;
+  return {
+    ...caseData,
+    concMenoresAlimentos:
+      caseData.concMenoresAlimentos as CaseWithRelations['concMenoresAlimentos'],
+    concMenoresUnion:
+      caseData.concMenoresUnion as CaseWithRelations['concMenoresUnion'],
+    concClausulasAdicionalesAlimentos:
+      caseData.concClausulasAdicionalesAlimentos as CaseWithRelations['concClausulasAdicionalesAlimentos'],
+    concClausulasAdicionalesUnion:
+      caseData.concClausulasAdicionalesUnion as CaseWithRelations['concClausulasAdicionalesUnion'],
+    concClausulasAdicionalesDisolucion:
+      caseData.concClausulasAdicionalesDisolucion as CaseWithRelations['concClausulasAdicionalesDisolucion'],
+    concClausulasAcuerdo:
+      caseData.concClausulasAcuerdo as CaseWithRelations['concClausulasAcuerdo'],
+    apoyoClausulas:
+      caseData.apoyoClausulas as CaseWithRelations['apoyoClausulas'],
+  };
 }
 
 /**

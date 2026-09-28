@@ -17,6 +17,20 @@ class GoogleDriveService {
     this.auth = new google.auth.OAuth2(
       process.env.GOOGLE_DRIVE_CLIENT_ID,
       process.env.GOOGLE_DRIVE_CLIENT_SECRET,
+      // GOOGLE_DRIVE_REDIRECT_URI es INERTE en runtime. google-auth-library solo
+      // usa el redirect URI en generateAuthUrl() y getToken() (intercambio
+      // código → tokens); la renovación con refresh_token —lo único que hace
+      // esta app— envía client_id, client_secret y refresh_token, nunca el
+      // redirect. Nada en el código llama a esos métodos, y la ruta de callback
+      // del .env.example (/api/auth/google/callback) no existe.
+      // El refresh token se emite FUERA de la app con OAuth Playground, que usa
+      // su propio redirect fijo (https://developers.google.com/oauthplayground)
+      // y no lee esta variable.
+      // Se conserva porque es parte de la firma del cliente OAuth2, está
+      // documentada en .env.example y sería necesaria —debe coincidir con un
+      // "Authorized redirect URI" del cliente en Google Cloud— si algún día se
+      // implementa el consentimiento dentro de la app. Dejarla sin definir hoy
+      // es inocuo; antes de borrarla, revisar esos dos puntos.
       process.env.GOOGLE_DRIVE_REDIRECT_URI,
     );
 

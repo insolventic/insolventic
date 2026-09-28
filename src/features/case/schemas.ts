@@ -120,6 +120,7 @@ const operatorForCaseSchema = z.object({
 
 const creditorForDebtSchema = z.object({
   name: z.string(),
+  representative: z.string().optional().nullable(),
 });
 
 const documentForCaseSchema = z.object({
@@ -1544,6 +1545,7 @@ export const updateCaseSchema = z.object({
   phase: z.string().optional(),
   operatorId: z.string().optional(),
   causes: z.array(z.string()).optional(),
+  otherCauseDetail: z.string().optional(),
 
   tramite: z.string().optional(),
   filingDate: z.string().optional(),
