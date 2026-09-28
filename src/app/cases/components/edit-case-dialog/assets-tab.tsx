@@ -11,6 +11,7 @@ import {
   addAssetToCaseSchema,
   type AddAssetToCaseData,
 } from '@/features/case/schemas';
+import { assetValueLabel } from '@/features/case/asset-labels';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -306,7 +307,8 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
               <div className="space-y-2">
                 <Label htmlFor="value">
-                  Valor ($) <span className="text-red-500">*</span>
+                  {assetValueLabel(assetType)}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="value"

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { assetValueLabel } from '@/features/case/asset-labels';
 import {
   Select,
   SelectContent,
@@ -133,7 +134,8 @@ const AssetItem = memo(function AssetItem({
           render={({ field: formField }) => (
             <FormItem>
               <FormLabel>
-                Valor ($) <span className="text-red-500">*</span>
+                {assetValueLabel(assetType)}{' '}
+                <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
                 <Input {...formField} type="number" placeholder="0" />
