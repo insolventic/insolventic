@@ -23,9 +23,31 @@ npm run test:unit         # solo unit tests
 npm run test:integration  # solo integración
 npm run test:coverage     # con reporte de cobertura
 npm run test:e2e          # Playwright (pendiente CI)
+npm run test:db           # smoke contra Postgres REAL (ver §2.1); NO forma parte de `npm test`
 ```
 
-**CI:** `npx jest --ci` se ejecuta en `pr.yml` en cada pull request contra `dev` o `main` (solo dos ramas de larga vida — ver `ARQUITECTURA.md` §8; `stg` no existe en el workflow actual).
+**CI:** `npx jest --ci` se ejecuta en `pr.yml` en cada pull request contra `dev` o `main` (solo dos ramas de larga vida — ver `ARQUITECTURA.md` §8; `stg` no existe en el workflow actual). `npm run test:db` corre en `e2e.yml`, que ya tiene el servicio de Postgres.
+
+### 2.1 Tests contra Postgres real (`npm run test:db`)
+
+**Para qué.** Los tests de `npm test` mockean Prisma (`tests/__mocks__/prisma.ts`), así que nunca ven un `Unknown argument`, una fecha que la base rechaza o un tipo mal mapeado. El bug de `apoderados` / `notificationCity` / `otherCauseDetail` rompió la creación de casos durante meses por eso. `tests/db/case-wizard.db.test.ts` crea un caso completo con el flujo del wizard usando el cliente de Prisma **real**: la entrada se parsea con `createCaseFormSchema` y se aplica la transformación de `handleSubmit`, se llama a `createCase` / `updateCase` reales y se lee lo guardado desde la base. Solo se simula lo que necesita el runtime de Next (cookies, `revalidateTag`, `after()`) y el job de generación de documentos (Drive/Chromium).
+
+**Cómo correrlo en local** (un Postgres descartable, mismo que el del CI):
+
+```bash
+docker run -d --name insolventic-smoke-pg \
+  -e POSTGRES_USER=insolventic_e2e -e POSTGRES_PASSWORD=insolventic_e2e -e POSTGRES_DB=insolventic_e2e \
+  -p 127.0.0.1:54329:5432 postgres:16-alpine
+
+export DATABASE_URL=postgresql://insolventic_e2e:insolventic_e2e@127.0.0.1:54329/insolventic_e2e
+export DIRECT_URL=$DATABASE_URL
+npx prisma db push --skip-generate     # aplica el esquema (igual que e2e.yml)
+npm run test:db
+
+docker rm -f insolventic-smoke-pg      # al terminar
+```
+
+**Seguridad (importante).** Estos tests crean y borran filas. `tests/db/db-guard.ts` (probada en `tests/unit/config/db-guard.test.ts`) aborta el runner, antes de importar Prisma, si `DATABASE_URL`/`DIRECT_URL`: (1) no está definida —no hay fallback al `.env`, que en `pr.yml` es el de Vercel con la URL real de Neon—; (2) no apunta a `localhost`/`127.0.0.1`/`::1`; o (3) la base no tiene `e2e`, `test` o `smoke` en el nombre. Cada corrida crea su propio tenant y lo borra al terminar (no depende del seed).
 
 ---
 

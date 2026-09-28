@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lock anti-duplicados de generación (P3)**: tabla `DocumentGenerationRequest` con unicidad parcial sobre `activeKey` — dos generaciones simultáneas del mismo tipo sobre un caso son imposibles a nivel de BD; la llamada perdedora recibe el `requestId` de la activa.
 - **Generación inicial en background (P4)**: `createCase` responde de inmediato y el job corre post-response (`after()` de Next), con estado consultable (`getGenerationRequestStatus`), recuperación de locks huérfanos (timeout 10 min), retry con backoff en llamadas a Drive y notificación in-app al terminar o fallar.
 
+### Fixed
+
+- **Totales de bienes de la "Solicitud de Insolvencia" (`TOTAL_INMUEBLES`, `TOTAL_MUEBLES`, `TOTAL_BIENES` y los `MUEBLE_*_VALOR`)**: `mapAssets` sumaba los `Prisma.Decimal` de los activos con `+`, y `Decimal.valueOf()` devuelve un string, así que concatenaba en vez de sumar (un inmueble de $100M sin muebles salía como $1.000M; con más activos, cifras de 15 dígitos). Afectaba a todo documento generado por la ruta automática (creación de caso, generación inicial), que pasa la fila de Prisma sin convertir. Ahora cada sumando pasa por `Number()`. Test de regresión con `Prisma.Decimal` real y comparación de la salida completa del mapper entre `Decimal` y `number`.
+
 ## [0.3.0] - 2026-04-15
 
 ### Added

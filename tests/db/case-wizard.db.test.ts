@@ -1,0 +1,535 @@
+/**
+ * Smoke test contra Postgres REAL: el wizard de creación de casos de punta a punta.
+ *
+ * POR QUÉ EXISTE. Los bugs de `apoderados` / `notificationCity` /
+ * `otherCauseDetail` rompieron la creación de casos desde el 2026-04-01 sin que
+ * ningún test lo viera: el test de integración mockea Prisma (nunca ve un
+ * "Unknown argument" ni un tipo que la base rechaza) y el E2E de Playwright solo
+ * comprueba que exista el botón. Aquí el cliente de Prisma es el REAL.
+ *
+ * QUÉ ES REAL Y QUÉ NO.
+ *  - Real: Postgres, el cliente de Prisma, `createCase`, `updateCase`,
+ *    `authenticateUser` (JWT firmado + rol + permisos leídos de la base),
+ *    notificaciones, auditoría y el bloqueo de generación.
+ *  - Simulado: solo lo que necesita el runtime de Next (cookies de la petición,
+ *    revalidateTag, `after()`) y el job de generación de documentos, que iría a
+ *    Google Drive / Chromium. `after()` se captura y se comprueba que se agendó.
+ *
+ * LA ENTRADA reproduce el wizard: se parsea con `createCaseFormSchema` (igual que
+ * `zodResolver`) y se aplica la transformación de `handleSubmit`
+ * (src/app/cases/components/create-case-dialog.tsx). Así viajan también los
+ * valores por defecto ocultos, que fueron los que reventaron Prisma.
+ *
+ * SEGURIDAD: tests/db/setup.ts aborta si DATABASE_URL no es una base local de
+ * prueba. Cada corrida crea su propio tenant y lo borra al terminar.
+ */
+
+jest.mock('next/headers', () => require('../__mocks__/next-headers'));
+jest.mock('next/cache', () => require('../__mocks__/next-cache'));
+
+const mockAfter = jest.fn();
+jest.mock('next/server', () => ({
+  after: (...args: unknown[]) => mockAfter(...args),
+}));
+
+// El job iría a Google Drive y Chromium; aquí solo importa que se agende.
+jest.mock('@/features/document/generation-job', () => ({
+  runInitialGenerationJob: jest.fn(),
+}));
+
+import { Prisma } from '@prisma/client';
+
+import prisma from '@/lib/prisma';
+import { P } from '@/lib/permissions';
+import { createAccessToken } from '@/lib/auth';
+import { createCase, updateCase } from '@/features/case/actions';
+import { createCaseFormSchema } from '@/features/case/schemas';
+import { mockCookies } from '../__mocks__/next-headers';
+
+const TAG = `dbsmoke-${Date.now().toString(36)}`;
+
+/** Filas de prueba de esta corrida; se borran en afterAll. */
+const ctx = {
+  tenantId: '',
+  tenantSlug: TAG,
+  userId: '',
+  debtorId: '',
+  otherTenantId: '',
+  otherDebtorId: '',
+};
+
+/** Auditoría y notificaciones se escriben sin esperar: contamos lo esperado. */
+let expectedAuditRows = 0;
+
+const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/**
+ * Modelos con `tenantId` en el orden en que se pueden borrar sin violar claves
+ * foráneas (hijos antes que padres), derivado de Prisma.dmmf: no hay que
+ * mantener una lista a mano cuando se agregue una tabla.
+ */
+function tenantScopedModelsChildrenFirst(): string[] {
+  const models = Prisma.dmmf.datamodel.models.filter(
+    (m) =>
+      m.name !== 'Tenant' &&
+      m.fields.some((f) => f.name === 'tenantId' && f.kind === 'scalar'),
+  );
+  const names = new Set(models.map((m) => m.name));
+
+  // parents[A] = modelos de los que A depende (A tiene la FK): A se borra antes.
+  const referencedBy = new Map<string, Set<string>>(
+    models.map((m) => [m.name, new Set<string>()]),
+  );
+  for (const m of models) {
+    for (const f of m.fields) {
+      const isForeignKey =
+        f.kind === 'object' && (f.relationFromFields?.length ?? 0) > 0;
+      if (isForeignKey && names.has(f.type) && f.type !== m.name) {
+        referencedBy.get(f.type)!.add(m.name);
+      }
+    }
+  }
+
+  const order: string[] = [];
+  const remaining = new Set(names);
+  while (remaining.size > 0) {
+    const leaves = [...remaining].filter(
+      (name) => ![...referencedBy.get(name)!].some((c) => remaining.has(c)),
+    );
+    // Un ciclo de FK no debería existir; si lo hubiera, se sigue sin bloquear.
+    const batch = leaves.length > 0 ? leaves : [...remaining];
+    for (const name of batch) {
+      order.push(name);
+      remaining.delete(name);
+    }
+  }
+  return order.map(lowerFirst);
+}
+
+/** Borra todo lo del tenant y luego el tenant. */
+async function purgeTenant(tenantId: string) {
+  for (const delegate of tenantScopedModelsChildrenFirst()) {
+    await (
+      prisma as unknown as Record<
+        string,
+        { deleteMany: (a: object) => Promise<unknown> }
+      >
+    )[delegate].deleteMany({ where: { tenantId } });
+  }
+  await prisma.tenant.delete({ where: { id: tenantId } });
+}
+
+/** Espera a que las escrituras "fire-and-forget" (auditoría) lleguen a la base. */
+async function waitForAuditRows(tenantId: string, expected: number) {
+  for (let i = 0; i < 50; i++) {
+    if ((await prisma.auditLog.count({ where: { tenantId } })) >= expected) {
+      return;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+}
+
+const APODERADOS = [
+  {
+    nombreCompleto: 'Ana Torres',
+    tipoIdentificacion: 'CC',
+    identificacion: '52111222',
+    tarjetaProfesional: 'TP-111',
+    direccion: 'Calle 1 # 2-3',
+    telefono: '3001112222',
+    correo: 'ana@abogados.co',
+    existePoderOtorgado: true,
+  },
+  {
+    nombreCompleto: 'Luis Rojas',
+    tipoIdentificacion: 'CE',
+    identificacion: '99887766',
+    tarjetaProfesional: 'TP-222',
+    direccion: 'Carrera 9 # 8-7',
+    telefono: '3105556666',
+    correo: 'luis@abogados.co',
+    existePoderOtorgado: false,
+  },
+  {
+    nombreCompleto: 'María Gómez',
+    tipoIdentificacion: 'CC',
+    identificacion: '41222333',
+    tarjetaProfesional: 'TP-333',
+    direccion: 'Avenida 30 # 4-5',
+    telefono: '3157778888',
+    correo: 'maria@abogados.co',
+    existePoderOtorgado: true,
+  },
+];
+
+/** Lo que el usuario rellena en el wizard (los strings van como strings). */
+const wizardInput = () => ({
+  debtorId: ctx.debtorId,
+  operatorId: ctx.userId,
+  type: 'INSOLVENCY' as const,
+  totalDebt: '50000000',
+  creditors: 2,
+  phase: 'Inicial',
+  caseNumber: '',
+  hearingDate: null,
+  causes: ['Pérdida de empleo', 'Otros'],
+  otherCauseDetail: 'Cierre del negocio familiar',
+  notificationCity: 'Bogotá D.C.',
+  filingDate: '2026-03-10',
+  monthlyIncome: 3000000,
+  monthlyExpenses: 2000000,
+  debts: [
+    {
+      creditor: 'Banco Prueba S.A.',
+      type: 'TARJETA_CREDITO',
+      interestRate: '2.1',
+      capitalAmount: '30000000',
+      interestAmount: '1500000',
+      creditorCity: 'Bogotá D.C.',
+      grantDate: '2024-05-01',
+      dueDate: '2027-05-01',
+      daysOverdue: 45,
+    },
+    {
+      creditor: 'Cooperativa Prueba',
+      type: 'CREDITO_LIBRE_INVERSION',
+      interestRate: '1.8',
+      capitalAmount: '20000000',
+      interestAmount: '900000',
+    },
+  ],
+  assets: [
+    {
+      name: 'Apartamento',
+      type: 'INMUEBLE',
+      value: '180000000',
+      propertyType: 'Apartamento',
+      address: 'Calle 100 # 15-20',
+      registrationNumber: '50N-1234567',
+      encumbrance: 'Hipoteca',
+      isFamilyHome: true,
+    },
+    {
+      name: 'Vehículo',
+      type: 'VEHICULO',
+      value: '25000000',
+      brand: 'Mazda',
+      model: '2019',
+      licensePlate: 'ABC123',
+    },
+  ],
+  dependents: [{ name: 'Sofía Torres', age: 8, relationship: 'Hija' }],
+  legalProcesses: [
+    {
+      processType: 'Ejecutivo',
+      plaintiff: 'Banco Prueba S.A.',
+      court: 'Juzgado 5 Civil Municipal',
+      fileNumber: '2025-00123',
+      precautionaryMeasure: 'Embargo de salario',
+    },
+  ],
+  apoderados: APODERADOS,
+});
+
+/**
+ * Réplica de la transformación de `handleSubmit` del wizard
+ * (create-case-dialog.tsx): `data` es la salida de zodResolver. Añade los
+ * campos calculados y sincroniza los legados que el wizard siempre envía.
+ */
+function wizardSubmit(data: ReturnType<typeof createCaseFormSchema.parse>) {
+  const d = data as Record<string, unknown> & { debts?: unknown[] };
+  const spouseName =
+    [
+      d.conyugePrimerNombre,
+      d.conyugeSegundoNombre,
+      d.conyugePrimerApellido,
+      d.conyugeSegundoApellido,
+    ]
+      .filter(Boolean)
+      .join(' ') ||
+    (d.spouseName as string) ||
+    '';
+
+  return {
+    ...d,
+    creditors: d.debts?.length ?? 0,
+    phase: (d.phase as string | null) ?? undefined,
+    spouseName,
+    spouseIdNumber:
+      (d.conyugeIdentificacion as string) || (d.spouseIdNumber as string) || '',
+    spouseAddress: (d.spouseAddress as string) || '',
+    spousePhone:
+      (d.conyugeTelefono as string) || (d.spousePhone as string) || '',
+    spouseEmail: (d.conyugeCorreo as string) || (d.spouseEmail as string) || '',
+    conyugeNombreCompleto:
+      spouseName || (d.conyugeNombreCompleto as string) || '',
+    monthlyIncome:
+      (d.ingresoPrincipalMensual as number) || (d.monthlyIncome as number) || 0,
+    monthlyExpenses:
+      (d.totalGastosMensuales as number) || (d.monthlyExpenses as number) || 0,
+  };
+}
+
+/** Envía el wizard: parse del schema (zodResolver) + handleSubmit + createCase. */
+async function submitWizard(overrides: Record<string, unknown> = {}) {
+  const parsed = createCaseFormSchema.parse({ ...wizardInput(), ...overrides });
+  return createCase(wizardSubmit(parsed) as never);
+}
+
+beforeAll(async () => {
+  // --- Tenant, rol con permisos, operador y deudor (todo real) -------------
+  const tenant = await prisma.tenant.create({
+    data: { name: `Smoke ${TAG}`, slug: TAG },
+  });
+  ctx.tenantId = tenant.id;
+
+  const permissionNames = [P.CREAR_CASOS, P.VER_CASOS, P.EDITAR_CASOS];
+  const role = await prisma.role.create({
+    data: { name: 'Administrador', description: 'smoke', tenantId: tenant.id },
+  });
+  for (const name of permissionNames) {
+    const permission = await prisma.permission.create({
+      data: { name, category: 'casos', tenantId: tenant.id },
+    });
+    await prisma.rolePermission.create({
+      data: {
+        roleId: role.id,
+        permissionId: permission.id,
+        tenantId: tenant.id,
+      },
+    });
+  }
+
+  const user = await prisma.user.create({
+    data: {
+      name: 'Operador Smoke',
+      email: `operador-${TAG}@example.test`,
+      professionalCard: 'TP-000',
+      phone: '3000000000',
+      address: 'Calle Falsa 123',
+      roleId: role.id,
+      tenantId: tenant.id,
+    },
+  });
+  ctx.userId = user.id;
+
+  const debtorData = {
+    name: 'Ana Torres',
+    idType: 'CC',
+    email: 'ana.torres@example.test',
+    phone: '3001112222',
+    address: 'Calle 8 # 3-20',
+    city: 'Bogotá D.C.',
+    department: 'Bogotá D.C.',
+    occupation: 'Docente',
+    monthlyIncome: 3000000,
+    totalDebt: 0,
+    activeCases: 0,
+  };
+  const debtor = await prisma.debtor.create({
+    data: { ...debtorData, idNumber: '52111222', tenantId: tenant.id },
+  });
+  ctx.debtorId = debtor.id;
+
+  // Un segundo tenant con su propio deudor: para comprobar el aislamiento.
+  const other = await prisma.tenant.create({
+    data: { name: `Smoke otro ${TAG}`, slug: `${TAG}-otro` },
+  });
+  ctx.otherTenantId = other.id;
+  const otherDebtor = await prisma.debtor.create({
+    data: { ...debtorData, idNumber: '99000111', tenantId: other.id },
+  });
+  ctx.otherDebtorId = otherDebtor.id;
+
+  // --- Sesión: JWT firmado con el secreto de test, como la emite el login --
+  const token = await createAccessToken({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    roleId: role.id,
+    roleName: role.name,
+    permissions: permissionNames,
+    tenantId: tenant.slug,
+    tenantName: tenant.name,
+    lastLogin: new Date(),
+  });
+  mockCookies.setToken('access-token', token);
+});
+
+afterAll(async () => {
+  if (ctx.tenantId) {
+    await waitForAuditRows(ctx.tenantId, expectedAuditRows);
+    await purgeTenant(ctx.tenantId);
+  }
+  if (ctx.otherTenantId) await purgeTenant(ctx.otherTenantId);
+  await prisma.$disconnect();
+});
+
+describe('wizard de creación de casos contra Postgres real', () => {
+  let createdId = '';
+  let createdVersion = 0;
+
+  it('crea un caso completo: la action responde OK y no queda ningún error de Prisma', async () => {
+    const result = await submitWizard();
+
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    createdId = result.data!.id;
+    expectedAuditRows += 1;
+  });
+
+  it('el caso quedó persistido con sus columnas y tipos correctos', async () => {
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: createdId },
+    });
+
+    expect(stored).toMatchObject({
+      tenantId: ctx.tenantId,
+      type: 'INSOLVENCY',
+      // C-1: la fase inicial no es negociable desde el cliente.
+      phase: 'Inicial',
+      debtorId: ctx.debtorId,
+      debtorName: 'Ana Torres',
+      operatorId: ctx.userId,
+      // Las columnas nuevas del PR #19 (las que rompieron la creación):
+      notificationCity: 'Bogotá D.C.',
+      otherCauseDetail: 'Cierre del negocio familiar',
+      causes: ['Pérdida de empleo', 'Otros'],
+      // `version` arranca en 0 (@default(0)) y sube con cada edición.
+      version: 0,
+    });
+    // Número de caso autogenerado con el prefijo del servicio.
+    expect(stored.caseNumber).toBe('INSOL-000001');
+    // Decimal y fechas: la base los guardó con el tipo correcto.
+    expect(stored.totalDebt.toString()).toBe('50000000');
+    expect(stored.filingDate?.toISOString().slice(0, 10)).toBe('2026-03-10');
+    createdVersion = stored.version;
+  });
+
+  it('las relaciones anidadas se crearon: deudas con acreedor, bienes, dependientes y procesos', async () => {
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: createdId },
+      include: {
+        debts: { include: { creditor: true }, orderBy: { amount: 'desc' } },
+        assets: { orderBy: { value: 'asc' } },
+        dependents: true,
+        legalProcesses: true,
+      },
+    });
+
+    expect(stored.debts.map((d) => d.creditor.name)).toEqual([
+      'Banco Prueba S.A.',
+      'Cooperativa Prueba',
+    ]);
+    expect(stored.debts.map((d) => d.capitalAmount?.toString())).toEqual([
+      '30000000',
+      '20000000',
+    ]);
+    expect(stored.debts.every((d) => d.tenantId === ctx.tenantId)).toBe(true);
+
+    expect(stored.assets.map((a) => [a.name, a.value.toString()])).toEqual([
+      ['Vehículo', '25000000'],
+      ['Apartamento', '180000000'],
+    ]);
+    expect(stored.dependents).toHaveLength(1);
+    expect(stored.dependents[0]).toMatchObject({
+      name: 'Sofía Torres',
+      age: 8,
+    });
+    expect(stored.legalProcesses[0]).toMatchObject({
+      processType: 'Ejecutivo',
+      fileNumber: '2025-00123',
+    });
+  });
+
+  it('apoderados: lista completa en la tabla nueva (con orden y tenant) y espejo del principal en Case', async () => {
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: createdId },
+      include: { apoderados: { orderBy: { orden: 'asc' } } },
+    });
+
+    expect(stored.apoderados.map((a) => [a.orden, a.nombreCompleto])).toEqual([
+      [0, 'Ana Torres'],
+      [1, 'Luis Rojas'],
+      [2, 'María Gómez'],
+    ]);
+    expect(stored.apoderados.every((a) => a.tenantId === ctx.tenantId)).toBe(
+      true,
+    );
+    // Espejo del PRIMERO en las columnas escalares (doble escritura).
+    expect(stored).toMatchObject({
+      apoderadoNombreCompleto: 'Ana Torres',
+      apoderadoIdentificacion: '52111222',
+      apoderadoCorreo: 'ana@abogados.co',
+      existePoderOtorgado: true,
+    });
+  });
+
+  it('efectos secundarios reales: deudor actualizado, notificación y generación agendada', async () => {
+    const debtor = await prisma.debtor.findUniqueOrThrow({
+      where: { id: ctx.debtorId },
+    });
+    expect(debtor.monthlyIncome.toString()).toBe('3000000');
+
+    const notifications = await prisma.notification.findMany({
+      where: { tenantId: ctx.tenantId },
+    });
+    expect(notifications.length).toBeGreaterThan(0);
+
+    // El bloqueo de generación quedó reclamado (P3) y after() se agendó (P4);
+    // el job en sí (Drive/Chromium) no se ejecuta en este test.
+    const requests = await prisma.documentGenerationRequest.findMany({
+      where: { caseId: createdId },
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      kind: 'INITIAL',
+      tenantId: ctx.tenantId,
+    });
+    expect(mockAfter).toHaveBeenCalledTimes(1);
+  });
+
+  it('el siguiente caso del mismo servicio toma el número consecutivo', async () => {
+    const result = await submitWizard();
+
+    expect(result.success).toBe(true);
+    expectedAuditRows += 1;
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: result.data!.id },
+    });
+    expect(stored.caseNumber).toBe('INSOL-000002');
+  });
+
+  it('editar el caso persiste el cambio y sube la versión (bloqueo optimista)', async () => {
+    const result = await updateCase({
+      id: createdId,
+      debtorId: ctx.debtorId,
+      operatorId: ctx.userId,
+      version: createdVersion,
+      attorney: 'Dra. Prueba',
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    expectedAuditRows += 1;
+
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: createdId },
+    });
+    expect(stored.attorney).toBe('Dra. Prueba');
+    expect(stored.version).toBe(createdVersion + 1);
+  });
+
+  it('aislamiento entre centros: un deudor de otro tenant se rechaza y no se crea nada', async () => {
+    const before = await prisma.case.count();
+
+    const result = await submitWizard({ debtorId: ctx.otherDebtorId });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe('Deudor no encontrado');
+    expect(await prisma.case.count()).toBe(before);
+    expect(
+      await prisma.case.count({ where: { tenantId: ctx.otherTenantId } }),
+    ).toBe(0);
+  });
+});

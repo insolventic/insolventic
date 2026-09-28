@@ -1,45 +1,46 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { FileText, Users, Building, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { Search } from 'lucide-react';
 
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import { globalSearch } from '@/features/search/actions';
+/**
+ * Búsqueda global — la parte liviana: botón, atajo Ctrl/Cmd+K y estado.
+ *
+ * El diálogo (`cmdk` + resultados) vive en `global-search-dialog.tsx` y se
+ * carga con `next/dynamic` recién cuando se pide la búsqueda por primera vez.
+ * Este componente está en el header que renderizan casi todas las pantallas,
+ * así que importar `cmdk` aquí lo mandaba en el JS inicial de todas ellas.
+ *
+ * - `ssr: false`: el diálogo solo existe tras una acción del usuario.
+ * - Precarga por intención (hover/foco/toque del botón): al abrir, el chunk
+ *   suele estar ya descargado.
+ * - El atajo Ctrl/Cmd+K se registra aquí (siempre activo); la primera vez
+ *   espera a que baje el chunk, unos pocos kB.
+ */
 
-const CATEGORY_CONFIG = {
-  case: { label: 'Casos', icon: FileText },
-  debtor: { label: 'Deudores', icon: Users },
-  creditor: { label: 'Acreedores', icon: Building },
-} as const;
+const loadDialog = () =>
+  import('./global-search-dialog').then((mod) => mod.GlobalSearchDialog);
 
-interface SearchResult {
-  id: string;
-  title: string;
-  subtitle: string;
-  category: 'case' | 'debtor' | 'creditor';
-  href: string;
+const GlobalSearchDialog = dynamic(loadDialog, { ssr: false });
+
+/** Empieza a descargar el chunk del diálogo sin abrirlo. */
+function preloadDialog(): void {
+  void loadDialog();
 }
 
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  // El diálogo se monta la primera vez que se pide y ya no se desmonta:
+  // conserva la consulta y los resultados entre aperturas, como antes.
+  const [requested, setRequested] = useState(false);
 
   // Ctrl+K / Cmd+K shortcut
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
+        setRequested(true);
         setOpen((prev) => !prev);
       }
     };
@@ -47,52 +48,16 @@ export function GlobalSearch() {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
-  const doSearch = useCallback(async (q: string) => {
-    if (q.length < 2) {
-      setResults([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const result = await globalSearch(q);
-      if (result.success && result.data) {
-        setResults(result.data);
-      }
-    } catch {
-      // silently handle
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void doSearch(query);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query, doSearch]);
-
-  const handleSelect = (href: string) => {
-    setOpen(false);
-    setQuery('');
-    setResults([]);
-    router.push(href);
-  };
-
-  // Group results by category
-  const grouped = results.reduce(
-    (acc, r) => {
-      if (!acc[r.category]) acc[r.category] = [];
-      acc[r.category].push(r);
-      return acc;
-    },
-    {} as Record<string, SearchResult[]>,
-  );
-
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setRequested(true);
+          setOpen(true);
+        }}
+        onMouseEnter={preloadDialog}
+        onFocus={preloadDialog}
+        onTouchStart={preloadDialog}
         className="text-muted-foreground hover:bg-accent flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition-colors"
       >
         <Search className="h-4 w-4" />
@@ -102,52 +67,7 @@ export function GlobalSearch() {
         </kbd>
       </button>
 
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput
-          placeholder="Buscar casos, deudores, acreedores..."
-          value={query}
-          onValueChange={setQuery}
-        />
-        <CommandList>
-          {loading ? (
-            <div className="flex items-center justify-center py-6">
-              <div className="border-primary h-5 w-5 animate-spin rounded-full border-b-2" />
-            </div>
-          ) : (
-            <>
-              <CommandEmpty>
-                {query.length < 2
-                  ? 'Escriba al menos 2 caracteres para buscar...'
-                  : 'No se encontraron resultados.'}
-              </CommandEmpty>
-              {Object.entries(grouped).map(([category, items]) => {
-                const config =
-                  CATEGORY_CONFIG[category as keyof typeof CATEGORY_CONFIG];
-                const Icon = config.icon;
-                return (
-                  <CommandGroup key={category} heading={config.label}>
-                    {items.map((item) => (
-                      <CommandItem
-                        key={`${item.category}-${item.id}`}
-                        value={item.title}
-                        onSelect={() => handleSelect(item.href)}
-                      >
-                        <Icon className="mr-2 h-4 w-4" />
-                        <div className="flex flex-col">
-                          <span>{item.title}</span>
-                          <span className="text-muted-foreground text-xs">
-                            {item.subtitle}
-                          </span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                );
-              })}
-            </>
-          )}
-        </CommandList>
-      </CommandDialog>
+      {requested && <GlobalSearchDialog open={open} onOpenChange={setOpen} />}
     </>
   );
 }

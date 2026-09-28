@@ -53,19 +53,19 @@ import { EditCaseDialog } from './edit-case-dialog';
 import { PhaseTransitionDialog } from './phase-transition-dialog';
 
 import type {
-  Case,
+  CaseListItem,
   CaseStats as CaseStatsType,
   CaseWithRelations,
 } from '@/features/case/schemas';
 
 interface CasesContentProps {
-  cases: Case[];
+  cases: CaseListItem[];
   stats: CaseStatsType;
 }
 
 export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   const searchParams = useSearchParams();
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [selectedCase, setSelectedCase] = useState<CaseListItem | null>(null);
   const [selectedCaseWithRelations, setSelectedCaseWithRelations] =
     useState<CaseWithRelations | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -114,7 +114,7 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
     20,
   );
 
-  const openCaseDetails = async (caseItem: Case) => {
+  const openCaseDetails = async (caseItem: CaseListItem) => {
     setSelectedCase(caseItem);
     setLoadingCaseDetails(true);
     setShowDetailsDialog(true);
@@ -134,17 +134,17 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
     }
   };
 
-  const editCase = (caseItem: Case) => {
+  const editCase = (caseItem: CaseListItem) => {
     setSelectedCase(caseItem);
     setShowEditDialog(true);
   };
 
-  const deleteCase = (caseItem: Case) => {
+  const deleteCase = (caseItem: CaseListItem) => {
     setSelectedCase(caseItem);
     setShowDeleteDialog(true);
   };
 
-  const changePhase = (caseItem: Case) => {
+  const changePhase = (caseItem: CaseListItem) => {
     setSelectedCase(caseItem);
     setShowPhaseDialog(true);
   };

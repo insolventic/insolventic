@@ -2,6 +2,20 @@ import type { NextConfig } from 'next';
 
 import { buildContentSecurityPolicy } from './src/lib/csp';
 
+/** Ver el comentario de la clave `webpack` más abajo. */
+const ignoreOptionalEncodingRequire: NonNullable<NextConfig['webpack']> = (
+  config,
+  { webpack },
+) => {
+  config.plugins.push(
+    new webpack.IgnorePlugin({
+      resourceRegExp: /^encoding$/,
+      contextRegExp: /html-to-docx[\\/]dist$/,
+    }),
+  );
+  return config;
+};
+
 const nextConfig: NextConfig = {
   // @opentelemetry/api is reached via logger.ts's dynamic
   // `import('@sentry/nextjs')`; without withSentryConfig() wiring up file
@@ -10,6 +24,31 @@ const nextConfig: NextConfig = {
   // fails the Vercel deploy with ENOENT. Externalizing it makes Next.js
   // resolve it from node_modules at runtime instead of trying to trace it.
   serverExternalPackages: ['@opentelemetry/api'],
+
+  // `next build` avisaba en cada corrida:
+  //   Module not found: Can't resolve 'encoding'
+  //   ./node_modules/html-to-docx/dist/html-to-docx.esm.js
+  //
+  // Es inocuo y se silencia sin instalar nada. html-to-docx publica un dist ya
+  // empaquetado que trae node-fetch@2 inlineado, y node-fetch@2 hace
+  //   try { convert = require('encoding').convert } catch (e) {}
+  // porque `encoding` es una peer dependency OPCIONAL. Webpack ve ese require
+  // estático y avisa aunque esté dentro de un try/catch.
+  // `encoding` solo lo usa node-fetch en textConverted() (conversión de charset
+  // de la respuesta); html-to-docx únicamente descarga imágenes remotas con
+  // `response.buffer()`, así que jamás se ejecuta. Instalarlo sumaría un paquete
+  // sin ningún efecto.
+  //
+  // IgnorePlugin conserva el comportamiento de runtime: sin el módulo, webpack ya
+  // generaba un `throw` MODULE_NOT_FOUND que ese try/catch traga. Solo se acota
+  // a ESE require (contexto html-to-docx/dist): cualquier otro módulo faltante
+  // seguirá avisando.
+  //
+  // Solo se declara bajo webpack (`next build`, lo que corre Vercel): Turbopack
+  // (`next dev --turbopack`) no emite ese aviso, y con la clave `webpack`
+  // presente Next imprimiría "Webpack is configured while Turbopack is not".
+  // Next fija process.env.TURBOPACK antes de cargar esta config.
+  webpack: process.env.TURBOPACK ? undefined : ignoreOptionalEncodingRequire,
 
   // ===========================================================================
   // ⛔ NUNCA CONFIGURAR `CI_SKIP_BUILD_TYPECHECK` EN VERCEL. ⛔

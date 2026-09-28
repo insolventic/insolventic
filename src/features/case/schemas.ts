@@ -120,6 +120,7 @@ const operatorForCaseSchema = z.object({
 
 const creditorForDebtSchema = z.object({
   name: z.string(),
+  representative: z.string().optional().nullable(),
 });
 
 const documentForCaseSchema = z.object({
@@ -908,6 +909,45 @@ export const caseSummarySchema = caseSchema.omit({
 });
 
 export type CaseSummary = z.infer<typeof caseSummarySchema>;
+
+/**
+ * Columnas escalares de Case que necesita el LISTADO de casos (getAllCases).
+ *
+ * Única fuente de verdad: el `select` de Prisma (features/case/actions.ts) y el
+ * schema de validación (`caseListItemSchema`) se derivan de esta máscara, así
+ * que no pueden desalinearse.
+ *
+ * Antes el listado traía las 269 columnas de cada caso y las validaba todas con
+ * `caseSchema`: una columna ausente o un null inesperado en cualquiera de ellas
+ * invalidaba el listado ENTERO (así se cayó /cases con las columnas `apoyo_*`).
+ * Ahora solo depende de lo que las pantallas del listado leen. Si un componente
+ * necesita otro campo, se agrega aquí; `CaseListItem` hace que tsc lo avise.
+ */
+export const CASE_LIST_COLUMNS = {
+  id: true,
+  caseNumber: true,
+  debtorName: true,
+  type: true,
+  totalDebt: true,
+  creditors: true,
+  version: true,
+  createdDate: true,
+  hearingDate: true,
+  phase: true,
+  debtorId: true,
+  operatorId: true,
+  driveFolderId: true,
+  causes: true,
+} as const;
+
+export const caseListItemSchema = caseSchema.pick({
+  ...CASE_LIST_COLUMNS,
+  debtor: true,
+  operator: true,
+  _count: true,
+});
+
+export type CaseListItem = z.infer<typeof caseListItemSchema>;
 export const createCaseSchema = z.object({
   debtorId: z.string().min(1, 'El deudor es requerido'),
   type: z.enum(['INSOLVENCY', 'CONCILIATION', 'SUPPORT_AGREEMENT'], {
@@ -1544,6 +1584,7 @@ export const updateCaseSchema = z.object({
   phase: z.string().optional(),
   operatorId: z.string().optional(),
   causes: z.array(z.string()).optional(),
+  otherCauseDetail: z.string().optional(),
 
   tramite: z.string().optional(),
   filingDate: z.string().optional(),
@@ -2421,7 +2462,7 @@ export const CaseType = {
 } as const;
 
 export type CaseTypeEnum = (typeof CaseType)[keyof typeof CaseType];
-export const getAllCasesSchema = z.array(caseSchema);
+export const getAllCasesSchema = z.array(caseListItemSchema);
 export const getCaseByIdSchema = z.string();
 export const deleteCaseSchema = z.object({ id: z.string() });
 

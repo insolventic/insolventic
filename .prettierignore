@@ -1,0 +1,4 @@
+# Golden master del mapper de placeholders: lo genera `npm run test:golden:update`
+# y su formato (una clave por línea) lo fija el generador. Que prettier lo
+# reescriba haría que cada regeneración produjera un diff enorme de puro formato.
+tests/unit/documents/golden/
