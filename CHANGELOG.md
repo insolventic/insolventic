@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Totales de bienes de la "Solicitud de Insolvencia" (`TOTAL_INMUEBLES`, `TOTAL_MUEBLES`, `TOTAL_BIENES` y los `MUEBLE_*_VALOR`)**: `mapAssets` sumaba los `Prisma.Decimal` de los activos con `+`, y `Decimal.valueOf()` devuelve un string, así que concatenaba en vez de sumar (un inmueble de $100M sin muebles salía como $1.000M; con más activos, cifras de 15 dígitos). Afectaba a todo documento generado por la ruta automática (creación de caso, generación inicial), que pasa la fila de Prisma sin convertir. Ahora cada sumando pasa por `Number()`. Test de regresión con `Prisma.Decimal` real y comparación de la salida completa del mapper entre `Decimal` y `number`.
 
+### Changed
+
+- **`generateFromTemplates` (generación automática de documentos) corre en 3 fases** — preparar (validar + rellenar HTML), renderizar en lote (`batchHtmlToPdf`, un solo Chromium), subir a Drive — en vez de lanzar y cerrar un navegador por documento (P1 de `docs/AUDITORIA_MODULO_GENERACION_2026-07.md`). Medido con Chromium real (sin Drive): creación de caso (3 documentos) 1455ms → 945ms; admisión (6 documentos) 3426ms → 2133ms (~35-38% más rápido). Los dos lotes grandes que hoy exceden `maxDuration=60s` (Fracaso sin filtrar, paquete completo) siguen rotos — este cambio no los resuelve, ver Issue #3.
+
 ## [0.3.0] - 2026-04-15
 
 ### Added
