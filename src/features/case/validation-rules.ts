@@ -611,6 +611,16 @@ export const CONDITIONAL_DOCUMENTS = [
     condition: 'hasAttorney' as const,
   },
   {
+    id: 'cedula_apoderado',
+    name: 'Cédula de ciudadanía del apoderado',
+    condition: 'hasAttorney' as const,
+  },
+  {
+    id: 'tarjeta_profesional_apoderado',
+    name: 'Tarjeta profesional del apoderado',
+    condition: 'hasAttorney' as const,
+  },
+  {
     id: 'matricula',
     name: 'Registro de matrícula mercantil (Cámara de Comercio)',
     condition: 'isSmallMerchant' as const,
@@ -642,6 +652,48 @@ export const OPTIONAL_DOCUMENTS = [
     multiple: true,
   },
 ];
+
+/**
+ * ¿El caso tiene apoderado?
+ *
+ * Se deriva de los campos que el formulario realmente manda, porque
+ * `hasAttorney` NO es uno de ellos: no existe en `CreateCaseFormInput`. Antes
+ * esta función leía `caseData.hasAttorney` con un cast, así que al enviar el
+ * wizard —que pasa el form data crudo— daba siempre `undefined` y el poder no
+ * se exigía nunca. La pantalla sí lo pintaba en rojo, porque el diálogo le pasa
+ * a `DocumentsSection` un `hasAttorney` derivado por su cuenta; el resultado era
+ * un requisito visible que no bloqueaba el envío.
+ *
+ * Las tres fuentes son las que el propio wizard ya combina para su aviso de
+ * mínima cuantía: el campo de texto libre `attorney` de la Página 1, el
+ * apoderado principal heredado y la lista nueva `apoderados[]`.
+ */
+export function caseHasAttorney(
+  caseData: Partial<CreateCaseFormInput>,
+): boolean {
+  const raw = caseData as Record<string, unknown>;
+
+  const legacyPrincipal =
+    typeof raw.apoderadoNombreCompleto === 'string' &&
+    raw.apoderadoNombreCompleto.trim().length > 0;
+
+  const freeTextAttorney =
+    typeof raw.attorney === 'string' && raw.attorney.trim().length > 0;
+
+  const apoderados = Array.isArray(raw.apoderados) ? raw.apoderados : [];
+  const hasNamedApoderado = apoderados.some((a) => {
+    const nombre = (a as { nombreCompleto?: unknown } | null)?.nombreCompleto;
+    return typeof nombre === 'string' && nombre.trim().length > 0;
+  });
+
+  // `hasAttorney` explícito: no lo manda el formulario, pero `DocumentsSection`
+  // lo inyecta al pedir la lista para pintar la pantalla. Se respeta si viene.
+  const explicitFlag = raw.hasAttorney === true;
+
+  return (
+    explicitFlag || legacyPrincipal || freeTextAttorney || hasNamedApoderado
+  );
+}
 
 export function getRequiredDocuments(
   caseData: Partial<CreateCaseFormInput>,
@@ -678,10 +730,9 @@ export function getRequiredDocuments(
     required.push('tradicion_libertad');
   }
 
-  // Attorney → poder
-  const hasAttorney = !!(caseData as Record<string, unknown>).hasAttorney;
-  if (hasAttorney) {
-    required.push('poder');
+  // Attorney → poder + cédula + tarjeta profesional
+  if (caseHasAttorney(caseData)) {
+    required.push('poder', 'cedula_apoderado', 'tarjeta_profesional_apoderado');
   }
 
   // Small merchant → matrícula mercantil
