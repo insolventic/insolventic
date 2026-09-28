@@ -391,6 +391,22 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                     Vivienda Familiar (Ley 258/1996)
                   </Label>
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isInalienablePatrimony"
+                    checked={newAssetForm.watch('isInalienablePatrimony')}
+                    onCheckedChange={(checked) =>
+                      newAssetForm.setValue('isInalienablePatrimony', !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="isInalienablePatrimony"
+                    className="cursor-pointer"
+                  >
+                    Patrimonio de familia inembargable (Ley 70/1931)
+                  </Label>
+                </div>
               </div>
             )}
 

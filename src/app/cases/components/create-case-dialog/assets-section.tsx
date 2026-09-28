@@ -221,6 +221,23 @@ const AssetItem = memo(function AssetItem({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.isInalienablePatrimony`}
+              render={({ field: formField }) => (
+                <FormItem className="flex items-center space-y-0 space-x-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={formField.value}
+                      onCheckedChange={formField.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer font-normal">
+                    Patrimonio de familia inembargable (Ley 70/1931)
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
           </div>
         </div>
       )}
