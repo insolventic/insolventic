@@ -16,25 +16,41 @@
 
 ### Paso 1 — rama `deploy/pr40-paso1` (código que deja de usar `rejection`/`withdrawal`, ya con el fix de plantilla incluido)
 
+> **⚠️ Esta rama es una fotografía, no un estado permanente.** Se actualizó por última vez el **2026-09-28**, trayendo el `dev` de ese momento (`3eccc72`) con un merge normal. Si pasó tiempo entre esa fecha y el despliegue real, **`dev` va a haber avanzado** (nuevos merges, nuevos fixes) y esta rama va a estar desactualizada otra vez. **No asumas que sigue vigente sin revisar** — repetí el paso 0 de §3 (traer `dev` actual con un merge, correr toda la verificación) antes de promover, seas vos o cualquier otra sesión de Claude Code ejecutando este plan más adelante.
+
 ```
-git log --oneline origin/deploy/pr40-paso1
+git log --oneline origin/deploy/pr40-paso1 | head -6
+be9f9da test(casos): sacar updateCasePhase de WHOLE_ROW_ALLOWED (misma causa que en #40)
+90340da test(documentos): regenerar golden master tras traer dev a deploy/pr40-paso1
+11f7e37 test(documentos): actualizar mapper-merge-order tras el merge de dev (misma causa que en #40)
+d8fbb0b merge: traer dev actual a deploy/pr40-paso1 antes del despliegue 1
+3eccc72 ci(pr.yml): correr quality-checks tambien en push a dev   <- HEAD de dev al momento de este merge
+...
 f60ea85 fix(documentos): mover Auto Cierre por Inasistencia del Deudor a la carpeta de Fracaso
 f8cb595 refactor(fases): retirar rejection y withdrawal del codigo y del schema (paso 5, fase de expansion)
 ```
 
-Esta rama **no es la de #40** — es una rama nueva, creada específicamente para este despliegue, sin tocar `feat/fases-nuevas-case-phases` (que sigue intacta, con su propio historial y su propio CI, para cuando la mergees a `dev` como PR normal). Se construyó así (ver §1.1 para el porqué):
+Esta rama **no es la de #40** — es una rama nueva, creada específicamente para este despliegue, sin tocar `feat/fases-nuevas-case-phases` (que sigue intacta, con su propio historial y su propio CI, para cuando la mergees a `dev` como PR normal). Se construyó así (ver §1.1 para el porqué del cherry-pick, y §3 para el paso de re-sincronización):
 
 ```bash
+# Construcción original (una sola vez)
 git checkout -b deploy/pr40-paso1 f8cb595   # el commit real de #40 que retira rejection/withdrawal del código
 git cherry-pick 92b13c2                     # el fix de la plantilla, cherry-pickeado desde la rama de #40
 git push -u origin deploy/pr40-paso1
+
+# Re-sincronización (repetir cada vez que se retome este plan, antes de promover)
+git checkout deploy/pr40-paso1 && git pull --ff-only
+git merge origin/dev --no-ff -m "merge: traer dev actual a deploy/pr40-paso1 antes del despliegue 1"
+# resolver el conflicto de DESISTIMIENTO en placeholder-mapper.ts si aparece (ver §1.1 — es el mismo, siempre)
+# correr suite completa, tsc, eslint y golden master (npm run test:golden:update si hace falta regenerar)
+git push origin deploy/pr40-paso1   # nunca --force: esta rama solo avanza, no se reescribe
 ```
 
 `f8cb595`: `schema.prisma` deja de declarar los dos campos; `schemas.ts` los saca de `caseSchema`/`createCaseSchema`/`updateCaseSchema`; los diálogos de creación/edición de caso dejan de leerlos y escribirlos; `seed.ts` y los fixtures de test se actualizan. **Las columnas siguen existiendo en la base** (`NOT NULL DEFAULT false`) — el propio mensaje del commit lo dice: "el código viejo y el nuevo conviven sin problema" porque nadie deja de escribir un valor requerido (el default lo cubre).
 
 `f60ea85`: rename puro (`git mv`, 0 inserciones/0 borrados), cherry-pick verificado sin conflicto de `92b13c2`. Ver §1.1.
 
-**Esta es la rama que se promueve a `main` en el despliegue 1** (§3), no un commit suelto de la rama de #40.
+**Esta es la rama que se promueve a `main` en el despliegue 1** (§3), no un commit suelto de la rama de #40 — pero **siempre después de re-sincronizarla**, no tal cual quedó el 2026-09-28.
 
 ### Paso 2 — rama `feat/fases-nuevas-case-phases` completa (PR #40), mergeada a `dev` y de ahí a `main`
 
@@ -86,9 +102,31 @@ Promoviendo primero el commit que deja de usar las columnas (código viejo y nue
 
 ### Despliegue 1 — código
 
-1. Punto de partida: `origin/deploy/pr40-paso1` (`f60ea85`, dos commits sobre `dev` — ver §1). Ya pusheada, no requiere ningún paso de git adicional para "fijarla".
-2. Confirmar autoría (§6) de `f60ea85` — hoy es `MaxitoJM` local (autor `1a`), válido tal cual, no necesita `--amend` salvo que algo cambie antes de promover.
-3. Promover: `main` no es ancestro de `deploy/pr40-paso1` (esta rama arranca en un punto de `dev` bastante posterior a `main`, que sigue en `d2f7cef` del 2026-09-12), así que **no es un fast-forward simple**. Ojo con lo que trae exactamente: `f8cb595` viene de un merge de `dev` hecho el **2026-09-20** (hasta `d03da4f`, el lote de fixes de auth de ese día) — **no** el `dev` de hoy. Todo lo que `dev` sumó **después** del 20 (la red de seguridad del mapper, el fix de `Decimal` en totales de bienes, la Fase 0 de lecturas explícitas de `Case`, el CI en push a `dev` — ver `docs/CHECKPOINT_2026-09-28.md` §3) **no** viaja en este despliegue 1. Llega recién en el despliegue 2, al mergear la rama completa de #40 (que sí trae el `dev` de hoy, vía su propio segundo merge) a `dev` y de ahí a `main`. Si promover código de fases nuevas sin el resto de las mejoras de esta semana no es aceptable, esa es una decisión aparte, anterior a este plan.
+0. **Re-sincronizar `deploy/pr40-paso1` con el `dev` actual — SIEMPRE, inmediatamente antes de promover, sin importar cuándo se hizo la última vez.** Esta rama debe llevar el `dev` más actualizado posible en el momento real del despliegue, no una foto vieja (decisión explícita — ver el aviso de §1). No asumas que el estado de una sesión anterior (incluida la del 2026-09-28) sigue vigente: revisalo.
+
+   ```bash
+   git fetch origin dev deploy/pr40-paso1
+   git checkout deploy/pr40-paso1 && git reset --hard origin/deploy/pr40-paso1
+   git merge origin/dev --no-ff -m "merge: traer dev actual a deploy/pr40-paso1 antes del despliegue 1"
+   ```
+
+   Si aparece un conflicto: en todas las veces que se hizo este merge hasta ahora fue siempre el mismo, en `mapExtendedDates` (`src/features/document/placeholder-mapper.ts`), entre la lógica de `DESISTIMIENTO` de #40 y los stubs muertos que `dev` va sacando de a poco (ver el historial de esta misma sección de código: Hallazgo 2, PR #24, y este merge). Si es ese, resolver combinando ambos lados (la lógica de `resultDate` de #40 + el comentario/limpieza del lado de `dev`) — **no** descartar ninguno de los dos a ciegas. Si es un conflicto distinto, describirlo antes de resolverlo (no asumir que es "el de siempre").
+
+   Después del merge, **repetir toda la verificación, no solo compilar**:
+   - Suite completa (`npx jest --ci`), `tsc --noEmit`, `eslint`.
+   - Golden master (`tests/unit/documents/mapper-golden.test.ts`) y, si hace falta regenerarlo, `npm run test:golden:update` — revisar el diff resultante antes de commitear: en todas las veces anteriores fueron exactamente dos causas (el fix de `*_DESISTIMIENTO` y el rename `rechazo-inasistencia`→`inasistencia-deudor`, ya presente en esta rama), nunca nada más. Si aparece un tercer tipo de diferencia, frenar y describirlo.
+   - `tests/unit/cases/case-reads-select.test.ts`: si falla, es porque `updateCasePhase` volvió a aparecer en `WHOLE_ROW_ALLOWED` tras traer una versión más vieja de `dev` — sacarlo de la lista de nuevo (`updateCasePhase` de #40 no lee la fila entera).
+   - Confirmar además que la rama **sigue sin la migración** — un merge de `dev` nunca debería introducirla, pero es gratis confirmarlo:
+     ```bash
+     grep -n "rejection\|withdrawal" src/prisma/schema.prisma   # sin resultados
+     ls src/prisma/migrations/ | grep drop_rejection            # sin resultados
+     ```
+
+   Recién con todo esto en verde, push (`git push origin deploy/pr40-paso1`, nunca `--force`: esta rama solo avanza).
+
+1. Punto de partida: `origin/deploy/pr40-paso1`, ya re-sincronizada por el paso 0. Confirmar con `git log -1 --format="%H %ai" origin/deploy/pr40-paso1` que el commit de punta es de **hoy** (o de la fecha real del despliegue), no de una sesión anterior.
+2. Confirmar autoría (§6) del commit de punta.
+3. Promover: `main` no es ancestro de `deploy/pr40-paso1` (esta rama arranca en un punto de `dev` bastante posterior a `main`, que sigue en `d2f7cef` del 2026-09-12), así que **no es un fast-forward simple** — va a traer todo lo que `dev` tenía al momento de la re-sincronización del paso 0, además del código de fases nuevas. Si eso incluye más de lo que se quiere promover en este momento, es una decisión aparte, anterior a este plan.
 4. Verificar el deploy (§4) **antes** de tocar nada del paso 2.
 
 ### Despliegue 2 — migración
@@ -173,11 +211,11 @@ Si el commit de punta natural de alguno de los dos despliegues ya tiene autor v�
 
 ### Nota sobre el despliegue 1 específicamente
 
-El commit de punta de `deploy/pr40-paso1` (`f60ea85`, el cherry-pick) quedó autorado como `MaxitoJM <maxitojam@hotmail.com>` (`1a`) — válido tal cual según la tabla de `CLAUDE.md`, no necesita `--amend` hoy. Si pasa tiempo entre este documento y el despliegue real y algo se vuelve a tocar en esa rama, reverificar antes de promover.
+Cada vez que se re-sincroniza `deploy/pr40-paso1` (§3, paso 0), el commit de punta cambia — el merge queda autorado con quien lo haga (normalmente `MaxitoJM` local, `1a`, válido tal cual). Verificar de nuevo en ese momento, no confiar en que la autoría de una sincronización anterior sigue siendo la del commit que efectivamente se va a promover.
 
 ### Nota sobre el despliegue 2
 
-Al mergear `dev` (ya con #40 adentro) a `main`, el mecanismo va a ser un merge, no un fast-forward puro — `main` quedó con `f60ea85` (el cherry-pick), que `dev` no tiene en esa forma exacta (tiene el mismo cambio, pero vía `92b13c2` en su lugar original dentro de la rama de #40). El commit de punta de ese merge es el que necesita la verificación de autoría, no ninguno de sus dos padres.
+Al mergear `dev` (ya con #40 adentro) a `main`, el mecanismo va a ser un merge, no un fast-forward puro — `main` quedó con el cherry-pick de `92b13c2` (vía `deploy/pr40-paso1`), que `dev` no tiene en esa forma exacta (tiene el mismo cambio, pero vía `92b13c2` en su lugar original dentro de la rama de #40). El commit de punta de ese merge es el que necesita la verificación de autoría, no ninguno de sus dos padres.
 
 ---
 
