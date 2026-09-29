@@ -2,7 +2,7 @@
 
 import { Plus, Trash2 } from 'lucide-react';
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -20,6 +20,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  assetFieldsToClear,
+  blankValueFor,
+} from '@/features/case/asset-type-fields';
 import {
   Select,
   SelectContent,
@@ -54,6 +58,19 @@ const AssetItem = memo(function AssetItem({
     control: form.control,
     name: `assets.${index}.type`,
   });
+
+  // Al cambiar el tipo, los bloques específicos se desmontan pero
+  // react-hook-form conserva sus valores (`shouldUnregister: false`), así que lo
+  // cargado para un inmueble se enviaba junto a un vehículo. Se limpian los
+  // campos que el tipo elegido no muestra, solo en ESTE bien del arreglo.
+  useEffect(() => {
+    for (const field of assetFieldsToClear(assetType)) {
+      form.setValue(`assets.${index}.${field}`, blankValueFor(field), {
+        shouldDirty: false,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetType, index]);
 
   return (
     <div
