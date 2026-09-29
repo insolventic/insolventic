@@ -1023,9 +1023,11 @@ export function CreateCaseDialog({
     // Legal processes
     form.setValue('legalProcesses', [
       {
-        processType: 'Ejecutivo singular',
+        processType: 'EJECUTIVO',
+        processTypeOther: '',
         plaintiff: 'Banco XYZ',
         court: 'Juzgado 15 Civil del Circuito',
+        courtEmail: 'j15cctobogota@cendoj.ramajudicial.gov.co',
         fileNumber: '2024-00123-00',
         precautionaryMeasure: 'Embargo de salarios',
       },
