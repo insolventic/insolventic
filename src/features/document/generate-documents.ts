@@ -13,7 +13,7 @@ import {
   mapCaseToPlaceholders,
   renderDocumentHtml,
   validatePlaceholderCoverage,
-  buildConciliationContext,
+  buildTemplateContext,
 } from './placeholder-mapper';
 import {
   getTemplatesForCaseCreation,
@@ -420,11 +420,8 @@ async function generateDocument(
     // Validate placeholder coverage
     const coverage = validatePlaceholderCoverage(htmlContent, placeholders);
 
-    // Replace placeholders (conciliation adds flags + arrays for handlebars-lite)
-    const extraContext =
-      caseData.type === 'CONCILIATION'
-        ? buildConciliationContext(caseData)
-        : undefined;
+    // Contexto de bloques ({{#each}} / {{#if}}) segun el tipo de caso.
+    const extraContext = buildTemplateContext(caseData);
     const { html: filledHtml, unresolved } = renderDocumentHtml(
       htmlContent,
       placeholders,
@@ -830,10 +827,7 @@ export async function previewDocument(
   const templatePath = getTemplatePath(template);
   const htmlContent = await readTemplate(templatePath);
   const placeholders = mapCaseToPlaceholders(caseData);
-  const extraContext =
-    caseData.type === 'CONCILIATION'
-      ? buildConciliationContext(caseData)
-      : undefined;
+  const extraContext = buildTemplateContext(caseData);
   const { html: filledHtml, unresolved } = renderDocumentHtml(
     htmlContent,
     placeholders,

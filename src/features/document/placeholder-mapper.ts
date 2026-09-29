@@ -1862,6 +1862,179 @@ export function buildConciliationContext(
 }
 
 // ============================================================
+// INSOLVENCIA — contexto de bloques {{#each}} / {{#if}}
+// ============================================================
+
+/**
+ * Un acreedor, con las claves que consumen las tablas de la Solicitud y de CYG.
+ *
+ * Los nombres son los mismos que los de los slots planos de `mapDebts`, sin el
+ * prefijo numérico: `AC3_CODEUDOR_NOMBRE` ↔ `CODEUDOR_NOMBRE` dentro del
+ * `{{#each}}`. Así la migración de una plantilla es mecánica y se puede leer el
+ * diff sin cruzar dos vocabularios.
+ */
+export interface AcreedorContextItem {
+  /** Número de orden, 1-based. Lo emite el builder porque handlebars-lite no expone `@index`. */
+  NUMERO: string;
+
+  // Ficha detallada (Sección 3 de la Solicitud)
+  NOMBRE: string;
+  DOMICILIO: string;
+  DIRECCION: string;
+  EMAIL: string;
+  CAPITAL: string;
+  INTERESES: string;
+  POSTERGADO: string;
+  TASA: string;
+  DOCUMENTO: string;
+  FECHA_OTORGAMIENTO: string;
+  FECHA_VENCIMIENTO: string;
+  CLASIFICACION: string;
+  CODEUDOR_NOMBRE: string;
+  CODEUDOR_DOMICILIO: string;
+  CODEUDOR_DIRECCION: string;
+
+  // Cuadro resumen
+  VALOR: string;
+  LIBRANZA: string;
+  CLASE: string;
+  PORCENTAJE: string;
+  DIAS: string;
+
+  /** Se llena a mano en la audiencia; vacío al generar. */
+  APODERADO: string;
+}
+
+/**
+ * Escapa TODOS los valores string del ítem.
+ *
+ * Es el mismo principio safe-by-default que `escapeAllUnlessHtml` aplica al
+ * `PlaceholderMap` plano, y hace falta por separado porque **`extraContext` no
+ * pasa por ese escape**: `renderDocumentHtml` lo funde en el contexto tal cual
+ * (`{...extraContext, ...placeholders}`), y `substituteVars` lo inserta en el
+ * HTML sin más.
+ *
+ * Escapar el objeto entero —en vez de campo por campo al construirlo— es
+ * deliberado: una clave nueva queda protegida sin que nadie se acuerde.
+ */
+function escapeContextItem<T extends object>(item: T): T {
+  return Object.fromEntries(
+    Object.entries(item).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? escapePlaceholder(value) : value,
+    ]),
+  ) as T;
+}
+
+/**
+ * Contexto de bloques para casos de INSOLVENCIA.
+ *
+ * Hermano de `buildConciliationContext`, con una diferencia de fondo: aquel lee
+ * columnas `Json` de forma libre, y este lee **relaciones tipadas**, así que no
+ * necesita validar la forma de lo que encuentra.
+ *
+ * Existe para que las plantillas de insolvencia puedan usar `{{#each}}` en vez
+ * de slots numerados. Hoy los slots topan la lista: la Solicitud imprime 3
+ * fichas de acreedor y 10 renglones de resumen, y un caso con más acreedores
+ * —el tope legal son 150— radica un documento incompleto y sin aviso.
+ *
+ * Por ahora **ninguna plantilla lo consume**: se introduce primero para que el
+ * cambio de infraestructura se pueda verificar solo (el golden master no se
+ * mueve) y la migración de cada plantilla sea un PR aparte y reversible. Ver
+ * `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md`.
+ */
+export function buildInsolvencyContext(
+  caseData: CaseWithRelations,
+): Record<string, unknown> {
+  const debts = caseData.debts ?? [];
+
+  // Los totales se calculan UNA vez sobre la lista completa, no por ítem: el
+  // porcentaje de cada acreedor depende de todos los demás. Son los mismos dos
+  // acumuladores que usa `mapDebts`.
+  const totalCapitalAll = debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
+
+  const acreedores: AcreedorContextItem[] = debts.map((debt, index) => {
+    const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
+    const interest = Number(debt.interestAmount) || 0;
+    const percentage =
+      totalCapitalAll > 0
+        ? ((capital / totalCapitalAll) * 100).toFixed(2)
+        : '0.00';
+
+    // Si el deudor declaró que no hay codeudor, los tres campos van 'N/A' en
+    // lugar de vacíos: en un documento legal no es lo mismo "no aplica" que
+    // "no se informó".
+    const sinCodeudor = !!(debt as Record<string, unknown>).noCoDebtor;
+    const codeudor = (value: string | null | undefined) =>
+      sinCodeudor ? 'N/A' : value || '';
+
+    return escapeContextItem<AcreedorContextItem>({
+      NUMERO: String(index + 1),
+
+      NOMBRE: debt.creditor.name,
+      DOMICILIO: debt.creditorCity || '',
+      DIRECCION: debt.creditorAddress || '',
+      EMAIL: debt.creditorEmail || '',
+      CAPITAL: formatCurrency(capital),
+      INTERESES: formatCurrency(interest),
+      POSTERGADO: boolToSiNo(debt.isDeferred),
+      TASA:
+        String(debt.interestRate) === 'DESCONOZCO'
+          ? 'Desconoce'
+          : `${Number(debt.interestRate) || 0}%`,
+      DOCUMENTO: debt.documentType || '',
+      FECHA_OTORGAMIENTO: formatShortDate(debt.grantDate),
+      FECHA_VENCIMIENTO: formatShortDate(debt.dueDate),
+      CLASIFICACION: debt.creditClassification || '',
+      CODEUDOR_NOMBRE: codeudor(debt.coDebtorName),
+      CODEUDOR_DOMICILIO: codeudor(debt.coDebtorCity),
+      CODEUDOR_DIRECCION: codeudor(debt.coDebtorAddress),
+
+      VALOR: formatCurrency(Number(debt.amount)),
+      LIBRANZA: boolToSiNo(debt.hasActiveLibranza),
+      CLASE: debt.creditorClass || '',
+      // A diferencia del slot plano, el símbolo va siempre: la rama persistida
+      // daba "33" y la calculada "33.00%" en el mismo documento.
+      PORCENTAJE: debt.percentageOfTotal
+        ? `${debt.percentageOfTotal}%`
+        : `${percentage}%`,
+      DIAS: debt.daysOverdue?.toString() || '',
+
+      APODERADO: '',
+    });
+  });
+
+  return {
+    ACREEDORES: acreedores,
+    // Bandera para `{{#if}}`: permite que la plantilla ponga una leyenda
+    // ("no declara acreedores") en lugar de una tabla vacía.
+    TIENE_ACREEDORES_LISTA: acreedores.length > 0,
+  };
+}
+
+/**
+ * Contexto de bloques que corresponde al tipo de caso.
+ *
+ * Único punto de decisión: antes el mismo ternario estaba repetido en los tres
+ * sitios que renderizan (dos en `generate-documents.ts`, uno en `actions.ts`),
+ * así que agregar un tipo obligaba a acordarse de los tres.
+ *
+ * Devuelve `undefined` cuando el tipo no aporta bloques, para que
+ * `renderDocumentHtml` reciba exactamente lo que recibía antes.
+ */
+export function buildTemplateContext(
+  caseData: CaseWithRelations,
+): Record<string, unknown> | undefined {
+  if (caseData.type === 'CONCILIATION')
+    return buildConciliationContext(caseData);
+  if (caseData.type === 'INSOLVENCY') return buildInsolvencyContext(caseData);
+  return undefined;
+}
+
+// ============================================================
 // ACUERDO DE APOYO — placeholder mapping
 // ============================================================
 function mapApoyoFields(caseData: CaseWithRelations): PlaceholderMap {

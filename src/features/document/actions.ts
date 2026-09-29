@@ -877,11 +877,8 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Map case data to placeholders
-    const {
-      mapCaseToPlaceholders,
-      renderDocumentHtml,
-      buildConciliationContext,
-    } = await import('./placeholder-mapper');
+    const { mapCaseToPlaceholders, renderDocumentHtml, buildTemplateContext } =
+      await import('./placeholder-mapper');
 
     // Transform ALL Decimal fields to numbers for the mapper
     // Prisma Decimal.valueOf() returns a string, causing reduce() string concatenation bugs
@@ -1015,11 +1012,11 @@ export async function batchGenerateDocuments(input: {
       `[batchGenerateDocuments] Processing ${templatesToProcess.length} templates for package ${packageNumber || 'all'}`,
     );
 
-    // Pre-compute conciliation context once (flags + arrays for handlebars-lite)
-    const batchExtraCtx =
-      caseData.type === 'CONCILIATION'
-        ? buildConciliationContext(asCaseWithRelations(transformedCaseData))
-        : undefined;
+    // Contexto de bloques ({{#each}} / {{#if}}), calculado una sola vez para
+    // todo el lote.
+    const batchExtraCtx = buildTemplateContext(
+      asCaseWithRelations(transformedCaseData),
+    );
 
     for (const template of templatesToProcess) {
       try {
