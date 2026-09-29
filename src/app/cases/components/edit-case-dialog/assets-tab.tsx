@@ -34,36 +34,53 @@ interface AssetsTabProps {
   caseId: string;
 }
 
+/**
+ * Formulario de bien en blanco: TODAS las claves, con su valor vacío.
+ *
+ * Una sola fuente para `defaultValues` y para el `reset` posterior a agregar un
+ * bien. Antes eran dos listas y el `reset` solo repetía 5 de las 22 claves, lo
+ * que dejaba el formulario a medio limpiar para el bien siguiente —
+ * `reset(values)` de react-hook-form NO vuelve a los `defaultValues`: reemplaza
+ * el estado por `values`, así que lo omitido queda en `undefined` y los inputs
+ * de texto conservan en el DOM lo que tenía el bien anterior.
+ *
+ * Con una sola fuente, un campo nuevo del formulario no puede quedar fuera del
+ * reset: se agrega acá y queda cubierto en los dos lados.
+ */
+function emptyAssetForm(caseId: string): AddAssetToCaseData {
+  return {
+    caseId,
+    name: '',
+    type: '',
+    value: '',
+    description: '',
+    propertyType: '',
+    address: '',
+    registrationNumber: '',
+    encumbrance: '',
+    affectation: '',
+    precautionaryMeasure: '',
+    proofDocument: '',
+    isFamilyHome: false,
+    isInalienablePatrimony: false,
+    brand: '',
+    model: '',
+    condition: '',
+    licensePlate: '',
+    transitAuthority: '',
+    hasPendingFinesOrTaxes: false,
+    guaranteeInFavorOf: '',
+    guaranteeAmount: '',
+    material: '',
+  };
+}
+
 export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
   const form = useFormContext();
 
   const newAssetForm = useForm<AddAssetToCaseData>({
     resolver: zodResolver(addAssetToCaseSchema),
-    defaultValues: {
-      caseId,
-      name: '',
-      type: '',
-      value: '',
-      description: '',
-      propertyType: '',
-      address: '',
-      registrationNumber: '',
-      encumbrance: '',
-      affectation: '',
-      precautionaryMeasure: '',
-      proofDocument: '',
-      isFamilyHome: false,
-      isInalienablePatrimony: false,
-      brand: '',
-      model: '',
-      condition: '',
-      licensePlate: '',
-      transitAuthority: '',
-      hasPendingFinesOrTaxes: false,
-      guaranteeInFavorOf: '',
-      guaranteeAmount: '',
-      material: '',
-    },
+    defaultValues: emptyAssetForm(caseId),
   });
 
   const [isPending, startTransition] = useTransition();
@@ -103,18 +120,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
             material: result.material,
           },
         ]);
-        newAssetForm.reset({
-          caseId,
-          name: '',
-          type: '',
-          value: '',
-          description: '',
-          // Las casillas no se limpiaban: quedaban marcadas para el bien
-          // siguiente. Acá se limpia la que introduce este cambio; las de
-          // inmueble (isFamilyHome / isInalienablePatrimony) arrastran el mismo
-          // problema desde antes y se arreglan aparte.
-          hasPendingFinesOrTaxes: false,
-        });
+        newAssetForm.reset(emptyAssetForm(caseId));
       } else {
         toast.error(error ?? 'Error al agregar bien');
       }
