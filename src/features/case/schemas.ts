@@ -182,6 +182,7 @@ const assetForCaseSchema = z.object({
   proofDocument: z.string().nullable().optional(),
   isFamilyHome: z.boolean().nullable().optional(),
   isInalienablePatrimony: z.boolean().nullable().optional(),
+  hasPendingFinesOrTaxes: z.boolean().nullable().optional(),
   brand: z.string().nullable().optional(),
   model: z.string().nullable().optional(),
   condition: z.string().nullable().optional(),
@@ -242,6 +243,7 @@ export const assetSchema = z.object({
   proofDocument: z.string().optional(),
   isFamilyHome: z.boolean().default(false),
   isInalienablePatrimony: z.boolean().default(false),
+  hasPendingFinesOrTaxes: z.boolean().default(false),
 
   // Personal Property specific fields
   brand: z.string().optional(),
@@ -2270,6 +2272,7 @@ export const addAssetToCaseSchema = z.object({
   proofDocument: z.string().optional(),
   isFamilyHome: z.boolean().optional(),
   isInalienablePatrimony: z.boolean().optional(),
+  hasPendingFinesOrTaxes: z.boolean().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
   condition: z.string().optional(),
@@ -2303,6 +2306,7 @@ export const assetResponseSchema = z.object({
   proofDocument: z.string().nullable(),
   isFamilyHome: z.boolean().nullable(),
   isInalienablePatrimony: z.boolean().nullable(),
+  hasPendingFinesOrTaxes: z.boolean().nullable(),
   brand: z.string().nullable(),
   model: z.string().nullable(),
   condition: z.string().nullable(),

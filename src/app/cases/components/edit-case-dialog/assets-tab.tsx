@@ -59,6 +59,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
       condition: '',
       licensePlate: '',
       transitAuthority: '',
+      hasPendingFinesOrTaxes: false,
       guaranteeInFavorOf: '',
       guaranteeAmount: '',
       material: '',
@@ -96,6 +97,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
             condition: result.condition,
             licensePlate: result.licensePlate,
             transitAuthority: result.transitAuthority,
+            hasPendingFinesOrTaxes: result.hasPendingFinesOrTaxes,
             guaranteeInFavorOf: result.guaranteeInFavorOf,
             guaranteeAmount: result.guaranteeAmount,
             material: result.material,
@@ -107,6 +109,11 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
           type: '',
           value: '',
           description: '',
+          // Las casillas no se limpiaban: quedaban marcadas para el bien
+          // siguiente. Acá se limpia la que introduce este cambio; las de
+          // inmueble (isFamilyHome / isInalienablePatrimony) arrastran el mismo
+          // problema desde antes y se arreglan aparte.
+          hasPendingFinesOrTaxes: false,
         });
       } else {
         toast.error(error ?? 'Error al agregar bien');
@@ -456,6 +463,22 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                       placeholder="Banco o entidad"
                     />
                   </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasPendingFinesOrTaxes"
+                    checked={newAssetForm.watch('hasPendingFinesOrTaxes')}
+                    onCheckedChange={(checked) =>
+                      newAssetForm.setValue('hasPendingFinesOrTaxes', !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="hasPendingFinesOrTaxes"
+                    className="cursor-pointer"
+                  >
+                    Tiene comparendos o impuestos pendientes de pago
+                  </Label>
                 </div>
               </div>
             )}
