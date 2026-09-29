@@ -212,3 +212,4 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 - Auditoría integral: `docs/AUDITORIA_INSOLVENTIC_2026-07-11.md`
 - Auditoría del módulo de documentos (P1–P9): `docs/AUDITORIA_MODULO_GENERACION_2026-07.md`
 - Arquitectura general: `docs/ARQUITECTURA.md`
+- Hallazgos de calidad de la ronda del formulario maestro: `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`
