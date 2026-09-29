@@ -2569,6 +2569,54 @@ export function mapCaseToPlaceholders(
   });
 }
 
+/** Un `{{VARIABLE}}` suelto. No matchea los tags de bloque, que llevan `#` o `/`. */
+const VAR_TOKEN_RE = /\{\{([A-Za-z0-9_]+)\}\}/g;
+
+/**
+ * Bloques `{{#if}}` / `{{#unless}}` / `{{#each}}` con su contenido.
+ *
+ * La sintaxis real (handlebars-lite.ts) siempre lleva DOS tokens en el tag de
+ * apertura —`{{#if FLAG}}`, `{{#each LISTA}}`— nunca uno solo. El cierre puede
+ * venir con o sin el identificador repetido (`{{/if}}` o `{{/if FLAG}}`, este
+ * último es el que usan las plantillas de conciliación). El backreference `\1`
+ * exige que abra y cierre el mismo tipo de bloque.
+ */
+const BLOCK_RE =
+  /\{\{#(if|each|unless)\s+[A-Za-z0-9_]+\s*\}\}((?:(?!\{\{#(?:if|each|unless)\b)[\s\S])*?)\{\{\/\1(?:\s+[A-Za-z0-9_]+)?\s*\}\}/g;
+
+/**
+ * Quita del HTML los bloques de control con todo su contenido, y devuelve lo
+ * que queda: las variables de nivel raíz.
+ *
+ * Existe porque las variables de adentro de un bloque NO se resuelven contra el
+ * contexto raíz sino contra el scope del bloque (el item del `{{#each}}`), así
+ * que cualquier análisis que las cuente como variables del mapper da falsos
+ * positivos. Los dos análisis que hay lo necesitan: el detector de placeholders
+ * sin resolver de `renderDocumentHtml` —que BLOQUEA la generación— y
+ * `validatePlaceholderCoverage`.
+ *
+ * Igual que `resolveBlocks` de handlebars-lite, se aplica en pasadas hasta
+ * estabilizar: cada pasada solo puede quitar el bloque MÁS interno (la negative
+ * lookahead evita que `[\s\S]*?` se coma un `{{#if/each/unless` anidado), así
+ * que los anidados se pelan de adentro hacia afuera.
+ *
+ * Los tags envueltos en comentarios HTML (`<!-- {{#each X}} -->`, el patrón que
+ * usan las plantillas de conciliación para seguir siendo HTML válido sin
+ * renderizar) se manejan solos: el regex matchea el tag y deja los `<!--` y
+ * `-->` sueltos como texto, que no contienen placeholders.
+ */
+function stripBlocks(html: string): string {
+  let out = html;
+  // Cota de seguridad, igual que en handlebars-lite: evita un bucle infinito
+  // ante una plantilla mal formada.
+  for (let pass = 0; pass < 32; pass++) {
+    const before = out;
+    out = out.replace(BLOCK_RE, '');
+    if (out === before) break;
+  }
+  return out;
+}
+
 export interface RenderedDocument {
   html: string;
   /**
@@ -2614,30 +2662,10 @@ export function renderDocumentHtml(
   // así que escanear el HTML ya renderizado no encontraría nada. Hay que
   // comparar contra la fuente.
   //
-  // Las variables dentro de bloques `{{#each}}` / `{{#if}}` / `{{#unless}}` se
-  // resuelven contra el scope del bloque, no contra el contexto raíz: se
-  // excluyen del escaneo para no reportar falsos faltantes.
-  //
-  // La sintaxis real (handlebars-lite.ts) siempre lleva DOS tokens en el tag de
-  // apertura -`{{#if FLAG}}`, `{{#each LISTA}}`- nunca uno solo. El cierre puede
-  // venir con o sin el identificador repetido (`{{/if}}` o `{{/if FLAG}}`, este
-  // último es el que usan las plantillas de conciliación). El backreference \1
-  // exige que abra y cierre el mismo tipo de bloque.
-  //
-  // Igual que `resolveBlocks`, se aplica en pasadas hasta estabilizar: cada
-  // pasada solo puede quitar el bloque MÁS interno (la negative lookahead evita
-  // que `[\s\S]*?` se coma un `{{#if/each/unless` anidado), así que los bloques
-  // anidados se pelan de adentro hacia afuera.
-  const BLOCK_RE =
-    /\{\{#(if|each|unless)\s+[A-Za-z0-9_]+\s*\}\}((?:(?!\{\{#(?:if|each|unless)\b)[\s\S])*?)\{\{\/\1(?:\s+[A-Za-z0-9_]+)?\s*\}\}/g;
-  let topLevelHtml = html;
-  for (let pass = 0; pass < 32; pass++) {
-    const before = topLevelHtml;
-    topLevelHtml = topLevelHtml.replace(BLOCK_RE, '');
-    if (topLevelHtml === before) break;
-  }
+  // `stripBlocks` saca las variables que están dentro de un bloque: esas se
+  // resuelven contra el scope del bloque, no contra el contexto raíz.
   const referenced = new Set(
-    [...topLevelHtml.matchAll(/\{\{([A-Za-z0-9_]+)\}\}/g)].map((m) => m[1]),
+    [...stripBlocks(html).matchAll(VAR_TOKEN_RE)].map((m) => m[1]),
   );
   const unresolved = [...referenced].filter((name) => !(name in ctx));
 
@@ -2704,9 +2732,12 @@ export function validatePlaceholderCoverage(
   html: string,
   placeholders: PlaceholderMap,
 ): PlaceholderCoverageResult {
-  // Find all {{VARIABLE}} patterns in the HTML
-  const regex = /\{\{([A-Za-z0-9_]+)\}\}/g;
-  const matches = [...html.matchAll(regex)];
+  // Las variables de dentro de un bloque se resuelven contra el scope del
+  // bloque, no contra el mapper: contarlas acá daba faltantes falsos y hundía
+  // el porcentaje de cobertura. Con una plantilla de conciliación típica el
+  // resultado era un `logger.warn` de "cobertura baja" en cada generación,
+  // sobre un documento que salía perfecto.
+  const matches = [...stripBlocks(html).matchAll(VAR_TOKEN_RE)];
   const foundVariables = [...new Set(matches.map((m) => m[1]))]; // Unique variables
 
   // Categorize variables
