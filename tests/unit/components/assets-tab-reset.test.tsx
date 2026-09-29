@@ -192,11 +192,15 @@ describe('formulario de bienes (edición) — limpieza entre un bien y el siguie
   });
 
   describe('2. el alcance real, leído del código', () => {
-    it('el formulario expone estas 2 columnas booleanas de Asset', () => {
-      expect(booleanFormFields()).toEqual([
-        'isFamilyHome',
-        'isInalienablePatrimony',
-      ]);
+    it('las casillas conocidas están entre las columnas booleanas del formulario', () => {
+      // Aserción de subconjunto a propósito, no de igualdad: agregar una casilla
+      // nueva al formulario es un cambio legítimo y no tiene por qué romper este
+      // test. Lo que no puede pasar es que una casilla quede FUERA del reset, y
+      // eso lo cubren los dos tests de abajo, que derivan la lista sola.
+      expect(booleanFormFields()).toEqual(
+        expect.arrayContaining(['isFamilyHome', 'isInalienablePatrimony']),
+      );
+      expect(booleanFormFields().length).toBeGreaterThanOrEqual(2);
     });
 
     it('el reset deja en blanco TODAS las claves del formulario', () => {
@@ -207,7 +211,7 @@ describe('formulario de bienes (edición) — limpieza entre un bien y el siguie
       expect(faltantes).toEqual([]);
     });
 
-    it('las 2 casillas se limpian a false, no a undefined ni a cadena vacía', () => {
+    it('las casillas se limpian a false, no a undefined ni a cadena vacía', () => {
       const block = emptyFormBlock();
       for (const field of booleanFormFields()) {
         expect(block).toContain(`${field}: false`);
