@@ -72,6 +72,7 @@ const JSON_ARRAY_FIELDS = [
   // Json? igual que los anteriores: sin esto, un payload con `null` aquí llega
   // a Prisma, que para columnas Json? exige `Prisma.DbNull`, no `null`.
   'apoyoClausulas',
+  'serviciosManutencion',
 ] as const;
 
 function sanitizeJsonFields<T extends Record<string, unknown>>(data: T): T {

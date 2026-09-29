@@ -37,6 +37,19 @@ const concClausulaSchema = z.object({
   TEXTO_CLAUSULA: z.string().min(1, 'Texto requerido'),
 });
 
+/**
+ * Una fila del desglose de servicios de manutención (columna Json? de Case).
+ *
+ * `nombre` es obligatorio porque una fila sin nombre no se puede mostrar; en los
+ * tres tipos fijos lo pone el catálogo, en "Otros" lo escribe el operador.
+ * `descripcion` es libre y opcional.
+ */
+export const servicioManutencionSchema = z.object({
+  tipo: z.string().min(1),
+  nombre: z.string().min(1, 'Nombre del servicio requerido'),
+  descripcion: z.string().optional(),
+});
+
 const concClausulaAdicionalSchema = z.object({
   NUMERO_CLAUSULA_ADICIONAL: z.string().min(1, 'Número requerido'),
   TEXTO_CLAUSULA_ADICIONAL: z.string().min(1, 'Texto requerido'),
@@ -819,6 +832,12 @@ export const caseSchema = z.object({
   // SUPPORT_AGREEMENT — es decir, en los 28 casos de producción.
   apoyoClausulas: z.array(concClausulaSchema).optional().nullable(),
 
+  // Desglose interno de servicios de manutención. No va a los documentos.
+  serviciosManutencion: z
+    .array(servicioManutencionSchema)
+    .optional()
+    .nullable(),
+
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
@@ -1263,6 +1282,9 @@ export const createCaseSchema = z.object({
         .optional(),
     ])
     .optional(),
+  // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
+  // Solo lo ve el operador: no se lleva a los documentos generados.
+  serviciosManutencion: z.array(servicioManutencionSchema).optional(),
   gastosServiciosPublicos: z
     .union([
       z.number().min(0).optional(),
@@ -1878,6 +1900,9 @@ export const updateCaseSchema = z.object({
         .optional(),
     ])
     .optional(),
+  // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
+  // Solo lo ve el operador: no se lleva a los documentos generados.
+  serviciosManutencion: z.array(servicioManutencionSchema).optional(),
   gastosServiciosPublicos: z
     .union([
       z.number().min(0).optional(),

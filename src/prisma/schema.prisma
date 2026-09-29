@@ -396,6 +396,16 @@ model Case {
   // Cláusulas del acuerdo (JSON array: [{NUMERO_CLAUSULA, TEXTO_CLAUSULA}])
   apoyoClausulas                       Json?     @map("apoyo_clausulas")
 
+  // Desglose de servicios de manutención por tipo — gas, agua, luz y los que el
+  // operador agregue con "+ Otros".
+  // JSON array: [{tipo, nombre, descripcion}]. Catálogo de tipos en
+  // src/features/case/servicios-manutencion.ts.
+  //
+  // Dato INTERNO del operador: NO se lleva a los documentos generados. El monto
+  // agregado sigue siendo `gastosServiciosPublicos`, que es el que alimenta la
+  // propuesta de pago y el Excel; esto es el detalle de qué servicios hay.
+  serviciosManutencion                 Json?     @map("servicios_manutencion")
+
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
