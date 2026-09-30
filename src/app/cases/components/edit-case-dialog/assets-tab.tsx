@@ -11,6 +11,10 @@ import {
   addAssetToCaseSchema,
   type AddAssetToCaseData,
 } from '@/features/case/schemas';
+import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -295,7 +299,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                 <Input
                   id="name"
                   {...newAssetForm.register('name')}
-                  placeholder="Ej: Casa, Carro Toyota"
+                  placeholder={assetNamePlaceholder(assetType)}
                 />
                 {newAssetForm.formState.errors.name && (
                   <p className="text-destructive text-sm">
@@ -306,7 +310,8 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
               <div className="space-y-2">
                 <Label htmlFor="value">
-                  Valor ($) <span className="text-red-500">*</span>
+                  {assetValueLabel(assetType)}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="value"
@@ -387,6 +392,22 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                   />
                   <Label htmlFor="isFamilyHome" className="cursor-pointer">
                     Vivienda Familiar (Ley 258/1996)
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isInalienablePatrimony"
+                    checked={newAssetForm.watch('isInalienablePatrimony')}
+                    onCheckedChange={(checked) =>
+                      newAssetForm.setValue('isInalienablePatrimony', !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="isInalienablePatrimony"
+                    className="cursor-pointer"
+                  >
+                    Patrimonio de familia inembargable (Ley 70/1931)
                   </Label>
                 </div>
               </div>
