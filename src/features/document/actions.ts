@@ -33,6 +33,7 @@ import {
   uploadCaseDocumentsOutputSchema,
 } from './schemas';
 import { asCaseWithRelations } from './persistence';
+import { templateVariants, jobKey } from './template-variants';
 
 export async function getTemplatesFromDatabase() {
   try {
@@ -1006,6 +1007,8 @@ export async function batchGenerateDocuments(input: {
       uniqueKey: string;
       template: (typeof templatesToProcess)[number];
       documentName: string;
+      /** Nombre a mostrar cuando la plantilla produjo varios documentos. */
+      displayName: string;
     }> = [];
 
     console.log(
@@ -1018,7 +1021,19 @@ export async function batchGenerateDocuments(input: {
       asCaseWithRelations(transformedCaseData),
     );
 
-    for (const template of templatesToProcess) {
+    // Una plantilla puede producir MAS de un documento: el oficio de
+    // suspension va dirigido a un juzgado, y un caso con procesos en tres
+    // juzgados necesita tres oficios. Ver `template-variants.ts`.
+    const jobs = templatesToProcess.flatMap((template) =>
+      templateVariants(template, asCaseWithRelations(transformedCaseData)).map(
+        (variant) => ({ template, variant }),
+      ),
+    );
+
+    for (const { template, variant } of jobs) {
+      const displayName = variant.label
+        ? `${template.name} — ${variant.label}`
+        : template.name;
       try {
         const templatePath = getTemplatePath(template);
         const fullPath = path.join(projectRoot, templatePath);
@@ -1026,9 +1041,18 @@ export async function batchGenerateDocuments(input: {
           `[batchGenerateDocuments] Reading template: ${template.name} from ${fullPath}`,
         );
         const htmlContent = await fsPromises.readFile(fullPath, 'utf-8');
+        // El overlay de la variante pisa los placeholders del caso: es lo que
+        // dirige el oficio N al juzgado N en vez de siempre al primero. Va
+        // antes del render y de la validacion, para que las dos vean el mismo
+        // contexto que el documento final.
+        const variantPlaceholders =
+          Object.keys(variant.overlay).length > 0
+            ? { ...placeholders, ...variant.overlay }
+            : placeholders;
+
         const { html: filledHtml, unresolved } = renderDocumentHtml(
           htmlContent,
-          placeholders,
+          variantPlaceholders,
           batchExtraCtx,
         );
 
@@ -1038,7 +1062,7 @@ export async function batchGenerateDocuments(input: {
         const missing = collectMissingData(
           template,
           unresolved,
-          placeholders,
+          variantPlaceholders,
           htmlContent,
         );
         if (missing.length > 0) {
@@ -1051,7 +1075,7 @@ export async function batchGenerateDocuments(input: {
           });
           documents.push({
             templateId: template.id,
-            templateName: template.name,
+            templateName: displayName,
             documentId: '',
             documentName: '',
             documentUrl: '',
@@ -1062,13 +1086,20 @@ export async function batchGenerateDocuments(input: {
           continue;
         }
 
-        const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}.pdf`;
+        // El sufijo evita que los N documentos de una misma plantilla se
+        // sobreescriban entre si en Drive. Con una sola variante es vacio, asi
+        // que el nombre no cambia para ninguna plantilla existente.
+        const documentName = `${template.name.replace(/\s+/g, '_')}_${caseData.caseNumber}${variant.suffix}.pdf`;
 
         htmlDocuments.push({
           html: filledHtml,
-          uniqueKey: template.id,
+          // NO `template.id`: la Fase 2 indexa los buffers por esta clave y
+          // con el id de la plantilla el segundo oficio habria subido el PDF
+          // del primero.
+          uniqueKey: jobKey(template, variant),
           template,
           documentName,
+          displayName,
         });
       } catch (readError) {
         console.error(
@@ -1077,7 +1108,7 @@ export async function batchGenerateDocuments(input: {
         );
         documents.push({
           templateId: template.id,
-          templateName: template.name,
+          templateName: displayName,
           documentId: '',
           documentName: '',
           documentUrl: '',
@@ -1188,7 +1219,7 @@ export async function batchGenerateDocuments(input: {
       if (variants.length === 0) {
         documents.push({
           templateId: htmlDoc.template.id,
-          templateName: htmlDoc.template.name,
+          templateName: htmlDoc.displayName,
           documentId: '',
           documentName: htmlDoc.documentName,
           documentUrl: '',
@@ -1254,7 +1285,7 @@ export async function batchGenerateDocuments(input: {
 
           documents.push({
             templateId: htmlDoc.template.id,
-            templateName: htmlDoc.template.name,
+            templateName: htmlDoc.displayName,
             documentId: document.id,
             documentName: variantDocName,
             documentUrl: fileUrl,
@@ -1267,7 +1298,7 @@ export async function batchGenerateDocuments(input: {
           );
           documents.push({
             templateId: htmlDoc.template.id,
-            templateName: htmlDoc.template.name,
+            templateName: htmlDoc.displayName,
             documentId: '',
             documentName: variantDocName,
             documentUrl: '',

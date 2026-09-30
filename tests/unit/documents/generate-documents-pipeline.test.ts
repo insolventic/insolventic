@@ -149,3 +149,136 @@ describe('generateFromTemplates — pipeline en 3 fases (P1)', () => {
     expect(mockCreateFolderHierarchy).toHaveBeenCalledTimes(1);
   });
 });
+
+/**
+ * Una plantilla puede producir MAS de un documento. El oficio de suspension va
+ * dirigido a un juzgado: con procesos en tres juzgados hacen falta tres
+ * oficios, no uno con los datos del primero. Ver `template-variants.ts`.
+ *
+ * Los tres puntos donde esto se rompe estan en el pipeline, no en el modulo de
+ * variantes: la clave con la que la Fase 2 indexa los buffers, el nombre de
+ * archivo que se sube a Drive, y el nombre de la fila de `Document`.
+ */
+describe('generateFromTemplates — N documentos de una misma plantilla', () => {
+  const TRES_JUZGADOS = [
+    {
+      court: 'Juzgado 1 Civil Municipal de Cali',
+      plaintiff: 'Banco Uno S.A.',
+      processType: 'EJECUTIVO',
+      description: 'Proceso 1',
+    },
+    {
+      court: 'Juzgado 2 Civil Municipal de Cali',
+      plaintiff: 'Cooperativa Dos',
+      processType: 'LABORAL',
+      description: 'Proceso 2',
+    },
+    {
+      court: 'Juzgado 3 Laboral del Circuito de Cali',
+      plaintiff: 'Empleador Tres Ltda.',
+      processType: 'COACTIVO',
+      description: 'Proceso 3',
+    },
+  ];
+
+  const conJuzgados = (procesos = TRES_JUZGADOS) =>
+    makeCase({ type: 'INSOLVENCY', legalProcesses: procesos });
+
+  it('tres juzgados producen tres oficios (antes salia uno solo, dirigido al primero)', async () => {
+    const result = await generateDocumentsForAdmission(
+      conJuzgados() as never,
+      'case-folder-id',
+    );
+
+    const oficios = result.filter(
+      (d) => d.templateId === 'suspension-juzgados',
+    );
+    expect(oficios).toHaveLength(3);
+    expect(oficios.every((d) => d.status === 'success')).toBe(true);
+  });
+
+  it('cada oficio se sube con su propio nombre de archivo: ninguno sobreescribe al otro en Drive', async () => {
+    const result = await generateDocumentsForAdmission(
+      conJuzgados() as never,
+      'case-folder-id',
+    );
+
+    const nombres = result
+      .filter((d) => d.templateId === 'suspension-juzgados')
+      .map((d) => d.fileName);
+
+    expect(new Set(nombres).size).toBe(3);
+    expect(nombres[0]).toContain('_1_Juzgado_1_Civil_Municipal_de_Cali');
+    expect(nombres[2]).toContain('_3_Juzgado_3_Laboral_del_Circuito_de_Ca');
+  });
+
+  it('cada oficio lleva SU juzgado: la Fase 2 no puede devolver el PDF del primero', async () => {
+    await generateDocumentsForAdmission(
+      conJuzgados() as never,
+      'case-folder-id',
+    );
+
+    const [docsPassedToBatch] = mockBatchHtmlToPdf.mock.calls[0];
+    const oficios = (
+      docsPassedToBatch as Array<{ filename: string; html: string }>
+    ).filter((d) => d.filename.startsWith('suspension-juzgados'));
+
+    expect(oficios).toHaveLength(3);
+    // Las claves con las que se indexan los buffers: si fueran iguales, el
+    // segundo y el tercer oficio subirian el PDF del primero.
+    expect(new Set(oficios.map((d) => d.filename)).size).toBe(3);
+
+    expect(oficios[0].html).toContain('Juzgado 1 Civil Municipal de Cali');
+    expect(oficios[0].html).not.toContain('Juzgado 2 Civil Municipal de Cali');
+    expect(oficios[1].html).toContain('Juzgado 2 Civil Municipal de Cali');
+    expect(oficios[2].html).toContain('Juzgado 3 Laboral del Circuito de Cali');
+  });
+
+  it('cada oficio se distingue en la fila de Document por el nombre del juzgado', async () => {
+    const result = await generateDocumentsForAdmission(
+      conJuzgados() as never,
+      'case-folder-id',
+    );
+
+    const nombres = result
+      .filter((d) => d.templateId === 'suspension-juzgados')
+      .map((d) => d.displayName);
+
+    expect(nombres).toEqual([
+      'Suspension Juzgados — Juzgado 1 Civil Municipal de Cali',
+      'Suspension Juzgados — Juzgado 2 Civil Municipal de Cali',
+      'Suspension Juzgados — Juzgado 3 Laboral del Circuito de Cali',
+    ]);
+  });
+
+  it('con UN solo juzgado nada cambia: un documento, sin sufijo en el nombre', async () => {
+    const result = await generateDocumentsForAdmission(
+      conJuzgados([TRES_JUZGADOS[0]]) as never,
+      'case-folder-id',
+    );
+
+    const oficios = result.filter(
+      (d) => d.templateId === 'suspension-juzgados',
+    );
+    expect(oficios).toHaveLength(1);
+    expect(oficios[0].fileName).toBe('INS-2026-042_Suspension_Juzgados.pdf');
+  });
+
+  it('el resto de las plantillas de Admision sigue produciendo un documento cada una', async () => {
+    const result = await generateDocumentsForAdmission(
+      conJuzgados() as never,
+      'case-folder-id',
+    );
+
+    const porPlantilla = new Map<string, number>();
+    for (const d of result) {
+      porPlantilla.set(d.templateId, (porPlantilla.get(d.templateId) ?? 0) + 1);
+    }
+
+    expect(porPlantilla.get('suspension-juzgados')).toBe(3);
+    for (const [templateId, n] of porPlantilla) {
+      if (templateId === 'suspension-juzgados') continue;
+      expect(n).toBe(1);
+    }
+  });
+});
