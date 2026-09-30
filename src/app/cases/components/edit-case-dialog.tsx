@@ -675,7 +675,7 @@ export function EditCaseDialog({
                     <ApplicantScopeSection />
                   </div>
                   <div className="border-t pt-6">
-                    <CaseDetailsSection />
+                    <CaseDetailsSection showFilingDate />
                   </div>
                 </TabsContent>
 
