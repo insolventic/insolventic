@@ -21,6 +21,13 @@ import {
   getGenderArticle,
   formatIdNumber,
 } from './placeholders/format';
+import {
+  mapCauses,
+  mapLegalProcesses,
+  mapLibranzas,
+  mapSuspendedServices,
+  mapDependents,
+} from './placeholders/case-lists';
 
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
@@ -85,38 +92,6 @@ function escapeAllUnlessHtml(map: PlaceholderMap): PlaceholderMap {
       : escapePlaceholder(value);
   }
   return escaped;
-}
-
-// Map causes to individual placeholders
-function mapCauses(
-  causes: string[],
-  otherCauseDetail?: string | null,
-): PlaceholderMap {
-  // Match by DB value (SOBREENDEUDAMIENTO, PERDIDA_EMPLEO, etc.)
-  // The form stores enum values, not display labels
-  const causeValues = [
-    'SOBREENDEUDAMIENTO',
-    'PERDIDA_EMPLEO',
-    'DIVORCIO',
-    'ENFERMEDAD',
-    'ACCIDENTE',
-    'ESTAFA',
-    'DISMINUCION_INGRESOS',
-    'MALA_EDUCACION_FINANCIERA',
-    'MUERTE_CONYUGE',
-    'NUEVOS_CREDITOS',
-    'MALA_INVERSION',
-    'OTROS',
-  ];
-
-  const result: PlaceholderMap = {};
-  for (let i = 0; i < 12; i++) {
-    const causeKey = `CAUSA_${i + 1}`;
-    result[causeKey] = causes.includes(causeValues[i]) ? 'SI' : 'NO';
-  }
-  result['CAUSA_12_DETALLE'] =
-    otherCauseDetail || causes.find((c) => !causeValues.includes(c)) || '';
-  return result;
 }
 
 // Map applicant scope
@@ -409,84 +384,6 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
   result['CANTIDAD_INMUEBLES'] = realEstate.length.toString();
   result['CANTIDAD_MUEBLES'] = personalProperty.length.toString();
   result['CANTIDAD_BIENES'] = assets.length.toString();
-
-  return result;
-}
-
-// Map legal processes
-function mapLegalProcesses(
-  processes: CaseWithRelations['legalProcesses'],
-): PlaceholderMap {
-  const result: PlaceholderMap = {};
-
-  for (let i = 0; i < 5; i++) {
-    const process = processes?.[i];
-    const idx = i + 1;
-
-    if (process) {
-      result[`PROCESO_${idx}_TIPO`] = process.processType || '';
-      result[`PROCESO_${idx}_DEMANDANTE`] = process.plaintiff || '';
-      result[`PROCESO_${idx}_JUZGADO`] = process.court || '';
-      result[`PROCESO_${idx}_EXPEDIENTE`] = process.fileNumber || '';
-      result[`PROCESO_${idx}_MEDIDA`] = process.precautionaryMeasure || '';
-    } else {
-      result[`PROCESO_${idx}_TIPO`] = 'N/A';
-      result[`PROCESO_${idx}_DEMANDANTE`] = 'N/A';
-      result[`PROCESO_${idx}_JUZGADO`] = 'N/A';
-      result[`PROCESO_${idx}_EXPEDIENTE`] = 'N/A';
-      result[`PROCESO_${idx}_MEDIDA`] = 'N/A';
-    }
-  }
-
-  return result;
-}
-
-// Map libranzas
-function mapLibranzas(
-  libranzas: CaseWithRelations['libranzas'],
-): PlaceholderMap {
-  const lib = libranzas?.[0];
-  return {
-    LIBRANZA_PAGADOR: lib?.payerName || 'N/A',
-    LIBRANZA_DIRECCION: lib?.payerAddress || 'N/A',
-    LIBRANZA_EMAIL: lib?.payerEmail || 'N/A',
-    LIBRANZA_TELEFONO: lib?.payerPhone || 'N/A',
-    LIBRANZA_SUMA: lib ? formatCurrency(lib.deductedAmount) : 'N/A',
-    LIBRANZA_PRODUCTO: lib?.productAndCreditor || 'N/A',
-  };
-}
-
-// Map suspended services
-function mapSuspendedServices(
-  services: CaseWithRelations['suspendedServices'],
-): PlaceholderMap {
-  const svc = services?.[0];
-  return {
-    SERVICIOS_ACREEDOR: svc?.creditorName || 'N/A',
-    SERVICIOS_DIRECCION: svc?.address || 'N/A',
-    SERVICIOS_EMAIL: svc?.email || 'N/A',
-    SERVICIOS_TELEFONO: svc?.phone || 'N/A',
-    SERVICIOS_PRODUCTO: svc?.suspendedProduct || 'N/A',
-    SERVICIOS_VALOR: svc ? formatCurrency(svc.amountOwed) : 'N/A',
-    // Alias for Restablecimiento de Servicios template
-    NOMBRE_EMPRESA_SERVICIOS: svc?.creditorName || '____',
-  };
-}
-
-// Map dependents (alimentary obligations)
-function mapDependents(
-  dependents: CaseWithRelations['dependents'],
-): PlaceholderMap {
-  const result: PlaceholderMap = {};
-
-  for (let i = 0; i < 5; i++) {
-    const dep = dependents?.[i];
-    const idx = i + 1;
-
-    result[`OBL_ALIM_${idx}_NOMBRE`] = dep?.name || '';
-    result[`OBL_ALIM_${idx}_EDAD`] = dep?.age?.toString() || '';
-    result[`OBL_ALIM_${idx}_PARENTESCO`] = dep?.relationship || '';
-  }
 
   return result;
 }
@@ -1866,6 +1763,179 @@ export function buildConciliationContext(
 }
 
 // ============================================================
+// INSOLVENCIA — contexto de bloques {{#each}} / {{#if}}
+// ============================================================
+
+/**
+ * Un acreedor, con las claves que consumen las tablas de la Solicitud y de CYG.
+ *
+ * Los nombres son los mismos que los de los slots planos de `mapDebts`, sin el
+ * prefijo numérico: `AC3_CODEUDOR_NOMBRE` ↔ `CODEUDOR_NOMBRE` dentro del
+ * `{{#each}}`. Así la migración de una plantilla es mecánica y se puede leer el
+ * diff sin cruzar dos vocabularios.
+ */
+export interface AcreedorContextItem {
+  /** Número de orden, 1-based. Lo emite el builder porque handlebars-lite no expone `@index`. */
+  NUMERO: string;
+
+  // Ficha detallada (Sección 3 de la Solicitud)
+  NOMBRE: string;
+  DOMICILIO: string;
+  DIRECCION: string;
+  EMAIL: string;
+  CAPITAL: string;
+  INTERESES: string;
+  POSTERGADO: string;
+  TASA: string;
+  DOCUMENTO: string;
+  FECHA_OTORGAMIENTO: string;
+  FECHA_VENCIMIENTO: string;
+  CLASIFICACION: string;
+  CODEUDOR_NOMBRE: string;
+  CODEUDOR_DOMICILIO: string;
+  CODEUDOR_DIRECCION: string;
+
+  // Cuadro resumen
+  VALOR: string;
+  LIBRANZA: string;
+  CLASE: string;
+  PORCENTAJE: string;
+  DIAS: string;
+
+  /** Se llena a mano en la audiencia; vacío al generar. */
+  APODERADO: string;
+}
+
+/**
+ * Escapa TODOS los valores string del ítem.
+ *
+ * Es el mismo principio safe-by-default que `escapeAllUnlessHtml` aplica al
+ * `PlaceholderMap` plano, y hace falta por separado porque **`extraContext` no
+ * pasa por ese escape**: `renderDocumentHtml` lo funde en el contexto tal cual
+ * (`{...extraContext, ...placeholders}`), y `substituteVars` lo inserta en el
+ * HTML sin más.
+ *
+ * Escapar el objeto entero —en vez de campo por campo al construirlo— es
+ * deliberado: una clave nueva queda protegida sin que nadie se acuerde.
+ */
+function escapeContextItem<T extends object>(item: T): T {
+  return Object.fromEntries(
+    Object.entries(item).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? escapePlaceholder(value) : value,
+    ]),
+  ) as T;
+}
+
+/**
+ * Contexto de bloques para casos de INSOLVENCIA.
+ *
+ * Hermano de `buildConciliationContext`, con una diferencia de fondo: aquel lee
+ * columnas `Json` de forma libre, y este lee **relaciones tipadas**, así que no
+ * necesita validar la forma de lo que encuentra.
+ *
+ * Existe para que las plantillas de insolvencia puedan usar `{{#each}}` en vez
+ * de slots numerados. Hoy los slots topan la lista: la Solicitud imprime 3
+ * fichas de acreedor y 10 renglones de resumen, y un caso con más acreedores
+ * —el tope legal son 150— radica un documento incompleto y sin aviso.
+ *
+ * Por ahora **ninguna plantilla lo consume**: se introduce primero para que el
+ * cambio de infraestructura se pueda verificar solo (el golden master no se
+ * mueve) y la migración de cada plantilla sea un PR aparte y reversible. Ver
+ * `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md`.
+ */
+export function buildInsolvencyContext(
+  caseData: CaseWithRelations,
+): Record<string, unknown> {
+  const debts = caseData.debts ?? [];
+
+  // Los totales se calculan UNA vez sobre la lista completa, no por ítem: el
+  // porcentaje de cada acreedor depende de todos los demás. Son los mismos dos
+  // acumuladores que usa `mapDebts`.
+  const totalCapitalAll = debts.reduce(
+    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+    0,
+  );
+
+  const acreedores: AcreedorContextItem[] = debts.map((debt, index) => {
+    const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
+    const interest = Number(debt.interestAmount) || 0;
+    const percentage =
+      totalCapitalAll > 0
+        ? ((capital / totalCapitalAll) * 100).toFixed(2)
+        : '0.00';
+
+    // Si el deudor declaró que no hay codeudor, los tres campos van 'N/A' en
+    // lugar de vacíos: en un documento legal no es lo mismo "no aplica" que
+    // "no se informó".
+    const sinCodeudor = !!(debt as Record<string, unknown>).noCoDebtor;
+    const codeudor = (value: string | null | undefined) =>
+      sinCodeudor ? 'N/A' : value || '';
+
+    return escapeContextItem<AcreedorContextItem>({
+      NUMERO: String(index + 1),
+
+      NOMBRE: debt.creditor.name,
+      DOMICILIO: debt.creditorCity || '',
+      DIRECCION: debt.creditorAddress || '',
+      EMAIL: debt.creditorEmail || '',
+      CAPITAL: formatCurrency(capital),
+      INTERESES: formatCurrency(interest),
+      POSTERGADO: boolToSiNo(debt.isDeferred),
+      TASA:
+        String(debt.interestRate) === 'DESCONOZCO'
+          ? 'Desconoce'
+          : `${Number(debt.interestRate) || 0}%`,
+      DOCUMENTO: debt.documentType || '',
+      FECHA_OTORGAMIENTO: formatShortDate(debt.grantDate),
+      FECHA_VENCIMIENTO: formatShortDate(debt.dueDate),
+      CLASIFICACION: debt.creditClassification || '',
+      CODEUDOR_NOMBRE: codeudor(debt.coDebtorName),
+      CODEUDOR_DOMICILIO: codeudor(debt.coDebtorCity),
+      CODEUDOR_DIRECCION: codeudor(debt.coDebtorAddress),
+
+      VALOR: formatCurrency(Number(debt.amount)),
+      LIBRANZA: boolToSiNo(debt.hasActiveLibranza),
+      CLASE: debt.creditorClass || '',
+      // A diferencia del slot plano, el símbolo va siempre: la rama persistida
+      // daba "33" y la calculada "33.00%" en el mismo documento.
+      PORCENTAJE: debt.percentageOfTotal
+        ? `${debt.percentageOfTotal}%`
+        : `${percentage}%`,
+      DIAS: debt.daysOverdue?.toString() || '',
+
+      APODERADO: '',
+    });
+  });
+
+  return {
+    ACREEDORES: acreedores,
+    // Bandera para `{{#if}}`: permite que la plantilla ponga una leyenda
+    // ("no declara acreedores") en lugar de una tabla vacía.
+    TIENE_ACREEDORES_LISTA: acreedores.length > 0,
+  };
+}
+
+/**
+ * Contexto de bloques que corresponde al tipo de caso.
+ *
+ * Único punto de decisión: antes el mismo ternario estaba repetido en los tres
+ * sitios que renderizan (dos en `generate-documents.ts`, uno en `actions.ts`),
+ * así que agregar un tipo obligaba a acordarse de los tres.
+ *
+ * Devuelve `undefined` cuando el tipo no aporta bloques, para que
+ * `renderDocumentHtml` reciba exactamente lo que recibía antes.
+ */
+export function buildTemplateContext(
+  caseData: CaseWithRelations,
+): Record<string, unknown> | undefined {
+  if (caseData.type === 'CONCILIATION')
+    return buildConciliationContext(caseData);
+  if (caseData.type === 'INSOLVENCY') return buildInsolvencyContext(caseData);
+  return undefined;
+}
+
+// ============================================================
 // ACUERDO DE APOYO — placeholder mapping
 // ============================================================
 function mapApoyoFields(caseData: CaseWithRelations): PlaceholderMap {
@@ -2573,6 +2643,54 @@ export function mapCaseToPlaceholders(
   });
 }
 
+/** Un `{{VARIABLE}}` suelto. No matchea los tags de bloque, que llevan `#` o `/`. */
+const VAR_TOKEN_RE = /\{\{([A-Za-z0-9_]+)\}\}/g;
+
+/**
+ * Bloques `{{#if}}` / `{{#unless}}` / `{{#each}}` con su contenido.
+ *
+ * La sintaxis real (handlebars-lite.ts) siempre lleva DOS tokens en el tag de
+ * apertura —`{{#if FLAG}}`, `{{#each LISTA}}`— nunca uno solo. El cierre puede
+ * venir con o sin el identificador repetido (`{{/if}}` o `{{/if FLAG}}`, este
+ * último es el que usan las plantillas de conciliación). El backreference `\1`
+ * exige que abra y cierre el mismo tipo de bloque.
+ */
+const BLOCK_RE =
+  /\{\{#(if|each|unless)\s+[A-Za-z0-9_]+\s*\}\}((?:(?!\{\{#(?:if|each|unless)\b)[\s\S])*?)\{\{\/\1(?:\s+[A-Za-z0-9_]+)?\s*\}\}/g;
+
+/**
+ * Quita del HTML los bloques de control con todo su contenido, y devuelve lo
+ * que queda: las variables de nivel raíz.
+ *
+ * Existe porque las variables de adentro de un bloque NO se resuelven contra el
+ * contexto raíz sino contra el scope del bloque (el item del `{{#each}}`), así
+ * que cualquier análisis que las cuente como variables del mapper da falsos
+ * positivos. Los dos análisis que hay lo necesitan: el detector de placeholders
+ * sin resolver de `renderDocumentHtml` —que BLOQUEA la generación— y
+ * `validatePlaceholderCoverage`.
+ *
+ * Igual que `resolveBlocks` de handlebars-lite, se aplica en pasadas hasta
+ * estabilizar: cada pasada solo puede quitar el bloque MÁS interno (la negative
+ * lookahead evita que `[\s\S]*?` se coma un `{{#if/each/unless` anidado), así
+ * que los anidados se pelan de adentro hacia afuera.
+ *
+ * Los tags envueltos en comentarios HTML (`<!-- {{#each X}} -->`, el patrón que
+ * usan las plantillas de conciliación para seguir siendo HTML válido sin
+ * renderizar) se manejan solos: el regex matchea el tag y deja los `<!--` y
+ * `-->` sueltos como texto, que no contienen placeholders.
+ */
+function stripBlocks(html: string): string {
+  let out = html;
+  // Cota de seguridad, igual que en handlebars-lite: evita un bucle infinito
+  // ante una plantilla mal formada.
+  for (let pass = 0; pass < 32; pass++) {
+    const before = out;
+    out = out.replace(BLOCK_RE, '');
+    if (out === before) break;
+  }
+  return out;
+}
+
 export interface RenderedDocument {
   html: string;
   /**
@@ -2618,30 +2736,10 @@ export function renderDocumentHtml(
   // así que escanear el HTML ya renderizado no encontraría nada. Hay que
   // comparar contra la fuente.
   //
-  // Las variables dentro de bloques `{{#each}}` / `{{#if}}` / `{{#unless}}` se
-  // resuelven contra el scope del bloque, no contra el contexto raíz: se
-  // excluyen del escaneo para no reportar falsos faltantes.
-  //
-  // La sintaxis real (handlebars-lite.ts) siempre lleva DOS tokens en el tag de
-  // apertura -`{{#if FLAG}}`, `{{#each LISTA}}`- nunca uno solo. El cierre puede
-  // venir con o sin el identificador repetido (`{{/if}}` o `{{/if FLAG}}`, este
-  // último es el que usan las plantillas de conciliación). El backreference \1
-  // exige que abra y cierre el mismo tipo de bloque.
-  //
-  // Igual que `resolveBlocks`, se aplica en pasadas hasta estabilizar: cada
-  // pasada solo puede quitar el bloque MÁS interno (la negative lookahead evita
-  // que `[\s\S]*?` se coma un `{{#if/each/unless` anidado), así que los bloques
-  // anidados se pelan de adentro hacia afuera.
-  const BLOCK_RE =
-    /\{\{#(if|each|unless)\s+[A-Za-z0-9_]+\s*\}\}((?:(?!\{\{#(?:if|each|unless)\b)[\s\S])*?)\{\{\/\1(?:\s+[A-Za-z0-9_]+)?\s*\}\}/g;
-  let topLevelHtml = html;
-  for (let pass = 0; pass < 32; pass++) {
-    const before = topLevelHtml;
-    topLevelHtml = topLevelHtml.replace(BLOCK_RE, '');
-    if (topLevelHtml === before) break;
-  }
+  // `stripBlocks` saca las variables que están dentro de un bloque: esas se
+  // resuelven contra el scope del bloque, no contra el contexto raíz.
   const referenced = new Set(
-    [...topLevelHtml.matchAll(/\{\{([A-Za-z0-9_]+)\}\}/g)].map((m) => m[1]),
+    [...stripBlocks(html).matchAll(VAR_TOKEN_RE)].map((m) => m[1]),
   );
   const unresolved = [...referenced].filter((name) => !(name in ctx));
 
@@ -2708,9 +2806,12 @@ export function validatePlaceholderCoverage(
   html: string,
   placeholders: PlaceholderMap,
 ): PlaceholderCoverageResult {
-  // Find all {{VARIABLE}} patterns in the HTML
-  const regex = /\{\{([A-Za-z0-9_]+)\}\}/g;
-  const matches = [...html.matchAll(regex)];
+  // Las variables de dentro de un bloque se resuelven contra el scope del
+  // bloque, no contra el mapper: contarlas acá daba faltantes falsos y hundía
+  // el porcentaje de cobertura. Con una plantilla de conciliación típica el
+  // resultado era un `logger.warn` de "cobertura baja" en cada generación,
+  // sobre un documento que salía perfecto.
+  const matches = [...stripBlocks(html).matchAll(VAR_TOKEN_RE)];
   const foundVariables = [...new Set(matches.map((m) => m[1]))]; // Unique variables
 
   // Categorize variables

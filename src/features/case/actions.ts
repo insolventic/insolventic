@@ -35,6 +35,10 @@ import {
   type GenerationKind,
 } from '@/features/document/generation-request';
 import { generatePaymentSchedule } from '@/features/payment/actions';
+import {
+  requiresOtherDetail,
+  tipoProcesoLabel,
+} from '@/features/case/proceso-judicial-tipos';
 import { buildApoderadosCreate, mirrorPrincipalApoderado } from './apoderados';
 
 import {
@@ -86,6 +90,7 @@ const JSON_ARRAY_FIELDS = [
   // Json? igual que los anteriores: sin esto, un payload con `null` aquí llega
   // a Prisma, que para columnas Json? exige `Prisma.DbNull`, no `null`.
   'apoyoClausulas',
+  'serviciosManutencion',
 ] as const;
 
 function sanitizeJsonFields<T extends Record<string, unknown>>(data: T): T {
@@ -551,6 +556,7 @@ export async function createCase(
                   proofDocument: asset.proofDocument,
                   isFamilyHome: asset.isFamilyHome,
                   isInalienablePatrimony: asset.isInalienablePatrimony,
+                  hasPendingFinesOrTaxes: asset.hasPendingFinesOrTaxes,
                   // Vehicle specific
                   brand: asset.brand,
                   model: asset.model,
@@ -610,10 +616,20 @@ export async function createCase(
           legalProcesses && legalProcesses.length > 0
             ? {
                 create: legalProcesses.map((process: LegalProcessData) => ({
-                  description: `${process.processType} - ${process.plaintiff}`,
+                  // La descripción es el resumen que se muestra en listados: en
+                  // "Otros" el valor crudo no dice nada, así que se usa el texto
+                  // que escribió el usuario.
+                  description: `${tipoProcesoLabel(
+                    process.processType,
+                    process.processTypeOther,
+                  )} - ${process.plaintiff}`,
                   processType: process.processType,
+                  processTypeOther: requiresOtherDetail(process.processType)
+                    ? process.processTypeOther
+                    : null,
                   plaintiff: process.plaintiff,
                   court: process.court,
+                  courtEmail: process.courtEmail || null,
                   fileNumber: process.fileNumber,
                   precautionaryMeasure: process.precautionaryMeasure,
                   tenantId,
@@ -710,8 +726,15 @@ export async function createCase(
                 create: procesosJudiciales.map(
                   (p: ProcesoJudicialFormData) => ({
                     tipoProceso: p.tipoProceso,
+                    // Antes se descartaba en silencio: el zod lo aceptaba y esta
+                    // proyección no lo listaba, así que el texto de "Otros" se
+                    // perdía entre el formulario y la fila.
+                    tipoProcesoOtro: requiresOtherDetail(p.tipoProceso)
+                      ? p.tipoProcesoOtro
+                      : null,
                     juzgadoNombre: p.juzgadoNombre,
                     juzgadoCiudad: p.juzgadoCiudad,
+                    juzgadoCorreo: p.juzgadoCorreo || null,
                     procesoJudicialRadicado: p.procesoJudicialRadicado,
                     demandanteNombre: p.demandanteNombre,
                     demandadoNombre: p.demandadoNombre,
@@ -803,6 +826,8 @@ export async function createCase(
             coDebtorName: debt.coDebtorName,
             coDebtorCity: debt.coDebtorCity,
             coDebtorAddress: debt.coDebtorAddress,
+            coDebtorPhone: debt.coDebtorPhone,
+            coDebtorEmail: debt.coDebtorEmail,
           },
         });
       }
@@ -1594,6 +1619,7 @@ export async function addAssetToCase(
       proofDocument,
       isFamilyHome,
       isInalienablePatrimony,
+      hasPendingFinesOrTaxes,
       brand,
       model,
       condition,
@@ -1632,6 +1658,7 @@ export async function addAssetToCase(
         proofDocument: proofDocument || null,
         isFamilyHome: isFamilyHome ?? undefined,
         isInalienablePatrimony: isInalienablePatrimony ?? undefined,
+        hasPendingFinesOrTaxes: hasPendingFinesOrTaxes ?? undefined,
         brand: brand || null,
         model: model || null,
         condition: condition || null,
@@ -1678,6 +1705,7 @@ export async function addAssetToCase(
       proofDocument: asset.proofDocument,
       isFamilyHome: asset.isFamilyHome,
       isInalienablePatrimony: asset.isInalienablePatrimony,
+      hasPendingFinesOrTaxes: asset.hasPendingFinesOrTaxes,
       brand: asset.brand,
       model: asset.model,
       condition: asset.condition,
@@ -1756,6 +1784,7 @@ export async function removeAssetFromCase(
       proofDocument: deletedAsset.proofDocument,
       isFamilyHome: deletedAsset.isFamilyHome,
       isInalienablePatrimony: deletedAsset.isInalienablePatrimony,
+      hasPendingFinesOrTaxes: deletedAsset.hasPendingFinesOrTaxes,
       brand: deletedAsset.brand,
       model: deletedAsset.model,
       condition: deletedAsset.condition,

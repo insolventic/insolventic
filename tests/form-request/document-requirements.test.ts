@@ -49,6 +49,14 @@ describe('Document Requirements — validation-rules.ts', () => {
       expect(poder!.condition).toBe('hasAttorney');
     });
 
+    it('should expose the apoderado ID and bar-card as CONDITIONAL (hasAttorney)', () => {
+      for (const id of ['cedula_apoderado', 'tarjeta_profesional_apoderado']) {
+        const doc = CONDITIONAL_DOCUMENTS.find((d) => d.id === id);
+        expect(doc).toBeDefined();
+        expect(doc!.condition).toBe('hasAttorney');
+      }
+    });
+
     it('should have exactly 3 always-required documents', () => {
       expect(REQUIRED_DOCUMENTS).toHaveLength(3);
     });
@@ -129,6 +137,108 @@ describe('Document Requirements — validation-rules.ts', () => {
     it('should return base docs when no applicantScope provided', () => {
       const required = getRequiredDocuments({});
       expect(required).toHaveLength(3);
+    });
+  });
+
+  /**
+   * Los 3 documentos del apoderado y el bug que los hacía inexigibles.
+   *
+   * `getRequiredDocuments` leía `caseData.hasAttorney`, que NO es un campo de
+   * `CreateCaseFormInput`. `handleSubmit` le pasa el form data crudo, así que
+   * daba siempre `undefined` y el poder no se exigía nunca: la pantalla lo
+   * pintaba en rojo (el diálogo le inyecta un `hasAttorney` derivado a
+   * `DocumentsSection`) pero el envío pasaba igual.
+   *
+   * Por eso estos casos van sobre las claves que el formulario manda de verdad.
+   */
+  describe('getRequiredDocuments — apoderado', () => {
+    const APODERADO_DOCS = [
+      'poder',
+      'cedula_apoderado',
+      'tarjeta_profesional_apoderado',
+    ];
+
+    it('derives the attorney from apoderados[] (what the wizard actually sends)', () => {
+      const required = getRequiredDocuments({
+        applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
+        apoderados: [{ nombreCompleto: 'Ana Torres' }],
+      } as Parameters<typeof getRequiredDocuments>[0]);
+
+      for (const id of APODERADO_DOCS) expect(required).toContain(id);
+      expect(required).toHaveLength(6);
+    });
+
+    it('derives the attorney from the legacy apoderadoNombreCompleto field', () => {
+      const required = getRequiredDocuments({
+        apoderadoNombreCompleto: 'Ana Torres',
+      } as Parameters<typeof getRequiredDocuments>[0]);
+
+      for (const id of APODERADO_DOCS) expect(required).toContain(id);
+    });
+
+    it('derives the attorney from the free-text attorney field of page 1', () => {
+      const required = getRequiredDocuments({
+        attorney: 'Dr. Juan Pérez',
+      } as Parameters<typeof getRequiredDocuments>[0]);
+
+      for (const id of APODERADO_DOCS) expect(required).toContain(id);
+    });
+
+    it('still honours an explicit hasAttorney flag (how the UI asks)', () => {
+      const required = getRequiredDocuments({
+        hasAttorney: true,
+      } as Parameters<typeof getRequiredDocuments>[0]);
+
+      for (const id of APODERADO_DOCS) expect(required).toContain(id);
+    });
+
+    it('ignores empty or whitespace-only attorney names', () => {
+      const required = getRequiredDocuments({
+        attorney: '   ',
+        apoderadoNombreCompleto: '',
+        apoderados: [{ nombreCompleto: '  ' }],
+      } as Parameters<typeof getRequiredDocuments>[0]);
+
+      for (const id of APODERADO_DOCS) expect(required).not.toContain(id);
+      expect(required).toHaveLength(3);
+    });
+
+    it('requires none of the three when the case has no attorney', () => {
+      const required = getRequiredDocuments({
+        applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
+      });
+
+      for (const id of APODERADO_DOCS) expect(required).not.toContain(id);
+    });
+
+    it('validateDocumentsComplete names the three as missing', () => {
+      const result = validateDocumentsComplete(
+        ['cedula', 'redam', 'cert_ingresos'],
+        {
+          apoderados: [{ nombreCompleto: 'Ana Torres' }],
+        } as Parameters<typeof validateDocumentsComplete>[1],
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.missingDocuments.map((d) => d.id).sort()).toEqual(
+        [...APODERADO_DOCS].sort(),
+      );
+      // Los nombres se resuelven contra CONDITIONAL_DOCUMENTS, no caen al id.
+      for (const doc of result.missingDocuments) {
+        expect(doc.name).not.toBe(doc.id);
+      }
+    });
+
+    it('passes once the three apoderado documents are uploaded', () => {
+      const result = validateDocumentsComplete(
+        ['cedula', 'redam', 'cert_ingresos', ...APODERADO_DOCS],
+        {
+          apoderados: [{ nombreCompleto: 'Ana Torres' }],
+        } as Parameters<typeof validateDocumentsComplete>[1],
+      );
+
+      expect(result.isValid).toBe(true);
+      expect(result.missingDocuments).toHaveLength(0);
     });
   });
 

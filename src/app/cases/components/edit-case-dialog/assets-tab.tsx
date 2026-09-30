@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useForm, useFormContext } from 'react-hook-form';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,9 +8,17 @@ import { Plus, Trash2 } from 'lucide-react';
 
 import { addAssetToCase, removeAssetFromCase } from '@/features/case/actions';
 import {
+  assetFieldsToClear,
+  blankValueFor,
+} from '@/features/case/asset-type-fields';
+import {
   addAssetToCaseSchema,
   type AddAssetToCaseData,
 } from '@/features/case/schemas';
+import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -34,35 +42,53 @@ interface AssetsTabProps {
   caseId: string;
 }
 
+/**
+ * Formulario de bien en blanco: TODAS las claves, con su valor vacío.
+ *
+ * Una sola fuente para `defaultValues` y para el `reset` posterior a agregar un
+ * bien. Antes eran dos listas y el `reset` solo repetía 5 de las 22 claves, lo
+ * que dejaba el formulario a medio limpiar para el bien siguiente —
+ * `reset(values)` de react-hook-form NO vuelve a los `defaultValues`: reemplaza
+ * el estado por `values`, así que lo omitido queda en `undefined` y los inputs
+ * de texto conservan en el DOM lo que tenía el bien anterior.
+ *
+ * Con una sola fuente, un campo nuevo del formulario no puede quedar fuera del
+ * reset: se agrega acá y queda cubierto en los dos lados.
+ */
+function emptyAssetForm(caseId: string): AddAssetToCaseData {
+  return {
+    caseId,
+    name: '',
+    type: '',
+    value: '',
+    description: '',
+    propertyType: '',
+    address: '',
+    registrationNumber: '',
+    encumbrance: '',
+    affectation: '',
+    precautionaryMeasure: '',
+    proofDocument: '',
+    isFamilyHome: false,
+    isInalienablePatrimony: false,
+    brand: '',
+    model: '',
+    condition: '',
+    licensePlate: '',
+    transitAuthority: '',
+    hasPendingFinesOrTaxes: false,
+    guaranteeInFavorOf: '',
+    guaranteeAmount: '',
+    material: '',
+  };
+}
+
 export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
   const form = useFormContext();
 
   const newAssetForm = useForm<AddAssetToCaseData>({
     resolver: zodResolver(addAssetToCaseSchema),
-    defaultValues: {
-      caseId,
-      name: '',
-      type: '',
-      value: '',
-      description: '',
-      propertyType: '',
-      address: '',
-      registrationNumber: '',
-      encumbrance: '',
-      affectation: '',
-      precautionaryMeasure: '',
-      proofDocument: '',
-      isFamilyHome: false,
-      isInalienablePatrimony: false,
-      brand: '',
-      model: '',
-      condition: '',
-      licensePlate: '',
-      transitAuthority: '',
-      guaranteeInFavorOf: '',
-      guaranteeAmount: '',
-      material: '',
-    },
+    defaultValues: emptyAssetForm(caseId),
   });
 
   const [isPending, startTransition] = useTransition();
@@ -96,18 +122,13 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
             condition: result.condition,
             licensePlate: result.licensePlate,
             transitAuthority: result.transitAuthority,
+            hasPendingFinesOrTaxes: result.hasPendingFinesOrTaxes,
             guaranteeInFavorOf: result.guaranteeInFavorOf,
             guaranteeAmount: result.guaranteeAmount,
             material: result.material,
           },
         ]);
-        newAssetForm.reset({
-          caseId,
-          name: '',
-          type: '',
-          value: '',
-          description: '',
-        });
+        newAssetForm.reset(emptyAssetForm(caseId));
       } else {
         toast.error(error ?? 'Error al agregar bien');
       }
@@ -137,6 +158,21 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
   const assets = form.watch('assets') ?? [];
   const assetType = newAssetForm.watch('type');
+
+  // Al cambiar el tipo, los bloques específicos se desmontan pero
+  // react-hook-form conserva sus valores (`shouldUnregister: false`), así que lo
+  // cargado para un inmueble se enviaba junto a un vehículo. Se limpian los
+  // campos que el tipo elegido no muestra.
+  useEffect(() => {
+    for (const field of assetFieldsToClear(assetType)) {
+      newAssetForm.setValue(field, blankValueFor(field) as never, {
+        shouldDirty: false,
+      });
+    }
+    // `newAssetForm` es estable entre renders (useForm), así que el tipo es la
+    // única dependencia real.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetType]);
 
   return (
     <div className="space-y-6">
@@ -295,7 +331,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                 <Input
                   id="name"
                   {...newAssetForm.register('name')}
-                  placeholder="Ej: Casa, Carro Toyota"
+                  placeholder={assetNamePlaceholder(assetType)}
                 />
                 {newAssetForm.formState.errors.name && (
                   <p className="text-destructive text-sm">
@@ -306,7 +342,8 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
               <div className="space-y-2">
                 <Label htmlFor="value">
-                  Valor ($) <span className="text-red-500">*</span>
+                  {assetValueLabel(assetType)}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="value"
@@ -389,6 +426,22 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                     Vivienda Familiar (Ley 258/1996)
                   </Label>
                 </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isInalienablePatrimony"
+                    checked={newAssetForm.watch('isInalienablePatrimony')}
+                    onCheckedChange={(checked) =>
+                      newAssetForm.setValue('isInalienablePatrimony', !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="isInalienablePatrimony"
+                    className="cursor-pointer"
+                  >
+                    Patrimonio de familia inembargable (Ley 70/1931)
+                  </Label>
+                </div>
               </div>
             )}
 
@@ -456,6 +509,22 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                       placeholder="Banco o entidad"
                     />
                   </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hasPendingFinesOrTaxes"
+                    checked={newAssetForm.watch('hasPendingFinesOrTaxes')}
+                    onCheckedChange={(checked) =>
+                      newAssetForm.setValue('hasPendingFinesOrTaxes', !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="hasPendingFinesOrTaxes"
+                    className="cursor-pointer"
+                  >
+                    Tiene comparendos o impuestos pendientes de pago
+                  </Label>
                 </div>
               </div>
             )}

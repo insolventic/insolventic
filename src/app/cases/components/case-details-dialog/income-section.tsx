@@ -1,9 +1,12 @@
 'use client';
 
+import { Lock } from 'lucide-react';
+
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
+import { servicioManutencionLabel } from '@/features/case/servicios-manutencion';
 
 interface IncomeSectionProps {
   caseData: CaseWithRelations;
@@ -81,6 +84,55 @@ export function IncomeSection({ caseData }: Readonly<IncomeSectionProps>) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Servicios de manutención — desglose interno del operador.
+          No aparece en ningún documento generado (ver
+          src/features/case/servicios-manutencion.ts). */}
+      {caseData?.serviciosManutencion &&
+        caseData.serviciosManutencion.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                Servicios de Manutención
+                <Badge variant="secondary" className="font-normal">
+                  <Lock className="mr-1 h-3 w-3" />
+                  Uso interno
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {caseData.serviciosManutencion.map((servicio, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 gap-2 rounded-lg border p-3 md:grid-cols-[1fr_2fr]"
+                  >
+                    <div>
+                      <p className="text-muted-foreground text-xs font-medium">
+                        Servicio
+                      </p>
+                      <p className="text-sm">
+                        {servicioManutencionLabel(servicio)}
+                      </p>
+                    </div>
+                    {servicio.descripcion?.trim() && (
+                      <div>
+                        <p className="text-muted-foreground text-xs font-medium">
+                          Descripción
+                        </p>
+                        <p className="text-sm">{servicio.descripcion}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-muted-foreground mt-3 text-xs">
+                Este desglose no se incluye en los documentos generados. El
+                monto total declarado es el de &quot;Gastos Mensuales&quot;.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
       {/* Obligaciones Alimentarias (Dependientes) */}
       {caseData?.dependents && caseData.dependents.length > 0 && (

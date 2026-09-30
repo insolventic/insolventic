@@ -59,6 +59,8 @@ export function CreditorsDetailedSection() {
       coDebtorName: '',
       coDebtorCity: '',
       coDebtorAddress: '',
+      coDebtorPhone: '',
+      coDebtorEmail: '',
     });
   };
 
@@ -113,7 +115,7 @@ export function CreditorsDetailedSection() {
                         <FormControl>
                           <Input
                             {...formField}
-                            placeholder="Nombre de la entidad"
+                            placeholder="Nombre de la entidad o persona que prestó el dinero"
                           />
                         </FormControl>
                         <FormMessage />
@@ -577,6 +579,42 @@ export function CreditorsDetailedSection() {
                             <Input
                               {...formField}
                               placeholder="Dirección completa"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name={`debts.${index}.coDebtorPhone`}
+                      render={({ field: formField }) => (
+                        <FormItem>
+                          <FormLabel>Teléfono</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...formField}
+                              type="tel"
+                              placeholder="Ej: 3101234567"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name={`debts.${index}.coDebtorEmail`}
+                      render={({ field: formField }) => (
+                        <FormItem>
+                          <FormLabel>Correo electrónico</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...formField}
+                              type="email"
+                              placeholder="correo@ejemplo.com"
                             />
                           </FormControl>
                           <FormMessage />

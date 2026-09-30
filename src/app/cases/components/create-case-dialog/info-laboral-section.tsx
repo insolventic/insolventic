@@ -17,6 +17,7 @@ import type {
   CreateCaseFormInput,
   DependentData,
 } from '@/features/case/schemas';
+import { ServiciosManutencionSection } from './servicios-manutencion-section';
 
 export function InfoLaboralSection() {
   const { register, watch, setValue, control } =
@@ -332,6 +333,9 @@ export function InfoLaboralSection() {
           </div>
         </div>
       </div>
+
+      {/* Desglose de servicios de manutención (dato interno del operador) */}
+      <ServiciosManutencionSection />
 
       {/* Recursos disponibles */}
       <div className="rounded-lg border bg-blue-50 p-4 dark:bg-blue-950">

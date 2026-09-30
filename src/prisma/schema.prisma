@@ -394,6 +394,16 @@ model Case {
   // Cláusulas del acuerdo (JSON array: [{NUMERO_CLAUSULA, TEXTO_CLAUSULA}])
   apoyoClausulas                       Json?     @map("apoyo_clausulas")
 
+  // Desglose de servicios de manutención por tipo — gas, agua, luz y los que el
+  // operador agregue con "+ Otros".
+  // JSON array: [{tipo, nombre, descripcion}]. Catálogo de tipos en
+  // src/features/case/servicios-manutencion.ts.
+  //
+  // Dato INTERNO del operador: NO se lleva a los documentos generados. El monto
+  // agregado sigue siendo `gastosServiciosPublicos`, que es el que alimenta la
+  // propuesta de pago y el Excel; esto es el detalle de qué servicios hay.
+  serviciosManutencion                 Json?     @map("servicios_manutencion")
+
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
@@ -625,6 +635,8 @@ model Debt {
   coDebtorName         String?
   coDebtorCity         String?
   coDebtorAddress      String?
+  coDebtorPhone        String?
+  coDebtorEmail        String?
 
   case         Case     @relation(fields: [caseId], references: [id])
   creditor     Creditor @relation(fields: [creditorId], references: [id])
@@ -658,6 +670,11 @@ model Asset {
   condition             String?
   licensePlate          String?
   transitAuthority      String?
+  // ¿El vehículo tiene comparendos o impuestos pendientes de pago?
+  // Solo aplica a bienes de tipo VEHICULO. De acá cuelga un párrafo dirigido a
+  // la Secretaría de Hacienda que todavía NO está implementado: falta el texto
+  // legal. Este PR es solo la captura.
+  hasPendingFinesOrTaxes Boolean @default(false)
   guaranteeInFavorOf    String?
   guaranteeAmount       Decimal?
   material              String?
@@ -713,9 +730,16 @@ model LegalProcess {
   description           String
   caseId                String
   tenantId              String
+  // Valor de TIPOS_PROCESO_JUDICIAL (src/features/case/proceso-judicial-tipos.ts).
+  // String y no enum de Prisma: el schema no usa enums, y migrar los valores ya
+  // guardados en producción no aporta nada acá.
   processType           String?
+  // Texto libre, solo cuando processType == 'OTROS'.
+  processTypeOther      String?
   plaintiff             String?
   court                 String?
+  // Correo del juzgado: es a donde se manda el oficio de suspensión.
+  courtEmail            String?
   fileNumber            String?
   precautionaryMeasure  String?
   case                  Case     @relation(fields: [caseId], references: [id])
@@ -816,9 +840,16 @@ model ProcesoJudicial {
   caseId                    String
   tenantId                  String
 
+  // Misma lista que LegalProcess.processType: TIPOS_PROCESO_JUDICIAL
+  // (src/features/case/proceso-judicial-tipos.ts).
   tipoProceso               String?   @map("tipo_proceso")
+  // Texto libre, solo cuando tipoProceso == 'OTROS'. El formulario ya lo
+  // capturaba y el zod ya lo aceptaba; sin esta columna se descartaba en
+  // silencio al persistir.
+  tipoProcesoOtro           String?   @map("tipo_proceso_otro")
   juzgadoNombre             String?   @map("juzgado_nombre")
   juzgadoCiudad             String?   @map("juzgado_ciudad")
+  juzgadoCorreo             String?   @map("juzgado_correo")
   procesoJudicialRadicado   String?   @map("proceso_judicial_radicado")
   demandanteNombre          String?   @map("demandante_nombre")
   demandadoNombre           String?   @map("demandado_nombre")

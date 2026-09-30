@@ -191,6 +191,8 @@ export function EditCaseDialog({
                 coDebtorName: debt.coDebtorName ?? '',
                 coDebtorCity: debt.coDebtorCity ?? '',
                 coDebtorAddress: debt.coDebtorAddress ?? '',
+                coDebtorPhone: debt.coDebtorPhone ?? '',
+                coDebtorEmail: debt.coDebtorEmail ?? '',
               })),
               assets: (fullCase.assets ?? []).map((asset) => ({
                 id: asset.id,
@@ -287,8 +289,10 @@ export function EditCaseDialog({
                 (process) => ({
                   id: process.id,
                   processType: process.processType ?? '',
+                  processTypeOther: process.processTypeOther ?? '',
                   plaintiff: process.plaintiff ?? '',
                   court: process.court ?? '',
+                  courtEmail: process.courtEmail ?? '',
                   fileNumber: process.fileNumber ?? '',
                   precautionaryMeasure: process.precautionaryMeasure ?? '',
                 }),
@@ -669,7 +673,7 @@ export function EditCaseDialog({
                     <ApplicantScopeSection />
                   </div>
                   <div className="border-t pt-6">
-                    <CaseDetailsSection />
+                    <CaseDetailsSection showFilingDate />
                   </div>
                 </TabsContent>
 

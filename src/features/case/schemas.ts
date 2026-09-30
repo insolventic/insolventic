@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { CASE_PHASE_VALUES } from '@/lib/case-phases';
+import { requiresOtherDetail } from '@/features/case/proceso-judicial-tipos';
 
 /**
  * Fase del expediente restringida a las fases conocidas (C-1).
@@ -35,6 +36,19 @@ const concMenorUnionSchema = z.object({
 const concClausulaSchema = z.object({
   NUMERO_CLAUSULA: z.string().min(1, 'Número requerido'),
   TEXTO_CLAUSULA: z.string().min(1, 'Texto requerido'),
+});
+
+/**
+ * Una fila del desglose de servicios de manutención (columna Json? de Case).
+ *
+ * `nombre` es obligatorio porque una fila sin nombre no se puede mostrar; en los
+ * tres tipos fijos lo pone el catálogo, en "Otros" lo escribe el operador.
+ * `descripcion` es libre y opcional.
+ */
+export const servicioManutencionSchema = z.object({
+  tipo: z.string().min(1),
+  nombre: z.string().min(1, 'Nombre del servicio requerido'),
+  descripcion: z.string().optional(),
 });
 
 const concClausulaAdicionalSchema = z.object({
@@ -163,6 +177,8 @@ const debtForCaseSchema = z.object({
   coDebtorName: z.string().nullable(),
   coDebtorCity: z.string().nullable(),
   coDebtorAddress: z.string().nullable(),
+  coDebtorPhone: z.string().nullable(),
+  coDebtorEmail: z.string().nullable(),
 });
 
 const assetForCaseSchema = z.object({
@@ -182,6 +198,7 @@ const assetForCaseSchema = z.object({
   proofDocument: z.string().nullable().optional(),
   isFamilyHome: z.boolean().nullable().optional(),
   isInalienablePatrimony: z.boolean().nullable().optional(),
+  hasPendingFinesOrTaxes: z.boolean().nullable().optional(),
   brand: z.string().nullable().optional(),
   model: z.string().nullable().optional(),
   condition: z.string().nullable().optional(),
@@ -221,6 +238,8 @@ export const debtSchema = z.object({
   coDebtorName: z.string().optional(),
   coDebtorCity: z.string().optional(),
   coDebtorAddress: z.string().optional(),
+  coDebtorPhone: z.string().optional(),
+  coDebtorEmail: z.string().optional(),
   // Dynamic "Otra" debt type detail
   otherDebtTypeDetail: z.string().optional(),
 });
@@ -242,6 +261,7 @@ export const assetSchema = z.object({
   proofDocument: z.string().optional(),
   isFamilyHome: z.boolean().default(false),
   isInalienablePatrimony: z.boolean().default(false),
+  hasPendingFinesOrTaxes: z.boolean().default(false),
 
   // Personal Property specific fields
   brand: z.string().optional(),
@@ -309,14 +329,34 @@ const dependentForCaseSchema = z.object({
 });
 
 // Legal Process schemas
-export const legalProcessSchema = z.object({
-  id: z.string().optional(),
-  processType: z.string().min(1, 'El tipo de proceso es requerido'),
-  plaintiff: z.string().min(1, 'El demandante es requerido'),
-  court: z.string().min(1, 'El juzgado es requerido'),
-  fileNumber: z.string().min(1, 'El expediente es requerido'),
-  precautionaryMeasure: z.string().optional(),
-});
+export const legalProcessSchema = z
+  .object({
+    id: z.string().optional(),
+    processType: z.string().min(1, 'El tipo de proceso es requerido'),
+    processTypeOther: z.string().optional(),
+    plaintiff: z.string().min(1, 'El demandante es requerido'),
+    court: z.string().min(1, 'El juzgado es requerido'),
+    courtEmail: z
+      .string()
+      .email('Correo del juzgado inválido')
+      .optional()
+      .or(z.literal('')),
+    fileNumber: z.string().min(1, 'El expediente es requerido'),
+    precautionaryMeasure: z.string().optional(),
+  })
+  .superRefine((process, ctx) => {
+    // "Otros" sin texto no dice nada: es el único tipo que no se explica solo.
+    if (
+      requiresOtherDetail(process.processType) &&
+      !process.processTypeOther?.trim()
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['processTypeOther'],
+        message: 'Especifique el tipo de proceso',
+      });
+    }
+  });
 
 // ============================================================
 // FORMULARIO DEFINITIVO - Schemas de formulario
@@ -397,6 +437,7 @@ export const procesoJudicialFormSchema = z.object({
   tipoProcesoOtro: z.string().optional(),
   juzgadoNombre: z.string().optional(),
   juzgadoCiudad: z.string().optional(),
+  juzgadoCorreo: z.string().optional(),
   procesoJudicialRadicado: z.string().optional(),
   demandanteNombre: z.string().optional(),
   demandadoNombre: z.string().optional(),
@@ -464,8 +505,10 @@ const bienForCaseSchema = z.object({
 const procesoJudicialForCaseSchema = z.object({
   id: z.string(),
   tipoProceso: z.string().nullable(),
+  tipoProcesoOtro: z.string().nullable(),
   juzgadoNombre: z.string().nullable(),
   juzgadoCiudad: z.string().nullable(),
+  juzgadoCorreo: z.string().nullable(),
   procesoJudicialRadicado: z.string().nullable(),
   demandanteNombre: z.string().nullable(),
   demandadoNombre: z.string().nullable(),
@@ -490,8 +533,10 @@ const legalProcessForCaseSchema = z.object({
   id: z.string(),
   description: z.string(),
   processType: z.string().nullable(),
+  processTypeOther: z.string().nullable(),
   plaintiff: z.string().nullable(),
   court: z.string().nullable(),
+  courtEmail: z.string().nullable(),
   fileNumber: z.string().nullable(),
   precautionaryMeasure: z.string().nullable(),
 });
@@ -816,6 +861,12 @@ export const caseSchema = z.object({
   // bloque ACUERDO DE APOYO y está en NULL en todo caso que no sea
   // SUPPORT_AGREEMENT — es decir, en los 28 casos de producción.
   apoyoClausulas: z.array(concClausulaSchema).optional().nullable(),
+
+  // Desglose interno de servicios de manutención. No va a los documentos.
+  serviciosManutencion: z
+    .array(servicioManutencionSchema)
+    .optional()
+    .nullable(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
@@ -1259,6 +1310,9 @@ export const createCaseSchema = z.object({
         .optional(),
     ])
     .optional(),
+  // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
+  // Solo lo ve el operador: no se lleva a los documentos generados.
+  serviciosManutencion: z.array(servicioManutencionSchema).optional(),
   gastosServiciosPublicos: z
     .union([
       z.number().min(0).optional(),
@@ -1872,6 +1926,9 @@ export const updateCaseSchema = z.object({
         .optional(),
     ])
     .optional(),
+  // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
+  // Solo lo ve el operador: no se lleva a los documentos generados.
+  serviciosManutencion: z.array(servicioManutencionSchema).optional(),
   gastosServiciosPublicos: z
     .union([
       z.number().min(0).optional(),
@@ -2264,6 +2321,7 @@ export const addAssetToCaseSchema = z.object({
   proofDocument: z.string().optional(),
   isFamilyHome: z.boolean().optional(),
   isInalienablePatrimony: z.boolean().optional(),
+  hasPendingFinesOrTaxes: z.boolean().optional(),
   brand: z.string().optional(),
   model: z.string().optional(),
   condition: z.string().optional(),
@@ -2297,6 +2355,7 @@ export const assetResponseSchema = z.object({
   proofDocument: z.string().nullable(),
   isFamilyHome: z.boolean().nullable(),
   isInalienablePatrimony: z.boolean().nullable(),
+  hasPendingFinesOrTaxes: z.boolean().nullable(),
   brand: z.string().nullable(),
   model: z.string().nullable(),
   condition: z.string().nullable(),
