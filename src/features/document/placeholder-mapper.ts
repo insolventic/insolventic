@@ -113,122 +113,34 @@ function mapApplicantScope(scope: string[]): PlaceholderMap {
 }
 
 // Map debts (creditors) to placeholders
+/**
+ * Totales de las acreencias.
+ *
+ * Los slots numerados que esta funcion producia -AC{n}_* para las fichas y
+ * ACREEDOR_{n}/VALOR_{n}/LIBRANZA_{n}/CLASE_{n}/PORCENTAJE_{n}/DIAS_{n} para el
+ * cuadro resumen- se retiraron en el Paso 5 de
+ * docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md: topaban la lista en 11 y las dos
+ * plantillas que los consumian (Solicitud de Insolvencia y CYG Tramite) ahora
+ * iteran `ACREEDORES` con {{#each}}, sin tope.
+ *
+ * Quedan los tres totales, que son agregados y no por acreedor.
+ */
 function mapDebts(debts: CaseWithRelations['debts']): PlaceholderMap {
-  const result: PlaceholderMap = {};
-
-  // Calculate total for percentages
   const totalDebt = debts.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
-  const totalCapitalAll = debts.reduce(
+  const totalCapital = debts.reduce(
     (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
     0,
   );
-
-  // Summary table (up to 11 creditors - CYG template has 11 rows)
-  for (let i = 0; i < 11; i++) {
-    const debt = debts[i];
-    const idx = i + 1;
-
-    if (debt) {
-      const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
-      const interest = Number(debt.interestAmount) || 0;
-      const percentage =
-        totalCapitalAll > 0
-          ? ((capital / totalCapitalAll) * 100).toFixed(2)
-          : '0.00';
-
-      result[`ACREEDOR_${idx}`] = debt.creditor.name;
-      result[`VALOR_${idx}`] = formatCurrency(Number(debt.amount));
-      result[`LIBRANZA_${idx}`] = boolToSiNo(debt.hasActiveLibranza);
-      result[`CLASE_${idx}`] = debt.creditorClass || '';
-      result[`PORCENTAJE_${idx}`] =
-        debt.percentageOfTotal?.toString() || `${percentage}%`;
-      result[`DIAS_${idx}`] = debt.daysOverdue?.toString() || '';
-    } else {
-      result[`ACREEDOR_${idx}`] = '';
-      result[`VALOR_${idx}`] = '';
-      result[`LIBRANZA_${idx}`] = '';
-      result[`CLASE_${idx}`] = '';
-      result[`PORCENTAJE_${idx}`] = '';
-      result[`DIAS_${idx}`] = '';
-    }
-  }
-
-  // Detailed creditor info (AC1..AC11) + RAW numeric values for CYG table
-  for (let i = 0; i < 11; i++) {
-    const debt = debts[i];
-    const idx = i + 1;
-
-    if (debt) {
-      const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
-      const interest = Number(debt.interestAmount) || 0;
-
-      result[`AC${idx}_NOMBRE`] = debt.creditor.name;
-      result[`AC${idx}_DOMICILIO`] = debt.creditorCity || '';
-      result[`AC${idx}_DIRECCION`] = debt.creditorAddress || '';
-      result[`AC${idx}_EMAIL`] = debt.creditorEmail || '';
-      result[`AC${idx}_CAPITAL`] = formatCurrency(capital);
-      result[`AC${idx}_INTERESES`] = formatCurrency(interest);
-      result[`AC${idx}_POSTERGADO`] = boolToSiNo(debt.isDeferred);
-      result[`AC${idx}_TASA`] =
-        String(debt.interestRate) === 'DESCONOZCO'
-          ? 'Desconoce'
-          : `${Number(debt.interestRate) || 0}%`;
-      result[`AC${idx}_DOCUMENTO`] = debt.documentType || '';
-      result[`AC${idx}_FECHA_OTORGAMIENTO`] = formatShortDate(debt.grantDate);
-      result[`AC${idx}_FECHA_VENCIMIENTO`] = formatShortDate(debt.dueDate);
-      result[`AC${idx}_CLASIFICACION`] = debt.creditClassification || '';
-      // Codeudor/Avalista: if noCoDebtor flag is set, show N/A for all fields
-      const hasNoCoDebtor = (debt as Record<string, unknown>).noCoDebtor;
-      result[`AC${idx}_CODEUDOR_NOMBRE`] = hasNoCoDebtor
-        ? 'N/A'
-        : debt.coDebtorName || '';
-      result[`AC${idx}_CODEUDOR_DOMICILIO`] = hasNoCoDebtor
-        ? 'N/A'
-        : debt.coDebtorCity || '';
-      result[`AC${idx}_CODEUDOR_DIRECCION`] = hasNoCoDebtor
-        ? 'N/A'
-        : debt.coDebtorAddress || '';
-      // Apoderado info for CYG template (filled at hearing, empty by default)
-      result[`AC${idx}_APODERADO`] = '';
-      // RAW numeric values for CYG table JavaScript calculation
-      result[`AC${idx}_CAPITAL_RAW`] = capital.toString();
-      result[`AC${idx}_INTERESES_RAW`] = interest.toString();
-    } else {
-      result[`AC${idx}_NOMBRE`] = '';
-      result[`AC${idx}_DOMICILIO`] = '';
-      result[`AC${idx}_DIRECCION`] = '';
-      result[`AC${idx}_EMAIL`] = '';
-      result[`AC${idx}_CAPITAL`] = '';
-      result[`AC${idx}_INTERESES`] = '';
-      result[`AC${idx}_POSTERGADO`] = '';
-      result[`AC${idx}_TASA`] = '';
-      result[`AC${idx}_DOCUMENTO`] = '';
-      result[`AC${idx}_FECHA_OTORGAMIENTO`] = '';
-      result[`AC${idx}_FECHA_VENCIMIENTO`] = '';
-      result[`AC${idx}_CLASIFICACION`] = '';
-      result[`AC${idx}_CODEUDOR_NOMBRE`] = '';
-      result[`AC${idx}_CODEUDOR_DOMICILIO`] = '';
-      result[`AC${idx}_CODEUDOR_DIRECCION`] = '';
-      result[`AC${idx}_APODERADO`] = '';
-      result[`AC${idx}_CAPITAL_RAW`] = '';
-      result[`AC${idx}_INTERESES_RAW`] = '';
-    }
-  }
-
-  // Totals for CYG template
-  const totalCapitalAll2 = debts.reduce(
-    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
-    0,
-  );
-  const totalInteresAll = debts.reduce(
+  const totalIntereses = debts.reduce(
     (sum, d) => sum + (Number(d.interestAmount) || 0),
     0,
   );
-  result['TOTAL_ACREENCIAS'] = formatCurrency(totalDebt);
-  result['TOTAL_CAPITAL'] = formatCurrency(totalCapitalAll2);
-  result['TOTAL_INTERESES'] = formatCurrency(totalInteresAll);
 
-  return result;
+  return {
+    TOTAL_ACREENCIAS: formatCurrency(totalDebt),
+    TOTAL_CAPITAL: formatCurrency(totalCapital),
+    TOTAL_INTERESES: formatCurrency(totalIntereses),
+  };
 }
 
 // Map assets to placeholders
