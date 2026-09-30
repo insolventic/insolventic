@@ -36,6 +36,11 @@ import {
   SMMLV_2025,
   type ValidationIssue,
 } from '@/features/case/validation-rules';
+import {
+  EMPLOYER_FIELD,
+  LIBRANZAS_FIELD,
+  resolvePayerPrefill,
+} from '@/features/case/libranza-prefill';
 
 import { AssetsSection } from './create-case-dialog/assets-section';
 import {
@@ -507,10 +512,35 @@ export function CreateCaseDialog({
     setValidationWarnings(warnings);
   };
 
+  // Cuántas libranzas había en la pasada anterior de la suscripción. Permite
+  // distinguir "se agregó una fila" de "se editó una que ya estaba": el prefill
+  // del pagador solo debe actuar en el primer caso (ver abajo).
+  const libranzasCountRef = useRef(0);
+
   // Watch form changes to update warnings + auto-calculate totalDebt and credit fields
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       validateCoherence();
+
+      // Prefill del pagador de libranza con el empleador de la Sección III.
+      // La regla (cuándo actuar y sobre qué filas) vive en libranza-prefill.ts;
+      // acá solo se aplica. shouldDirty:false → sigue siendo una sugerencia, no
+      // un campo derivado: el usuario la sobrescribe y nada se la vuelve a pisar.
+      if (name === EMPLOYER_FIELD || name?.startsWith(LIBRANZAS_FIELD)) {
+        const { indices, value, nextCount } = resolvePayerPrefill({
+          changedField: name,
+          employerName: form.getValues(EMPLOYER_FIELD),
+          libranzas: form.getValues('libranzas') ?? [],
+          previousCount: libranzasCountRef.current,
+        });
+        libranzasCountRef.current = nextCount;
+
+        for (const index of indices) {
+          form.setValue(`libranzas.${index}.payerName`, value, {
+            shouldDirty: false,
+          });
+        }
+      }
 
       // Auto-calculate totalDebt and credit fields when debts change
       if (name?.startsWith('debts') || name === 'debts') {
