@@ -289,8 +289,10 @@ export function EditCaseDialog({
                 (process) => ({
                   id: process.id,
                   processType: process.processType ?? '',
+                  processTypeOther: process.processTypeOther ?? '',
                   plaintiff: process.plaintiff ?? '',
                   court: process.court ?? '',
+                  courtEmail: process.courtEmail ?? '',
                   fileNumber: process.fileNumber ?? '',
                   precautionaryMeasure: process.precautionaryMeasure ?? '',
                 }),
@@ -673,7 +675,7 @@ export function EditCaseDialog({
                     <ApplicantScopeSection />
                   </div>
                   <div className="border-t pt-6">
-                    <CaseDetailsSection />
+                    <CaseDetailsSection showFilingDate />
                   </div>
                 </TabsContent>
 

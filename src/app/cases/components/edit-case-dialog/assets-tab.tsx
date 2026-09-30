@@ -15,6 +15,10 @@ import {
   addAssetToCaseSchema,
   type AddAssetToCaseData,
 } from '@/features/case/schemas';
+import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -38,35 +42,52 @@ interface AssetsTabProps {
   caseId: string;
 }
 
+/**
+ * Formulario de bien en blanco: TODAS las claves, con su valor vacío.
+ *
+ * Una sola fuente para `defaultValues` y para el `reset` posterior a agregar un
+ * bien. Antes eran dos listas y el `reset` solo repetía 5 de las 22 claves, lo
+ * que dejaba el formulario a medio limpiar para el bien siguiente —
+ * `reset(values)` de react-hook-form NO vuelve a los `defaultValues`: reemplaza
+ * el estado por `values`, así que lo omitido queda en `undefined` y los inputs
+ * de texto conservan en el DOM lo que tenía el bien anterior.
+ *
+ * Con una sola fuente, un campo nuevo del formulario no puede quedar fuera del
+ * reset: se agrega acá y queda cubierto en los dos lados.
+ */
+function emptyAssetForm(caseId: string): AddAssetToCaseData {
+  return {
+    caseId,
+    name: '',
+    type: '',
+    value: '',
+    description: '',
+    propertyType: '',
+    address: '',
+    registrationNumber: '',
+    encumbrance: '',
+    affectation: '',
+    precautionaryMeasure: '',
+    proofDocument: '',
+    isFamilyHome: false,
+    isInalienablePatrimony: false,
+    brand: '',
+    model: '',
+    condition: '',
+    licensePlate: '',
+    transitAuthority: '',
+    guaranteeInFavorOf: '',
+    guaranteeAmount: '',
+    material: '',
+  };
+}
+
 export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
   const form = useFormContext();
 
   const newAssetForm = useForm<AddAssetToCaseData>({
     resolver: zodResolver(addAssetToCaseSchema),
-    defaultValues: {
-      caseId,
-      name: '',
-      type: '',
-      value: '',
-      description: '',
-      propertyType: '',
-      address: '',
-      registrationNumber: '',
-      encumbrance: '',
-      affectation: '',
-      precautionaryMeasure: '',
-      proofDocument: '',
-      isFamilyHome: false,
-      isInalienablePatrimony: false,
-      brand: '',
-      model: '',
-      condition: '',
-      licensePlate: '',
-      transitAuthority: '',
-      guaranteeInFavorOf: '',
-      guaranteeAmount: '',
-      material: '',
-    },
+    defaultValues: emptyAssetForm(caseId),
   });
 
   const [isPending, startTransition] = useTransition();
@@ -105,13 +126,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
             material: result.material,
           },
         ]);
-        newAssetForm.reset({
-          caseId,
-          name: '',
-          type: '',
-          value: '',
-          description: '',
-        });
+        newAssetForm.reset(emptyAssetForm(caseId));
       } else {
         toast.error(error ?? 'Error al agregar bien');
       }
@@ -314,7 +329,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                 <Input
                   id="name"
                   {...newAssetForm.register('name')}
-                  placeholder="Ej: Casa, Carro Toyota"
+                  placeholder={assetNamePlaceholder(assetType)}
                 />
                 {newAssetForm.formState.errors.name && (
                   <p className="text-destructive text-sm">
@@ -325,7 +340,8 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
               <div className="space-y-2">
                 <Label htmlFor="value">
-                  Valor ($) <span className="text-red-500">*</span>
+                  {assetValueLabel(assetType)}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="value"
@@ -406,6 +422,22 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                   />
                   <Label htmlFor="isFamilyHome" className="cursor-pointer">
                     Vivienda Familiar (Ley 258/1996)
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isInalienablePatrimony"
+                    checked={newAssetForm.watch('isInalienablePatrimony')}
+                    onCheckedChange={(checked) =>
+                      newAssetForm.setValue('isInalienablePatrimony', !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="isInalienablePatrimony"
+                    className="cursor-pointer"
+                  >
+                    Patrimonio de familia inembargable (Ley 70/1931)
                   </Label>
                 </div>
               </div>

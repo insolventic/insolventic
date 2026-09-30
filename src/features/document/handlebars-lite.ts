@@ -6,6 +6,8 @@
  *   - {{#if FLAG}}...{{/if}}     — conditional block
  *   - {{#unless FLAG}}...{{/unless}}
  *   - {{#each LIST}}...{{/each}} — iteration (per-item context merged with parent)
+ *   - {{#if @last}} / {{#unless @last}} nested inside {{#each}} — per-item
+ *     positional flag, true only for the last element of the current list.
  *
  * Design goals:
  *   1. Zero runtime dependencies.
@@ -21,6 +23,9 @@
  *
  * NOT supported (intentionally — YAGNI):
  *   - Partials, helpers, else branches, nested path expressions, escaping.
+ *   - @first / @index: no plantilla los usa hoy y no hay otro lugar del motor
+ *     que ya los soporte (confirmado con grep sobre las 65 plantillas antes de
+ *     agregar @last — ver PR de este fix). Agregarlos es un cambio aparte.
  *   - Current templates do not need any of these.
  */
 
@@ -70,12 +75,18 @@ function substituteVars(src: string, ctx: TemplateContext): string {
 
 // Innermost = a block whose body contains NO further {{#...}} openers.
 // Negative lookahead `(?!\{\{#)` enforces that inside the non-greedy body.
+//
+// EACH_BLOCK_RE makes ONE exception to "no further openers": a nested
+// `{{#if @X}}` / `{{#unless @X}}` (an `@`-prefixed per-item flag, e.g. @last)
+// is allowed through — resolveBlocks' each-handler resolves it itself, against
+// that item's index, before the generic IF/UNLESS passes ever see it. A plain
+// (non-`@`) nested if/unless/each is still rejected, same as before.
 const EACH_BLOCK_RE =
-  /\{\{#each\s+([A-Za-z0-9_]+)\s*\}\}((?:(?!\{\{#(?:each|if|unless)\b)[\s\S])*?)\{\{\/each\}\}/g;
+  /\{\{#each\s+([A-Za-z0-9_]+)\s*\}\}((?:(?!\{\{#each\b)(?!\{\{#(?:if|unless)\s+(?!@))[\s\S])*?)\{\{\/each\}\}/g;
 const IF_BLOCK_RE =
-  /\{\{#if\s+([A-Za-z0-9_]+)\s*\}\}((?:(?!\{\{#(?:each|if|unless)\b)[\s\S])*?)\{\{\/if\}\}/g;
+  /\{\{#if\s+([A-Za-z0-9_@]+)\s*\}\}((?:(?!\{\{#(?:each|if|unless)\b)[\s\S])*?)\{\{\/if\}\}/g;
 const UNLESS_BLOCK_RE =
-  /\{\{#unless\s+([A-Za-z0-9_]+)\s*\}\}((?:(?!\{\{#(?:each|if|unless)\b)[\s\S])*?)\{\{\/unless\}\}/g;
+  /\{\{#unless\s+([A-Za-z0-9_@]+)\s*\}\}((?:(?!\{\{#(?:each|if|unless)\b)[\s\S])*?)\{\{\/unless\}\}/g;
 
 function resolveBlocks(src: string, ctx: TemplateContext): string {
   let current = src;
@@ -87,14 +98,27 @@ function resolveBlocks(src: string, ctx: TemplateContext): string {
       const list = ctx[key];
       if (!Array.isArray(list) || list.length === 0) return '';
       return list
-        .map((item) => {
-          const itemCtx: TemplateContext =
-            item && typeof item === 'object'
-              ? { ...ctx, ...(item as TemplateContext) }
-              : { ...ctx, this: item };
-          // Inner body cannot contain further blocks (that's why this is
-          // innermost), so a single var-substitute pass is sufficient.
-          return substituteVars(body, itemCtx);
+        .map((item, idx) => {
+          const itemCtx: TemplateContext = {
+            ...ctx,
+            ...(item && typeof item === 'object'
+              ? (item as TemplateContext)
+              : { this: item }),
+            '@last': idx === list.length - 1,
+          };
+          // The only nesting EACH_BLOCK_RE lets through is `{{#if @X}}` /
+          // `{{#unless @X}}` — resolve those here, against THIS item's index,
+          // before the flat var-substitute pass (the generic IF/UNLESS passes
+          // below never see them: by the time this runs there's nothing left).
+          let itemBody = body.replace(
+            UNLESS_BLOCK_RE,
+            (_m, k: string, b: string) => (isTruthy(itemCtx[k]) ? '' : b),
+          );
+          itemBody = itemBody.replace(
+            IF_BLOCK_RE,
+            (_m, k: string, b: string) => (isTruthy(itemCtx[k]) ? b : ''),
+          );
+          return substituteVars(itemBody, itemCtx);
         })
         .join('');
     });

@@ -21,6 +21,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
+import {
   assetFieldsToClear,
   blankValueFor,
 } from '@/features/case/asset-type-fields';
@@ -138,7 +142,10 @@ const AssetItem = memo(function AssetItem({
                 Nombre/Descripción <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input {...formField} placeholder="Ej: Casa, Carro Toyota" />
+                <Input
+                  {...formField}
+                  placeholder={assetNamePlaceholder(assetType)}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -150,7 +157,8 @@ const AssetItem = memo(function AssetItem({
           render={({ field: formField }) => (
             <FormItem>
               <FormLabel>
-                Valor ($) <span className="text-red-500">*</span>
+                {assetValueLabel(assetType)}{' '}
+                <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
                 <Input {...formField} type="number" placeholder="0" />
@@ -232,6 +240,23 @@ const AssetItem = memo(function AssetItem({
                   </FormControl>
                   <FormLabel className="cursor-pointer font-normal">
                     Vivienda Familiar (Ley 258/1996)
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.isInalienablePatrimony`}
+              render={({ field: formField }) => (
+                <FormItem className="flex items-center space-y-0 space-x-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={formField.value}
+                      onCheckedChange={formField.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer font-normal">
+                    Patrimonio de familia inembargable (Ley 70/1931)
                   </FormLabel>
                 </FormItem>
               )}

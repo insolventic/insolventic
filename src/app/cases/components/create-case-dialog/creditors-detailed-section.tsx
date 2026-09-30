@@ -113,7 +113,7 @@ export function CreditorsDetailedSection() {
                         <FormControl>
                           <Input
                             {...formField}
-                            placeholder="Nombre de la entidad"
+                            placeholder="Nombre de la entidad o persona que prestó el dinero"
                           />
                         </FormControl>
                         <FormMessage />

@@ -15,7 +15,7 @@ Sistema web full-stack de gestión de expedientes de insolvencia (proyecto de te
 
 ```bash
 npm run dev            # dev server (turbopack)
-npm test               # suite completa (627 tests en 38 suites — medido en dev el 2026-09-17)
+npm test               # suite completa (1013 tests en 70 suites — medido en dev el 2026-09-28, commit 3eccc72; excluye tests/db y tests/e2e)
 npx tsc --noEmit       # type-check
 npm run lint           # eslint
 npm run db:migrate     # prisma migrate dev
@@ -212,3 +212,5 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 - Auditoría integral: `docs/AUDITORIA_INSOLVENTIC_2026-07-11.md`
 - Auditoría del módulo de documentos (P1–P9): `docs/AUDITORIA_MODULO_GENERACION_2026-07.md`
 - Arquitectura general: `docs/ARQUITECTURA.md`
+- Hallazgos de calidad de la ronda del formulario maestro: `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`
+- Plan: listar todos los acreedores en la Solicitud (bloqueado por decisión legal): `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md`

@@ -25,6 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  TIPOS_PROCESO_JUDICIAL,
+  requiresOtherDetail,
+} from '@/features/case/proceso-judicial-tipos';
 
 export function LegalProcessesSection() {
   const form = useFormContext();
@@ -36,8 +40,10 @@ export function LegalProcessesSection() {
   const addLegalProcess = () => {
     append({
       processType: '',
+      processTypeOther: '',
       plaintiff: '',
       court: '',
+      courtEmail: '',
       fileNumber: '',
       precautionaryMeasure: '',
     });
@@ -94,18 +100,41 @@ export function LegalProcessesSection() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="EJECUTIVO">Ejecutivo</SelectItem>
-                        <SelectItem value="ORDINARIO">Ordinario</SelectItem>
-                        <SelectItem value="ABREVIADO">Abreviado</SelectItem>
-                        <SelectItem value="MONITORIO">Monitorio</SelectItem>
-                        <SelectItem value="VERBAL">Verbal</SelectItem>
-                        <SelectItem value="OTRO">Otro</SelectItem>
+                        {TIPOS_PROCESO_JUDICIAL.map((tipo) => (
+                          <SelectItem key={tipo.value} value={tipo.value}>
+                            {tipo.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {requiresOtherDetail(
+                form.watch(`legalProcesses.${index}.processType`),
+              ) && (
+                <FormField
+                  control={form.control}
+                  name={`legalProcesses.${index}.processTypeOther`}
+                  render={({ field: formField }) => (
+                    <FormItem>
+                      <FormLabel>
+                        ¿Cuál? <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          {...formField}
+                          value={formField.value ?? ''}
+                          placeholder="Especifique el tipo de proceso"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -136,6 +165,25 @@ export function LegalProcessesSection() {
                     </FormLabel>
                     <FormControl>
                       <Input {...formField} placeholder="Ej: Juzgado 1 Civil" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name={`legalProcesses.${index}.courtEmail`}
+                render={({ field: formField }) => (
+                  <FormItem>
+                    <FormLabel>Correo del Juzgado</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...formField}
+                        value={formField.value ?? ''}
+                        type="email"
+                        placeholder="Ej: j01cmpalmira@cendoj.ramajudicial.gov.co"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
