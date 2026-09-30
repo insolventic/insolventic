@@ -124,7 +124,12 @@ export function redactContext(ctx: LogContext): LogContext {
 }
 
 // ---------------------------------------------------------------------------
-// Sentry perezoso (mismo patrón que observability.ts — no-op sin DSN)
+// Sentry perezoso — no-op sin DSN.
+//
+// Este módulo es el ÚNICO punto por el que el código de la aplicación reporta
+// a Sentry: ningún feature importa `@sentry/nextjs` ni tiene un wrapper propio.
+// (Antes convivían con `src/lib/observability.ts`, que no tenía entrega
+// garantizada en serverless, y con una captura directa en generation-job.)
 // ---------------------------------------------------------------------------
 
 type SentryLike = {
@@ -270,6 +275,9 @@ export const logger = {
       const extra = ctx ? redactContext(ctx) : undefined;
       if (err instanceof Error) {
         sentry.captureException(err, {
+          // `action` como tag (indexable): permite filtrar y alertar por
+          // operación en Sentry sin buscar dentro de `extra`.
+          ...(ctx?.action ? { tags: { action: ctx.action } } : {}),
           extra: { message, ...(requestId ? { requestId } : {}), ...extra },
         });
       } else {

@@ -778,7 +778,7 @@ export async function batchGenerateDocuments(input: {
       where: { id: caseId, tenantId },
       include: {
         debtor: true,
-        operator: true,
+        operator: { select: { id: true, name: true, email: true } },
         debts: { include: { creditor: true } },
         assets: true,
         documents: true,

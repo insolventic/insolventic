@@ -402,6 +402,20 @@ export const SCENARIOS: Record<string, Scenario> = {
     build: () => conciliacion(concDates('sin-fechas')),
   },
 
+  'conciliacion-varios-menores': {
+    kind: 'CONCILIATION',
+    covers:
+      'Acta de Unión Marital con 3 menores (MENORES_UNION): ejercita {{#unless @last}} dentro de {{#each}} — con 1 solo menor (el fixture por defecto) el separador nunca se nota, con 2+ sí.',
+    build: () =>
+      conciliacion({
+        concMenoresUnion: [
+          { NOMBRE_MENOR_UNION: 'Mateo Rojas Peña' },
+          { NOMBRE_MENOR_UNION: 'Valentina Rojas Peña' },
+          { NOMBRE_MENOR_UNION: 'Samuel Rojas Peña' },
+        ],
+      }),
+  },
+
   'conciliacion-xss': {
     kind: 'CONCILIATION',
     covers:

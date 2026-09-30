@@ -12,10 +12,19 @@ jest.mock('@/lib/prisma', () => ({
   default: require('../../__mocks__/prisma').default,
 }));
 
+// Sentry lo alcanza SOLO el logger (entrega con flush); el job ya no lo llama
+// directamente. Con DSN definido, logger.error captura de verdad y el mock
+// cuenta cuántos eventos salen por cada fallo.
 const mockCaptureException = jest.fn();
 jest.mock('@sentry/nextjs', () => ({
   captureException: (...args: unknown[]) => mockCaptureException(...args),
+  captureMessage: jest.fn(),
+  flush: jest.fn().mockResolvedValue(true),
 }));
+
+beforeAll(() => {
+  process.env.SENTRY_DSN = 'https://k@o1.ingest.sentry.io/1';
+});
 
 const mockGenerate = jest.fn();
 jest.mock('@/features/document/generate-documents', () => ({
@@ -47,9 +56,30 @@ describe('runInitialGenerationJob — P4 background', () => {
       caseFolderId: 'folder-1',
       caseFolderUrl: 'https://drive/folder-1',
       documents: [
-        { status: 'success', googleDriveId: 'f1', templateName: 'Doc A', googleDriveUrl: 'u1', fileName: 'a.pdf', templateId: 't1' },
-        { status: 'success', googleDriveId: 'f2', templateName: 'Doc B', googleDriveUrl: 'u2', fileName: 'b.pdf', templateId: 't2' },
-        { status: 'skipped', googleDriveId: '', templateName: 'Doc C', googleDriveUrl: '', fileName: '', templateId: 't3' },
+        {
+          status: 'success',
+          googleDriveId: 'f1',
+          templateName: 'Doc A',
+          googleDriveUrl: 'u1',
+          fileName: 'a.pdf',
+          templateId: 't1',
+        },
+        {
+          status: 'success',
+          googleDriveId: 'f2',
+          templateName: 'Doc B',
+          googleDriveUrl: 'u2',
+          fileName: 'b.pdf',
+          templateId: 't2',
+        },
+        {
+          status: 'skipped',
+          googleDriveId: '',
+          templateName: 'Doc C',
+          googleDriveUrl: '',
+          fileName: '',
+          templateId: 't3',
+        },
       ],
     });
 
@@ -113,7 +143,20 @@ describe('runInitialGenerationJob — P4 background', () => {
     });
 
     expect(result).toBeNull();
-    expect(mockCaptureException).toHaveBeenCalled();
+    // La captura del logger es asíncrona (import dinámico + flush).
+    await new Promise((resolve) => setImmediate(resolve));
+    // Exactamente UN evento por fallo (antes eran dos: logger + captura directa).
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+    expect(mockCaptureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Drive API down' }),
+      expect.objectContaining({
+        tags: { action: 'generation-job' },
+        extra: expect.objectContaining({
+          requestId: 'req-2',
+          caseId: 'case-1',
+        }),
+      }),
+    );
     expect(mockPrisma.documentGenerationRequest.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'req-2' },

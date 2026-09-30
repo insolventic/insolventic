@@ -22,7 +22,7 @@
 import type { PrismaClient } from '@prisma/client';
 
 import { emailService } from '@/lib/email';
-import { reportError } from '@/lib/observability';
+import { logger } from '@/lib/logger';
 
 const HEARING_LOOKAHEAD_HOURS = Number(
   process.env.ALERTS_HEARING_LOOKAHEAD_HOURS ?? 48,
@@ -177,17 +177,18 @@ export async function scanUpcomingHearings(
         }
       } catch (error) {
         result.errors += 1;
-        await reportError(error, {
+        logger.error('No se pudo crear la alerta de audiencia próxima', error, {
           action: 'scanUpcomingHearings.create',
-          extra: { tenantId, caseId: c.id },
+          tenantId,
+          caseId: c.id,
         });
       }
     }
   } catch (error) {
     result.errors += 1;
-    await reportError(error, {
+    logger.error('Falló el escaneo de audiencias próximas', error, {
       action: 'scanUpcomingHearings',
-      extra: { tenantId },
+      tenantId,
     });
   }
 
@@ -292,17 +293,18 @@ export async function scanOverduePayments(
         }
       } catch (error) {
         result.errors += 1;
-        await reportError(error, {
+        logger.error('No se pudo crear la alerta de pago vencido', error, {
           action: 'scanOverduePayments.create',
-          extra: { tenantId, paymentId: p.id },
+          tenantId,
+          paymentId: p.id,
         });
       }
     }
   } catch (error) {
     result.errors += 1;
-    await reportError(error, {
+    logger.error('Falló el escaneo de pagos vencidos', error, {
       action: 'scanOverduePayments',
-      extra: { tenantId },
+      tenantId,
     });
   }
 
@@ -343,9 +345,9 @@ async function sendHearingAlertEmail(
       ],
     });
   } catch (error) {
-    await reportError(error, {
+    logger.error('No se pudo enviar el correo de audiencia próxima', error, {
       action: 'sendHearingAlertEmail',
-      extra: { tenantId: params.tenantId },
+      tenantId: params.tenantId,
     });
   }
 }
@@ -381,9 +383,9 @@ async function sendPaymentOverdueEmail(
       ],
     });
   } catch (error) {
-    await reportError(error, {
+    logger.error('No se pudo enviar el correo de pago vencido', error, {
       action: 'sendPaymentOverdueEmail',
-      extra: { tenantId: params.tenantId },
+      tenantId: params.tenantId,
     });
   }
 }
