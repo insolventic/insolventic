@@ -755,10 +755,7 @@ async function generateFromTemplates(
   options: GenerationOptions,
 ): Promise<GeneratedDocument[]> {
   const placeholders = mapCaseToPlaceholders(caseData);
-  const extraContext =
-    caseData.type === 'CONCILIATION'
-      ? buildConciliationContext(caseData)
-      : undefined;
+  const extraContext = buildTemplateContext(caseData);
   const subfolderCache = new Map<string, string>();
   const layoutVersion =
     (caseData as { layoutVersion?: number }).layoutVersion ?? 0;
