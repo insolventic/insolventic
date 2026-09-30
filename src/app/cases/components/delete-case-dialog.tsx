@@ -16,10 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { deleteCase } from '@/features/case/actions';
 
-import type { Case } from '@/features/case/schemas';
+import type { CaseListItem } from '@/features/case/schemas';
 
 interface DeleteCaseDialogProps {
-  case: Case;
+  case: CaseListItem;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCaseDeleted?: () => void;

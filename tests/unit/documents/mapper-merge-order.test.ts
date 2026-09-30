@@ -2,7 +2,7 @@
  * Contrato del ORDEN DE FUSIÓN del mapper de placeholders.
  *
  * `mapCaseToPlaceholders` junta el literal `basePlaceholders` con ~22 sub-mappers
- * usando `...spread`: cuando dos emiten la misma clave, GANA EL ÚLTIMO. Hay 19
+ * usando `...spread`: cuando dos emiten la misma clave, GANA EL ÚLTIMO. Hay 16
  * claves así. Cualquier refactor que reordene los spreads, o que mueva un mapper
  * a otro módulo y cambie cuándo se aplica, cambiaría el documento final sin que
  * ningún tipo ni ningún test de una sola clave lo note.
@@ -88,9 +88,6 @@ const EXPECTED_COLLISIONS: Record<string, string[]> = {
     'mapConciliationFields',
   ],
   ANO_BILATERAL: ['mapExtendedDates', 'mapFracasoVariables'],
-  ANO_FRACASO: ['mapExtendedDates', 'mapFracasoVariables'],
-  DIA_FRACASO: ['mapExtendedDates', 'mapFracasoVariables'],
-  MES_FRACASO: ['mapExtendedDates', 'mapFracasoVariables'],
   NUMERO_CONSTANCIA: ['mapExtendedDates', 'mapFracasoVariables'],
   ANO_DESISTIMIENTO: ['mapExtendedDates', 'mapConciliationFields'],
   DIA_DESISTIMIENTO: ['mapExtendedDates', 'mapConciliationFields'],
@@ -202,21 +199,27 @@ describe('orden de fusión — lectura estática del código fuente', () => {
     expect(order).toEqual(EXPECTED_MERGE_ORDER);
   });
 
-  it('las colisiones de claves entre fuentes son exactamente estas 19', () => {
+  it('las colisiones de claves entre fuentes son exactamente estas 16', () => {
     // Si falla porque APARECIÓ una colisión nueva: alguien agregó una clave que otro
     // mapper ya emite. Decidí quién debe ganar, documentala arriba y agregá un caso
     // de comportamiento abajo. Si DESAPARECIÓ una: quitala de la lista.
     //
-    // Bajó de 21 a 19: ANO_INICIO_PAGO/ANO_VIGENCIA dejaron de colisionar al sacar
-    // los stubs vacíos de mapExtendedDates (Hallazgo 2, ver "bloque base < mapExtendedDates"
+    // 21 → 19: ANO_INICIO_PAGO/ANO_VIGENCIA dejaron de colisionar al sacar los
+    // stubs vacíos de mapExtendedDates (Hallazgo 2, ver "bloque base < mapExtendedDates"
     // más abajo) — ya no hay dos fuentes emitiendo esas claves, solo el bloque base.
+    //
+    // 19 → 16: ANO_FRACASO/DIA_FRACASO/MES_FRACASO dejaron de colisionar al sacar
+    // sus stubs de mapExtendedDates (issue #18 / PR #24) — eran código muerto:
+    // mapFracasoVariables se fusiona después y siempre ganaba, así que el
+    // documento nunca mostró el stub. Ver "mapFracasoVariables: DIA/MES/ANO_FRACASO"
+    // más abajo.
     expect(Object.keys(collisions).sort()).toEqual(
       Object.keys(EXPECTED_COLLISIONS).sort(),
     );
     for (const [key, sources] of Object.entries(EXPECTED_COLLISIONS)) {
       expect({ key, sources: collisions[key] }).toEqual({ key, sources });
     }
-    expect(Object.keys(collisions)).toHaveLength(19);
+    expect(Object.keys(collisions)).toHaveLength(16);
   });
 });
 
@@ -250,21 +253,29 @@ describe('TIPO_SOLICITANTE: mapApplicantScope < mapAgreementResult', () => {
   });
 });
 
-describe('fracaso: mapExtendedDates < mapFracasoVariables (gana el segundo)', () => {
-  it('con fecha de fracaso de otro año, salen la fecha y el año DE LA FECHA (no los de hoy)', () => {
+describe('mapFracasoVariables: DIA/MES/ANO_FRACASO (issue #18 / PR #24, ya no colisiona)', () => {
+  // Hasta el PR #24, mapExtendedDates también definía estas 3 claves (con la
+  // fecha de hoy, o '' si faltaba) — código muerto, porque mapFracasoVariables
+  // se fusiona después y siempre ganaba. El issue #18 lo había diagnosticado
+  // como bug (el stub nunca llegaba al documento); PR #24 sacó el stub. Estos
+  // tests fijan el valor real (el que siempre llegó al documento), ahora sin
+  // una segunda fuente detrás.
+  it('con fecha de fracaso, salen el día/mes/año DE ESA FECHA', () => {
     const p = run('insolvencia-fracaso-con-datos');
     expect(p.DIA_FRACASO).toBe('30');
     expect(p.MES_FRACASO).toBe('diciembre');
-    expect(p.ANO_FRACASO).toBe('2025'); // mapExtendedDates daría el año de hoy: 2026
+    expect(p.ANO_FRACASO).toBe('2025');
   });
 
-  it('sin fecha de fracaso, salen las rayas del segundo (mapExtendedDates daría vacío)', () => {
+  it('sin fecha de fracaso, salen las rayas (marcador para completar a mano)', () => {
     const p = run('insolvencia-fracaso-sin-datos');
     expect(p.DIA_FRACASO).toBe('____');
     expect(p.MES_FRACASO).toBe('____________');
     expect(p.ANO_FRACASO).toBe('______');
   });
+});
 
+describe('fracaso: mapExtendedDates < mapFracasoVariables (gana el segundo)', () => {
   it('NUMERO_CONSTANCIA sale con solo los dígitos del caso (mapExtendedDates daría el número completo)', () => {
     expect(run('insolvencia-fracaso-con-datos').NUMERO_CONSTANCIA).toBe(
       '2025117',

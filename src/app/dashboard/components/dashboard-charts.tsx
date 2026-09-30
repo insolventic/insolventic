@@ -19,6 +19,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPhaseColor } from '@/lib/case-phases';
 import type { DashboardStats } from '@/features/case/schemas';
 
+import { getChartAvailability } from './dashboard-charts-data';
+
 interface DashboardChartsProps {
   stats: DashboardStats;
 }
@@ -30,11 +32,10 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export function DashboardCharts({ stats }: Readonly<DashboardChartsProps>) {
-  const hasTypeData = stats.casesByType.length > 0;
-  const hasPhaseData = stats.casesByPhase.length > 0;
-  const hasTimeData = stats.casesOverTime.some((d) => d.count > 0);
+  const { hasTypeData, hasPhaseData, hasTimeData, hasAny } =
+    getChartAvailability(stats);
 
-  if (!hasTypeData && !hasPhaseData && !hasTimeData) {
+  if (!hasAny) {
     return null;
   }
 

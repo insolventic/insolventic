@@ -5,7 +5,7 @@ import { verifyToken } from '@/lib/auth';
 import { getDashboardStats } from '@/features/case/actions';
 
 import { DashboardHeader } from './components/dashboard-header';
-import { DashboardCharts } from './components/dashboard-charts';
+import { DashboardChartsLazy } from './components/dashboard-charts-lazy';
 import { DashboardStatsCards } from './components/dashboard-stats';
 import { NotificationPanel } from './components/notification-panel';
 import { RecentCases } from './components/recent-cases';
@@ -39,7 +39,7 @@ export default async function DashboardPage() {
             {statsResult.success && statsResult.data && (
               <>
                 <DashboardStatsCards stats={statsResult.data} />
-                <DashboardCharts stats={statsResult.data} />
+                <DashboardChartsLazy stats={statsResult.data} />
               </>
             )}
             <RecentCases />
