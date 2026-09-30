@@ -10,7 +10,6 @@
  * workers persistentes; `after()` mantiene viva la función tras responder.
  */
 
-import * as Sentry from '@sentry/nextjs';
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
@@ -156,9 +155,8 @@ export async function runInitialGenerationJob(params: {
       caseId,
       duration: Date.now() - startedAt,
     });
-    Sentry.captureException(error, {
-      tags: { job: 'document-generation', requestId, caseId },
-    });
+    // Sin captura directa en Sentry: logger.error ya la hace (con entrega
+    // garantizada) y llevaba a duplicar el evento por cada fallo.
 
     await failGenerationRequest(requestId, error).catch(() => {
       /* la fila queda huérfana; el timeout de claim la recupera */
