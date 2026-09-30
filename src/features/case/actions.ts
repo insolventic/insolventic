@@ -810,6 +810,8 @@ export async function createCase(
             coDebtorName: debt.coDebtorName,
             coDebtorCity: debt.coDebtorCity,
             coDebtorAddress: debt.coDebtorAddress,
+            coDebtorPhone: debt.coDebtorPhone,
+            coDebtorEmail: debt.coDebtorEmail,
           },
         });
       }

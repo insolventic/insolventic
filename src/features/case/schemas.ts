@@ -164,6 +164,8 @@ const debtForCaseSchema = z.object({
   coDebtorName: z.string().nullable(),
   coDebtorCity: z.string().nullable(),
   coDebtorAddress: z.string().nullable(),
+  coDebtorPhone: z.string().nullable(),
+  coDebtorEmail: z.string().nullable(),
 });
 
 const assetForCaseSchema = z.object({
@@ -222,6 +224,8 @@ export const debtSchema = z.object({
   coDebtorName: z.string().optional(),
   coDebtorCity: z.string().optional(),
   coDebtorAddress: z.string().optional(),
+  coDebtorPhone: z.string().optional(),
+  coDebtorEmail: z.string().optional(),
   // Dynamic "Otra" debt type detail
   otherDebtTypeDetail: z.string().optional(),
 });

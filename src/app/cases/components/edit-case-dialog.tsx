@@ -191,6 +191,8 @@ export function EditCaseDialog({
                 coDebtorName: debt.coDebtorName ?? '',
                 coDebtorCity: debt.coDebtorCity ?? '',
                 coDebtorAddress: debt.coDebtorAddress ?? '',
+                coDebtorPhone: debt.coDebtorPhone ?? '',
+                coDebtorEmail: debt.coDebtorEmail ?? '',
               })),
               assets: (fullCase.assets ?? []).map((asset) => ({
                 id: asset.id,
