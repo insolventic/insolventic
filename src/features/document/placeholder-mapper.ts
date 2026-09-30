@@ -329,8 +329,13 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
     return items.map((a) => a.description || a.name || a.type).join('; ');
   };
 
-  const sumValues = (items: typeof personalProperty) =>
-    items.reduce((sum, a) => sum + (a.value || 0), 0);
+  // `value` llega como `Prisma.Decimal` por la ruta automática (ver
+  // asCaseWithRelations) y `Decimal.valueOf()` devuelve un STRING: con
+  // `sum + a.value` el `+` concatena en vez de sumar (1 inmueble de $100M sale
+  // como $1.000M; con 2 activos, cifras de 15 dígitos). `Number()` en cada
+  // sumando lo evita, igual que en el resto de las sumas de este archivo.
+  const sumValues = (items: typeof assets) =>
+    items.reduce((sum, a) => sum + (Number(a.value) || 0), 0);
 
   // Format vehicles with full details
   const formatVehicleList = (vehicles: typeof personalProperty) => {
@@ -369,14 +374,8 @@ function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
       : 'N/A';
 
   // Totals
-  const totalRealEstate = realEstate.reduce(
-    (sum, a) => sum + (a.value || 0),
-    0,
-  );
-  const totalPersonal = personalProperty.reduce(
-    (sum, a) => sum + (a.value || 0),
-    0,
-  );
+  const totalRealEstate = sumValues(realEstate);
+  const totalPersonal = sumValues(personalProperty);
   result['TOTAL_INMUEBLES'] = formatCurrency(totalRealEstate);
   result['TOTAL_MUEBLES'] = formatCurrency(totalPersonal);
   result['TOTAL_BIENES'] = formatCurrency(totalRealEstate + totalPersonal);
@@ -627,18 +626,19 @@ function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
     ANO_TRAMITE: getYear(filingDate) || getYear(now),
     ANO_CONSTANCIA: getYear(now),
     ANO_BILATERAL: getYear(now),
-    ANO_FRACASO: getYear(now),
+    // DIA/MES/ANO_FRACASO no se definen aquí: los produce mapFracasoVariables
+    // desde failureDate (con marcador manual si falta). Tenerlos duplicados
+    // con valores distintos dependía del orden del spread en
+    // mapCaseToPlaceholders, y el "// Manual" de aquí nunca llegaba al documento.
     ANO_DESISTIMIENTO: getYear(now),
 
     // Day variables
     DIA: getDayNumber(now),
     DIA_DESISTIMIENTO: '', // Manual
-    DIA_FRACASO: '', // Manual
 
     // Month variables
     MES: getMonthName(now),
     MES_DESISTIMIENTO: '', // Manual
-    MES_FRACASO: '', // Manual
 
     // Complete date
     FECHA_COMPLETA: formatDateComplete(now),

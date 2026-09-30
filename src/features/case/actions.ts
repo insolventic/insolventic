@@ -44,6 +44,7 @@ import {
   assetResponseSchema,
   dependentResponseSchema,
   getAllCasesSchema,
+  CASE_LIST_COLUMNS,
   getCaseByIdSchema,
   deleteCaseSchema,
   caseStatsSchema,
@@ -146,9 +147,13 @@ export async function getAllCases(): Promise<{
       return { success: true, data: [] };
     }
 
+    // Solo las columnas que usa el listado (CASE_LIST_COLUMNS), no las 269 de
+    // cada caso: menos datos por fila y sin depender de columnas que la
+    // pantalla no lee. El detalle sí trae todo (getCaseById).
     const cases = await prisma.case.findMany({
       where: whereClause,
-      include: {
+      select: {
+        ...CASE_LIST_COLUMNS,
         debtor: true,
         operator: {
           select: {
@@ -1258,11 +1263,13 @@ export async function addLibranzaToCase(
       productAndCreditor,
     } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1409,11 +1416,13 @@ export async function addSuspendedServiceToCase(
       serviceType,
     } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1581,11 +1590,13 @@ export async function addAssetToCase(
       material,
     } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1771,11 +1782,13 @@ export async function addDependentToCase(
     const validatedInput = addDependentToCaseSchema.parse(input);
     const { caseId, name, age, relationship } = validatedInput;
 
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseData = await prisma.case.findUnique({
       where: {
         id: caseId,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseData) {
@@ -1911,11 +1924,13 @@ export async function deleteCase(
     const { id } = validatedInput;
 
     // Get case info before deleting for the notification
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
     const caseToDelete = await prisma.case.findUnique({
       where: {
         id,
         tenantId,
       },
+      select: { id: true },
     });
 
     if (!caseToDelete) {

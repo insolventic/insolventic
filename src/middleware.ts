@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 import { getRoutePermissions } from '@/lib/permissions';
+import { newRequestId } from '@/lib/request-id';
 
 // Validado en el primer uso, no en el import — mismo patrón que auth.ts y
 // email.ts: en entornos de build (CI con `vercel pull`) JWT_SECRET no existe.
@@ -72,8 +73,9 @@ export async function middleware(request: NextRequest) {
 
   // Correlación de logs: un id por request, reenviado a las server actions
   // vía header (el edge runtime no comparte AsyncLocalStorage con Node).
-  const requestId =
-    request.headers.get('x-request-id') ?? crypto.randomUUID();
+  // Se genera SIEMPRE aquí: un x-request-id enviado por el cliente se ignora
+  // (y se pisa más abajo en los headers reenviados). Ver src/lib/request-id.ts.
+  const requestId = newRequestId();
 
   const accessToken = request.cookies.get('access-token')?.value;
 

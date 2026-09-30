@@ -2,7 +2,7 @@
 
 ## Decisión de partida
 
-`docs/ARQUITECTURA.md` §1 ("Vista de alto nivel") ya funciona como diagrama de componentes de alto nivel (Cliente → Middleware → Pages/Actions/API → Prisma → BD por tenant → Drive/SMTP) — **se deja tal cual, no se reemplaza**. Lo que faltaba, y es lo que aporta este documento, es el **desglose de la capa de dominio**: los 15 módulos de `src/features/*` como componentes propios, con sus dependencias reales hacia `src/lib/*` y hacia los servicios externos. Es un *zoom-in* de un solo recuadro ("Actions") del diagrama de ARQUITECTURA.md §1, no un diagrama nuevo desde cero.
+`docs/ARQUITECTURA.md` §1 ("Vista de alto nivel") ya funciona como diagrama de componentes de alto nivel (Cliente → Middleware → Pages/Actions/API → Prisma → BD por tenant → Drive/SMTP) — **se deja tal cual, no se reemplaza**. Lo que faltaba, y es lo que aporta este documento, es el **desglose de la capa de dominio**: los 15 módulos de `src/features/*` como componentes propios, con sus dependencias reales hacia `src/lib/*` y hacia los servicios externos. Es un _zoom-in_ de un solo recuadro ("Actions") del diagrama de ARQUITECTURA.md §1, no un diagrama nuevo desde cero.
 
 ---
 
@@ -38,7 +38,7 @@ flowchart TB
         InfraAuth["auth.ts + permissions.ts<br/>+ rate-limit.ts"]
         InfraData["prisma.ts"]
         InfraDocs["google-drive.ts + html-to-pdf.ts<br/>+ html-to-docx.ts"]
-        InfraObs["logger.ts + observability.ts<br/>+ request-context.ts + sentry-scrub.ts"]
+        InfraObs["logger.ts (único wrapper de Sentry)<br/>+ request-context.ts + request-id.ts + sentry-scrub.ts"]
         InfraRetry["retry.ts"]
         InfraUtil["case-phases.ts + centro-conciliacion.ts<br/>+ date-colombia.ts + tenant-theme.ts + utils.ts"]
         InfraEmail["email.ts"]
@@ -85,12 +85,12 @@ flowchart TB
 
 ## Leyenda de capas
 
-| Capa | Contiene | Responsabilidad |
-|---|---|---|
-| **Presentación** | `src/app/**` (App Router), `src/components/ui/*` (Shadcn/Radix) | Renderizado, formularios, llamadas a server actions vía RPC |
-| **Dominio** | 15 módulos en `src/features/*`, cada uno con `actions.ts` (`'use server'`) + `schemas.ts` (Zod) | Lógica de negocio; toda acción valida input y pasa por `authenticateUser()` + check de permiso antes de tocar Prisma (ver `CLAUDE.md` → Convenciones) |
-| **Infraestructura** | `src/lib/*`, agrupado aquí por responsabilidad (no son 18 nodos porque no cabría legible) | Utilidades transversales sin `'use server'` propio, compartidas entre features |
-| **Externos** | PostgreSQL, Google Drive, Gmail SMTP, Sentry | Servicios fuera del runtime de Vercel |
+| Capa                | Contiene                                                                                        | Responsabilidad                                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Presentación**    | `src/app/**` (App Router), `src/components/ui/*` (Shadcn/Radix)                                 | Renderizado, formularios, llamadas a server actions vía RPC                                                                                           |
+| **Dominio**         | 15 módulos en `src/features/*`, cada uno con `actions.ts` (`'use server'`) + `schemas.ts` (Zod) | Lógica de negocio; toda acción valida input y pasa por `authenticateUser()` + check de permiso antes de tocar Prisma (ver `CLAUDE.md` → Convenciones) |
+| **Infraestructura** | `src/lib/*`, agrupado aquí por responsabilidad (no son 18 nodos porque no cabría legible)       | Utilidades transversales sin `'use server'` propio, compartidas entre features                                                                        |
+| **Externos**        | PostgreSQL, Google Drive, Gmail SMTP, Sentry                                                    | Servicios fuera del runtime de Vercel                                                                                                                 |
 
 **Edges punteados** (`-.->`) = dependencia transversal que aplica a las 15 features por igual (acceso a datos vía Prisma, logging estructurado) — dibujarla 15 veces no aportaría legibilidad. Las edges sólidas son dependencias específicas de una feature puntual (ej. solo `document` usa `google-drive.ts`/`html-to-pdf.ts`/`html-to-docx.ts`; solo `notification` usa `email.ts`, para el envío opcional de alertas por correo).
 

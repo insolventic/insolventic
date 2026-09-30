@@ -18,14 +18,14 @@ import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
 import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
 
-import type { Case } from '@/features/case/schemas';
+import type { CaseListItem } from '@/features/case/schemas';
 
 interface CaseTableProps {
-  cases: Case[];
-  onViewDetails: (caseItem: Case) => void;
-  onEdit: (caseItem: Case) => void;
-  onDelete: (caseItem: Case) => void;
-  onChangePhase?: (caseItem: Case) => void;
+  cases: CaseListItem[];
+  onViewDetails: (caseItem: CaseListItem) => void;
+  onEdit: (caseItem: CaseListItem) => void;
+  onDelete: (caseItem: CaseListItem) => void;
+  onChangePhase?: (caseItem: CaseListItem) => void;
   isLoading?: boolean;
 }
 
