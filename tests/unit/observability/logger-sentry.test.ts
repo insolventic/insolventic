@@ -182,3 +182,79 @@ describe('logger → Sentry en serverless', () => {
     expect(captureExceptionMock).toHaveBeenCalledTimes(1);
   });
 });
+
+// Reemplaza a `observability.ts` (eliminado): el logger es el único wrapper de
+// Sentry, así que hereda sus dos contratos y el tag `action` que ponía reportError.
+describe('logger como único punto de reporte a Sentry', () => {
+  it('error(): envía `action` como tag de Sentry (indexable) además de en extra', async () => {
+    const logger = await loadLogger();
+    const err = new Error('boom');
+
+    logger.error('falló el escaneo', err, {
+      action: 'cron.alerts.scanUpcomingHearings',
+      tenantId: 'armonia',
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(captureExceptionMock).toHaveBeenCalledWith(
+      err,
+      expect.objectContaining({
+        tags: { action: 'cron.alerts.scanUpcomingHearings' },
+        extra: expect.objectContaining({
+          message: 'falló el escaneo',
+          tenantId: 'armonia',
+        }),
+      }),
+    );
+  });
+
+  it('error(): sin `action` no envía tags', async () => {
+    const logger = await loadLogger();
+
+    logger.error('sin action', new Error('x'));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const context = captureExceptionMock.mock.calls[0][1] as Record<
+      string,
+      unknown
+    >;
+    expect(context).not.toHaveProperty('tags');
+  });
+
+  it('error(): las claves sensibles del contexto no llegan a Sentry (redacción)', async () => {
+    const logger = await loadLogger();
+
+    logger.error('x', new Error('x'), {
+      action: 'a',
+      email: 'deudor@example.com',
+      token: 'abc',
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const { extra } = captureExceptionMock.mock.calls[0][1] as {
+      extra: Record<string, unknown>;
+    };
+    expect(extra.email).toBe('[REDACTED]');
+    expect(extra.token).toBe('[REDACTED]');
+  });
+
+  it('nunca lanza si @sentry/nextjs no se puede cargar (degrada a consola)', async () => {
+    jest.doMock(
+      '@sentry/nextjs',
+      () => {
+        throw new Error('module not installed');
+      },
+      { virtual: true },
+    );
+    const logger = await loadLogger();
+    const spy = console.error as jest.Mock;
+
+    expect(() => logger.error('x', new Error('x'))).not.toThrow();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    // La línea estructurada sale por consola aunque Sentry no cargue.
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(captureExceptionMock).not.toHaveBeenCalled();
+    jest.dontMock('@sentry/nextjs');
+  });
+});

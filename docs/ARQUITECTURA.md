@@ -208,7 +208,7 @@ flowchart LR
 
 - Plantillas en **HTML puro** (`templates/{insolvency,conciliation,support-agreements}/*.html`, con hojas de estilo `CSS/*.css` propias por tipo) — no `.docx` como plantilla fuente en ninguna de las dos rutas.
 - Placeholders resueltos por un motor propio y liviano: `mapCaseToPlaceholders` (`src/features/document/placeholder-mapper.ts`, escapado OWASP en el punto de fusión — ver Session 1 en `CLAUDE.md`) + `replacePlaceholders` (`src/features/document/handlebars-lite.ts`) — no `docxtemplater`.
-- **Ruta A (manual, `src/features/document/actions.ts:batchGenerateDocuments`, invocada desde `src/app/documents/components/document-generation.tsx`):** el usuario elige caso + paquete + `outputFormat` (`pdf` / `docx` / `both`). PDF vía `htmlToPdf` (`src/lib/html-to-pdf.ts`, `puppeteer-core` + `@sparticuz/chromium`); DOCX vía `batchHtmlToDocx` (`src/lib/html-to-docx.ts`, que envuelve el paquete npm `html-to-docx` — conversión directa HTML→DOCX, **no** `docxtemplater**).
+- **Ruta A (manual, `src/features/document/actions.ts:batchGenerateDocuments`, invocada desde `src/app/documents/components/document-generation.tsx`):** el usuario elige caso + paquete + `outputFormat` (`pdf` / `docx` / `both`). PDF vía `htmlToPdf` (`src/lib/html-to-pdf.ts`, `puppeteer-core` + `@sparticuz/chromium`); DOCX vía `batchHtmlToDocx` (`src/lib/html-to-docx.ts`, que envuelve el paquete npm `html-to-docx` — conversión directa HTML→DOCX, **no** `docxtemplater\*\*).
 - **Ruta B (automática, P4, disparada por `createCase` vía `after()`):** solo genera PDF, vía el mismo `htmlToPdf`. No tiene rama DOCX — `generate-documents.ts` no importa `html-to-docx`.
 - `pdf-lib` no existe en el proyecto — nunca estuvo instalado (no confundir con `html-to-docx`, que sí lo está).
 - **Excepción:** el reporte de Trazabilidad de Pagos exporta a Excel (`src/features/document/generate-excel.ts`) — no pasa por Puppeteer ni por `html-to-docx`, es un documento aparte.
@@ -301,7 +301,7 @@ flowchart LR
 flowchart TD
     subgraph App["Next.js runtime"]
         Action["Server Action"]
-        Wrapper["reportError()<br/>src/lib/observability.ts"]
+        Wrapper["logger.error()<br/>src/lib/logger.ts"]
     end
     subgraph Obs["Observabilidad"]
         Sentry["Sentry<br/>(no-op si DSN vacío)"]
@@ -326,8 +326,8 @@ flowchart TD
 
 **Errores**
 
-- Toda feature importa `reportError` / `reportMessage` desde `src/lib/observability.ts`.
-- Cuando `SENTRY_DSN` está vacío (dev / staging sin proyecto), el helper degrada a `console.error` — nunca lanza.
+- `src/lib/logger.ts` es el **único** punto por el que el código de la aplicación reporta a Sentry (`logger.error` → `captureException` con `action` como tag; `logger.warn` → `captureMessage`). Ningún feature importa `@sentry/nextjs` ni tiene un wrapper propio; el cron de alertas y los scanners también van por el logger. La captura + `flush` se registra en el `waitUntil` de la plataforma para que Vercel no congele la función antes de que salga el evento.
+- Cuando `SENTRY_DSN` está vacío (dev / staging sin proyecto), el logger degrada a la línea JSON en consola — nunca lanza.
 - `sentry.client.config.ts`, `sentry.server.config.ts` y `sentry.edge.config.ts` inicializan Sentry por runtime. `sendDefaultPii: false` y `beforeSend` limpia cookies.
 - `@vercel/analytics` y `@vercel/speed-insights` se importan en `src/app/layout.tsx`; activos automáticamente al desplegar en Vercel.
 

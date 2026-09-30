@@ -201,6 +201,7 @@ const RENDER_SCENARIOS: Record<ScenarioKind, string[]> = {
   CONCILIATION: [
     'conciliacion-basica',
     'conciliacion-con-fechas',
+    'conciliacion-varios-menores',
     'conciliacion-xss',
   ],
   SUPPORT_AGREEMENT: ['apoyo-completo', 'apoyo-minimo'],

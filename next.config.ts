@@ -17,7 +17,7 @@ const ignoreOptionalEncodingRequire: NonNullable<NextConfig['webpack']> = (
 };
 
 const nextConfig: NextConfig = {
-  // @opentelemetry/api is reached via observability.ts's dynamic
+  // @opentelemetry/api is reached via logger.ts's dynamic
   // `import('@sentry/nextjs')`; without withSentryConfig() wiring up file
   // tracing for it, @vercel/nft misses one of its internal files
   // (build/src/api/context.js) when packaging serverless functions, which
