@@ -1,12 +1,16 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useForm, useFormContext } from 'react-hook-form';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 
 import { addAssetToCase, removeAssetFromCase } from '@/features/case/actions';
+import {
+  assetFieldsToClear,
+  blankValueFor,
+} from '@/features/case/asset-type-fields';
 import {
   addAssetToCaseSchema,
   type AddAssetToCaseData,
@@ -152,6 +156,21 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
   const assets = form.watch('assets') ?? [];
   const assetType = newAssetForm.watch('type');
+
+  // Al cambiar el tipo, los bloques específicos se desmontan pero
+  // react-hook-form conserva sus valores (`shouldUnregister: false`), así que lo
+  // cargado para un inmueble se enviaba junto a un vehículo. Se limpian los
+  // campos que el tipo elegido no muestra.
+  useEffect(() => {
+    for (const field of assetFieldsToClear(assetType)) {
+      newAssetForm.setValue(field, blankValueFor(field) as never, {
+        shouldDirty: false,
+      });
+    }
+    // `newAssetForm` es estable entre renders (useForm), así que el tipo es la
+    // única dependencia real.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetType]);
 
   return (
     <div className="space-y-6">
