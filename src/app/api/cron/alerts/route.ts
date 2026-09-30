@@ -18,7 +18,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 
 import prisma, { getAvailableTenants } from '@/lib/prisma';
-import { reportError } from '@/lib/observability';
+import { logger } from '@/lib/logger';
 import {
   scanUpcomingHearings,
   scanOverduePayments,
@@ -92,10 +92,15 @@ async function run(authHeader: string | null): Promise<NextResponse> {
     try {
       hearings.push(await scanUpcomingHearings(prisma, tenant.id));
     } catch (error) {
-      await reportError(error, {
-        action: 'cron.alerts.scanUpcomingHearings',
-        extra: { tenantId: tenant.id, requestId },
-      });
+      logger.error(
+        'Cron de alertas: falló el escaneo de audiencias de un tenant',
+        error,
+        {
+          action: 'cron.alerts.scanUpcomingHearings',
+          tenantId: tenant.id,
+          requestId,
+        },
+      );
       hearings.push({
         tenantId: tenant.id,
         created: 0,
@@ -112,10 +117,15 @@ async function run(authHeader: string | null): Promise<NextResponse> {
     try {
       payments.push(await scanOverduePayments(prisma, tenant.id));
     } catch (error) {
-      await reportError(error, {
-        action: 'cron.alerts.scanOverduePayments',
-        extra: { tenantId: tenant.id, requestId },
-      });
+      logger.error(
+        'Cron de alertas: falló el escaneo de pagos vencidos de un tenant',
+        error,
+        {
+          action: 'cron.alerts.scanOverduePayments',
+          tenantId: tenant.id,
+          requestId,
+        },
+      );
       payments.push({
         tenantId: tenant.id,
         created: 0,

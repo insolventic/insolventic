@@ -17,9 +17,14 @@ jest.mock('@/lib/email', () => ({
   },
 }));
 
-jest.mock('@/lib/observability', () => ({
-  reportError: jest.fn().mockResolvedValue(undefined),
-  reportMessage: jest.fn().mockResolvedValue(undefined),
+// El cron reporta por el logger (único punto hacia Sentry).
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 // Keep the scanners under control — we don't want to re-exercise their full
@@ -34,6 +39,7 @@ import {
   scanOverduePayments,
 } from '@/features/notification/alerts';
 import { GET, POST } from '@/app/api/cron/alerts/route';
+import { logger } from '@/lib/logger';
 
 const mockedHearings = scanUpcomingHearings as jest.MockedFunction<
   typeof scanUpcomingHearings
@@ -161,5 +167,30 @@ describe('cron alerts route', () => {
     // Both tenants were still attempted.
     expect(mockedHearings).toHaveBeenCalledTimes(2);
     expect(mockedPayments).toHaveBeenCalledTimes(2);
+  });
+
+  it('reporta por el logger el fallo de un tenant, con action, tenant y requestId', async () => {
+    process.env.CRON_SECRET = 'test-cron-secret';
+    const boom = new Error('tenant 1 blew up');
+    mockedHearings.mockRejectedValueOnce(boom).mockResolvedValueOnce({
+      tenantId: 'constructores-paz',
+      created: 0,
+      skipped: 0,
+      errors: 0,
+    });
+
+    const res = await GET(req('Bearer test-cron-secret'));
+    const body = await res.json();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.any(String),
+      boom,
+      expect.objectContaining({
+        action: 'cron.alerts.scanUpcomingHearings',
+        tenantId: expect.any(String),
+        // El mismo requestId que la respuesta, para correlacionar log y respuesta.
+        requestId: body.requestId,
+      }),
+    );
   });
 });

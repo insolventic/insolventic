@@ -38,6 +38,7 @@ import ts from 'typescript';
 
 import {
   buildConciliationContext,
+  buildInsolvencyContext,
   mapCaseToPlaceholders,
   renderDocumentHtml,
 } from '@/features/document/placeholder-mapper';
@@ -357,6 +358,19 @@ describe('4. una carga HTML en los datos del usuario nunca sale sin escapar', ()
     const context = buildConciliationContext(
       build('conciliacion-xss') as never,
     );
+    const json = JSON.stringify(context);
+
+    expect(json).not.toContain(XSS_PAYLOAD);
+    expect(json).toContain(XSS_MARK); // la carga llegó, escapada
+  });
+
+  it('el contexto de insolvencia (acreedores) escapa los textos de los arreglos', () => {
+    // Mismo riesgo que el de conciliación, y por el mismo motivo: `extraContext`
+    // NO pasa por `escapeAllUnlessHtml`. `renderDocumentHtml` lo funde en el
+    // contexto tal cual y `substituteVars` lo inserta en el HTML sin más, así
+    // que si el builder no escapa lo suyo es una inyección en un documento
+    // legal.
+    const context = buildInsolvencyContext(build('insolvencia-xss') as never);
     const json = JSON.stringify(context);
 
     expect(json).not.toContain(XSS_PAYLOAD);

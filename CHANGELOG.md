@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Un solo wrapper de Sentry**: `src/lib/observability.ts` (`reportError` / `reportMessage`) se elimina y sus llamadores (cron de alertas y scanners de `notification/alerts.ts`) pasan a `logger.error`, que ya tenía entrega garantizada en serverless (`waitUntil` + `flush`). `logger.error` ahora envía `action` como tag de Sentry (lo que `reportError` aportaba) y el contexto pasa por la redacción de PII. `generation-job.ts` deja de capturar además de forma directa: cada fallo de generación producía **dos** eventos en Sentry.
+
 ### Added
 
 - **Logger estructurado (Fase 2.1)**: `src/lib/logger.ts` — niveles ERROR/WARN (→ Sentry) e INFO/DEBUG (consola JSON, gated por `LOG_LEVEL`), con redacción automática de PII/secrets en el contexto; `beforeSend` compartido de Sentry (`sentry-scrub.ts`) redacta cookies/headers/query params; boundary global de errores (`app/global-error.tsx`). Rutas críticas migradas (~50 refs): auth (actions, lib, hook `use-auth` — fuera los logs con emojis del build), generación de documentos (job, service, retry) y error boundaries.
@@ -17,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Totales de bienes de la "Solicitud de Insolvencia" (`TOTAL_INMUEBLES`, `TOTAL_MUEBLES`, `TOTAL_BIENES` y los `MUEBLE_*_VALOR`)**: `mapAssets` sumaba los `Prisma.Decimal` de los activos con `+`, y `Decimal.valueOf()` devuelve un string, así que concatenaba en vez de sumar (un inmueble de $100M sin muebles salía como $1.000M; con más activos, cifras de 15 dígitos). Afectaba a todo documento generado por la ruta automática (creación de caso, generación inicial), que pasa la fila de Prisma sin convertir. Ahora cada sumando pasa por `Number()`. Test de regresión con `Prisma.Decimal` real y comparación de la salida completa del mapper entre `Decimal` y `number`.
+
+### Changed
+
+- **`generateFromTemplates` (generación automática de documentos) corre en 3 fases** — preparar (validar + rellenar HTML), renderizar en lote (`batchHtmlToPdf`, un solo Chromium), subir a Drive — en vez de lanzar y cerrar un navegador por documento (P1 de `docs/AUDITORIA_MODULO_GENERACION_2026-07.md`). Medido con Chromium real (sin Drive): creación de caso (3 documentos) 1455ms → 945ms; admisión (6 documentos) 3426ms → 2133ms (~35-38% más rápido). Los dos lotes grandes que hoy exceden `maxDuration=60s` (Fracaso sin filtrar, paquete completo) siguen rotos — este cambio no los resuelve, ver Issue #3.
 
 ## [0.3.0] - 2026-04-15
 
