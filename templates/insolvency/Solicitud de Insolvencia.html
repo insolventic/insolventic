@@ -101,16 +101,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td>1</td><td>{{ACREEDOR_1}}</td><td>{{VALOR_1}}</td><td>{{LIBRANZA_1}}</td><td>{{CLASE_1}}</td><td>{{PORCENTAJE_1}}</td><td>{{DIAS_1}}</td></tr>
-                    <tr><td>2</td><td>{{ACREEDOR_2}}</td><td>{{VALOR_2}}</td><td>{{LIBRANZA_2}}</td><td>{{CLASE_2}}</td><td>{{PORCENTAJE_2}}</td><td>{{DIAS_2}}</td></tr>
-                    <tr><td>3</td><td>{{ACREEDOR_3}}</td><td>{{VALOR_3}}</td><td>{{LIBRANZA_3}}</td><td>{{CLASE_3}}</td><td>{{PORCENTAJE_3}}</td><td>{{DIAS_3}}</td></tr>
-                    <tr><td>4</td><td>{{ACREEDOR_4}}</td><td>{{VALOR_4}}</td><td>{{LIBRANZA_4}}</td><td>{{CLASE_4}}</td><td>{{PORCENTAJE_4}}</td><td>{{DIAS_4}}</td></tr>
-                    <tr><td>5</td><td>{{ACREEDOR_5}}</td><td>{{VALOR_5}}</td><td>{{LIBRANZA_5}}</td><td>{{CLASE_5}}</td><td>{{PORCENTAJE_5}}</td><td>{{DIAS_5}}</td></tr>
-                    <tr><td>6</td><td>{{ACREEDOR_6}}</td><td>{{VALOR_6}}</td><td>{{LIBRANZA_6}}</td><td>{{CLASE_6}}</td><td>{{PORCENTAJE_6}}</td><td>{{DIAS_6}}</td></tr>
-                    <tr><td>7</td><td>{{ACREEDOR_7}}</td><td>{{VALOR_7}}</td><td>{{LIBRANZA_7}}</td><td>{{CLASE_7}}</td><td>{{PORCENTAJE_7}}</td><td>{{DIAS_7}}</td></tr>
-                    <tr><td>8</td><td>{{ACREEDOR_8}}</td><td>{{VALOR_8}}</td><td>{{LIBRANZA_8}}</td><td>{{CLASE_8}}</td><td>{{PORCENTAJE_8}}</td><td>{{DIAS_8}}</td></tr>
-                    <tr><td>9</td><td>{{ACREEDOR_9}}</td><td>{{VALOR_9}}</td><td>{{LIBRANZA_9}}</td><td>{{CLASE_9}}</td><td>{{PORCENTAJE_9}}</td><td>{{DIAS_9}}</td></tr>
-                    <tr><td>10</td><td>{{ACREEDOR_10}}</td><td>{{VALOR_10}}</td><td>{{LIBRANZA_10}}</td><td>{{CLASE_10}}</td><td>{{PORCENTAJE_10}}</td><td>{{DIAS_10}}</td></tr>
+                    <!-- {{#each ACREEDORES}} -->
+                    <tr><td>{{NUMERO}}</td><td>{{NOMBRE}}</td><td>{{VALOR}}</td><td>{{LIBRANZA}}</td><td>{{CLASE}}</td><td>{{PORCENTAJE}}</td><td>{{DIAS}}</td></tr>
+                    <!-- {{/each}} -->
                     <tr class="total-row"><td colspan="2"><strong>TOTAL ACREENCIAS</strong></td><td>{{TOTAL_ACREENCIAS}}</td><td></td><td></td><td><strong>100,00%</strong></td><td></td></tr>
                 </tbody>
             </table>
@@ -124,65 +117,26 @@
             <p>Por medio de la presente, solicito que se realice una notificación formal a la Dirección de Impuestos y Aduanas Nacionales (DIAN), debido a que no tengo certeza sobre la existencia de posibles deudas o pendientes a mi nombre...</p>
         </div>
 
-        <!-- Acreedor 1 -->
-        <h3 class="acreedor-title">Acreedor No. 1</h3>
+        <!-- {{#each ACREEDORES}} -->
+        <h3 class="acreedor-title">Acreedor No. {{NUMERO}}</h3>
         <table class="table-acreedor">
-            <tr><td class="label-td">Nombre</td><td>{{AC1_NOMBRE}}</td></tr>
-            <tr><td class="label-td">Domicilio</td><td>{{AC1_DOMICILIO}}</td></tr>
-            <tr><td class="label-td">Dirección</td><td>{{AC1_DIRECCION}}</td></tr>
-            <tr><td class="label-td">E-mail</td><td>{{AC1_EMAIL}}</td></tr>
-            <tr><td class="label-td">Cuantía - Capital</td><td>{{AC1_CAPITAL}}</td></tr>
-            <tr><td class="label-td">Cuantía - Intereses</td><td>{{AC1_INTERESES}}</td></tr>
-            <tr><td class="label-td">Postergado Si o No</td><td>{{AC1_POSTERGADO}}</td></tr>
-            <tr><td class="label-td">Tasa Interés</td><td>{{AC1_TASA}}</td></tr>
-            <tr><td class="label-td">Documento en que consta</td><td>{{AC1_DOCUMENTO}}</td></tr>
-            <tr><td class="label-td">Fecha Otorgamiento crédito</td><td>{{AC1_FECHA_OTORGAMIENTO}}</td></tr>
-            <tr><td class="label-td">Fecha Vencimiento crédito</td><td>{{AC1_FECHA_VENCIMIENTO}}</td></tr>
-            <tr><td class="label-td">Clasificación del Crédito</td><td>{{AC1_CLASIFICACION}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Nombre</td><td>{{AC1_CODEUDOR_NOMBRE}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Domicilio</td><td>{{AC1_CODEUDOR_DOMICILIO}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Dirección</td><td>{{AC1_CODEUDOR_DIRECCION}}</td></tr>
+            <tr><td class="label-td">Nombre</td><td>{{NOMBRE}}</td></tr>
+            <tr><td class="label-td">Domicilio</td><td>{{DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Dirección</td><td>{{DIRECCION}}</td></tr>
+            <tr><td class="label-td">E-mail</td><td>{{EMAIL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Capital</td><td>{{CAPITAL}}</td></tr>
+            <tr><td class="label-td">Cuantía - Intereses</td><td>{{INTERESES}}</td></tr>
+            <tr><td class="label-td">Postergado Si o No</td><td>{{POSTERGADO}}</td></tr>
+            <tr><td class="label-td">Tasa Interés</td><td>{{TASA}}</td></tr>
+            <tr><td class="label-td">Documento en que consta</td><td>{{DOCUMENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Otorgamiento crédito</td><td>{{FECHA_OTORGAMIENTO}}</td></tr>
+            <tr><td class="label-td">Fecha Vencimiento crédito</td><td>{{FECHA_VENCIMIENTO}}</td></tr>
+            <tr><td class="label-td">Clasificación del Crédito</td><td>{{CLASIFICACION}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Nombre</td><td>{{CODEUDOR_NOMBRE}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Domicilio</td><td>{{CODEUDOR_DOMICILIO}}</td></tr>
+            <tr><td class="label-td">Información codeudor/avalista - Dirección</td><td>{{CODEUDOR_DIRECCION}}</td></tr>
         </table>
-
-        <!-- Acreedor 2 -->
-        <h3 class="acreedor-title">Acreedor No. 2</h3>
-        <table class="table-acreedor">
-            <tr><td class="label-td">Nombre</td><td>{{AC2_NOMBRE}}</td></tr>
-            <tr><td class="label-td">Domicilio</td><td>{{AC2_DOMICILIO}}</td></tr>
-            <tr><td class="label-td">Dirección</td><td>{{AC2_DIRECCION}}</td></tr>
-            <tr><td class="label-td">E-mail</td><td>{{AC2_EMAIL}}</td></tr>
-            <tr><td class="label-td">Cuantía - Capital</td><td>{{AC2_CAPITAL}}</td></tr>
-            <tr><td class="label-td">Cuantía - Intereses</td><td>{{AC2_INTERESES}}</td></tr>
-            <tr><td class="label-td">Postergado Si o No</td><td>{{AC2_POSTERGADO}}</td></tr>
-            <tr><td class="label-td">Tasa Interés</td><td>{{AC2_TASA}}</td></tr>
-            <tr><td class="label-td">Documento en que consta</td><td>{{AC2_DOCUMENTO}}</td></tr>
-            <tr><td class="label-td">Fecha Otorgamiento crédito</td><td>{{AC2_FECHA_OTORGAMIENTO}}</td></tr>
-            <tr><td class="label-td">Fecha Vencimiento crédito</td><td>{{AC2_FECHA_VENCIMIENTO}}</td></tr>
-            <tr><td class="label-td">Clasificación del Crédito</td><td>{{AC2_CLASIFICACION}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Nombre</td><td>{{AC2_CODEUDOR_NOMBRE}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Domicilio</td><td>{{AC2_CODEUDOR_DOMICILIO}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Dirección</td><td>{{AC2_CODEUDOR_DIRECCION}}</td></tr>
-        </table>
-
-        <!-- Acreedor 3 -->
-        <h3 class="acreedor-title">Acreedor No. 3</h3>
-        <table class="table-acreedor">
-            <tr><td class="label-td">Nombre</td><td>{{AC3_NOMBRE}}</td></tr>
-            <tr><td class="label-td">Domicilio</td><td>{{AC3_DOMICILIO}}</td></tr>
-            <tr><td class="label-td">Dirección</td><td>{{AC3_DIRECCION}}</td></tr>
-            <tr><td class="label-td">E-mail</td><td>{{AC3_EMAIL}}</td></tr>
-            <tr><td class="label-td">Cuantía - Capital</td><td>{{AC3_CAPITAL}}</td></tr>
-            <tr><td class="label-td">Cuantía - Intereses</td><td>{{AC3_INTERESES}}</td></tr>
-            <tr><td class="label-td">Postergado Si o No</td><td>{{AC3_POSTERGADO}}</td></tr>
-            <tr><td class="label-td">Tasa Interés</td><td>{{AC3_TASA}}</td></tr>
-            <tr><td class="label-td">Documento en que consta</td><td>{{AC3_DOCUMENTO}}</td></tr>
-            <tr><td class="label-td">Fecha Otorgamiento crédito</td><td>{{AC3_FECHA_OTORGAMIENTO}}</td></tr>
-            <tr><td class="label-td">Fecha Vencimiento crédito</td><td>{{AC3_FECHA_VENCIMIENTO}}</td></tr>
-            <tr><td class="label-td">Clasificación del Crédito</td><td>{{AC3_CLASIFICACION}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Nombre</td><td>{{AC3_CODEUDOR_NOMBRE}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Domicilio</td><td>{{AC3_CODEUDOR_DOMICILIO}}</td></tr>
-            <tr><td class="label-td">Información codeudor/avalista - Dirección</td><td>{{AC3_CODEUDOR_DIRECCION}}</td></tr>
-        </table>
+        <!-- {{/each}} -->
 
         <!-- SECCIÓN 4 -->
         <h2 class="section-title">4. RELACIÓN E INVENTARIO DE BIENES</h2>

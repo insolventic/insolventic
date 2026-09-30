@@ -28,6 +28,7 @@ import path from 'path';
 
 import {
   buildConciliationContext,
+  buildTemplateContext,
   mapCaseToPlaceholders,
   renderDocumentHtml,
 } from '@/features/document/placeholder-mapper';
@@ -197,6 +198,9 @@ const RENDER_SCENARIOS: Record<ScenarioKind, string[]> = {
     'insolvencia-fracaso-con-datos',
     'insolvencia-desistimiento',
     'insolvencia-xss',
+    // 13 deudas contra los 11 slots que habia: es el escenario que exhibe el
+    // truncamiento silencioso de las listas de acreedores.
+    'insolvencia-muchos',
   ],
   CONCILIATION: [
     'conciliacion-basica',
@@ -242,10 +246,11 @@ function computeRender(): Record<string, RenderEntry> {
         const caseData = SCENARIOS[name].build();
         built.set(name, {
           placeholders: mapCaseToPlaceholders(caseData as never),
-          extra:
-            template.caseType === 'CONCILIATION'
-              ? buildConciliationContext(caseData as never)
-              : undefined,
+          // El MISMO contexto que usa el pipeline de produccion. Antes se
+          // armaba solo para CONCILIATION, asi que las plantillas de
+          // insolvencia con bloques {{#each}} se renderizaban SIN su arreglo:
+          // el golden registraba una tabla VACIA como salida correcta.
+          extra: buildTemplateContext(caseData as never),
         });
       }
       const { placeholders, extra } = built.get(name)!;
