@@ -205,7 +205,7 @@ describe('buildInsolvencyContext', () => {
     // Plantillas que YA consumen el contexto. Al migrar una, se agrega aca:
     // el test de abajo falla nombrandola, que es la senal de que hay que
     // moverla de lista.
-    const YA_MIGRADAS: string[] = ['solicitud-insolvencia'];
+    const YA_MIGRADAS: string[] = ['solicitud-insolvencia', 'cyg-tramite'];
 
     it('render con y sin el contexto de insolvencia: idénticos', () => {
       const caseData = build('insolvencia-muchos');

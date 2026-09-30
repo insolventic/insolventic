@@ -129,3 +129,56 @@ describe('Solicitud de Insolvencia — todos los acreedores', () => {
     expect(rendered.html).toContain('3. LOS ACREEDORES');
   });
 });
+
+/**
+ * CYG Trámite — misma migración, otra plantilla.
+ *
+ * Es la tabla de Calificación y Graduación que se firma en la audiencia: una
+ * fila por acreedor, con columna de firma. Tenía 11 filas impresas, así que un
+ * caso con 12 acreedores llegaba a la audiencia con dos sin renglón donde
+ * firmar.
+ */
+describe('CYG Trámite — todos los acreedores', () => {
+  const cyg = ALL_TEMPLATES.find((t) => t.id === 'cyg-tramite')!;
+  const CYG_HTML = fs.readFileSync(getTemplatePath(cyg), 'utf-8');
+
+  function renderCyg(scenario: string) {
+    const caseData = SCENARIOS[scenario].build() as never;
+    const rendered = renderDocumentHtml(
+      CYG_HTML,
+      mapCaseToPlaceholders(caseData),
+      buildTemplateContext(caseData),
+    );
+    return {
+      html: rendered.html,
+      unresolved: rendered.unresolved,
+      filas: (rendered.html.match(/class="fila-acreedor"/g) ?? []).length,
+      deudas: (caseData as { debts: unknown[] }).debts.length,
+    };
+  }
+
+  it('con 13 deudas salen 13 filas, no 11', () => {
+    const r = renderCyg('insolvencia-muchos');
+    expect(r.deudas).toBe(13);
+    expect(r.filas).toBe(13);
+  });
+
+  it('el número de filas sigue a la cantidad de deudas', () => {
+    for (const scenario of ['insolvencia-completa', 'insolvencia-muchos']) {
+      const r = renderCyg(scenario);
+      expect({ scenario, filas: r.filas }).toEqual({
+        scenario,
+        filas: r.deudas,
+      });
+    }
+  });
+
+  it('no quedan slots numerados', () => {
+    expect(CYG_HTML).not.toMatch(/\{\{AC\d+_/);
+    expect(CYG_HTML).not.toMatch(/\{\{(ACREEDOR|PORCENTAJE)_\d+\}\}/);
+  });
+
+  it('el gate de no-resueltos sigue limpio', () => {
+    expect(renderCyg('insolvencia-muchos').unresolved).toEqual([]);
+  });
+});
