@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Un solo wrapper de Sentry**: `src/lib/observability.ts` (`reportError` / `reportMessage`) se elimina y sus llamadores (cron de alertas y scanners de `notification/alerts.ts`) pasan a `logger.error`, que ya tenía entrega garantizada en serverless (`waitUntil` + `flush`). `logger.error` ahora envía `action` como tag de Sentry (lo que `reportError` aportaba) y el contexto pasa por la redacción de PII. `generation-job.ts` deja de capturar además de forma directa: cada fallo de generación producía **dos** eventos en Sentry.
 
+### Removed
+
+- **Campos `rejection` y `withdrawal` de `Case`** (Paso 5 de `docs/DISENO_FASES_NUEVAS_2026-09-11.md`): la fase (`Rechazo` / `Retiro`) es la única fuente de verdad. Ninguna lógica los leía y estaban siempre en `false`. Se retiran del código y del schema, y una migración escrita a mano borra las columnas (con guarda: aborta si algún caso las tuviera en `true`). **Promover en dos tiempos**: primero el commit que retira el código, después el de la migración (ver el encabezado de la migración `20260930000000_drop_rejection_withdrawal_from_case`).
+
 ### Added
 
 - **Logger estructurado (Fase 2.1)**: `src/lib/logger.ts` — niveles ERROR/WARN (→ Sentry) e INFO/DEBUG (consola JSON, gated por `LOG_LEVEL`), con redacción automática de PII/secrets en el contexto; `beforeSend` compartido de Sentry (`sentry-scrub.ts`) redacta cookies/headers/query params; boundary global de errores (`app/global-error.tsx`). Rutas críticas migradas (~50 refs): auth (actions, lib, hook `use-auth` — fuera los logs con emojis del build), generación de documentos (job, service, retry) y error boundaries.

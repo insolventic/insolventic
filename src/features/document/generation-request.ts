@@ -11,6 +11,7 @@
 
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import type { GeneratedDocument } from './generate-documents';
 
 /**
  * Tipo de generación — una por caso puede estar activa a la vez.
@@ -221,6 +222,62 @@ export async function failGenerationRequest(
       finishedAt: new Date(),
     },
   });
+}
+
+/**
+ * Ejecuta `produce` protegido por el lock anti-duplicados (P3): reclama la
+ * solicitud (caseId, kind), la marca PROCESSING, registra los conteos al
+ * terminar y libera el lock. Si ya hay una generación activa devuelve la
+ * solicitud existente (equivalente al 409 + requestId del patrón REST).
+ *
+ * Compartido por la generación manual (actions-generation.ts) y por la
+ * generación disparada por cambio de fase (features/case/actions.ts) — de
+ * ahí que viva en este módulo sin 'use server' en vez de en uno de los dos.
+ */
+export async function runWithGenerationLock(
+  params: {
+    tenantId: string;
+    caseId: string;
+    kind: GenerationKind;
+    userId: string;
+  },
+  produce: () => Promise<GeneratedDocument[]>,
+): Promise<
+  | { ok: true; requestId: string; documents: GeneratedDocument[] }
+  | { ok: false; requestId: string; error: string }
+> {
+  const claim = await claimGenerationRequest({
+    tenantId: params.tenantId,
+    caseId: params.caseId,
+    kind: params.kind,
+    requestedById: params.userId,
+  });
+
+  if (!claim.claimed) {
+    return {
+      ok: false,
+      requestId: claim.request.id,
+      error: `Ya hay una generación de documentos en curso para este caso (estado: ${claim.request.status}). Espere a que termine o consulte su estado.`,
+    };
+  }
+
+  const requestId = claim.request.id;
+  try {
+    await markGenerationProcessing(requestId);
+    const documents = await produce();
+    const success = documents.filter((d) => d.status === 'success').length;
+    const errors = documents.filter((d) => d.status === 'error').length;
+    await completeGenerationRequest(requestId, {
+      total: documents.length,
+      success,
+      errors,
+    });
+    return { ok: true, requestId, documents };
+  } catch (error) {
+    // Liberar el lock para permitir reintento; el error sube al catch del llamador.
+    await failGenerationRequest(requestId, error).catch(() => {});
+    throw error;
+  }
 }
 
 /** Últimas solicitudes de un caso (para el polling de la UI). */

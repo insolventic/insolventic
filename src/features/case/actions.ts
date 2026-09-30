@@ -6,7 +6,12 @@ import { z } from 'zod';
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
-import { INITIAL_CASE_PHASE, validatePhaseTransition } from '@/lib/case-phases';
+import {
+  INITIAL_CASE_PHASE,
+  validatePhaseTransition,
+  phaseRequiresSubtype,
+  isValidDesistimientoSubtype,
+} from '@/lib/case-phases';
 import { logger } from '@/lib/logger';
 import {
   validateCaseBusinessRules,
@@ -19,12 +24,21 @@ import {
   generateDocumentsForAgreement,
   generateDocumentsForFailure,
 } from '@/features/document/generate-documents';
+import { isValidFailureType } from '@/features/document/templates-config';
+import {
+  fetchCaseForGeneration,
+  asCaseWithRelations,
+  persistGeneratedDocuments,
+} from '@/features/document/persistence';
+import {
+  runWithGenerationLock,
+  type GenerationKind,
+} from '@/features/document/generation-request';
 import { generatePaymentSchedule } from '@/features/payment/actions';
 import {
   requiresOtherDetail,
   tipoProcesoLabel,
 } from '@/features/case/proceso-judicial-tipos';
-import type { CaseWithRelations } from './schemas';
 import { buildApoderadosCreate, mirrorPrincipalApoderado } from './apoderados';
 
 import {
@@ -2355,11 +2369,27 @@ export async function getDashboardStats(): Promise<{
 const updateCasePhaseSchema = z.object({
   caseId: z.string().min(1),
   newPhase: z.string().min(1),
+  subtype: z.string().min(1).optional(),
+  resultDate: z.coerce.date().optional(),
 });
+
+/**
+ * Fracaso valida contra `getFailureTypes()` (templates-config.ts, ya la
+ * fuente de verdad de sus 13 subtipos); Desistimiento contra
+ * `isValidDesistimientoSubtype` (case-phases.ts, sin campos propios en el
+ * módulo de documentos). Devuelve false para cualquier otra fase.
+ */
+function isValidSubtypeForPhase(phase: string, subtype: string): boolean {
+  if (phase === 'Fracaso') return isValidFailureType(subtype);
+  if (phase === 'Desistimiento') return isValidDesistimientoSubtype(subtype);
+  return false;
+}
 
 export async function updateCasePhase(input: {
   caseId: string;
   newPhase: string;
+  subtype?: string;
+  resultDate?: string | Date;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const { user, tenantId } = await authenticateUser();
@@ -2368,7 +2398,8 @@ export async function updateCasePhase(input: {
       return { success: false, error: 'No tienes permisos para editar casos' };
     }
 
-    const { caseId, newPhase } = updateCasePhaseSchema.parse(input);
+    const { caseId, newPhase, subtype, resultDate } =
+      updateCasePhaseSchema.parse(input);
 
     const existingCase = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
@@ -2392,9 +2423,42 @@ export async function updateCasePhase(input: {
       return { success: true };
     }
 
+    // Fracaso y Desistimiento exigen subtipo + fecha para generar el
+    // documento correcto (docs/DISENO_FASES_NUEVAS_2026-09-11.md §4). El
+    // frontend ya deshabilita el botón de confirmar sin estos datos, pero
+    // esa es solo UX — esta es la fuente de verdad real, mismo principio
+    // que validatePhaseTransition para la fase en sí.
+    if (phaseRequiresSubtype(newPhase)) {
+      if (!subtype) {
+        return {
+          success: false,
+          error: `El subtipo es obligatorio para pasar a "${newPhase}"`,
+        };
+      }
+      if (!resultDate) {
+        return {
+          success: false,
+          error: `La fecha es obligatoria para pasar a "${newPhase}"`,
+        };
+      }
+      if (!isValidSubtypeForPhase(newPhase, subtype)) {
+        return {
+          success: false,
+          error: `Subtipo desconocido para "${newPhase}": "${subtype}"`,
+        };
+      }
+    }
+
+    const phaseUpdateData =
+      newPhase === 'Fracaso'
+        ? { phase: newPhase, failureType: subtype, failureDate: resultDate }
+        : newPhase === 'Desistimiento'
+          ? { phase: newPhase, resultType: subtype, resultDate: resultDate }
+          : { phase: newPhase };
+
     await prisma.case.update({
       where: { id: caseId, tenantId },
-      data: { phase: newPhase },
+      data: phaseUpdateData,
     });
 
     revalidateTag('cases');
@@ -2436,78 +2500,75 @@ export async function updateCasePhase(input: {
     );
 
     // ---------------------------------------------------------------
-    // Phase-specific side effects (async, non-blocking)
+    // Phase-specific side effects: documentos por cambio de fase.
+    //
+    // Antes: fire-and-forget sin lock ni after() — en Vercel podía cortarse
+    // al devolver la respuesta, y Fracaso nunca generaba nada porque
+    // 'general' no está en failureTypeMap. Con el subtipo ahora obligatorio
+    // (arriba) ese bug queda resuelto de raíz: `subtype` siempre viene
+    // validado cuando newPhase es Fracaso. Usa el mismo runWithGenerationLock
+    // que la generación manual: se espera el resultado, protegido por el
+    // lock anti-duplicados (P3).
     // ---------------------------------------------------------------
     const PHASES_WITH_DOCUMENTS = ['Admisión', 'Acuerdo aprobado', 'Fracaso'];
     if (PHASES_WITH_DOCUMENTS.includes(newPhase)) {
-      // Fetch full case with relations for document generation
-      const fullCase = await prisma.case.findUnique({
-        where: { id: caseId, tenantId },
-        include: {
-          debtor: true,
-          operator: { select: { id: true, name: true, email: true } },
-          documents: true,
-          debts: { include: { creditor: { select: { name: true } } } },
-          assets: true,
-          libranzas: true,
-          suspendedServices: true,
-          dependents: true,
-          legalProcesses: true,
-          acreedores: true,
-          bienes: true,
-          procesosJudiciales: true,
-          _count: { select: { documents: true } },
-        },
-      });
+      const fullCase = await fetchCaseForGeneration(caseId, tenantId);
 
       if (fullCase?.driveFolderId) {
-        const caseForDocs = fullCase as unknown as CaseWithRelations;
+        const caseForDocs = asCaseWithRelations(fullCase);
         const folderId = fullCase.driveFolderId;
-
-        // Choose the correct document generator per phase
-        const generateFn =
+        const kind: GenerationKind =
           newPhase === 'Admisión'
-            ? () => generateDocumentsForAdmission(caseForDocs, folderId)
+            ? 'ADMISSION'
             : newPhase === 'Acuerdo aprobado'
-              ? () => generateDocumentsForAgreement(caseForDocs, folderId)
-              : () =>
-                  generateDocumentsForFailure(
-                    caseForDocs,
-                    folderId,
-                    fullCase.failureType ?? 'general',
-                  );
+              ? 'AGREEMENT'
+              : 'FAILURE';
 
-        // Generate documents in background
-        generateFn()
-          .then(async (documents) => {
-            for (const doc of documents) {
-              if (doc.status === 'success' && doc.googleDriveId) {
-                await prisma.document.create({
-                  data: {
-                    name: doc.templateName,
-                    type: 'generated',
-                    status: 'completed',
-                    url: doc.googleDriveUrl,
-                    caseId,
-                    tenantId,
-                    googleDriveId: doc.googleDriveId,
-                    fileName: doc.fileName,
-                    mimeType: 'application/pdf',
-                    isGenerated: true,
-                  },
-                });
-              }
-            }
-            console.log(
-              `[Phase → ${newPhase}] Generated ${documents.length} documents for case ${existingCase.caseNumber}`,
-            );
-          })
-          .catch((err) => {
-            console.error(
-              `[Phase → ${newPhase}] Error generating documents for case ${existingCase.caseNumber}:`,
-              err,
-            );
+        try {
+          const lock = await runWithGenerationLock(
+            { tenantId, caseId, kind, userId: user.id },
+            async () => {
+              const documents =
+                newPhase === 'Admisión'
+                  ? await generateDocumentsForAdmission(caseForDocs, folderId)
+                  : newPhase === 'Acuerdo aprobado'
+                    ? await generateDocumentsForAgreement(caseForDocs, folderId)
+                    : await generateDocumentsForFailure(
+                        caseForDocs,
+                        folderId,
+                        subtype ?? fullCase.failureType ?? 'general',
+                      );
+              await persistGeneratedDocuments(documents, caseId, tenantId);
+              return documents;
+            },
+          );
+
+          if (!lock.ok) {
+            logger.warn('Generación por cambio de fase ya en curso', {
+              action: 'update-case-phase',
+              caseId,
+              newPhase,
+              requestId: lock.requestId,
+            });
+          } else {
+            logger.info('Documentos generados por cambio de fase', {
+              action: 'update-case-phase',
+              caseId,
+              newPhase,
+              requestId: lock.requestId,
+              documentCount: lock.documents.length,
+            });
+          }
+        } catch (error) {
+          // El cambio de fase ya se persistió arriba; un fallo de Drive/PDF
+          // no debe revertirlo — se loguea y queda disponible el reintento
+          // manual desde /documents.
+          logger.error('Generación por cambio de fase falló', error, {
+            action: 'update-case-phase',
+            caseId,
+            newPhase,
           });
+        }
       }
     }
 

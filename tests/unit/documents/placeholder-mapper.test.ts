@@ -474,3 +474,61 @@ describe('Placeholder Mapper — apoderados desde la lista nueva (Sección XI)',
     expect(p.NO_APODERADO).toBe('X');
   });
 });
+
+describe('Placeholder Mapper — fecha de desistimiento (Fase 2 paso 2.2)', () => {
+  const {
+    mapCaseToPlaceholders,
+  } = require('@/features/document/placeholder-mapper');
+
+  const makeCase = (overrides: Record<string, unknown> = {}) =>
+    ({
+      type: 'INSOLVENCY',
+      caseNumber: 'INS-2026-002',
+      debtor: {
+        name: 'Ana Torres',
+        idNumber: '987654321',
+        address: 'Calle 8 # 3-20',
+        city: 'Medellín',
+        email: 'ana@example.com',
+        phone: '3001112222',
+        occupation: 'Comerciante',
+      },
+      debts: [],
+      assets: [],
+      documents: [],
+      legalProcesses: [],
+      libranzas: [],
+      suspendedServices: [],
+      dependents: [],
+      causes: [],
+      applicantScope: [],
+      operator: null,
+      resultDate: null,
+      ...overrides,
+    }) as never;
+
+  it('antes del fix quedaban en blanco — ya no: usa resultDate cuando existe', () => {
+    const placeholders = mapCaseToPlaceholders(
+      makeCase({ resultDate: new Date('2026-03-15T12:00:00Z') }),
+    );
+    expect(placeholders.DIA_DESISTIMIENTO).toBe('15');
+    expect(placeholders.MES_DESISTIMIENTO).toBe('marzo');
+    expect(placeholders.ANO_DESISTIMIENTO).toBe('2026');
+  });
+
+  it('cae a la fecha de hoy si resultDate todavía no se registró', () => {
+    const placeholders = mapCaseToPlaceholders(makeCase({ resultDate: null }));
+    expect(placeholders.DIA_DESISTIMIENTO).not.toBe('');
+    expect(placeholders.MES_DESISTIMIENTO).not.toBe('');
+    expect(placeholders.ANO_DESISTIMIENTO).not.toBe('');
+  });
+
+  it('no toca DIA_FRACASO/MES_FRACASO — fuera de alcance de este paso', () => {
+    // Siguen "Manual": el merge final los rellena con guiones bajos (línea en
+    // blanco para completar a mano), igual que DIA_ACUERDO. Mismo bug de
+    // fondo que el de Desistimiento, pero no forma parte de este paso.
+    const placeholders = mapCaseToPlaceholders(makeCase());
+    expect(placeholders.DIA_FRACASO).toMatch(/^_+$/);
+    expect(placeholders.MES_FRACASO).toMatch(/^_+$/);
+  });
+});

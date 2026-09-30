@@ -309,8 +309,6 @@ export function CreateCaseDialog({
         hearingDate: null,
         caseNumber: '',
         attorney: '',
-        rejection: false,
-        withdrawal: false,
         hasLegalProcesses: false,
         riskCenterCommunication: false,
         // Applicant scope and income

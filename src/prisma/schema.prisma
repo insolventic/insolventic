@@ -109,8 +109,6 @@ model Case {
   admissionDate           DateTime?
   firstHearingDate        DateTime?
   firstHearingTime        String?
-  rejection               Boolean        @default(false)
-  withdrawal              Boolean        @default(false)
   hasLegalProcesses       Boolean        @default(false)
   courtNumber             String?
   city                    String?

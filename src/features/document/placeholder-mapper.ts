@@ -630,15 +630,19 @@ function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
     // desde failureDate (con marcador manual si falta). Tenerlos duplicados
     // con valores distintos dependía del orden del spread en
     // mapCaseToPlaceholders, y el "// Manual" de aquí nunca llegaba al documento.
-    ANO_DESISTIMIENTO: getYear(now),
+    // ANO_INICIO_PAGO/ANO_VIGENCIA: ídem, los produce mapAgreementResult desde
+    // paymentStartDate/agreementValidityDate (Hallazgo-2).
+    // resultDate guarda la fecha del desistimiento (docs/DISENO_FASES_NUEVAS_2026-09-11.md
+    // §6); cae a "now" si todavía no se registró, igual que ANO_RADICADO con filingDate.
+    ANO_DESISTIMIENTO: getYear(caseData.resultDate) || getYear(now),
 
     // Day variables
     DIA: getDayNumber(now),
-    DIA_DESISTIMIENTO: '', // Manual
+    DIA_DESISTIMIENTO: getDayNumber(caseData.resultDate) || getDayNumber(now),
 
     // Month variables
     MES: getMonthName(now),
-    MES_DESISTIMIENTO: '', // Manual
+    MES_DESISTIMIENTO: getMonthName(caseData.resultDate) || getMonthName(now),
 
     // Complete date
     FECHA_COMPLETA: formatDateComplete(now),

@@ -59,19 +59,59 @@ export const CASE_PHASES: readonly PhaseDefinition[] = [
     order: 4,
   },
   {
+    value: 'Acuerdo impugnado',
+    label: 'Acuerdo impugnado',
+    color: '#f97316',
+    badgeClass:
+      'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    order: 5,
+  },
+  {
+    value: 'Acuerdo reformado',
+    label: 'Acuerdo reformado',
+    color: '#6366f1',
+    badgeClass:
+      'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+    order: 6,
+  },
+  {
     value: 'Post-acuerdo',
     label: 'Post-acuerdo',
     color: '#06b6d4',
     badgeClass:
       'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300',
-    order: 5,
+    order: 7,
+  },
+  {
+    value: 'Rechazo',
+    label: 'Rechazo',
+    color: '#f43f5e',
+    badgeClass:
+      'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300',
+    order: 8,
+  },
+  {
+    value: 'Retiro',
+    label: 'Retiro',
+    color: '#eab308',
+    badgeClass:
+      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    order: 9,
+  },
+  {
+    value: 'Desistimiento',
+    label: 'Desistimiento',
+    color: '#ec4899',
+    badgeClass:
+      'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
+    order: 10,
   },
   {
     value: 'Fracaso',
     label: 'Fracaso',
     color: '#ef4444',
     badgeClass: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    order: 6,
+    order: 11,
   },
   {
     value: 'Terminado',
@@ -79,7 +119,7 @@ export const CASE_PHASES: readonly PhaseDefinition[] = [
     color: '#64748b',
     badgeClass:
       'bg-slate-100 text-slate-800 dark:bg-slate-800/30 dark:text-slate-300',
-    order: 7,
+    order: 12,
   },
 ] as const;
 
@@ -87,27 +127,90 @@ export const CASE_PHASES: readonly PhaseDefinition[] = [
 // Phase Transitions (valid next phases from each phase)
 // ---------------------------------------------------------------------------
 
+// Diseño: docs/DISENO_FASES_NUEVAS_2026-09-11.md §2. Se elimina
+// `Inicial → Fracaso` y `Admisión → Fracaso`: un trámite que nunca se
+// admitió no puede fracasar (el fracaso solo existe tras notificar e
+// intentar negociar). Esos desenlaces tempranos ahora son Rechazo/Retiro
+// (antes de Admisión) o Desistimiento (desde Admisión en adelante).
 export const PHASE_TRANSITIONS: Record<string, string[]> = {
-  Inicial: ['Admisión', 'Fracaso'],
-  Admisión: ['En negociación', 'Fracaso'],
-  'En negociación': ['Audiencia programada', 'Acuerdo aprobado', 'Fracaso'],
-  'Audiencia programada': ['Acuerdo aprobado', 'En negociación', 'Fracaso'],
-  'Acuerdo aprobado': ['Post-acuerdo', 'Fracaso'],
+  Inicial: ['Admisión', 'Rechazo', 'Retiro'],
+  Admisión: ['En negociación', 'Desistimiento'],
+  'En negociación': [
+    'Audiencia programada',
+    'Acuerdo aprobado',
+    'Desistimiento',
+    'Fracaso',
+  ],
+  'Audiencia programada': [
+    'Acuerdo aprobado',
+    'En negociación',
+    'Desistimiento',
+    'Fracaso',
+  ],
+  'Acuerdo aprobado': ['Post-acuerdo', 'Acuerdo impugnado', 'Fracaso'],
+  // ⓐ impugnación desestimada / nulidad saneada → Post-acuerdo.
+  // ⓑ nulidad declarada, no saneable → Acuerdo reformado.
+  'Acuerdo impugnado': ['Post-acuerdo', 'Acuerdo reformado'],
+  // ⓒ corrección lograda en plazo → Post-acuerdo.
+  // ⓓ corrección no lograda en plazo → Terminado.
+  'Acuerdo reformado': ['Post-acuerdo', 'Terminado'],
   'Post-acuerdo': ['Terminado', 'Fracaso'],
   Fracaso: ['Terminado'],
+  Rechazo: ['Terminado'],
+  Retiro: ['Terminado'],
+  Desistimiento: ['Terminado'],
   Terminado: [],
 };
+
+// ---------------------------------------------------------------------------
+// Subtipo + fecha obligatorios al transicionar (Fase 2 paso 3)
+// ---------------------------------------------------------------------------
+//
+// docs/DISENO_FASES_NUEVAS_2026-09-11.md §4: Fracaso y Desistimiento
+// necesitan un subtipo (y su fecha) para generar el documento correcto.
+// Rechazo, Retiro, Acuerdo impugnado y Acuerdo reformado no tienen subtipo
+// definido en el diseño — no se les exige nada aquí.
+
+export const PHASES_REQUIRING_SUBTYPE = ['Fracaso', 'Desistimiento'] as const;
+
+export function phaseRequiresSubtype(
+  phase: string | null | undefined,
+): boolean {
+  return (PHASES_REQUIRING_SUBTYPE as readonly string[]).includes(phase ?? '');
+}
+
+/**
+ * Subtipos de Desistimiento (§4.1). Se guardan en `resultType` — a
+ * diferencia de Fracaso (que tiene sus propios `failureType`/`failureDate`),
+ * no se crean campos nuevos. Los de Fracaso viven en
+ * `@/features/document/templates-config` (`getFailureTypes`), no aquí,
+ * porque ese módulo sí depende de la config de plantillas del documento.
+ */
+export const DESISTIMIENTO_SUBTYPES = [
+  { id: 'no-pago-tarifas', label: 'No pago de tarifas' },
+  { id: 'abandono-total', label: 'Abandono total' },
+] as const;
+
+export function isValidDesistimientoSubtype(id: string): boolean {
+  return DESISTIMIENTO_SUBTYPES.some((s) => s.id === id);
+}
 
 // ---------------------------------------------------------------------------
 // Document Package → Phase Mapping
 // ---------------------------------------------------------------------------
 
+// Rechazo, Retiro, Acuerdo impugnado y Acuerdo reformado quedan sin
+// paquete a propósito: sus plantillas todavía no existen (bloqueado por
+// el abogado, ver docs/DISENO_FASES_NUEVAS_2026-09-11.md §3). Hasta que
+// existan y se les asigne un packageNumber real, getPackageForPhase cae
+// a 1 para esas cuatro fases — el mismo comportamiento, ya conocido, que
+// tenía Fracaso antes de esta corrección.
 export const PACKAGE_PHASE_MAP: Record<number, string[]> = {
   1: ['Inicial', 'Admisión'],
   2: ['Admisión', 'En negociación'],
   3: ['En negociación', 'Audiencia programada'],
-  4: ['Acuerdo aprobado', 'Post-acuerdo'],
-  5: ['Post-acuerdo', 'Terminado'],
+  4: ['Acuerdo aprobado', 'Post-acuerdo', 'Desistimiento'],
+  5: ['Post-acuerdo', 'Terminado', 'Fracaso'],
 };
 
 // ---------------------------------------------------------------------------

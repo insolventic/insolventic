@@ -60,7 +60,7 @@ La migración vive en la rama de #40, sin cambios:
 e559b28 feat(db): migracion que retira las columnas rejection y withdrawal de Case (paso 5, fase de contraccion)
 ```
 
-Archivo: `src/prisma/migrations/20260920000000_drop_rejection_withdrawal_from_case/migration.sql`.
+Archivo: `src/prisma/migrations/20260930000000_drop_rejection_withdrawal_from_case/migration.sql`.
 
 Contenido (verificado, no resumido de memoria):
 
@@ -157,7 +157,7 @@ Mismo método que cerró el incidente de `DIRECT_URL` (`CHECKPOINT_2026-09-09.md
 
 En el Build Log:
 
-- Debe decir que encontró la migración `20260920000000_drop_rejection_withdrawal_from_case` y la aplicó (no "No pending migrations to apply" — si dice eso, la migración no corrió, algo no se promovió como se esperaba).
+- Debe decir que encontró la migración `20260930000000_drop_rejection_withdrawal_from_case` y la aplicó (no "No pending migrations to apply" — si dice eso, la migración no corrió, algo no se promovió como se esperaba).
 - **Sin `P1002`** ("database server was reached but timed out") — el error que en su momento reveló el problema de `-pooler` vs `directUrl`. Si aparece, la migración no llegó a ejecutarse.
 - Sin ningún error de la guarda (`RAISE EXCEPTION ... caso(s) lo tienen en true`) — si aparece, el deploy de Production queda en `error` (el `&&` del buildCommand corta antes de `next build`) y **no hay nada que revertir**: la transacción de Postgres ya abortó sola, las columnas siguen ahí. Hay que investigar esos casos puntuales antes de reintentar.
 
