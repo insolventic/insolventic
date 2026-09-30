@@ -2,7 +2,7 @@
 
 import { Plus, Trash2 } from 'lucide-react';
 import { useFormContext, useFieldArray, useWatch } from 'react-hook-form';
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -20,6 +20,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
+import {
+  assetFieldsToClear,
+  blankValueFor,
+} from '@/features/case/asset-type-fields';
 import {
   Select,
   SelectContent,
@@ -54,6 +62,19 @@ const AssetItem = memo(function AssetItem({
     control: form.control,
     name: `assets.${index}.type`,
   });
+
+  // Al cambiar el tipo, los bloques específicos se desmontan pero
+  // react-hook-form conserva sus valores (`shouldUnregister: false`), así que lo
+  // cargado para un inmueble se enviaba junto a un vehículo. Se limpian los
+  // campos que el tipo elegido no muestra, solo en ESTE bien del arreglo.
+  useEffect(() => {
+    for (const field of assetFieldsToClear(assetType)) {
+      form.setValue(`assets.${index}.${field}`, blankValueFor(field), {
+        shouldDirty: false,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetType, index]);
 
   return (
     <div
@@ -121,7 +142,10 @@ const AssetItem = memo(function AssetItem({
                 Nombre/Descripción <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input {...formField} placeholder="Ej: Casa, Carro Toyota" />
+                <Input
+                  {...formField}
+                  placeholder={assetNamePlaceholder(assetType)}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -133,7 +157,8 @@ const AssetItem = memo(function AssetItem({
           render={({ field: formField }) => (
             <FormItem>
               <FormLabel>
-                Valor ($) <span className="text-red-500">*</span>
+                {assetValueLabel(assetType)}{' '}
+                <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
                 <Input {...formField} type="number" placeholder="0" />
@@ -215,6 +240,23 @@ const AssetItem = memo(function AssetItem({
                   </FormControl>
                   <FormLabel className="cursor-pointer font-normal">
                     Vivienda Familiar (Ley 258/1996)
+                  </FormLabel>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`assets.${index}.isInalienablePatrimony`}
+              render={({ field: formField }) => (
+                <FormItem className="flex items-center space-y-0 space-x-2">
+                  <FormControl>
+                    <Checkbox
+                      checked={formField.value}
+                      onCheckedChange={formField.onChange}
+                    />
+                  </FormControl>
+                  <FormLabel className="cursor-pointer font-normal">
+                    Patrimonio de familia inembargable (Ley 70/1931)
                   </FormLabel>
                 </FormItem>
               )}

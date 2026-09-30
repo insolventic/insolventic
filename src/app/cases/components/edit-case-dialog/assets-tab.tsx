@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useForm, useFormContext } from 'react-hook-form';
 import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,9 +8,17 @@ import { Plus, Trash2 } from 'lucide-react';
 
 import { addAssetToCase, removeAssetFromCase } from '@/features/case/actions';
 import {
+  assetFieldsToClear,
+  blankValueFor,
+} from '@/features/case/asset-type-fields';
+import {
   addAssetToCaseSchema,
   type AddAssetToCaseData,
 } from '@/features/case/schemas';
+import {
+  assetNamePlaceholder,
+  assetValueLabel,
+} from '@/features/case/asset-labels';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -150,6 +158,21 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
   const assets = form.watch('assets') ?? [];
   const assetType = newAssetForm.watch('type');
+
+  // Al cambiar el tipo, los bloques específicos se desmontan pero
+  // react-hook-form conserva sus valores (`shouldUnregister: false`), así que lo
+  // cargado para un inmueble se enviaba junto a un vehículo. Se limpian los
+  // campos que el tipo elegido no muestra.
+  useEffect(() => {
+    for (const field of assetFieldsToClear(assetType)) {
+      newAssetForm.setValue(field, blankValueFor(field) as never, {
+        shouldDirty: false,
+      });
+    }
+    // `newAssetForm` es estable entre renders (useForm), así que el tipo es la
+    // única dependencia real.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetType]);
 
   return (
     <div className="space-y-6">
@@ -308,7 +331,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                 <Input
                   id="name"
                   {...newAssetForm.register('name')}
-                  placeholder="Ej: Casa, Carro Toyota"
+                  placeholder={assetNamePlaceholder(assetType)}
                 />
                 {newAssetForm.formState.errors.name && (
                   <p className="text-destructive text-sm">
@@ -319,7 +342,8 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
               <div className="space-y-2">
                 <Label htmlFor="value">
-                  Valor ($) <span className="text-red-500">*</span>
+                  {assetValueLabel(assetType)}{' '}
+                  <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="value"
@@ -400,6 +424,22 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                   />
                   <Label htmlFor="isFamilyHome" className="cursor-pointer">
                     Vivienda Familiar (Ley 258/1996)
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isInalienablePatrimony"
+                    checked={newAssetForm.watch('isInalienablePatrimony')}
+                    onCheckedChange={(checked) =>
+                      newAssetForm.setValue('isInalienablePatrimony', !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor="isInalienablePatrimony"
+                    className="cursor-pointer"
+                  >
+                    Patrimonio de familia inembargable (Ley 70/1931)
                   </Label>
                 </div>
               </div>

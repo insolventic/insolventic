@@ -8,12 +8,12 @@ import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
 import { withRetry } from '@/lib/retry';
 import { logger } from '@/lib/logger';
-import { htmlToPdf } from '@/lib/html-to-pdf';
+import { htmlToPdf, batchHtmlToPdf } from '@/lib/html-to-pdf';
 import {
   mapCaseToPlaceholders,
   renderDocumentHtml,
   validatePlaceholderCoverage,
-  buildConciliationContext,
+  buildTemplateContext,
 } from './placeholder-mapper';
 import {
   getTemplatesForCaseCreation,
@@ -420,11 +420,8 @@ async function generateDocument(
     // Validate placeholder coverage
     const coverage = validatePlaceholderCoverage(htmlContent, placeholders);
 
-    // Replace placeholders (conciliation adds flags + arrays for handlebars-lite)
-    const extraContext =
-      caseData.type === 'CONCILIATION'
-        ? buildConciliationContext(caseData)
-        : undefined;
+    // Contexto de bloques ({{#each}} / {{#if}}) segun el tipo de caso.
+    const extraContext = buildTemplateContext(caseData);
     const { html: filledHtml, unresolved } = renderDocumentHtml(
       htmlContent,
       placeholders,
@@ -549,10 +546,207 @@ async function generateDocument(
   }
 }
 
+/** Resultado de la Fase 1 para una plantilla que sí llega a renderizarse. */
+interface PreparedDocument {
+  template: DocumentTemplate;
+  html: string;
+  fileName: string;
+  coveragePercentage: number;
+  missingVariables?: string[];
+}
+
+function isPreparedDocument(
+  outcome: PreparedDocument | GeneratedDocument,
+): outcome is PreparedDocument {
+  return 'html' in outcome;
+}
+
 /**
- * Run a list of templates through generateDocument sequentially, sharing a
- * placeholder map and a Drive-subfolder cache across the whole batch.
- * Sequential on purpose: Puppeteer + Drive quotas punish concurrency here.
+ * Fase 1: validar requisitos, leer la plantilla y rellenar los placeholders.
+ * No toca Chromium ni Drive — así una plantilla que falla acá (datos
+ * incompletos, placeholder sin resolver) nunca llega a ocupar un navegador ni
+ * una subida.
+ */
+async function prepareDocument(
+  template: DocumentTemplate,
+  caseData: CaseWithRelations,
+  placeholders: Record<string, string>,
+  extraContext: Record<string, unknown> | undefined,
+  options: GenerationOptions & { skipValidation?: boolean },
+): Promise<PreparedDocument | GeneratedDocument> {
+  if (!options.skipValidation) {
+    const validation = validateDocumentRequirements(
+      template,
+      caseData,
+      placeholders,
+    );
+    if (!validation.canGenerate) {
+      return {
+        templateId: template.id,
+        templateName: template.name,
+        fileName: '',
+        googleDriveId: '',
+        googleDriveUrl: '',
+        status: 'skipped',
+        error: validation.reason,
+        missingVariables: validation.missingVariables,
+      };
+    }
+  }
+
+  let htmlContent: string;
+  try {
+    htmlContent = await readTemplate(getTemplatePath(template));
+  } catch (error) {
+    return {
+      templateId: template.id,
+      templateName: template.name,
+      fileName: '',
+      googleDriveId: '',
+      googleDriveUrl: '',
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Error desconocido',
+    };
+  }
+
+  const coverage = validatePlaceholderCoverage(htmlContent, placeholders);
+  const { html: filledHtml, unresolved } = renderDocumentHtml(
+    htmlContent,
+    placeholders,
+    extraContext,
+  );
+
+  // C-3: un placeholder que el mapper no produce es un hueco silencioso en un
+  // documento legal. Se bloquea la generación en vez de subir el PDF a Drive
+  // con el campo en blanco.
+  if (!options.skipValidation && unresolved.length > 0) {
+    logger.error(
+      'Generación bloqueada: la plantilla referencia variables que el mapper no produce',
+      new Error('unresolved-placeholders'),
+      {
+        action: 'generate-documents',
+        template: template.name,
+        templateId: template.id,
+        unresolved,
+      },
+    );
+    return {
+      templateId: template.id,
+      templateName: template.name,
+      fileName: '',
+      googleDriveId: '',
+      googleDriveUrl: '',
+      status: 'error',
+      error: `No se generó: faltan datos para ${unresolved.length} campo(s) de la plantilla (${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}). Complete la información del expediente y reintente.`,
+      missingVariables: unresolved,
+      coveragePercentage: coverage.coveragePercentage,
+    };
+  }
+
+  if (coverage.coveragePercentage < 80) {
+    logger.warn('Cobertura de placeholders baja', {
+      action: 'generate-documents',
+      template: template.name,
+      coveragePercentage: coverage.coveragePercentage,
+      missingVariables: coverage.missing,
+      emptyVariables: coverage.empty,
+    });
+  }
+
+  const baseFileName = `${caseData.caseNumber}_${template.name.replace(/\s+/g, '_')}`;
+  const fileName = options.generatePdf
+    ? `${baseFileName}.pdf`
+    : `${baseFileName}.html`;
+
+  return {
+    template,
+    html: filledHtml,
+    fileName,
+    coveragePercentage: coverage.coveragePercentage,
+    missingVariables:
+      coverage.missing.length > 0 ? coverage.missing : undefined,
+  };
+}
+
+/**
+ * Fase 3: sube a Drive el buffer que produjo la Fase 2 (o el HTML plano si
+ * `generatePdf` es falso) y arma el resultado final. Comparte
+ * `subfolderCache` con el resto del lote para no repetir la resolución de
+ * carpetas cuando varias plantillas comparten `folderPath`.
+ */
+async function uploadGeneratedDocument(
+  prepared: PreparedDocument,
+  fileBuffer: Buffer,
+  mimeType: string,
+  caseFolderId: string,
+  layoutVersion: number,
+  options: GenerationOptions,
+  subfolderCache: Map<string, string>,
+): Promise<GeneratedDocument> {
+  try {
+    let googleDriveId = '';
+    let googleDriveUrl = '';
+
+    if (options.uploadToGoogleDrive && caseFolderId) {
+      const targetFolderId = await createDocumentSubfolder(
+        caseFolderId,
+        prepared.template.folderPath,
+        layoutVersion,
+        subfolderCache,
+      );
+
+      googleDriveId = await withRetry(
+        () =>
+          googleDriveService.uploadFile(
+            prepared.fileName,
+            fileBuffer,
+            mimeType,
+            targetFolderId,
+          ),
+        { label: `upload:${prepared.fileName}` },
+      );
+      googleDriveUrl = googleDriveService.getFileUrl(googleDriveId);
+    }
+
+    return {
+      templateId: prepared.template.id,
+      templateName: prepared.template.name,
+      fileName: prepared.fileName,
+      googleDriveId,
+      googleDriveUrl,
+      status: 'success',
+      coveragePercentage: prepared.coveragePercentage,
+      missingVariables: prepared.missingVariables,
+    };
+  } catch (error) {
+    logger.error('Error generating document', error, {
+      action: 'generate-documents',
+      template: prepared.template.name,
+      templateId: prepared.template.id,
+    });
+    return {
+      templateId: prepared.template.id,
+      templateName: prepared.template.name,
+      fileName: '',
+      googleDriveId: '',
+      googleDriveUrl: '',
+      status: 'error',
+      error: error instanceof Error ? error.message : 'Error desconocido',
+    };
+  }
+}
+
+/**
+ * Corre un lote de plantillas en 3 fases (P1 de la auditoría de documentos,
+ * docs/AUDITORIA_MODULO_GENERACION_2026-07.md): 1) validar + rellenar HTML,
+ * 2) convertir a PDF con `batchHtmlToPdf` (un solo Chromium para todo el
+ * lote), 3) subir a Drive. Antes, cada documento lanzaba y cerraba su propio
+ * navegador (`generateDocument` → `htmlToPdf`) — el mismo patrón que
+ * `batchGenerateDocuments` (features/document/actions.ts) ya usa para la
+ * ruta manual de /documents.
+ *
+ * El orden del array de salida coincide con `templates` de entrada (cada
+ * plantilla llena su propia posición, sin importar en qué fase termine).
  */
 async function generateFromTemplates(
   templates: DocumentTemplate[],
@@ -561,23 +755,96 @@ async function generateFromTemplates(
   options: GenerationOptions,
 ): Promise<GeneratedDocument[]> {
   const placeholders = mapCaseToPlaceholders(caseData);
+  const extraContext = buildTemplateContext(caseData);
   const subfolderCache = new Map<string, string>();
-  const documents: GeneratedDocument[] = [];
+  const layoutVersion =
+    (caseData as { layoutVersion?: number }).layoutVersion ?? 0;
 
-  for (const template of templates) {
-    documents.push(
-      await generateDocument(
-        template,
-        caseData,
-        placeholders,
-        caseFolderId,
-        options,
-        subfolderCache,
-      ),
+  const results: GeneratedDocument[] = new Array(templates.length);
+  const prepared: Array<PreparedDocument & { index: number }> = [];
+
+  // Fase 1
+  for (let i = 0; i < templates.length; i++) {
+    const outcome = await prepareDocument(
+      templates[i],
+      caseData,
+      placeholders,
+      extraContext,
+      options,
+    );
+    if (isPreparedDocument(outcome)) {
+      prepared.push({ ...outcome, index: i });
+    } else {
+      results[i] = outcome;
+    }
+  }
+
+  // Fase 2: un solo navegador para todo el lote que pasó la Fase 1.
+  const projectRoot = process.cwd();
+  const buffers = new Map<string, { buffer: Buffer; mimeType: string }>();
+
+  if (options.generatePdf) {
+    if (prepared.length > 0) {
+      const htmlInputs = prepared.map((p) => ({
+        html: p.html,
+        filename: `${p.template.id}.html`,
+        assetsBaseDir: path.join(
+          projectRoot,
+          getTemplateAssetsBaseDir(p.template),
+        ),
+        docDir: path.dirname(
+          path.join(projectRoot, getTemplatePath(p.template)),
+        ),
+      }));
+      const pdfResults = await batchHtmlToPdf(htmlInputs);
+      for (const r of pdfResults) {
+        buffers.set(r.filename.replace(/\.pdf$/, ''), {
+          buffer: r.buffer,
+          mimeType: 'application/pdf',
+        });
+      }
+    }
+  } else {
+    for (const p of prepared) {
+      buffers.set(p.template.id, {
+        buffer: Buffer.from(p.html, 'utf-8'),
+        mimeType: 'text/html',
+      });
+    }
+  }
+
+  // Fase 3
+  for (const p of prepared) {
+    const generated = buffers.get(p.template.id);
+    if (!generated) {
+      // batchHtmlToPdf ya logueó el fallo puntual de esta plantilla y siguió
+      // con el resto del lote (ver src/lib/html-to-pdf.ts).
+      results[p.index] = {
+        templateId: p.template.id,
+        templateName: p.template.name,
+        fileName: p.fileName,
+        googleDriveId: '',
+        googleDriveUrl: '',
+        status: 'error',
+        error: 'Error al generar el PDF',
+        coveragePercentage: p.coveragePercentage,
+        missingVariables: p.missingVariables,
+      };
+      continue;
+    }
+
+    results[p.index] = await uploadGeneratedDocument(
+      p,
+      generated.buffer,
+      generated.mimeType,
+      caseFolderId,
+      layoutVersion,
+      options,
+      subfolderCache,
     );
   }
 
-  return documents;
+  return results;
 }
 
 /**
@@ -830,10 +1097,7 @@ export async function previewDocument(
   const templatePath = getTemplatePath(template);
   const htmlContent = await readTemplate(templatePath);
   const placeholders = mapCaseToPlaceholders(caseData);
-  const extraContext =
-    caseData.type === 'CONCILIATION'
-      ? buildConciliationContext(caseData)
-      : undefined;
+  const extraContext = buildTemplateContext(caseData);
   const { html: filledHtml, unresolved } = renderDocumentHtml(
     htmlContent,
     placeholders,

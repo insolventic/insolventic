@@ -274,7 +274,8 @@ export function DocumentsSection({
           <Alert className="border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950">
             <FileWarning className="h-4 w-4 text-indigo-600" />
             <AlertDescription className="text-sm text-indigo-800 dark:text-indigo-200">
-              El caso tiene apoderado. Se requiere copia del poder otorgado.
+              El caso tiene apoderado. Se requieren el poder otorgado, la cédula
+              del apoderado y su tarjeta profesional.
             </AlertDescription>
           </Alert>
         )}

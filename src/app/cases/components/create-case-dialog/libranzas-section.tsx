@@ -67,6 +67,10 @@ export function LibranzasSection() {
                 id={`libranzas.${index}.payerName`}
                 {...form.register(`libranzas.${index}.payerName`)}
               />
+              <p className="text-muted-foreground text-xs">
+                Se completa con el empleador de la Sección III. Cámbielo si el
+                pagador es otro (una pagaduría o un fondo).
+              </p>
             </div>
 
             <div className="space-y-2">

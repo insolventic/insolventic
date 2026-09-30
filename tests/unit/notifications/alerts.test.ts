@@ -16,13 +16,19 @@ jest.mock('@/lib/email', () => ({
   },
 }));
 
-// observability is fire-and-forget; mock to silence console.error noise.
-jest.mock('@/lib/observability', () => ({
-  reportError: jest.fn().mockResolvedValue(undefined),
-  reportMessage: jest.fn().mockResolvedValue(undefined),
+// El reporte de errores va por el logger (único punto hacia Sentry); se mockea
+// para silenciar la consola y poder afirmar qué se reporta.
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 import mockPrisma, { resetAllMocks } from '../../__mocks__/prisma';
+import { logger } from '@/lib/logger';
 
 import {
   scanUpcomingHearings,
@@ -73,6 +79,39 @@ describe('alerts.ts — scanUpcomingHearings', () => {
         tenantId: 'armonia',
       }),
     });
+  });
+
+  it('reporta por el logger (con action, tenant y caso) si falla crear una alerta y sigue con las demás', async () => {
+    const inWindow = new Date(FIXED_NOW.getTime() + 12 * 60 * 60 * 1000);
+    const row = (id: string) => ({
+      id,
+      caseNumber: id,
+      debtorName: 'Juan Pérez',
+      hearingDate: inWindow,
+      firstHearingDate: null,
+      operatorId: 'user-1',
+    });
+    mockPrisma.case.findMany.mockResolvedValue([row('case-1'), row('case-2')]);
+    mockPrisma.notification.findFirst.mockResolvedValue(null);
+    const boom = new Error('db down');
+    mockPrisma.notification.create
+      .mockRejectedValueOnce(boom)
+      .mockResolvedValueOnce({ id: 'notif-2' });
+
+    const result = await scanUpcomingHearings(mockPrisma as never, 'armonia');
+
+    expect(result.errors).toBe(1);
+    expect(result.created).toBe(1);
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.any(String),
+      boom,
+      expect.objectContaining({
+        action: 'scanUpcomingHearings.create',
+        tenantId: 'armonia',
+        caseId: 'case-1',
+      }),
+    );
   });
 
   it('skips cases that were notified within the dedupe window', async () => {

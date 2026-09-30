@@ -36,6 +36,11 @@ import {
   SMMLV_2025,
   type ValidationIssue,
 } from '@/features/case/validation-rules';
+import {
+  EMPLOYER_FIELD,
+  LIBRANZAS_FIELD,
+  resolvePayerPrefill,
+} from '@/features/case/libranza-prefill';
 
 import { AssetsSection } from './create-case-dialog/assets-section';
 import {
@@ -112,7 +117,6 @@ const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
   hasEmployerCertification: 'debtor',
   operatorId: 'debtor',
   phase: 'debtor',
-  filingDate: 'debtor',
   caseNumber: 'debtor',
   // Tab 2 – Situación
   conyuge: 'situation',
@@ -304,7 +308,6 @@ export function CreateCaseDialog({
         phase: 'Inicial',
         hearingDate: null,
         caseNumber: '',
-        filingDate: '',
         attorney: '',
         rejection: false,
         withdrawal: false,
@@ -509,10 +512,35 @@ export function CreateCaseDialog({
     setValidationWarnings(warnings);
   };
 
+  // Cuántas libranzas había en la pasada anterior de la suscripción. Permite
+  // distinguir "se agregó una fila" de "se editó una que ya estaba": el prefill
+  // del pagador solo debe actuar en el primer caso (ver abajo).
+  const libranzasCountRef = useRef(0);
+
   // Watch form changes to update warnings + auto-calculate totalDebt and credit fields
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       validateCoherence();
+
+      // Prefill del pagador de libranza con el empleador de la Sección III.
+      // La regla (cuándo actuar y sobre qué filas) vive en libranza-prefill.ts;
+      // acá solo se aplica. shouldDirty:false → sigue siendo una sugerencia, no
+      // un campo derivado: el usuario la sobrescribe y nada se la vuelve a pisar.
+      if (name === EMPLOYER_FIELD || name?.startsWith(LIBRANZAS_FIELD)) {
+        const { indices, value, nextCount } = resolvePayerPrefill({
+          changedField: name,
+          employerName: form.getValues(EMPLOYER_FIELD),
+          libranzas: form.getValues('libranzas') ?? [],
+          previousCount: libranzasCountRef.current,
+        });
+        libranzasCountRef.current = nextCount;
+
+        for (const index of indices) {
+          form.setValue(`libranzas.${index}.payerName`, value, {
+            shouldDirty: false,
+          });
+        }
+      }
 
       // Auto-calculate totalDebt and credit fields when debts change
       if (name?.startsWith('debts') || name === 'debts') {
@@ -896,7 +924,6 @@ export function CreateCaseDialog({
       'Disminución de ingresos',
     ]);
     form.setValue('phase', 'Inicial');
-    form.setValue('filingDate', new Date().toISOString().split('T')[0]);
     form.setValue('attorney', 'Dr. Juan Pérez');
     form.setValue('hasLegalProcesses', true);
 
@@ -933,6 +960,8 @@ export function CreateCaseDialog({
         coDebtorName: '',
         coDebtorCity: '',
         coDebtorAddress: '',
+        coDebtorPhone: '',
+        coDebtorEmail: '',
       },
       {
         creditor: 'Financiera XYZ',
@@ -955,6 +984,8 @@ export function CreateCaseDialog({
         coDebtorName: 'Pedro López',
         coDebtorCity: 'Medellín',
         coDebtorAddress: 'Cra 45 #30-12',
+        coDebtorPhone: '3109876543',
+        coDebtorEmail: 'pedro.lopez@ejemplo.com',
       },
     ]);
 
@@ -1023,9 +1054,11 @@ export function CreateCaseDialog({
     // Legal processes
     form.setValue('legalProcesses', [
       {
-        processType: 'Ejecutivo singular',
+        processType: 'EJECUTIVO',
+        processTypeOther: '',
         plaintiff: 'Banco XYZ',
         court: 'Juzgado 15 Civil del Circuito',
+        courtEmail: 'j15cctobogota@cendoj.ramajudicial.gov.co',
         fileNumber: '2024-00123-00',
         precautionaryMeasure: 'Embargo de salarios',
       },

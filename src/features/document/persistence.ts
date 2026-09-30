@@ -68,7 +68,8 @@ type JsonRowKey =
   | 'concClausulasAdicionalesUnion'
   | 'concClausulasAdicionalesDisolucion'
   | 'concClausulasAcuerdo'
-  | 'apoyoClausulas';
+  | 'apoyoClausulas'
+  | 'serviciosManutencion';
 
 /**
  * Lo que `asCaseWithRelations` acepta: todo `CaseWithRelations` salvo las 7
@@ -116,6 +117,8 @@ export function asCaseWithRelations(
       caseData.concClausulasAcuerdo as CaseWithRelations['concClausulasAcuerdo'],
     apoyoClausulas:
       caseData.apoyoClausulas as CaseWithRelations['apoyoClausulas'],
+    serviciosManutencion:
+      caseData.serviciosManutencion as CaseWithRelations['serviciosManutencion'],
   };
 }
 

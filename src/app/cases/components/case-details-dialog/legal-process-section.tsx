@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
+import { tipoProcesoLabel } from '@/features/case/proceso-judicial-tipos';
 
 interface LegalProcessSectionProps {
   caseData: CaseWithRelations;
@@ -118,7 +119,14 @@ export function LegalProcessSection({
                         <p className="text-muted-foreground text-xs font-medium">
                           Tipo de Proceso
                         </p>
-                        <p>{process.processType}</p>
+                        {/* En "Otros" muestra el texto que escribió el usuario:
+                            el valor crudo no dice nada. */}
+                        <p>
+                          {tipoProcesoLabel(
+                            process.processType,
+                            process.processTypeOther,
+                          )}
+                        </p>
                       </div>
                     )}
                     {process.plaintiff && (
@@ -135,6 +143,14 @@ export function LegalProcessSection({
                           Juzgado
                         </p>
                         <p>{process.court}</p>
+                      </div>
+                    )}
+                    {process.courtEmail && (
+                      <div>
+                        <p className="text-muted-foreground text-xs font-medium">
+                          Correo del Juzgado
+                        </p>
+                        <p className="break-all">{process.courtEmail}</p>
                       </div>
                     )}
                     {process.fileNumber && (

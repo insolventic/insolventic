@@ -20,6 +20,10 @@ import {
   generateDocumentsForFailure,
 } from '@/features/document/generate-documents';
 import { generatePaymentSchedule } from '@/features/payment/actions';
+import {
+  requiresOtherDetail,
+  tipoProcesoLabel,
+} from '@/features/case/proceso-judicial-tipos';
 import type { CaseWithRelations } from './schemas';
 import { buildApoderadosCreate, mirrorPrincipalApoderado } from './apoderados';
 
@@ -72,6 +76,7 @@ const JSON_ARRAY_FIELDS = [
   // Json? igual que los anteriores: sin esto, un payload con `null` aquí llega
   // a Prisma, que para columnas Json? exige `Prisma.DbNull`, no `null`.
   'apoyoClausulas',
+  'serviciosManutencion',
 ] as const;
 
 function sanitizeJsonFields<T extends Record<string, unknown>>(data: T): T {
@@ -597,10 +602,20 @@ export async function createCase(
           legalProcesses && legalProcesses.length > 0
             ? {
                 create: legalProcesses.map((process: LegalProcessData) => ({
-                  description: `${process.processType} - ${process.plaintiff}`,
+                  // La descripción es el resumen que se muestra en listados: en
+                  // "Otros" el valor crudo no dice nada, así que se usa el texto
+                  // que escribió el usuario.
+                  description: `${tipoProcesoLabel(
+                    process.processType,
+                    process.processTypeOther,
+                  )} - ${process.plaintiff}`,
                   processType: process.processType,
+                  processTypeOther: requiresOtherDetail(process.processType)
+                    ? process.processTypeOther
+                    : null,
                   plaintiff: process.plaintiff,
                   court: process.court,
+                  courtEmail: process.courtEmail || null,
                   fileNumber: process.fileNumber,
                   precautionaryMeasure: process.precautionaryMeasure,
                   tenantId,
@@ -697,8 +712,15 @@ export async function createCase(
                 create: procesosJudiciales.map(
                   (p: ProcesoJudicialFormData) => ({
                     tipoProceso: p.tipoProceso,
+                    // Antes se descartaba en silencio: el zod lo aceptaba y esta
+                    // proyección no lo listaba, así que el texto de "Otros" se
+                    // perdía entre el formulario y la fila.
+                    tipoProcesoOtro: requiresOtherDetail(p.tipoProceso)
+                      ? p.tipoProcesoOtro
+                      : null,
                     juzgadoNombre: p.juzgadoNombre,
                     juzgadoCiudad: p.juzgadoCiudad,
+                    juzgadoCorreo: p.juzgadoCorreo || null,
                     procesoJudicialRadicado: p.procesoJudicialRadicado,
                     demandanteNombre: p.demandanteNombre,
                     demandadoNombre: p.demandadoNombre,
@@ -790,6 +812,8 @@ export async function createCase(
             coDebtorName: debt.coDebtorName,
             coDebtorCity: debt.coDebtorCity,
             coDebtorAddress: debt.coDebtorAddress,
+            coDebtorPhone: debt.coDebtorPhone,
+            coDebtorEmail: debt.coDebtorEmail,
           },
         });
       }
