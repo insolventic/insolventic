@@ -672,6 +672,11 @@ model Asset {
   condition             String?
   licensePlate          String?
   transitAuthority      String?
+  // ¿El vehículo tiene comparendos o impuestos pendientes de pago?
+  // Solo aplica a bienes de tipo VEHICULO. De acá cuelga un párrafo dirigido a
+  // la Secretaría de Hacienda que todavía NO está implementado: falta el texto
+  // legal. Este PR es solo la captura.
+  hasPendingFinesOrTaxes Boolean @default(false)
   guaranteeInFavorOf    String?
   guaranteeAmount       Decimal?
   material              String?

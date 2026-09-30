@@ -307,6 +307,23 @@ const AssetItem = memo(function AssetItem({
               )}
             />
           </div>
+          <FormField
+            control={form.control}
+            name={`assets.${index}.hasPendingFinesOrTaxes`}
+            render={({ field: formField }) => (
+              <FormItem className="flex items-center space-y-0 space-x-2">
+                <FormControl>
+                  <Checkbox
+                    checked={formField.value}
+                    onCheckedChange={formField.onChange}
+                  />
+                </FormControl>
+                <FormLabel className="cursor-pointer font-normal">
+                  Tiene comparendos o impuestos pendientes de pago
+                </FormLabel>
+              </FormItem>
+            )}
+          />
         </div>
       )}
     </div>
@@ -340,6 +357,7 @@ export function AssetsSection() {
       condition: '',
       licensePlate: '',
       transitAuthority: '',
+      hasPendingFinesOrTaxes: false,
       guaranteeInFavorOf: '',
       guaranteeAmount: '',
       material: '',
