@@ -38,6 +38,14 @@ import {
 import { CreditorsTab } from './edit-case-dialog/creditors-tab';
 import { AssetsTab } from './edit-case-dialog/assets-tab';
 import { DebtorSection } from './create-case-dialog/debtor-section';
+import { ConciliationPartiesSection } from './create-case-dialog/conciliation-parties-section';
+import { ConciliationDetailsSection } from './create-case-dialog/conciliation-details-section';
+import { SupportAgreementPartiesSection } from './create-case-dialog/support-agreement-parties-section';
+import { SupportAgreementDetailsSection } from './create-case-dialog/support-agreement-details-section';
+import {
+  pickTypeSpecificFields,
+  pickTypeSpecificValues,
+} from './edit-case-dialog/type-specific-fields';
 import { DocumentsSection } from './create-case-dialog/documents-section';
 import { CaseDetailsSection } from './create-case-dialog/case-details-section';
 import { LegalProcessSection } from './create-case-dialog/legal-process-section';
@@ -353,6 +361,13 @@ export function EditCaseDialog({
               applicantSignatureName: fullCase.applicantSignatureName ?? '',
               applicantSignatureId: fullCase.applicantSignatureId ?? '',
               applicantSignature: fullCase.applicantSignature ?? '',
+
+              // Campos propios de Conciliacion y Acuerdo de Apoyo. Van por
+              // prefijo y no enumerados: son 100 columnas y listarlas a mano
+              // es como se llego a que ninguna estuviera (hallazgo A1).
+              ...pickTypeSpecificFields(
+                fullCase as unknown as Record<string, unknown>,
+              ),
             });
             setInitializedCaseId(caseData.id);
           }
@@ -507,6 +522,12 @@ export function EditCaseDialog({
         applicantSignatureName: data.applicantSignatureName,
         applicantSignatureId: data.applicantSignatureId,
         applicantSignature: data.applicantSignature,
+
+        // Conciliacion y Acuerdo de Apoyo. Sin esto el payload no llevaba
+        // ni un `conc*` ni un `apoyo*`, y como `updateCase` deja intacta la
+        // columna ausente, esos campos eran de escritura unica: se cargaban
+        // al crear el caso y no habia forma de corregirlos (hallazgo A1).
+        ...pickTypeSpecificValues(data as unknown as Record<string, unknown>),
       };
 
       const { success, error } = await updateCase(submitData);
@@ -639,6 +660,14 @@ export function EditCaseDialog({
     }
   }, [open, form]);
 
+  // Que pestañas mostrar. El dialogo era de insolvencia y nada mas: un caso
+  // de conciliacion se abria con las 8 pestañas de insolvencia y ninguna de
+  // las suyas (hallazgo A1).
+  const tipoDelCaso = form.watch('type');
+  const esConciliacion = tipoDelCaso === 'CONCILIATION';
+  const esApoyo = tipoDelCaso === 'SUPPORT_AGREEMENT';
+  const esInsolvencia = !esConciliacion && !esApoyo;
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -656,14 +685,60 @@ export function EditCaseDialog({
               <Tabs defaultValue="debtor" className="space-y-4">
                 <TabsList className="flex w-full flex-wrap gap-1">
                   <TabsTrigger value="debtor">1. Solicitante</TabsTrigger>
-                  <TabsTrigger value="situation">2. Situación</TabsTrigger>
-                  <TabsTrigger value="creditors">3. Acreedores</TabsTrigger>
-                  <TabsTrigger value="assets">4. Bienes</TabsTrigger>
-                  <TabsTrigger value="income">5. Ingresos</TabsTrigger>
-                  <TabsTrigger value="proposal">6. Propuesta</TabsTrigger>
-                  <TabsTrigger value="legal">7. Legal</TabsTrigger>
-                  <TabsTrigger value="documents">8. Documentos</TabsTrigger>
+                  {esConciliacion && (
+                    <>
+                      <TabsTrigger value="conc-parties">2. Partes</TabsTrigger>
+                      <TabsTrigger value="conc-details">
+                        3. Conciliación
+                      </TabsTrigger>
+                    </>
+                  )}
+                  {esApoyo && (
+                    <>
+                      <TabsTrigger value="apoyo-parties">2. Partes</TabsTrigger>
+                      <TabsTrigger value="apoyo-details">
+                        3. Acuerdo de Apoyo
+                      </TabsTrigger>
+                    </>
+                  )}
+                  {esInsolvencia && (
+                    <>
+                      <TabsTrigger value="situation">2. Situación</TabsTrigger>
+                      <TabsTrigger value="creditors">3. Acreedores</TabsTrigger>
+                      <TabsTrigger value="assets">4. Bienes</TabsTrigger>
+                      <TabsTrigger value="income">5. Ingresos</TabsTrigger>
+                      <TabsTrigger value="proposal">6. Propuesta</TabsTrigger>
+                      <TabsTrigger value="legal">7. Legal</TabsTrigger>
+                    </>
+                  )}
+                  <TabsTrigger value="documents">
+                    {esInsolvencia ? '8. Documentos' : '4. Documentos'}
+                  </TabsTrigger>
                 </TabsList>
+
+                {/* Pestañas propias de Conciliación (hallazgo A1) */}
+                {esConciliacion && (
+                  <>
+                    <TabsContent value="conc-parties" className="space-y-6">
+                      <ConciliationPartiesSection />
+                    </TabsContent>
+                    <TabsContent value="conc-details" className="space-y-6">
+                      <ConciliationDetailsSection />
+                    </TabsContent>
+                  </>
+                )}
+
+                {/* Pestañas propias de Acuerdo de Apoyo */}
+                {esApoyo && (
+                  <>
+                    <TabsContent value="apoyo-parties" className="space-y-6">
+                      <SupportAgreementPartiesSection />
+                    </TabsContent>
+                    <TabsContent value="apoyo-details" className="space-y-6">
+                      <SupportAgreementDetailsSection />
+                    </TabsContent>
+                  </>
+                )}
 
                 {/* Tab 1: Solicitante — DebtorSection + ApplicantScopeSection + CaseDetailsSection */}
                 <TabsContent value="debtor" className="space-y-6">

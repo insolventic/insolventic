@@ -22,7 +22,10 @@ import type { CaseWithRelations } from '../case/schemas';
 export const CASE_GENERATION_INCLUDE = {
   debtor: true,
   operator: {
-    select: { id: true, name: true, email: true },
+    // `professionalCard` alimenta TP_CONCILIADORA en los documentos de
+    // conciliacion: sin pedirla aca el fallback seria `undefined` en
+    // produccion aunque el tipo lo permita (hallazgo A6).
+    select: { id: true, name: true, email: true, professionalCard: true },
   },
   documents: true,
   debts: {

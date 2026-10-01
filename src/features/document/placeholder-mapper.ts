@@ -1823,8 +1823,18 @@ function mapConciliationFields(caseData: CaseWithRelations): PlaceholderMap {
   // Conciliadora (operator/conciliator)
   const conciliadoraName =
     (raw.concConciliadoraName as string) || caseData.operator?.name || '';
+  // LIMITACION (hallazgo A6): la cedula no tiene respaldo. `User` no guarda
+  // ninguna identificacion —su unico numero es la tarjeta profesional— y
+  // usarla tambien aca imprimiria el mismo numero en dos renglones que dicen
+  // cosas distintas, en un documento legal. Queda en blanco hasta que exista
+  // el dato.
   const conciliadoraCC = (raw.concConciliadoraCC as string) || '';
-  const conciliadoraTP = (raw.concConciliadoraTP as string) || '';
+  // La tarjeta profesional si tiene respaldo: es exactamente
+  // `User.professionalCard` del operador asignado al caso.
+  const conciliadoraTP =
+    (raw.concConciliadoraTP as string) ||
+    caseData.operator?.professionalCard ||
+    '';
 
   // Solicitud content
   const asunto = (raw.concAsunto as string) || '';
