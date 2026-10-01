@@ -130,6 +130,10 @@ const operatorForCaseSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.string(),
+  // Tarjeta profesional del operador: respaldo de TP_CONCILIADORA en los
+  // documentos de conciliacion. Opcional porque las consultas que no
+  // generan documentos no la piden.
+  professionalCard: z.string().optional().nullable(),
 });
 
 const creditorForDebtSchema = z.object({
