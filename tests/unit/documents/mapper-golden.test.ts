@@ -151,8 +151,11 @@ describe('golden master — mapCaseToPlaceholders / buildConciliationContext', (
     const actual = computeScenario(name);
     const file = path.join(MAPPER_DIR, `${name}.json`);
 
-    // No vacuo: el mapper emite cientos de claves en cada escenario.
-    expect(Object.keys(actual.placeholders).length).toBeGreaterThan(700);
+    // No vacuo: el mapper emite cientos de claves en cada escenario. El piso
+    // bajo de 700 a 550 al retirar los ~264 slots numerados de acreedor en el
+    // Paso 5 del plan de acreedores: esas claves ya no existen porque las dos
+    // plantillas que las consumian iteran ACREEDORES con {{#each}}.
+    expect(Object.keys(actual.placeholders).length).toBeGreaterThan(550);
 
     if (UPDATE) {
       fs.writeFileSync(file, serialize(actual));

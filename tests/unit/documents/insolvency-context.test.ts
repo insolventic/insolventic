@@ -98,58 +98,10 @@ describe('buildInsolvencyContext', () => {
     });
   });
 
-  describe('dice lo mismo que los slots planos', () => {
-    /**
-     * Es el criterio que hace la migración segura: para los acreedores que hoy
-     * caben en un slot, el contexto nuevo tiene que producir exactamente el
-     * mismo texto. Si difieren, migrar una plantilla cambiaría el documento.
-     */
-    it.each([
-      'insolvencia-completa',
-      'insolvencia-muchos',
-      'insolvencia-caracteres-especiales',
-    ])('%s: los primeros 11 coinciden campo a campo', (escenario) => {
-      const planos = mapCaseToPlaceholders(build(escenario));
-      const acreedores = acreedoresDe(escenario);
-
-      // Los que comparten nombre entre las dos formas. `PORCENTAJE` se compara
-      // aparte: el slot plano tiene un bug de formato conocido (ver abajo).
-      const comparables = CAMPOS.filter(
-        (c) => c !== 'NUMERO' && c !== 'PORCENTAJE',
-      );
-
-      acreedores.slice(0, 11).forEach((acreedor, i) => {
-        const n = i + 1;
-        for (const campo of comparables) {
-          // El resumen usa otros nombres de slot que la ficha.
-          const slot =
-            campo === 'VALOR'
-              ? `VALOR_${n}`
-              : campo === 'LIBRANZA'
-                ? `LIBRANZA_${n}`
-                : campo === 'CLASE'
-                  ? `CLASE_${n}`
-                  : campo === 'DIAS'
-                    ? `DIAS_${n}`
-                    : `AC${n}_${campo}`;
-
-          expect({ slot, valor: acreedor[campo] }).toEqual({
-            slot,
-            valor: planos[slot],
-          });
-        }
-      });
-    });
-
-    it('normaliza el % que el slot plano emitía de dos formas', () => {
-      // `mapDebts` hace `debt.percentageOfTotal?.toString() || `${calc}%``: la
-      // rama persistida da "33" y la calculada "33.00%", en el mismo documento.
-      // El contexto pone el símbolo siempre.
-      for (const acreedor of acreedoresDe('insolvencia-completa')) {
-        expect(acreedor.PORCENTAJE).toMatch(/%$/);
-      }
-    });
-  });
+  // El describe de paridad con los slots planos se retiro en el Paso 5: esos
+  // slots ya no existen, asi que no hay contra que comparar. Su trabajo -que el
+  // contexto dijera lo mismo que los slots para los primeros 11- ya se cumplio
+  // al migrar las dos plantillas, y el golden lo dejo fijado.
 
   describe('codeudor', () => {
     it('sin codeudor declarado, los tres campos dicen N/A y no vacío', () => {

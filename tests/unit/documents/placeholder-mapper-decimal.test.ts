@@ -282,8 +282,11 @@ describe('el mapper produce lo mismo con Prisma.Decimal que con number', () => {
       const withDecimal = map(makeCase('decimal', { type }));
       const withNumber = map(makeCase('number', { type }));
 
-      // No vacuo: el mapper emite cientos de claves.
-      expect(Object.keys(withNumber).length).toBeGreaterThan(800);
+      // No vacuo: el mapper emite cientos de claves. El piso bajo de 800 a 650
+      // al retirar los ~200 slots numerados de acreedor (AC{n}_* y el cuadro
+      // resumen) en el Paso 5 del plan de acreedores: esas claves ya no existen
+      // porque las plantillas iteran ACREEDORES con {{#each}}.
+      expect(Object.keys(withNumber).length).toBeGreaterThan(650);
       expect(Object.keys(withDecimal)).toEqual(Object.keys(withNumber));
 
       const distintas = Object.keys(withNumber).filter(
