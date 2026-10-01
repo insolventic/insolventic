@@ -22,7 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { createCase } from '@/features/case/actions';
 import { getAllCreditors } from '@/features/creditor/actions';
 import { getAllDebtors, createDebtor } from '@/features/debtor/actions';
-import { getAllUsers } from '@/features/user/actions';
+import { getAssignableOperators } from '@/features/user/actions';
+import type { AssignableOperator } from '@/features/user/schemas';
 import {
   createCaseFormSchema,
   type CreateCaseFormData,
@@ -219,6 +220,7 @@ export function CreateCaseDialog({
   const [dataLoading, setDataLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(TAB_ORDER[0]);
   const [debtors, setDebtors] = useState<DebtorOption[]>([]);
+  const [operators, setOperators] = useState<AssignableOperator[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState<string>('');
   const [selectedDebtor, setSelectedDebtor] = useState<DebtorOption | null>(
     null,
@@ -367,15 +369,21 @@ export function CreateCaseDialog({
       const loadData = async () => {
         setDataLoading(true);
         try {
-          const [debtorsResult, , usersResult] = await Promise.all([
+          const [debtorsResult, , operatorsResult] = await Promise.all([
             getAllDebtors(),
             getAllCreditors(),
-            getAllUsers(),
+            getAssignableOperators(),
           ]);
 
-          if (usersResult.error) {
-            toast.error('Error al cargar los usuarios');
-            return;
+          // No se corta la carga si falla: antes un `return` aca dejaba el
+          // dialogo sin deudores ademas de sin usuarios. El selector avisa
+          // por su cuenta cuando la lista viene vacia.
+          if (operatorsResult.success) {
+            setOperators(operatorsResult.data ?? []);
+          } else {
+            toast.error(
+              operatorsResult.error ?? 'Error al cargar los usuarios',
+            );
           }
           setDebtors(
             debtorsResult.data?.map((debtor) => ({
@@ -391,17 +399,6 @@ export function CreateCaseDialog({
               monthlyExpenses: Number(debtor.monthlyExpenses ?? 0),
             })) || [],
           );
-
-          // Auto-populate operatorId: prefer specific roles, fallback to first available user
-          const operatorUser =
-            usersResult.data?.find(
-              (user) =>
-                user.role?.name === 'Operadora de Insolvencia' ||
-                user.role?.name === 'Abogado',
-            ) || usersResult.data?.[0]; // Fallback to first user if no specific role found
-          if (operatorUser) {
-            form.setValue('operatorId', operatorUser.id);
-          }
         } catch {
           toast.error('Error al cargar los datos');
         } finally {
@@ -1387,7 +1384,10 @@ export function CreateCaseDialog({
                     loading={dataLoading}
                   />
                   <ApplicantScopeSection />
-                  <CaseDetailsSection />
+                  <CaseDetailsSection
+                    operators={operators}
+                    loadingOperators={dataLoading}
+                  />
                 </TabsContent>
 
                 {/* Tab 2: Situación — Cónyuge + Info laboral + Cesación + Procesos */}
