@@ -1,7 +1,7 @@
 # Plan — listar todos los acreedores en la Solicitud de Insolvencia
 
 **Fecha:** 2026-09-28
-**Estado:** Pasos 1 y 2 implementados (PR #73 y #74). Pasos 3–5 bloqueados por una decisión legal y por tres PRs abiertos.
+**Estado (2026-10-01):** Pasos 1 y 2 mergeados (PR #73 y #74). Pasos 3, 4 y 5 implementados y esperando revisión en los PR #77, #78 y #79, construidos sobre la opción (1) del §2 — que este documento **asume** y que no consta respondida por la abogada. Las trampas de merge verificadas están en el §10.
 **Alcance:** `src/features/document/placeholder-mapper.ts`, `src/features/document/generate-documents.ts`, `src/features/document/actions.ts`, `templates/insolvency/Solicitud de Insolvencia.html`, `templates/insolvency/Formatos Para Audiencias/CYG Tramite.html`.
 
 ---
@@ -172,7 +172,80 @@ La rama persistida da `"33"` y la calculada da `"33.00%"` — **el símbolo de p
 
 ---
 
-## 10. Referencias
+## 10. Al mergear la cadena: dos trampas verificadas
+
+Medido el 2026-10-01 simulando la secuencia completa de squashes (#77 → #78 →
+#79) sobre el `dev` de ese día. Las dos aparecen **durante el merge**, no en el
+contenido de los PRs, que simulado termina en verde.
+
+### 10.1 El golden se automergea mal y git no avisa
+
+`tests/unit/documents/golden/render-hashes.json` es un JSON ordenado que #77 y
+#78 regeneran los dos. Al squashear #77 y después mergear #78, git funde el
+archivo **textualmente y sin marcar conflicto**, y el resultado queda con la
+clave `INSOLVENCY/cyg-tramite|insolvencia-muchos` **dos veces**: una con el hash
+nuevo de la plantilla y otra con el viejo.
+
+JSON con claves repetidas no es un error de sintaxis —gana la última—, así que
+el archivo parece sano. Lo detectó el golden master, que reportó «la PLANTILLA
+cambió, no el mapper». Si las dos entradas hubieran coincidido, habría pasado en
+silencio.
+
+**Qué hacer:** no dejar que el golden se automergee. Tomarlo entero de la rama
+hija —que es la acumulativa y la correcta— o regenerarlo:
+
+```bash
+git checkout <rama-hija> -- tests/unit/documents/golden/render-hashes.json
+```
+
+Y comprobar que no quedaron claves repetidas en ningún golden:
+
+```bash
+python -c "import json,glob,collections
+for f in glob.glob('tests/unit/documents/golden/**/*.json', recursive=True):
+    def dup(p):
+        d=[k for k,n in collections.Counter(k for k,_ in p).items() if n>1]
+        if d: print('DUPLICADAS', f, d)
+        return dict(p)
+    json.loads(open(f, encoding='utf-8').read(), object_pairs_hook=dup)"
+```
+
+### 10.2 El conflicto `add/add` por squashear el padre
+
+Al squashear #77, los dos archivos de test que #78 también toca
+—`insolvency-context.test.ts` y `solicitud-acreedores-sin-tope.test.ts`— chocan
+como `add/add`. No es un defecto de #78: el commit del squash tiene un SHA que
+no existe en la historia de la rama hija, así que para git esos archivos los
+agregan los dos lados de la nada.
+
+Es el mismo mecanismo que apareció con #68 en la ronda de septiembre, y va a
+volver a pasar entre #78 y #79.
+
+**Qué hacer:** resolver tomando la versión de la rama hija, que ya contiene lo
+del padre más lo suyo. No hay que fusionar a mano.
+
+### 10.3 Y lo que sí hay que mirar a ojo
+
+Los 8 PDF de revisión (2 plantillas × 1, 3, 15 y 50 acreedores) se generaron el
+2026-10-01 con Chromium real y casos sintéticos, sin tocar ninguna base. Ninguno
+deja placeholders sin resolver y el conteo de fichas y filas coincide
+exactamente con el número de acreedores en los cuatro volúmenes — o sea que el
+truncamiento silencioso ya no está.
+
+| Acreedores | Solicitud | CYG Tramite |
+| ---------- | --------- | ----------- |
+| 1          | 7 págs    | 2 págs      |
+| 3          | 8 págs    | 2 págs      |
+| 15         | 14 págs   | 3 págs      |
+| 50         | 33 págs   | 5 págs      |
+
+Lo que los tests **no** pueden responder y sigue necesitando a alguien mirando
+el PDF: saltos de página, que una ficha no quede cortada a la mitad, y que el
+cuadro resumen no desborde.
+
+---
+
+## 11. Referencias
 
 - Hallazgos de calidad de la misma ronda: `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`
 - Auditoría del módulo de documentos: `docs/AUDITORIA_MODULO_GENERACION_2026-07.md`
