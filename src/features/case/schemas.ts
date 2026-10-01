@@ -1599,6 +1599,56 @@ export const createCaseSchema = z.object({
   centroConciliacionNombre: z.string().optional(),
   conciliadorAsignado: z.string().optional(),
   ciudadRadicacion: z.string().optional(),
+
+  // ============================================================
+  // ACUERDO DE APOYO
+  // ============================================================
+  // Las 29 columnas `apoyo*` estaban en `caseSchema` (lectura) pero NO aca.
+  // Como Zod descarta las claves que no declara, los 28 campos que recoge el
+  // formulario de Acuerdo de Apoyo se perdian en silencio: nunca llegaban a la
+  // base, aunque las columnas, el mapper y las plantillas existieran. Las de
+  // conciliacion si estaban; estas se quedaron afuera.
+  // ============================================================
+  // ACUERDO DE APOYO - Campos específicos del servicio
+  // ============================================================
+  apoyoAsunto: z.string().optional().nullable(),
+  apoyoDescripcionHechos: z.string().optional().nullable(),
+  apoyoPretensiones: z.string().optional().nullable(),
+  apoyoMontoMensual: z.string().optional().nullable(),
+  apoyoPlazoMeses: z.string().optional().nullable(),
+  apoyoCondiciones: z.string().optional().nullable(),
+  apoyoTipoApoyo: z.string().optional().nullable(),
+  // Beneficiario
+  apoyoBeneficiarioName: z.string().optional().nullable(),
+  apoyoBeneficiarioTipoId: z.string().optional().nullable(),
+  apoyoBeneficiarioId: z.string().optional().nullable(),
+  apoyoBeneficiarioDireccion: z.string().optional().nullable(),
+  apoyoBeneficiarioCiudad: z.string().optional().nullable(),
+  apoyoBeneficiarioCorreo: z.string().optional().nullable(),
+  apoyoBeneficiarioCel: z.string().optional().nullable(),
+  // Prestador
+  apoyoPrestadorName: z.string().optional().nullable(),
+  apoyoPrestadorTipoId: z.string().optional().nullable(),
+  apoyoPrestadorId: z.string().optional().nullable(),
+  apoyoPrestadorDireccion: z.string().optional().nullable(),
+  apoyoPrestadorCiudad: z.string().optional().nullable(),
+  apoyoPrestadorCorreo: z.string().optional().nullable(),
+  apoyoPrestadorCel: z.string().optional().nullable(),
+  apoyoPrestadorRelacion: z.string().optional().nullable(),
+  // Conciliadora
+  apoyoConciliadoraName: z.string().optional().nullable(),
+  apoyoConciliadoraCC: z.string().optional().nullable(),
+  apoyoConciliadoraTP: z.string().optional().nullable(),
+  // Acuerdo y resultado
+  apoyoAcuerdo: z.string().optional().nullable(),
+  apoyoResultado: z.string().optional().nullable(),
+  apoyoCausaTerminacion: z.string().optional().nullable(),
+  // Mismo caso que los 6 arrays de conciliación de arriba: `Json?` en Prisma
+  // devuelve `null`, y `.optional()` solo acepta `undefined`. Se quedó fuera de
+  // a54d92e porque aquel fix se buscó por el prefijo `conc*`; este campo es del
+  // bloque ACUERDO DE APOYO y está en NULL en todo caso que no sea
+  // SUPPORT_AGREEMENT — es decir, en los 28 casos de producción.
+  apoyoClausulas: z.array(concClausulaSchema).optional(),
 });
 
 export type CreateCaseData = z.infer<typeof createCaseSchema>;
@@ -2215,6 +2265,56 @@ export const updateCaseSchema = z.object({
   centroConciliacionNombre: z.string().optional(),
   conciliadorAsignado: z.string().optional(),
   ciudadRadicacion: z.string().optional(),
+
+  // ============================================================
+  // ACUERDO DE APOYO
+  // ============================================================
+  // Las 29 columnas `apoyo*` estaban en `caseSchema` (lectura) pero NO aca.
+  // Como Zod descarta las claves que no declara, los 28 campos que recoge el
+  // formulario de Acuerdo de Apoyo se perdian en silencio: nunca llegaban a la
+  // base, aunque las columnas, el mapper y las plantillas existieran. Las de
+  // conciliacion si estaban; estas se quedaron afuera.
+  // ============================================================
+  // ACUERDO DE APOYO - Campos específicos del servicio
+  // ============================================================
+  apoyoAsunto: z.string().optional().nullable(),
+  apoyoDescripcionHechos: z.string().optional().nullable(),
+  apoyoPretensiones: z.string().optional().nullable(),
+  apoyoMontoMensual: z.string().optional().nullable(),
+  apoyoPlazoMeses: z.string().optional().nullable(),
+  apoyoCondiciones: z.string().optional().nullable(),
+  apoyoTipoApoyo: z.string().optional().nullable(),
+  // Beneficiario
+  apoyoBeneficiarioName: z.string().optional().nullable(),
+  apoyoBeneficiarioTipoId: z.string().optional().nullable(),
+  apoyoBeneficiarioId: z.string().optional().nullable(),
+  apoyoBeneficiarioDireccion: z.string().optional().nullable(),
+  apoyoBeneficiarioCiudad: z.string().optional().nullable(),
+  apoyoBeneficiarioCorreo: z.string().optional().nullable(),
+  apoyoBeneficiarioCel: z.string().optional().nullable(),
+  // Prestador
+  apoyoPrestadorName: z.string().optional().nullable(),
+  apoyoPrestadorTipoId: z.string().optional().nullable(),
+  apoyoPrestadorId: z.string().optional().nullable(),
+  apoyoPrestadorDireccion: z.string().optional().nullable(),
+  apoyoPrestadorCiudad: z.string().optional().nullable(),
+  apoyoPrestadorCorreo: z.string().optional().nullable(),
+  apoyoPrestadorCel: z.string().optional().nullable(),
+  apoyoPrestadorRelacion: z.string().optional().nullable(),
+  // Conciliadora
+  apoyoConciliadoraName: z.string().optional().nullable(),
+  apoyoConciliadoraCC: z.string().optional().nullable(),
+  apoyoConciliadoraTP: z.string().optional().nullable(),
+  // Acuerdo y resultado
+  apoyoAcuerdo: z.string().optional().nullable(),
+  apoyoResultado: z.string().optional().nullable(),
+  apoyoCausaTerminacion: z.string().optional().nullable(),
+  // Mismo caso que los 6 arrays de conciliación de arriba: `Json?` en Prisma
+  // devuelve `null`, y `.optional()` solo acepta `undefined`. Se quedó fuera de
+  // a54d92e porque aquel fix se buscó por el prefijo `conc*`; este campo es del
+  // bloque ACUERDO DE APOYO y está en NULL en todo caso que no sea
+  // SUPPORT_AGREEMENT — es decir, en los 28 casos de producción.
+  apoyoClausulas: z.array(concClausulaSchema).optional(),
 });
 
 export type UpdateCaseData = z.infer<typeof updateCaseSchema>;
