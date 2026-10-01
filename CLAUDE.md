@@ -15,7 +15,7 @@ Sistema web full-stack de gestión de expedientes de insolvencia (proyecto de te
 
 ```bash
 npm run dev            # dev server (turbopack)
-npm test               # suite completa (1410 tests en 95 suites — medido en dev el 2026-10-01, commit 12fc707; excluye tests/db y tests/e2e)
+npm test               # suite completa (1448 tests en 97 suites — medido en dev el 2026-10-01, commit f233b24; excluye tests/db y tests/e2e)
 npx tsc --noEmit       # type-check
 npm run lint           # eslint
 npm run db:migrate     # prisma migrate dev
@@ -205,6 +205,8 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 3. Lazy-load del diálogo de creación de casos (1.494 líneas viajan con la ruta `/cases`)
 4. Wiring UI del polling de generación (`documents-section` → `getGenerationRequestStatus`)
 5. **Aclarar en el schema los 3 pares de modelos EN/ES** (`Creditor`/`Acreedor`, `Asset`/`Bien`, `LegalProcess`/`ProcesoJudicial`; identificado 2026-08-12). Diagnóstico confirmado por código: **no son duplicados** — `Creditor`/`Asset`/`LegalProcess` son el registro general (reutilizable entre casos, ej. `Creditor` con `Contact[]`/`Debt[]` propios); `Acreedor`/`Bien`/`ProcesoJudicial` son el snapshot detallado por caso de las Secciones V/VI/VII del "Formulario Definitivo" (ver comentarios en `schema.prisma` líneas 708–815 y `case-details-dialog/definitivo-section.tsx`, cards "Acreedores Definitivo"/"Bienes Definitivo"). Evaluar si vale la pena documentar esta distinción más explícitamente (naming, comentarios) para que no se lea como redundancia en el MER — no requiere tocar el schema.
+
+6. **Cachear `~/.cache/ms-playwright` en `e2e.yml`** (identificado 2026-10-01). El workflow corre `playwright install --with-deps chromium` en cada ejecución, sin caché, y ese paso se viene degradando: **28 s → 79 s → 228 s → 572 s** en cuatro corridas consecutivas, incluida una de solo documentación. En la quinta se comió los `timeout-minutes: 25` del job y lo cancelaron **antes de correr un solo test** (`Build` y `Run Playwright E2E tests` quedaron _skipped_), haciendo aparecer como rojo un PR sano. Relanzarlo alcanzó esa vez (232 s), pero es una fuente de falsos rojos que cuesta diagnosticar: el check dice «playwright fail» y el motivo está enterrado en «Terminate orphan process: npm exec playwright install». Un `actions/cache` sobre `~/.cache/ms-playwright` con clave por versión de Playwright lo saca del camino crítico.
 
 > Nota: dos items del roadmap original se descartaron por no corresponder al código real: la migración Float→Decimal (los montos ya usan `Decimal`) y el split del schema Prisma (tiene 1.041 líneas, no 2.516 — no urge).
 
