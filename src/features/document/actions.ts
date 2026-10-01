@@ -34,6 +34,7 @@ import {
 } from './schemas';
 import { asCaseWithRelations } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
+import { prepareTemplate, variantDisplayName } from './prepare-template';
 
 export async function getTemplatesFromDatabase() {
   try {
@@ -878,8 +879,9 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Map case data to placeholders
-    const { mapCaseToPlaceholders, renderDocumentHtml, buildTemplateContext } =
-      await import('./placeholder-mapper');
+    const { mapCaseToPlaceholders, buildTemplateContext } = await import(
+      './placeholder-mapper'
+    );
 
     // Transform ALL Decimal fields to numbers for the mapper
     // Prisma Decimal.valueOf() returns a string, causing reduce() string concatenation bugs
@@ -944,7 +946,8 @@ export async function batchGenerateDocuments(input: {
     );
 
     // Read HTML templates, replace placeholders, generate PDFs
-    const { promises: fsPromises } = await import('fs');
+    // (la lectura la hace ahora `prepareTemplate`; acá solo quedan las
+    // rutas de assets que la Fase 2 necesita).
     const path = await import('path');
     const { batchHtmlToPdf } = await import('@/lib/html-to-pdf');
 
@@ -1031,29 +1034,22 @@ export async function batchGenerateDocuments(input: {
     );
 
     for (const { template, variant } of jobs) {
-      const displayName = variant.label
-        ? `${template.name} — ${variant.label}`
-        : template.name;
+      const displayName = variantDisplayName(template, variant);
       try {
-        const templatePath = getTemplatePath(template);
-        const fullPath = path.join(projectRoot, templatePath);
-        console.log(
-          `[batchGenerateDocuments] Reading template: ${template.name} from ${fullPath}`,
-        );
-        const htmlContent = await fsPromises.readFile(fullPath, 'utf-8');
-        // El overlay de la variante pisa los placeholders del caso: es lo que
-        // dirige el oficio N al juzgado N en vez de siempre al primero. Va
-        // antes del render y de la validacion, para que las dos vean el mismo
-        // contexto que el documento final.
-        const variantPlaceholders =
-          Object.keys(variant.overlay).length > 0
-            ? { ...placeholders, ...variant.overlay }
-            : placeholders;
-
-        const { html: filledHtml, unresolved } = renderDocumentHtml(
+        // Fase 1 compartida con la ruta automatica: leer, aplicar el overlay
+        // de la variante, renderizar y medir. La validacion de abajo NO se
+        // comparte: esta ruta corta por `collectMissingData` y la otra por el
+        // gate de placeholders sin resolver.
+        const {
           htmlContent,
-          variantPlaceholders,
+          html: filledHtml,
+          placeholders: variantPlaceholders,
+          unresolved,
+        } = await prepareTemplate(
+          template,
+          placeholders,
           batchExtraCtx,
+          variant,
         );
 
         // C-3: esta ruta —la que más usan los operadores desde /documents— no
