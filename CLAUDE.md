@@ -15,7 +15,7 @@ Sistema web full-stack de gestión de expedientes de insolvencia (proyecto de te
 
 ```bash
 npm run dev            # dev server (turbopack)
-npm test               # suite completa (1337 tests en 90 suites — medido en dev el 2026-09-30, commit a0ac5d7; excluye tests/db y tests/e2e)
+npm test               # suite completa (1410 tests en 95 suites — medido en dev el 2026-10-01, commit 12fc707; excluye tests/db y tests/e2e)
 npx tsc --noEmit       # type-check
 npm run lint           # eslint
 npm run db:migrate     # prisma migrate dev
@@ -191,6 +191,7 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 - [ ] Code-split del dashboard (342 kB First Load → `next/dynamic` en gráficos) — ~8h
 - [ ] Split estructural del placeholder-mapper (2.877 líneas → builders HTML / mappers escalares / conciliación / apoyo) — ~4h
 - [ ] P1 pendiente de la auditoría de documentos: batch de Chromium en creación de casos (hoy 1 navegador por documento; `batchHtmlToPdf` ya existe) — ~8h
+- [ ] Reintentos en la ruta manual de generación (`batchGenerateDocuments`): la ruta automática envuelve la subida a Drive y la creación de carpetas en `withRetry` (backoff exponencial 3×, 4 call-sites); la manual no tiene ninguno, y es la que más usan los operadores desde `/documents`. Un fallo transitorio de Drive ahí se traduce en un documento que no se subió, sin reintento. Medido el 2026-10-01 al extraer la Fase 1 compartida (PR #85), que no toca esta asimetría porque vive en la Fase 3 de cada ruta. **No bloqueante** — ~4h
 
 ### Fase 3 (Q3, ~26h)
 

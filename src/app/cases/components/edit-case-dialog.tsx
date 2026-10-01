@@ -28,6 +28,8 @@ import {
 } from '@/features/case/schemas';
 import { getAllCreditors } from '@/features/creditor/actions';
 import { getAllDebtors, createDebtor } from '@/features/debtor/actions';
+import { getAssignableOperators } from '@/features/user/actions';
+import type { AssignableOperator } from '@/features/user/schemas';
 
 import {
   CreateDebtorDialog,
@@ -69,6 +71,7 @@ export function EditCaseDialog({
 }: Readonly<EditCaseDialogProps>) {
   const [dataLoading, setDataLoading] = useState(false);
   const [debtors, setDebtors] = useState<DebtorOption[]>([]);
+  const [operators, setOperators] = useState<AssignableOperator[]>([]);
   const [creditors, setCreditors] = useState<CreditorOption[]>([]);
   const [selectedDebtorId, setSelectedDebtorId] = useState<string>('');
   const [selectedDebtor, setSelectedDebtor] = useState<DebtorOption | null>(
@@ -118,12 +121,17 @@ export function EditCaseDialog({
       const loadData = async () => {
         setDataLoading(true);
         try {
-          const [debtorsResult, creditorsResult, caseResult] =
+          const [debtorsResult, creditorsResult, caseResult, operatorsResult] =
             await Promise.all([
               getAllDebtors(),
               getAllCreditors(),
               getCaseById(caseData.id),
+              // El dialogo de edicion no cargaba usuarios: no habia nada
+              // que elegir. Ahora el operador se puede reasignar, que es
+              // la unica via para corregir una asignacion vieja (#83).
+              getAssignableOperators(),
             ]);
+          setOperators(operatorsResult.data ?? []);
           setDebtors(
             (debtorsResult.data || []).map((debtor) => ({
               id: debtor.id,
@@ -673,7 +681,11 @@ export function EditCaseDialog({
                     <ApplicantScopeSection />
                   </div>
                   <div className="border-t pt-6">
-                    <CaseDetailsSection showFilingDate />
+                    <CaseDetailsSection
+                      showFilingDate
+                      operators={operators}
+                      loadingOperators={dataLoading}
+                    />
                   </div>
                 </TabsContent>
 
