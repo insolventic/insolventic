@@ -30,6 +30,22 @@ const DOCUMENTS_SECTION = read(
   'src/app/cases/components/case-details-dialog/documents-section.tsx',
 );
 
+/**
+ * El elemento `<CaseDetailsSection ... />` completo, con sus props, venga en
+ * una línea o en varias.
+ *
+ * Antes se comparaba contra el literal `'<CaseDetailsSection />'`. Eso ataba
+ * el test a que la sección no recibiera NINGUNA otra prop: al agregarle el
+ * selector de operador (`operators`, `loadingOperators`), prettier partió el
+ * elemento en varias líneas y los dos asserts fallaron sin que el invariante
+ * —quién muestra la fecha de radicación— hubiera cambiado.
+ */
+const caseDetailsElement = (source: string): string => {
+  const match = /<CaseDetailsSection\b[\s\S]*?\/>/.exec(source);
+  if (!match) throw new Error('No se renderiza CaseDetailsSection');
+  return match[0];
+};
+
 describe('fecha de radicación — dato del operador', () => {
   describe('el wizard de alta no la pide', () => {
     it('create-case-dialog no menciona filingDate', () => {
@@ -45,13 +61,13 @@ describe('fecha de radicación — dato del operador', () => {
     });
 
     it('el wizard de alta renderiza la sección sin encender el flag', () => {
-      expect(CREATE_WIZARD).toContain('<CaseDetailsSection />');
+      expect(caseDetailsElement(CREATE_WIZARD)).not.toContain('showFilingDate');
     });
   });
 
   describe('el operador sí la tiene', () => {
     it('el diálogo de edición enciende el flag', () => {
-      expect(EDIT_DIALOG).toContain('<CaseDetailsSection showFilingDate />');
+      expect(caseDetailsElement(EDIT_DIALOG)).toContain('showFilingDate');
     });
 
     it('el formulario previo a la generación la exige', () => {

@@ -56,3 +56,19 @@ export const userSummarySchema = userSchema.omit({
 });
 
 export type UserSummaryData = z.infer<typeof userSummarySchema>;
+
+/**
+ * Usuario tal como lo necesita el selector de operador de un caso.
+ *
+ * Lo mínimo para pintar la opción. A propósito sin correo, teléfono, cédula
+ * profesional ni permisos del rol: el selector lo usan roles que NO tienen
+ * `Ver usuarios`, así que exponerles el usuario completo sería darles por la
+ * puerta de atrás lo que ese permiso les niega.
+ */
+export const assignableOperatorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  roleName: z.string(),
+});
+
+export type AssignableOperator = z.infer<typeof assignableOperatorSchema>;
