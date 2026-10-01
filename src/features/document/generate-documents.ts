@@ -3,7 +3,6 @@
  * Generates PDF documents from HTML templates and uploads to Google Drive
  */
 
-import { promises as fs } from 'fs';
 import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
 import { withRetry } from '@/lib/retry';
@@ -11,8 +10,6 @@ import { logger } from '@/lib/logger';
 import { htmlToPdf, batchHtmlToPdf } from '@/lib/html-to-pdf';
 import {
   mapCaseToPlaceholders,
-  renderDocumentHtml,
-  validatePlaceholderCoverage,
   buildTemplateContext,
 } from './placeholder-mapper';
 import {
@@ -20,6 +17,11 @@ import {
   jobKey,
   type TemplateVariant,
 } from './template-variants';
+import {
+  prepareTemplate,
+  variantDisplayName,
+  SIN_VARIANTE,
+} from './prepare-template';
 import {
   getTemplatesForCaseCreation,
   getTemplatesForAdmission,
@@ -237,24 +239,6 @@ const defaultOptions: GenerationOptions = {
 };
 
 /**
- * Read HTML template from file system
- */
-async function readTemplate(templatePath: string): Promise<string> {
-  try {
-    // Try reading from project root (for local development)
-    const projectRoot = process.cwd();
-    const fullPath = path.join(projectRoot, templatePath);
-    return await fs.readFile(fullPath, 'utf-8');
-  } catch (error) {
-    logger.error('Error reading template', error, {
-      action: 'generate-documents',
-      templatePath,
-    });
-    throw new Error(`No se pudo leer la plantilla: ${templatePath}`);
-  }
-}
-
-/**
  * Map case type code to human-readable folder label.
  */
 function caseTypeFolderLabel(
@@ -425,20 +409,16 @@ async function generateDocument(
       }
     }
 
-    // Read template HTML
-    const templatePath = getTemplatePath(template);
-    const htmlContent = await readTemplate(templatePath);
-
-    // Validate placeholder coverage
-    const coverage = validatePlaceholderCoverage(htmlContent, placeholders);
-
-    // Contexto de bloques ({{#each}} / {{#if}}) segun el tipo de caso.
-    const extraContext = buildTemplateContext(caseData);
-    const { html: filledHtml, unresolved } = renderDocumentHtml(
-      htmlContent,
+    // Misma Fase 1 compartida que usa `prepareDocument`. Esta ruta no tiene
+    // variantes —regenera un documento suelto—, asi que pasa la variante
+    // vacia y el resultado es identico al de antes.
+    const coverage = await prepareTemplate(
+      template,
       placeholders,
-      extraContext,
+      buildTemplateContext(caseData),
+      SIN_VARIANTE,
     );
+    const { html: filledHtml, unresolved } = coverage;
 
     // C-3: un placeholder que el mapper no produce es un hueco silencioso en un
     // documento legal. Se bloquea la generación en vez de subir el PDF a Drive
@@ -495,7 +475,9 @@ async function generateDocument(
         projectRoot,
         getTemplateAssetsBaseDir(template),
       );
-      const docDir = path.dirname(path.join(projectRoot, templatePath));
+      const docDir = path.dirname(
+        path.join(projectRoot, getTemplatePath(template)),
+      );
       fileBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir, docDir);
       mimeType = 'application/pdf';
     } else {
@@ -599,7 +581,7 @@ async function prepareDocument(
   // Con una sola variante el label es vacio y displayName queda indefinido:
   // las filas de Document siguen nombrandose con template.name igual que antes.
   const displayName = variant.label
-    ? `${template.name} — ${variant.label}`
+    ? variantDisplayName(template, variant)
     : undefined;
 
   if (!options.skipValidation) {
@@ -623,9 +605,17 @@ async function prepareDocument(
     }
   }
 
-  let htmlContent: string;
+  // Fase 1 compartida con la ruta manual de /documents: leer, aplicar el
+  // overlay de la variante, renderizar y medir cobertura. Lo que NO comparte
+  // es la politica de validacion de abajo, que en cada ruta es distinta.
+  let prepared;
   try {
-    htmlContent = await readTemplate(getTemplatePath(template));
+    prepared = await prepareTemplate(
+      template,
+      placeholders,
+      extraContext,
+      variant,
+    );
   } catch (error) {
     return {
       templateId: template.id,
@@ -639,24 +629,7 @@ async function prepareDocument(
     };
   }
 
-  // El overlay de la variante pisa los del caso: es lo que hace que el oficio
-  // N vaya dirigido al juzgado N y no siempre al primero. Se aplica ANTES de
-  // medir cobertura y de renderizar, para que las dos cosas vean el mismo
-  // contexto que el documento final.
-  const variantPlaceholders =
-    Object.keys(variant.overlay).length > 0
-      ? { ...placeholders, ...variant.overlay }
-      : placeholders;
-
-  const coverage = validatePlaceholderCoverage(
-    htmlContent,
-    variantPlaceholders,
-  );
-  const { html: filledHtml, unresolved } = renderDocumentHtml(
-    htmlContent,
-    variantPlaceholders,
-    extraContext,
-  );
+  const { html: filledHtml, unresolved } = prepared;
 
   // C-3: un placeholder que el mapper no produce es un hueco silencioso en un
   // documento legal. Se bloquea la generación en vez de subir el PDF a Drive
@@ -682,17 +655,17 @@ async function prepareDocument(
       status: 'error',
       error: `No se generó: faltan datos para ${unresolved.length} campo(s) de la plantilla (${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}). Complete la información del expediente y reintente.`,
       missingVariables: unresolved,
-      coveragePercentage: coverage.coveragePercentage,
+      coveragePercentage: prepared.coveragePercentage,
     };
   }
 
-  if (coverage.coveragePercentage < 80) {
+  if (prepared.coveragePercentage < 80) {
     logger.warn('Cobertura de placeholders baja', {
       action: 'generate-documents',
       template: template.name,
-      coveragePercentage: coverage.coveragePercentage,
-      missingVariables: coverage.missing,
-      emptyVariables: coverage.empty,
+      coveragePercentage: prepared.coveragePercentage,
+      missingVariables: prepared.missing,
+      emptyVariables: prepared.empty,
     });
   }
 
@@ -710,9 +683,9 @@ async function prepareDocument(
     displayName,
     html: filledHtml,
     fileName,
-    coveragePercentage: coverage.coveragePercentage,
+    coveragePercentage: prepared.coveragePercentage,
     missingVariables:
-      coverage.missing.length > 0 ? coverage.missing : undefined,
+      prepared.missing.length > 0 ? prepared.missing : undefined,
   };
 }
 
@@ -1154,15 +1127,12 @@ export async function previewDocument(
     throw new Error(`Plantilla no encontrada: ${templateId}`);
   }
 
-  // Read and fill template
-  const templatePath = getTemplatePath(template);
-  const htmlContent = await readTemplate(templatePath);
-  const placeholders = mapCaseToPlaceholders(caseData);
-  const extraContext = buildTemplateContext(caseData);
-  const { html: filledHtml, unresolved } = renderDocumentHtml(
-    htmlContent,
-    placeholders,
-    extraContext,
+  // Misma Fase 1 compartida. Sin variantes: se previsualiza un documento.
+  const { html: filledHtml, unresolved } = await prepareTemplate(
+    template,
+    mapCaseToPlaceholders(caseData),
+    buildTemplateContext(caseData),
+    SIN_VARIANTE,
   );
 
   // C-3: mismo bloqueo que en la generación por lotes — regenerar no puede
@@ -1179,7 +1149,9 @@ export async function previewDocument(
       projectRoot,
       getTemplateAssetsBaseDir(template),
     );
-    const docDir = path.dirname(path.join(projectRoot, templatePath));
+    const docDir = path.dirname(
+      path.join(projectRoot, getTemplatePath(template)),
+    );
     const pdfBuffer = await htmlToPdf(filledHtml, {}, assetsBaseDir, docDir);
     return { content: pdfBuffer, mimeType: 'application/pdf' };
   }
