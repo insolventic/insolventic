@@ -9,6 +9,7 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { emailService } from '@/lib/email';
+import { logger } from '@/lib/logger';
 
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
@@ -20,7 +21,73 @@ import {
   userSummarySchema,
 } from './schemas';
 
-import type { User, UserSummaryData } from './schemas';
+import type { User, UserSummaryData, AssignableOperator } from './schemas';
+
+/**
+ * Usuarios del centro que pueden quedar asignados como operador de un caso.
+ *
+ * Existe aparte de `getAllUsers` por un motivo de permisos, no de comodidad:
+ * `getAllUsers` exige `Ver usuarios`, que **solo tiene el Administrador**.
+ * Los dos roles que crean y editan casos —`Operadora de Insolvencia` y
+ * `Abogado`— no lo tienen, así que si el selector de operador se alimentara de
+ * ahí, se quedaría vacío justo para quienes lo necesitan (y hoy, de hecho, el
+ * diálogo de alta falla para ellos: ver issue #83).
+ *
+ * Por eso esta acción se guarda por el permiso del trabajo que se está
+ * haciendo —crear o editar casos— y no por el de administrar usuarios.
+ *
+ * Devuelve lo mínimo para pintar el selector: id, nombre y rol. En particular
+ * NO devuelve correos, teléfonos, cédulas profesionales ni la lista de
+ * permisos del rol, que es lo que `getAllUsers` sí expone.
+ */
+export async function getAssignableOperators(): Promise<{
+  success: boolean;
+  data?: AssignableOperator[];
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    const puedeAsignar =
+      user.permissions.includes(P.CREAR_CASOS) ||
+      user.permissions.includes(P.EDITAR_CASOS);
+
+    if (!puedeAsignar) {
+      return {
+        success: false,
+        error: 'No tiene permisos para asignar el operador de un caso',
+      };
+    }
+
+    const users = await prisma.user.findMany({
+      where: { tenantId },
+      select: {
+        id: true,
+        name: true,
+        role: { select: { name: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: users.map((u) => ({
+        id: u.id,
+        name: u.name,
+        roleName: u.role.name,
+      })),
+    };
+  } catch (error) {
+    logger.error('No se pudieron obtener los operadores asignables', error, {
+      action: 'getAssignableOperators',
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Error al obtener usuarios',
+    };
+  }
+}
 
 export async function getAllUsers(): Promise<{
   success: boolean;
