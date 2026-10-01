@@ -6,6 +6,7 @@
 import type { CaseWithRelations } from '../case/schemas';
 import { nowColombia, COLOMBIA_TZ } from '@/lib/date-colombia';
 import { getDebtClass } from '../case/validation-rules';
+import { tipoProcesoLabel } from '../case/proceso-judicial-tipos';
 import { renderTemplate } from './handlebars-lite';
 import {
   formatCurrency,
@@ -665,7 +666,14 @@ function mapExternalEntities(caseData: CaseWithRelations): PlaceholderMap {
     NOMBRE_JUZGADO: firstProcess?.court || '',
     NUMERO_JUZGADO: firstProcess?.fileNumber || '',
     NOMBRE_DEMANDANTE: firstProcess?.plaintiff || '',
-    TIPO_PROCESO: firstProcess?.processType || '',
+    // La ETIQUETA, no el valor persistido: los tipos se guardan como
+    // 'RESTITUCION_INMUEBLE' / 'OTROS' (ver proceso-judicial-tipos.ts) y eso es
+    // lo que salia impreso en el oficio que lee el juzgado. En 'OTROS' el
+    // helper devuelve el texto libre que escribio el operador.
+    TIPO_PROCESO: tipoProcesoLabel(
+      firstProcess?.processType,
+      firstProcess?.processTypeOther,
+    ),
 
     // Payer entity (from libranzas)
     NOMBRE_ENTIDAD_PAGADORA: firstLibranza?.payerName || '',

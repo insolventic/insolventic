@@ -159,7 +159,10 @@ export async function persistGeneratedDocuments(
 
   const result = await prisma.document.createMany({
     data: successful.map((doc) => ({
-      name: doc.templateName,
+      // `displayName` distingue los N documentos de una plantilla con
+      // variantes (un oficio por juzgado): sin el, las N filas se llamarian
+      // igual y el operador no sabria cual es cual. Ver `template-variants.ts`.
+      name: doc.displayName ?? doc.templateName,
       type: 'generated',
       status: 'completed',
       url: doc.googleDriveUrl,
