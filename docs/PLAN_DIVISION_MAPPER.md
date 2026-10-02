@@ -1,6 +1,6 @@
 # Plan de división de `placeholder-mapper.ts`
 
-> Estado: **Pasos 0–7 hechos.** Corte de seguridad extraído a
+> Estado: **Pasos 0–8 hechos.** Corte de seguridad extraído a
 > `placeholders/escape.ts` (fuera de la numeración, ver más abajo). Última
 > actualización: 2026-10-02.
 
@@ -64,12 +64,21 @@ para una misma clave sin ganar nada.
 | 4    | Ingresos: `mapIncomeDeclaration` + su helper interno `buildIncomeNarrative`                                                                                                   | `placeholders/income.ts`                | #91      |
 | 5    | Patrimonio: `mapDebts` + `mapAssets`                                                                                                                                          | `placeholders/assets-debts.ts`          | #92      |
 | 6    | Builders HTML: los 7 `generate*` (detalle de bienes, pago de capital, forma de pago, proyección de pagos, inventario de bienes, calificación y graduación, propuesta de pago) | `placeholders/html-builders.ts`         | #94      |
-| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                            | `placeholders/conciliacion.ts`          | este     |
+| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                            | `placeholders/conciliacion.ts`          | #95      |
+| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                       | `placeholders/apoyo.ts`                 | este     |
 
 Tamaño del mapper: 2.936 → 2.774 (Paso 1) → 2.915 con lo que se agregó después
 → 2.638 (Paso 3) → 2.554 con lo que se agregó después (PRs #84, #85, #88, #89)
 → 2.447 (Paso 4) → 2.386 con el corte de seguridad ya extraído (#93) → 2.260
-(Paso 5, #92) → 1.901 (Paso 6, #94) → **1.516** (Paso 7).
+(Paso 5, #92) → 1.901 (Paso 6, #94) → 1.516 (Paso 7, #95) → **1.414** (Paso 8).
+
+### Paso 8: sin novedades
+
+Igual que el Paso 5: `mapApoyoFields` no llama a `escapePlaceholder` (solo
+formatea un monto y pasa el resto de los campos tal cual), no depende de
+ningún otro sub-mapper y no colisiona. Movimiento limpio, sin hallazgos —
+idéntica byte a byte contra el original sin que prettier tuviera que partir
+ni la firma.
 
 ### Por qué el 6 se hizo antes que el 5
 
@@ -219,7 +228,6 @@ son las dependencias y los PRs abiertos, no la numeración.
 
 | Paso | Grupo                                                                                                                                                                    | Líneas | Colisiona          | Bloqueado por                                 |
 | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------------------ | --------------------------------------------- |
-| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                  | 99     | no                 | nada                                          |
 | 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404   | sí, por definición | conviene último: es el que más contrato mueve |
 
 ### Lo que se queda en `placeholder-mapper.ts`
