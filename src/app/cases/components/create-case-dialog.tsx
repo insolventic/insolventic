@@ -139,12 +139,10 @@ const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
   porcentajePasivo: 'situation',
   obligacionesEnMora: 'situation',
   procesosEjecutivos: 'situation',
-  procesosJudiciales: 'situation',
   legalProcesses: 'situation',
   hasLegalProcesses: 'situation',
   // Tab 3 – Acreedores
   debts: 'creditors',
-  acreedores: 'creditors',
   totalDebt: 'creditors',
   creditors: 'creditors',
   libranzas: 'creditors',
@@ -152,7 +150,6 @@ const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
   dependents: 'creditors',
   // Tab 4 – Bienes
   assets: 'assets',
-  bienes: 'assets',
   // Tab 5 – Propuesta
   gracePeriod: 'proposal',
   paymentInKind: 'proposal',

@@ -478,7 +478,7 @@ export async function deleteDebtor(id: string): Promise<{
           where: { caseId: { in: caseIds }, tenantId },
         });
 
-        // 3. Delete all cases (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)
+        // 3. Delete all cases (Apoderado, Notification, DocumentGenerationRequest, Payment cascade automatically)
         await tx.case.deleteMany({ where: { id: { in: caseIds }, tenantId } });
       }
 

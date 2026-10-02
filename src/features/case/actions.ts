@@ -1872,7 +1872,7 @@ export async function deleteCase(
       await tx.suspendedService.deleteMany({ where: { caseId: id, tenantId } });
       await tx.dependent.deleteMany({ where: { caseId: id, tenantId } });
 
-      // 2. Delete the case (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)
+      // 2. Delete the case (Apoderado, Notification, DocumentGenerationRequest, Payment cascade automatically)
       return tx.case.delete({
         where: {
           id,
