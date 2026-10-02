@@ -1,6 +1,6 @@
 # Plan de división de `placeholder-mapper.ts`
 
-> Estado: **Pasos 0–6 hechos.** Corte de seguridad extraído a
+> Estado: **Pasos 0–7 hechos.** Corte de seguridad extraído a
 > `placeholders/escape.ts` (fuera de la numeración, ver más abajo). Última
 > actualización: 2026-10-02.
 
@@ -63,12 +63,13 @@ para una misma clave sin ganar nada.
 | 3    | 4 sub-mappers del Formulario Definitivo: `mapAcreedoresDefinitivo`, `mapBienesDefinitivo`, `mapProcesosJudicialesDefinitivo`, `mapFormularioDefinitivoFields`                 | `placeholders/formulario-definitivo.ts` | #81      |
 | 4    | Ingresos: `mapIncomeDeclaration` + su helper interno `buildIncomeNarrative`                                                                                                   | `placeholders/income.ts`                | #91      |
 | 5    | Patrimonio: `mapDebts` + `mapAssets`                                                                                                                                          | `placeholders/assets-debts.ts`          | #92      |
-| 6    | Builders HTML: los 7 `generate*` (detalle de bienes, pago de capital, forma de pago, proyección de pagos, inventario de bienes, calificación y graduación, propuesta de pago) | `placeholders/html-builders.ts`         | este     |
+| 6    | Builders HTML: los 7 `generate*` (detalle de bienes, pago de capital, forma de pago, proyección de pagos, inventario de bienes, calificación y graduación, propuesta de pago) | `placeholders/html-builders.ts`         | #94      |
+| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                            | `placeholders/conciliacion.ts`          | este     |
 
 Tamaño del mapper: 2.936 → 2.774 (Paso 1) → 2.915 con lo que se agregó después
 → 2.638 (Paso 3) → 2.554 con lo que se agregó después (PRs #84, #85, #88, #89)
 → 2.447 (Paso 4) → 2.386 con el corte de seguridad ya extraído (#93) → 2.260
-(Paso 5, #92) → **1.901** (Paso 6).
+(Paso 5, #92) → 1.901 (Paso 6, #94) → **1.516** (Paso 7).
 
 ### Por qué el 6 se hizo antes que el 5
 
@@ -100,6 +101,39 @@ Mutación deliberada: se quitó el `escapePlaceholder` del nombre de acreedor en
 `escapePlaceholder` transforma cambia el hash, no solo los XSS), el golden de
 "render de cada plantilla", y 4 tests de la parte 4 del guardián (detectores
 de carga sin escapar). Revertida antes de commitear.
+
+### Paso 7: primera colisión movida sola, y primer re-export público
+
+El Paso 7 es el primero en el que "Colisiona: sí" no bloquea nada. El
+criterio de "mover junto con la contraparte" (más arriba) es para colisiones
+entre DOS sub-mappers movibles — los pares del Paso 9. Acá una contraparte es
+`basePlaceholders` (el literal de `mapCaseToPlaceholders`, que nunca se
+mueve: es el punto de fusión) y la otra es `mapExtendedDates` (Paso 9). Nada
+se gana juntándolas, así que el plan ya las había programado sueltas
+("Bloqueado por: nada"). El contrato de colisiones (`mapper-merge-order.test.ts`)
+sigue viéndolas igual, porque su `collectFunctions` ya sabe seguir
+`./placeholders/*` desde el Paso 0.
+
+Hallazgo nuevo: `buildConciliationContext` es la primera función de todo el
+plan con consumidores externos directos — media docena de archivos de test
+la importan por nombre de `@/features/document/placeholder-mapper`, no
+indirectamente a través de `mapCaseToPlaceholders` como los sub-mappers de
+los pasos 1–6. Moverla sin más habría roto esos imports. Se resolvió
+re-exportándola desde `placeholder-mapper.ts`
+(`export { buildConciliationContext } from './placeholders/conciliacion';`),
+que mantiene el archivo principal como punto de entrada estable sin tocar
+ningún test. `mapConciliationFields` no tenía este problema — nunca estuvo
+exportada, solo la llama `mapCaseToPlaceholders`.
+
+También non-contiguo: `mapApoyoFields` (Paso 8) queda físicamente ENTRE las
+dos funciones de este paso en `placeholder-mapper.ts`, así que la extracción
+movió dos bloques separados a un mismo archivo nuevo, no uno contiguo.
+
+Mutación deliberada: se quitó el `escapePlaceholder` de los strings de los
+arreglos de `buildConciliationContext` (`asArray`). Fallan 5 tests: el golden
+de `conciliacion-xss`, el golden de "render de cada plantilla", el test
+dedicado de escapado de arreglos (`placeholder-mapper.test.ts`), y 2
+detectores de carga sin escapar del guardián. Revertida antes de commitear.
 
 ### Hallazgo del Paso 4: un segundo contrato de AST no seguía `placeholders/*`
 
@@ -183,11 +217,10 @@ PR se mergeó antes de este paso.
 El orden de acá en adelante es una propuesta, no un compromiso: lo que lo fija
 son las dependencias y los PRs abiertos, no la numeración.
 
-| Paso | Grupo                                                                                                                                                                    | Líneas    | Colisiona                                    | Bloqueado por                                 |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------- | --------------------------------------------- |
-| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                       | 107 + 265 | sí (`NOMBRE_CONVOCANTE`, 3 de desistimiento) | nada                                          |
-| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                  | 99        | no                                           | nada                                          |
-| 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404      | sí, por definición                           | conviene último: es el que más contrato mueve |
+| Paso | Grupo                                                                                                                                                                    | Líneas | Colisiona          | Bloqueado por                                 |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------------------ | --------------------------------------------- |
+| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                  | 99     | no                 | nada                                          |
+| 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404   | sí, por definición | conviene último: es el que más contrato mueve |
 
 ### Lo que se queda en `placeholder-mapper.ts`
 
