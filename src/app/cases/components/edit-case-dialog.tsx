@@ -66,7 +66,7 @@ import { ConyugeDefinitivoSection } from './create-case-dialog/conyuge-definitiv
 import { InfoLaboralSection } from './create-case-dialog/info-laboral-section';
 import { CesacionPagosSection } from './create-case-dialog/cesacion-pagos-section';
 import { DeclaracionesSection } from './create-case-dialog/declaraciones-section';
-import { ApoderadoSection } from './create-case-dialog/apoderado-section';
+import { ApoderadosTab } from './edit-case-dialog/apoderados-tab';
 
 interface EditCaseDialogProps {
   open: boolean;
@@ -283,6 +283,20 @@ export function EditCaseDialog({
                   precautionaryMeasure: process.precautionaryMeasure ?? '',
                 }),
               ),
+
+              // Apoderados — alta/baja vía ApoderadosTab, no edición en el
+              // lugar (mismo criterio que libranzas/dependientes/procesos).
+              apoderados: (fullCase.apoderados ?? []).map((apoderado) => ({
+                id: apoderado.id,
+                nombreCompleto: apoderado.nombreCompleto,
+                tipoIdentificacion: apoderado.tipoIdentificacion ?? '',
+                identificacion: apoderado.identificacion ?? '',
+                tarjetaProfesional: apoderado.tarjetaProfesional ?? '',
+                direccion: apoderado.direccion ?? '',
+                telefono: apoderado.telefono ?? '',
+                correo: apoderado.correo ?? '',
+                existePoderOtorgado: apoderado.existePoderOtorgado ?? false,
+              })),
 
               // Todo lo demás del caso (propuesta de pago, cónyuge, info
               // laboral, cesación de pagos, declaraciones, apoderado legacy,
@@ -682,7 +696,7 @@ export function EditCaseDialog({
                   <PaymentProposalSection />
                 </TabsContent>
 
-                {/* Tab 7: Legal — DeclaracionesSection + LegalFoundationsSection + NotificationsSection + ApoderadoSection + SignatureSection */}
+                {/* Tab 7: Legal — DeclaracionesSection + LegalFoundationsSection + NotificationsSection + ApoderadosTab + SignatureSection */}
                 <TabsContent value="legal" className="space-y-6">
                   <DeclaracionesSection />
                   <div className="border-t pt-6">
@@ -692,7 +706,7 @@ export function EditCaseDialog({
                     <NotificationsSection />
                   </div>
                   <div className="border-t pt-6">
-                    <ApoderadoSection />
+                    <ApoderadosTab caseId={caseData.id} />
                   </div>
                   <div className="border-t pt-6">
                     <SignatureSection />

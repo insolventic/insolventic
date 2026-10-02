@@ -39,7 +39,11 @@ import {
   requiresOtherDetail,
   tipoProcesoLabel,
 } from '@/features/case/proceso-judicial-tipos';
-import { buildApoderadosCreate, mirrorPrincipalApoderado } from './apoderados';
+import {
+  buildApoderadosCreate,
+  mirrorPrincipalApoderado,
+  cleanText,
+} from './apoderados';
 
 import {
   createCaseFormSchema,
@@ -54,6 +58,8 @@ import {
   removeAssetFromCaseSchema,
   addDependentToCaseSchema,
   removeDependentFromCaseSchema,
+  addApoderadoToCaseSchema,
+  removeApoderadoFromCaseSchema,
   caseWithRelationsSchema,
   caseSummarySchema,
   debtResponseSchema,
@@ -61,6 +67,7 @@ import {
   suspendedServiceResponseSchema,
   assetResponseSchema,
   dependentResponseSchema,
+  apoderadoResponseSchema,
   getAllCasesSchema,
   CASE_LIST_COLUMNS,
   getCaseByIdSchema,
@@ -1819,6 +1826,189 @@ export async function removeDependentFromCase(
         error instanceof Error
           ? error.message
           : 'Error al eliminar dependiente del caso',
+    };
+  }
+}
+
+/**
+ * Alta de un apoderado post-creación. Mismo patrón que Debt/Asset/Libranza/
+ * SuspendedService/Dependent: no hay edición en el lugar, corregir un
+ * apoderado es borrarlo (`removeApoderadoFromCase`) y agregarlo de nuevo.
+ *
+ * A propósito NO espeja en las 8 columnas escalares `apoderado_*` de `Case`
+ * (`mirrorPrincipalApoderado`, usado solo en `createCase`): esas columnas ya
+ * son editables directamente desde `general-fields.ts` (PR #102), y mezclar
+ * las dos vías acá fabricaría un registro híbrido si alguien las edita por
+ * separado a propósito.
+ */
+export async function addApoderadoToCase(
+  input: z.infer<typeof addApoderadoToCaseSchema>,
+): Promise<{
+  success: boolean;
+  data?: z.infer<typeof apoderadoResponseSchema>;
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
+
+    const validatedInput = addApoderadoToCaseSchema.parse(input);
+    const {
+      caseId,
+      nombreCompleto,
+      tipoIdentificacion,
+      identificacion,
+      tarjetaProfesional,
+      direccion,
+      telefono,
+      correo,
+      existePoderOtorgado,
+    } = validatedInput;
+
+    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
+    const caseData = await prisma.case.findUnique({
+      where: { id: caseId, tenantId },
+      select: { id: true },
+    });
+
+    if (!caseData) {
+      return { success: false, error: 'Caso no encontrado' };
+    }
+
+    // `orden` conserva la posición del formulario (0 = apoderado principal),
+    // mismo criterio que `buildApoderadosCreate`. Un hueco si se borró uno de
+    // en medio es inofensivo: solo ordena la lista, no es clave única.
+    const existingCount = await prisma.apoderado.count({
+      where: { caseId, tenantId },
+    });
+
+    const apoderado = await prisma.apoderado.create({
+      data: {
+        caseId,
+        tenantId,
+        orden: existingCount,
+        nombreCompleto,
+        tipoIdentificacion: cleanText(tipoIdentificacion),
+        identificacion: cleanText(identificacion),
+        tarjetaProfesional: cleanText(tarjetaProfesional),
+        direccion: cleanText(direccion),
+        telefono: cleanText(telefono),
+        correo: cleanText(correo),
+        existePoderOtorgado: existePoderOtorgado ?? false,
+      },
+    });
+
+    revalidateTag('cases');
+
+    const result = apoderadoResponseSchema.parse({
+      id: apoderado.id,
+      orden: apoderado.orden,
+      nombreCompleto: apoderado.nombreCompleto,
+      tipoIdentificacion: apoderado.tipoIdentificacion,
+      identificacion: apoderado.identificacion,
+      tarjetaProfesional: apoderado.tarjetaProfesional,
+      direccion: apoderado.direccion,
+      telefono: apoderado.telefono,
+      correo: apoderado.correo,
+      existePoderOtorgado: apoderado.existePoderOtorgado,
+    });
+
+    void createAuditLog({
+      action: 'created',
+      entityType: 'case',
+      entityId: caseId,
+      entityName: 'Apoderado en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'apoderado', subEntityId: result.id },
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    logger.error('Error adding apoderado to case', error, {
+      action: 'add-apoderado-to-case',
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al agregar apoderado al caso',
+    };
+  }
+}
+
+export async function removeApoderadoFromCase(
+  input: z.infer<typeof removeApoderadoFromCaseSchema>,
+): Promise<{
+  success: boolean;
+  data?: z.infer<typeof apoderadoResponseSchema>;
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_CASOS)) {
+      return { success: false, error: 'No tienes permisos para editar casos' };
+    }
+
+    const validatedInput = removeApoderadoFromCaseSchema.parse(input);
+    const { apoderadoId } = validatedInput;
+
+    const deletedApoderado = await prisma.apoderado.delete({
+      where: {
+        id: apoderadoId,
+        tenantId,
+      },
+    });
+
+    revalidateTag('cases');
+
+    void createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: deletedApoderado.caseId,
+      entityName: 'Apoderado en caso',
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { subEntity: 'apoderado', subEntityId: deletedApoderado.id },
+    });
+
+    const result = apoderadoResponseSchema.parse({
+      id: deletedApoderado.id,
+      orden: deletedApoderado.orden,
+      nombreCompleto: deletedApoderado.nombreCompleto,
+      tipoIdentificacion: deletedApoderado.tipoIdentificacion,
+      identificacion: deletedApoderado.identificacion,
+      tarjetaProfesional: deletedApoderado.tarjetaProfesional,
+      direccion: deletedApoderado.direccion,
+      telefono: deletedApoderado.telefono,
+      correo: deletedApoderado.correo,
+      existePoderOtorgado: deletedApoderado.existePoderOtorgado,
+    });
+
+    return { success: true, data: result };
+  } catch (error) {
+    logger.error('Error removing apoderado from case', error, {
+      action: 'remove-apoderado-from-case',
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al eliminar apoderado del caso',
     };
   }
 }

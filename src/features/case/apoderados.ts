@@ -33,7 +33,8 @@ const isBlank = (value: unknown): boolean =>
   value === undefined ||
   (typeof value === 'string' && value.trim() === '');
 
-const cleanText = (value: string | undefined): string | null =>
+/** Cadena en blanco (incluido undefined) -> null, para no guardar `''`. */
+export const cleanText = (value: string | undefined): string | null =>
   isBlank(value) ? null : (value as string).trim();
 
 /**
