@@ -1027,7 +1027,32 @@ export async function addDebtToCase(
     }
 
     const validatedInput = addDebtToCaseSchema.parse(input);
-    const { caseId, creditorId, amount, type, interestRate } = validatedInput;
+    const {
+      caseId,
+      creditorId,
+      amount,
+      type,
+      interestRate,
+      creditorAddress,
+      creditorCity,
+      creditorEmail,
+      capitalAmount,
+      interestAmount,
+      isDeferred,
+      documentType,
+      grantDate,
+      dueDate,
+      creditClassification,
+      hasActiveLibranza,
+      creditorClass,
+      percentageOfTotal,
+      daysOverdue,
+      coDebtorName,
+      coDebtorCity,
+      coDebtorAddress,
+      coDebtorPhone,
+      coDebtorEmail,
+    } = validatedInput;
 
     const caseData = await prisma.case.findUnique({
       where: {
@@ -1050,6 +1075,27 @@ export async function addDebtToCase(
         creditorId,
         debtorId: caseData.debtorId,
         tenantId,
+        creditorAddress: cleanText(creditorAddress),
+        creditorCity: cleanText(creditorCity),
+        creditorEmail: cleanText(creditorEmail),
+        capitalAmount: capitalAmount ? parseFloat(capitalAmount) : null,
+        interestAmount: interestAmount ? parseFloat(interestAmount) : null,
+        isDeferred: isDeferred ?? false,
+        documentType: cleanText(documentType),
+        grantDate: grantDate ? new Date(grantDate) : null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        creditClassification: cleanText(creditClassification),
+        hasActiveLibranza: hasActiveLibranza ?? false,
+        creditorClass: cleanText(creditorClass),
+        percentageOfTotal: percentageOfTotal
+          ? parseFloat(percentageOfTotal)
+          : null,
+        daysOverdue: daysOverdue ?? null,
+        coDebtorName: cleanText(coDebtorName),
+        coDebtorCity: cleanText(coDebtorCity),
+        coDebtorAddress: cleanText(coDebtorAddress),
+        coDebtorPhone: cleanText(coDebtorPhone),
+        coDebtorEmail: cleanText(coDebtorEmail),
       },
       include: {
         creditor: {
@@ -1069,6 +1115,27 @@ export async function addDebtToCase(
       type: debt.type,
       creditor: debt.creditor.name,
       creditorId: debt.creditorId,
+      creditorAddress: debt.creditorAddress,
+      creditorCity: debt.creditorCity,
+      creditorEmail: debt.creditorEmail,
+      capitalAmount: debt.capitalAmount,
+      interestAmount: debt.interestAmount,
+      isDeferred: debt.isDeferred,
+      documentType: debt.documentType,
+      grantDate: debt.grantDate
+        ? debt.grantDate.toISOString().split('T')[0]
+        : null,
+      dueDate: debt.dueDate ? debt.dueDate.toISOString().split('T')[0] : null,
+      creditClassification: debt.creditClassification,
+      hasActiveLibranza: debt.hasActiveLibranza,
+      creditorClass: debt.creditorClass,
+      percentageOfTotal: debt.percentageOfTotal,
+      daysOverdue: debt.daysOverdue,
+      coDebtorName: debt.coDebtorName,
+      coDebtorCity: debt.coDebtorCity,
+      coDebtorAddress: debt.coDebtorAddress,
+      coDebtorPhone: debt.coDebtorPhone,
+      coDebtorEmail: debt.coDebtorEmail,
     });
 
     void createAuditLog({
@@ -1134,6 +1201,29 @@ export async function removeDebtFromCase(
       amount: deletedDebt.amount,
       type: deletedDebt.type,
       interestRate: deletedDebt.interestRate,
+      creditorAddress: deletedDebt.creditorAddress,
+      creditorCity: deletedDebt.creditorCity,
+      creditorEmail: deletedDebt.creditorEmail,
+      capitalAmount: deletedDebt.capitalAmount,
+      interestAmount: deletedDebt.interestAmount,
+      isDeferred: deletedDebt.isDeferred,
+      documentType: deletedDebt.documentType,
+      grantDate: deletedDebt.grantDate
+        ? deletedDebt.grantDate.toISOString().split('T')[0]
+        : null,
+      dueDate: deletedDebt.dueDate
+        ? deletedDebt.dueDate.toISOString().split('T')[0]
+        : null,
+      creditClassification: deletedDebt.creditClassification,
+      hasActiveLibranza: deletedDebt.hasActiveLibranza,
+      creditorClass: deletedDebt.creditorClass,
+      percentageOfTotal: deletedDebt.percentageOfTotal,
+      daysOverdue: deletedDebt.daysOverdue,
+      coDebtorName: deletedDebt.coDebtorName,
+      coDebtorCity: deletedDebt.coDebtorCity,
+      coDebtorAddress: deletedDebt.coDebtorAddress,
+      coDebtorPhone: deletedDebt.coDebtorPhone,
+      coDebtorEmail: deletedDebt.coDebtorEmail,
     });
 
     void createAuditLog({

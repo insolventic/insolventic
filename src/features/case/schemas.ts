@@ -2167,6 +2167,33 @@ export const addDebtToCaseSchema = z.object({
   amount: z.string().min(1, 'El monto es requerido'),
   type: z.string().min(1, 'El tipo de deuda es requerido'),
   interestRate: z.string().min(1, 'La tasa de interés es requerida'),
+
+  // Resto de columnas de Debt (Formulario Definitivo, Sección VI): el
+  // `reset()` del diálogo de edición ya las carga desde `fullCase.debts`
+  // (edit-case-dialog.tsx) y `debtSchema` (el tipo del formulario) ya las
+  // tiene todas; solo faltaban acá, en lo que el alta post-creación valida y
+  // envía. Mismo hallazgo que motivó el ítem 3 (apoderados).
+  creditorAddress: z.string().optional(),
+  creditorCity: z.string().optional(),
+  creditorEmail: z.string().optional(),
+  capitalAmount: z.string().optional(),
+  interestAmount: z.string().optional(),
+  isDeferred: z.boolean().optional(),
+  documentType: z.string().optional(),
+  grantDate: z.string().optional(),
+  dueDate: z.string().optional(),
+  creditClassification: z.string().optional(),
+  hasActiveLibranza: z.boolean().optional(),
+  creditorClass: z.string().optional(),
+  percentageOfTotal: z.string().optional(),
+  daysOverdue: z.number().optional(),
+
+  // Codeudor/Avalista
+  coDebtorName: z.string().optional(),
+  coDebtorCity: z.string().optional(),
+  coDebtorAddress: z.string().optional(),
+  coDebtorPhone: z.string().optional(),
+  coDebtorEmail: z.string().optional(),
 });
 
 export type AddDebtToCaseData = z.infer<typeof addDebtToCaseSchema>;
@@ -2177,6 +2204,31 @@ export const debtResponseSchema = z.object({
   type: z.string(),
   creditor: z.string(),
   creditorId: z.string(),
+
+  creditorAddress: z.string().nullable(),
+  creditorCity: z.string().nullable(),
+  creditorEmail: z.string().nullable(),
+  capitalAmount: decimalToNumber.nullable(),
+  interestAmount: decimalToNumber.nullable(),
+  isDeferred: z.boolean(),
+  documentType: z.string().nullable(),
+  // Fechas como string 'YYYY-MM-DD', no Date: mismo formato que ya usa el
+  // reset de edit-case-dialog.tsx (`toISOString().split('T')[0]`), para que
+  // la fila que vuelve del server action se pueda meter directo en el
+  // formulario sin reconvertir.
+  grantDate: z.string().nullable(),
+  dueDate: z.string().nullable(),
+  creditClassification: z.string().nullable(),
+  hasActiveLibranza: z.boolean(),
+  creditorClass: z.string().nullable(),
+  percentageOfTotal: decimalToNumber.nullable(),
+  daysOverdue: z.number().nullable(),
+
+  coDebtorName: z.string().nullable(),
+  coDebtorCity: z.string().nullable(),
+  coDebtorAddress: z.string().nullable(),
+  coDebtorPhone: z.string().nullable(),
+  coDebtorEmail: z.string().nullable(),
 });
 export const removeDebtFromCaseSchema = z.object({
   debtId: z.string().min(1, 'El ID de la deuda es requerido'),

@@ -35,7 +35,7 @@ import {
   CreateDebtorDialog,
   type QuickDebtorFormData,
 } from './create-case-dialog/create-debtor-dialog';
-import { CreditorsTab } from './edit-case-dialog/creditors-tab';
+import { DebtsTab } from './edit-case-dialog/debts-tab';
 import { AssetsTab } from './edit-case-dialog/assets-tab';
 import { DebtorSection } from './create-case-dialog/debtor-section';
 import { ConciliationPartiesSection } from './create-case-dialog/conciliation-parties-section';
@@ -667,9 +667,9 @@ export function EditCaseDialog({
                   </div>
                 </TabsContent>
 
-                {/* Tab 3: Acreedores — CreditorsTab + LibranzasTab + SuspendedServicesTab */}
+                {/* Tab 3: Acreedores — DebtsTab + LibranzasTab + SuspendedServicesTab */}
                 <TabsContent value="creditors" className="space-y-6">
-                  <CreditorsTab caseId={caseData.id} creditors={creditors} />
+                  <DebtsTab caseId={caseData.id} creditors={creditors} />
                   <div className="border-t pt-6">
                     <LibranzasTab caseId={caseData.id} />
                   </div>
