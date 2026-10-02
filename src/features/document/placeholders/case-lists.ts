@@ -24,6 +24,7 @@
 import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { formatCurrency } from './format';
+import { tipoProcesoLabel } from '../../case/proceso-judicial-tipos';
 
 // Map causes to individual placeholders
 export function mapCauses(
@@ -68,7 +69,14 @@ export function mapLegalProcesses(
     const idx = i + 1;
 
     if (process) {
-      result[`PROCESO_${idx}_TIPO`] = process.processType || '';
+      // Mismo label que ya usa la descripción del proceso en actions.ts:
+      // "Otros" imprime el texto libre, los demás su nombre legible en vez
+      // del código crudo (antes se veía literalmente "OTROS" o
+      // "RESTITUCION_INMUEBLE" en el documento).
+      result[`PROCESO_${idx}_TIPO`] = tipoProcesoLabel(
+        process.processType,
+        process.processTypeOther,
+      );
       result[`PROCESO_${idx}_DEMANDANTE`] = process.plaintiff || '';
       result[`PROCESO_${idx}_JUZGADO`] = process.court || '';
       result[`PROCESO_${idx}_EXPEDIENTE`] = process.fileNumber || '';
