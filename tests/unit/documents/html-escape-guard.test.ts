@@ -127,12 +127,15 @@ afterAll(() => {
 // Lectura estática del código fuente
 // ---------------------------------------------------------------------------
 
-function sourceFile() {
-  const text = fs.readFileSync(MAPPER_FILE, 'utf8');
-  return ts.createSourceFile(MAPPER_FILE, text, ts.ScriptTarget.Latest, true);
-}
-
-function readAllowlist(): string[] {
+/**
+ * Busca la declaración de `HTML_PLACEHOLDERS_ALLOWLIST` en un archivo. Vive en
+ * `placeholder-mapper.ts` o en alguno de sus `./placeholders/*` (mismo criterio
+ * de un-solo-pase que `collectFunctions`, más abajo): el corte de seguridad se
+ * extrajo a `placeholders/escape.ts` sin tocar dónde se LLAMA (`mapCaseToPlaceholders`
+ * lo sigue usando como última operación, ver parte 5 de este archivo), solo
+ * dónde vive su código fuente.
+ */
+function findAllowlistIn(filePath: string, text: string): string[] | null {
   let found: string[] | null = null;
   const visit = (n: ts.Node) => {
     if (
@@ -148,9 +151,42 @@ function readAllowlist(): string[] {
     }
     ts.forEachChild(n, visit);
   };
-  visit(sourceFile());
+  visit(ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, true));
+  return found;
+}
+
+function readAllowlist(): string[] {
+  const text = fs.readFileSync(MAPPER_FILE, 'utf8');
+  let found = findAllowlistIn(MAPPER_FILE, text);
+  if (!found) {
+    const sf = ts.createSourceFile(
+      MAPPER_FILE,
+      text,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    for (const st of sf.statements) {
+      if (
+        ts.isImportDeclaration(st) &&
+        ts.isStringLiteral(st.moduleSpecifier) &&
+        st.moduleSpecifier.text.startsWith('./placeholders/')
+      ) {
+        const importedPath =
+          path.join(path.dirname(MAPPER_FILE), st.moduleSpecifier.text) + '.ts';
+        if (fs.existsSync(importedPath)) {
+          found = findAllowlistIn(
+            importedPath,
+            fs.readFileSync(importedPath, 'utf8'),
+          );
+          if (found) break;
+        }
+      }
+    }
+  }
   if (!found)
-    throw new Error('No se encontró HTML_PLACEHOLDERS_ALLOWLIST en el mapper');
+    throw new Error(
+      'No se encontró HTML_PLACEHOLDERS_ALLOWLIST en el mapper ni en sus placeholders/*',
+    );
   return found;
 }
 

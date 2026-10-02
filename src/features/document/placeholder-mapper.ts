@@ -36,71 +36,10 @@ import {
   mapFormularioDefinitivoFields,
 } from './placeholders/formulario-definitivo';
 import { mapIncomeDeclaration } from './placeholders/income';
+import { escapePlaceholder, escapeAllUnlessHtml } from './placeholders/escape';
 
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
-
-/**
- * Escapa caracteres HTML especiales en un valor string (regla OWASP: & < > " ').
- * Usado para datos capturados del usuario (nombres, direcciones, descripciones)
- * que se insertan en las plantillas HTML de los documentos.
- *
- * @param value Valor a escapar (puede ser null/undefined/number)
- * @returns String escapado o convertido
- */
-export function escapePlaceholder(value: unknown): string {
-  if (typeof value !== 'string') {
-    return String(value ?? '');
-  }
-
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-/**
- * Allowlist de placeholders HTML — construidos por el sistema (tablas, listas,
- * narrativas). Sus interpolaciones de datos de usuario se escapan DENTRO del
- * builder correspondiente. Todo lo demás se escapa automáticamente en el punto
- * de fusión (safe-by-default): cualquier placeholder escalar nuevo queda
- * protegido sin tocar código; agregar HTML del sistema requiere listarlo aquí.
- */
-const HTML_PLACEHOLDERS_ALLOWLIST = new Set<string>([
-  'LISTA_ANEXOS',
-  'NARRATIVA_INGRESOS',
-  'LISTA_ACREEDORES',
-  'CUADRO_TOTAL_ACREEDORES',
-  'CUADRO_CALIFICACION_GRADUACION',
-  'CUADRO_CALIFICACION_FIRMADO',
-  'CUADRO_ACUERDO_BILATERAL',
-  'CUADRO_FRACASO_NEGOCIACION',
-  'PROYECTO_CALIFICACION_GRADUACION',
-  'PROPUESTA_PAGO',
-  'PROPUESTA_REFORMA_PAGO',
-  'DETALLE_BIENES',
-  'INVENTARIO_BIENES',
-  'DETALLE_PAGO_CAPITAL',
-  'FORMA_PAGO_ACREEDORES',
-  'PROYECCION_PAGOS',
-]);
-
-/**
- * Escapa todos los valores string del mapa excepto los HTML del sistema
- * (allowlist). Aplicado una sola vez, en el punto de fusión final de
- * mapCaseToPlaceholders.
- */
-function escapeAllUnlessHtml(map: PlaceholderMap): PlaceholderMap {
-  const escaped: PlaceholderMap = {};
-  for (const [key, value] of Object.entries(map)) {
-    escaped[key] = HTML_PLACEHOLDERS_ALLOWLIST.has(key)
-      ? value
-      : escapePlaceholder(value);
-  }
-  return escaped;
-}
 
 // Map applicant scope
 function mapApplicantScope(scope: string[]): PlaceholderMap {
