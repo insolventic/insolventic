@@ -80,7 +80,9 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
   const isSmallMerchant = (caseData.applicantScope || []).includes(
     'PERSONA_NATURAL_PEQUENA_COMERCIANTE',
   );
-  const hasSpouse = !!caseData.spouseName;
+  // Sección II (conyuge*, con UI viva) es la fuente real; spouseName queda
+  // como respaldo para casos viejos que solo tengan el campo legado.
+  const hasSpouse = !!(caseData.conyugeNombreCompleto || caseData.spouseName);
   const hasAttorney =
     !!(caseData as Record<string, unknown>).apoderadoNombreCompleto ||
     (((caseData as Record<string, unknown>).apoderados as unknown[]) || [])
@@ -518,11 +520,18 @@ export function mapCaseToPlaceholders(
     ),
 
     // Spouse
-    CONYUGE_NOMBRE: caseData.spouseName || '',
-    CONYUGE_CC: caseData.spouseIdNumber || '',
+    // Sección II (conyuge*) es la que tiene UI viva (ConyugeDefinitivoSection,
+    // en alta y en edición); spouse* es el campo legado, nunca alimentado por
+    // ninguna UI desde que spouse-section.tsx quedó huérfano, y se deja solo
+    // como respaldo para casos creados antes de este cambio.
+    CONYUGE_NOMBRE: caseData.conyugeNombreCompleto || caseData.spouseName || '',
+    CONYUGE_CC: caseData.conyugeIdentificacion || caseData.spouseIdNumber || '',
+    // Sin respaldo real: no existe un campo de dirección en la Sección II.
+    // Queda en spouseAddress (que ninguna UI llena hoy) hasta que se decida si
+    // corresponde agregar el campo o usar otra fuente (p. ej. la del deudor).
     CONYUGE_DIRECCION: caseData.spouseAddress || '',
-    CONYUGE_TELEFONO: caseData.spousePhone || '',
-    CONYUGE_EMAIL: caseData.spouseEmail || '',
+    CONYUGE_TELEFONO: caseData.conyugeTelefono || caseData.spousePhone || '',
+    CONYUGE_EMAIL: caseData.conyugeCorreo || caseData.spouseEmail || '',
 
     // Notifications
     NOTIF_DIRECCION: caseData.notificationAddress || debtor.address,
@@ -534,10 +543,23 @@ export function mapCaseToPlaceholders(
     NOMBRE_OPERADOR: caseData.operator?.name || '',
     EMAIL_OPERADOR: caseData.operator?.email || '',
 
-    // Legal attorney placeholders (to be filled if applicable)
-    NOMBRE_ABOGADO: '',
-    CEDULA_ABOGADO: '',
-    TARJETA_PROFESIONAL: '',
+    // Apoderado reconocido en audiencia (Tramite Audiencia.html): la tabla
+    // Apoderado[] (editable desde #103) es la fuente; las 8 columnas
+    // apoderado_* de Case son el respaldo para casos que solo tengan el
+    // espejo legado. `attorney` (texto libre, sin cedula ni tarjeta propias)
+    // nunca alimentó estos 3 placeholders y no empieza a hacerlo ahora.
+    NOMBRE_ABOGADO:
+      caseData.apoderados?.[0]?.nombreCompleto ||
+      caseData.apoderadoNombreCompleto ||
+      '',
+    CEDULA_ABOGADO:
+      caseData.apoderados?.[0]?.identificacion ||
+      caseData.apoderadoIdentificacion ||
+      '',
+    TARJETA_PROFESIONAL:
+      caseData.apoderados?.[0]?.tarjetaProfesional ||
+      caseData.apoderadoTarjetaProfesional ||
+      '',
     NOMBRE_PERSONA: '',
     DESCRIPCION_PRUEBAS: '',
 
