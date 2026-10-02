@@ -32,7 +32,7 @@ import {
   uploadCaseDocumentsInputSchema,
   uploadCaseDocumentsOutputSchema,
 } from './schemas';
-import { asCaseWithRelations } from './persistence';
+import { asCaseWithRelations, fetchCaseForGeneration } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
 import { prepareTemplate, variantDisplayName } from './prepare-template';
 
@@ -775,26 +775,12 @@ export async function batchGenerateDocuments(input: {
     const { caseId, templateIds, packageNumber } = validatedInput;
     const outputFormat = validatedInput.outputFormat || 'pdf';
 
-    // Load case with ALL relations needed for placeholder mapping
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      include: {
-        debtor: true,
-        operator: { select: { id: true, name: true, email: true } },
-        debts: { include: { creditor: true } },
-        assets: true,
-        documents: true,
-        libranzas: true,
-        suspendedServices: true,
-        dependents: true,
-        legalProcesses: true,
-        apoderados: { orderBy: { orden: 'asc' } },
-        // CaseWithRelations exige `_count`. El mapper no lo lee, pero el
-        // compilador ya verifica este objeto contra ese tipo (antes lo tapaba
-        // un doble cast) y sin esto faltaba la clave.
-        _count: { select: { documents: true } },
-      },
-    });
+    // Load case with ALL relations needed for placeholder mapping. Misma
+    // fuente que actions-generation.ts y case/actions.ts: antes esta función
+    // tenía su propia copia del include, sin `professionalCard` en `operator`
+    // (hallazgo A6 — TP_CONCILIADORA salía vacío) y con `creditor: true`
+    // completo en vez del `select` acotado.
+    const caseData = await fetchCaseForGeneration(caseId, tenantId);
 
     if (!caseData) {
       throw new Error('Caso no encontrado');
