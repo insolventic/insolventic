@@ -157,10 +157,44 @@ function readAllowlist(): string[] {
 const HTML_TAG =
   /<\/?(table|thead|tbody|tr|td|th|ul|ol|li|p|br|div|span|strong|b|em|i|h[1-6]|colgroup|col)\b/i;
 
+/**
+ * Junta las `FunctionDeclaration` de un archivo con las de cualquier módulo
+ * relativo que importe (`./placeholders/*`) — una sola pasada, no recursiva
+ * (mismo criterio y mismo límite que `mapper-merge-order.test.ts`). Así el
+ * inventario de productores de HTML sigue viendo las funciones aunque el
+ * Paso N de la división del mapper las haya movido a su propio archivo
+ * (descubierto en el Paso 4, cuando `buildIncomeNarrative` se movió a
+ * `placeholders/income.ts` y este test dejó de verla).
+ */
+function collectFunctions(
+  filePath: string,
+  text: string,
+): Map<string, ts.FunctionDeclaration> {
+  const sf = ts.createSourceFile(filePath, text, ts.ScriptTarget.Latest, true);
+  const functions = new Map<string, ts.FunctionDeclaration>();
+  for (const st of sf.statements) {
+    if (ts.isFunctionDeclaration(st) && st.name)
+      functions.set(st.name.text, st);
+    if (
+      ts.isImportDeclaration(st) &&
+      ts.isStringLiteral(st.moduleSpecifier) &&
+      st.moduleSpecifier.text.startsWith('./placeholders/')
+    ) {
+      const importedPath =
+        path.join(path.dirname(filePath), st.moduleSpecifier.text) + '.ts';
+      if (fs.existsSync(importedPath)) {
+        const importedText = fs.readFileSync(importedPath, 'utf8');
+        for (const [name, fn] of collectFunctions(importedPath, importedText))
+          functions.set(name, fn);
+      }
+    }
+  }
+  return functions;
+}
+
 function topLevelFunctions() {
-  return sourceFile().statements.filter(
-    (s): s is ts.FunctionDeclaration => ts.isFunctionDeclaration(s) && !!s.name,
-  );
+  const text = fs.readFileSync(MAPPER_FILE, 'utf8');
+  return [...collectFunctions(MAPPER_FILE, text).values()];
 }
 
 function containsHtmlLiteral(fn: ts.FunctionDeclaration): boolean {

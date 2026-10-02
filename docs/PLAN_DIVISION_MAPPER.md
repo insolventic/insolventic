@@ -1,6 +1,6 @@
 # Plan de división de `placeholder-mapper.ts`
 
-> Estado: **Pasos 0–3 hechos.** Última actualización: 2026-09-30.
+> Estado: **Pasos 0–4 hechos.** Última actualización: 2026-10-02.
 
 Este plan existía solo en las transcripciones de las sesiones y en los cuerpos
 de los PRs #43, #45 y #52. Se escribe acá porque ya se perdió una vez: el
@@ -58,24 +58,50 @@ para una misma clave sin ganar nada.
 | 0    | Red de seguridad: golden master + contrato de las colisiones                                                                                                  | `tests/unit/documents/`                 | #43, #44 |
 | 1    | Los 12 helpers de formato (funciones hoja, sin dependencias)                                                                                                  | `placeholders/format.ts`                | #45      |
 | 2    | 5 sub-mappers de listas simples: `mapCauses`, `mapLegalProcesses`, `mapLibranzas`, `mapSuspendedServices`, `mapDependents`                                    | `placeholders/case-lists.ts`            | #52      |
-| 3    | 4 sub-mappers del Formulario Definitivo: `mapAcreedoresDefinitivo`, `mapBienesDefinitivo`, `mapProcesosJudicialesDefinitivo`, `mapFormularioDefinitivoFields` | `placeholders/formulario-definitivo.ts` | este     |
+| 3    | 4 sub-mappers del Formulario Definitivo: `mapAcreedoresDefinitivo`, `mapBienesDefinitivo`, `mapProcesosJudicialesDefinitivo`, `mapFormularioDefinitivoFields` | `placeholders/formulario-definitivo.ts` | #81      |
+| 4    | Ingresos: `mapIncomeDeclaration` + su helper interno `buildIncomeNarrative`                                                                                   | `placeholders/income.ts`                | este     |
 
 Tamaño del mapper: 2.936 → 2.774 (Paso 1) → 2.915 con lo que se agregó después
-→ **2.638** (Paso 3).
+→ 2.638 (Paso 3) → 2.554 con lo que se agregó después (PRs #84, #85, #88, #89)
+→ **2.447** (Paso 4).
+
+### Hallazgo del Paso 4: un segundo contrato de AST no seguía `placeholders/*`
+
+`mapper-merge-order.test.ts` ya sabía seguir los imports de `./placeholders/*`
+(nota del Paso 0). Pero `html-escape-guard.test.ts` —el guardián del escape
+HTML de las 16 claves de `HTML_PLACEHOLDERS_ALLOWLIST`— tenía su propio
+`topLevelFunctions()` que solo parseaba `placeholder-mapper.ts`, sin esa misma
+lógica. Al mover `buildIncomeNarrative`, el inventario de "funciones que
+generan HTML" (parte 5 del test) dejó de verla: el test iba a seguir en verde,
+pero dejando de vigilar una función que sí interpola texto de usuario en HTML.
+Se corrigió copiando el mismo `collectFunctions` recursivo-de-una-pasada que
+ya usaba `mapper-merge-order.test.ts`, en vez de escribir uno nuevo.
+
+### Nota de diseño del Paso 4: dependencia circular con `escapePlaceholder`
+
+Es el primer paso que mueve una función que llama a `escapePlaceholder`, que
+se queda a propósito en `placeholder-mapper.ts` (ver más abajo). `income.ts`
+la importa de vuelta desde ahí: un ciclo real entre los dos archivos, pero
+seguro, porque ninguno de los dos la usa al cargar el módulo —solo dentro de
+una llamada a función, después de que el ciclo ya se resolvió—. El golden
+master de `insolvencia-xss` (que ejercita `NARRATIVA_INGRESOS` con una carga
+hostil) pasó sin cambios, lo que confirma que el enlace sigue escapando en
+runtime. Los pasos 7 (conciliación) y 9 (colisiones) también llaman a
+`escapePlaceholder` desde fuera del archivo principal — van a repetir este
+mismo patrón, no es exclusivo de ingresos.
 
 ## Pasos propuestos
 
 El orden de acá en adelante es una propuesta, no un compromiso: lo que lo fija
 son las dependencias y los PRs abiertos, no la numeración.
 
-| Paso | Grupo                                                                                                                                                                    | Líneas    | Colisiona                                    | Bloqueado por                                                                                                        |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| 4    | Ingresos: `buildIncomeNarrative` + `mapIncomeDeclaration`                                                                                                                | 69 + 35   | no                                           | nada                                                                                                                 |
-| 5    | `mapAssets` + `mapDebts`                                                                                                                                                 | 155 + 117 | no                                           | **#79**, que reescribe `mapDebts` (117 → 29) al retirar los 264 slots numerados. Mover antes garantiza un conflicto. |
-| 6    | Builders HTML: los 7 `generate*`                                                                                                                                         | ~293      | no (las claves las emiten sus llamadores)    | conviene después del 5: dos de ellos recorren bienes                                                                 |
-| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                       | 107 + 265 | sí (`NOMBRE_CONVOCANTE`, 3 de desistimiento) | nada                                                                                                                 |
-| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                  | 99        | no                                           | nada                                                                                                                 |
-| 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404      | sí, por definición                           | conviene último: es el que más contrato mueve                                                                        |
+| Paso | Grupo                                                                                                                                                                    | Líneas    | Colisiona                                    | Bloqueado por                                                                       |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 5    | `mapAssets` + `mapDebts`                                                                                                                                                 | 155 + 17  | no                                           | nada — **#79** ya mergeado, retiró los 264 slots numerados de `mapDebts` (117 → 17) |
+| 6    | Builders HTML: los 7 `generate*`                                                                                                                                         | ~293      | no (las claves las emiten sus llamadores)    | conviene después del 5: dos de ellos recorren bienes                                |
+| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                       | 107 + 265 | sí (`NOMBRE_CONVOCANTE`, 3 de desistimiento) | nada                                                                                |
+| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                  | 99        | no                                           | nada                                                                                |
+| 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404      | sí, por definición                           | conviene último: es el que más contrato mueve                                       |
 
 ### Lo que se queda en `placeholder-mapper.ts`
 
