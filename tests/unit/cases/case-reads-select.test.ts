@@ -7,13 +7,13 @@
  *
  * Fase 0 del plan de revisión del modelo Case: las lecturas que solo comprueban
  * existencia o usan el `id` pasaron a `select`; el listado lee solo
- * `CASE_LIST_COLUMNS`. Las 3 lecturas de abajo SIGUEN trayendo la fila entera a
+ * `CASE_LIST_COLUMNS`. Las 2 lecturas de abajo SIGUEN trayendo la fila entera a
  * propósito, porque necesitan casi todas las columnas:
  *
- *  - generación de documentos (fetchCaseForGeneration, batchGenerateDocuments):
- *    el mapper de placeholders referencia 234 de las 269 columnas; un `select`
- *    de 234 nombres se desincroniza en silencio cuando el mapper lee un campo
- *    nuevo y el documento legal saldría con ese campo en blanco.
+ *  - fetchCaseForGeneration: el mapper de placeholders referencia 234 de las
+ *    269 columnas; un `select` de 234 nombres se desincroniza en silencio
+ *    cuando el mapper lee un campo nuevo y el documento legal saldría con ese
+ *    campo en blanco.
  *  - getCaseById: alimenta el detalle y la edición, que juntos referencian 146
  *    columnas (54 %) y se validan con caseWithRelationsSchema.
  *
@@ -22,6 +22,12 @@
  * armar el audit log/notificación. Cuando una fase necesita generar
  * documentos, delega la fila completa en `fetchCaseForGeneration` (arriba),
  * que ya trae la excepción justificada.
+ *
+ * `batchGenerateDocuments` (document/actions.ts) tampoco está: tenía su
+ * propia copia del `include` (duplicado real, encontrado al unificar contra
+ * `CASE_GENERATION_INCLUDE`) y ahora delega en `fetchCaseForGeneration` en
+ * vez de llamar a `prisma.case.findUnique` directo — el escáner ya no lo ve
+ * como una lectura propia, porque no lo es.
  *
  * Una lectura nueva sin `select` hace fallar este test: o se acota, o se agrega
  * aquí con su justificación.
@@ -43,7 +49,6 @@ const READS = new Set([
 
 const WHOLE_ROW_ALLOWED = [
   'src/features/case/actions.ts::getCaseById',
-  'src/features/document/actions.ts::batchGenerateDocuments',
   'src/features/document/persistence.ts::fetchCaseForGeneration',
 ];
 
