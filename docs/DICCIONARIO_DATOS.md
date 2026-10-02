@@ -25,12 +25,11 @@ Es distinto de `docs/DICCIONARIO_PLACEHOLDERS.md`, que cataloga los _placeholder
 1. [Núcleo (multi-tenant, RBAC, caso)](#1-núcleo) — Tenant, ConciliationCenter, Case, User, Role, Permission, RolePermission
 2. [Personas](#2-personas) — Debtor, Creditor, Contact, Dependent
 3. [Financiero / Patrimonial (capa general)](#3-financiero--patrimonial-capa-general) — Debt, Asset, LegalProcess, Libranza, SuspendedService
-4. [Capa Definitivo (snapshots por caso)](#4-capa-definitivo-snapshots-congelados-por-caso) — Acreedor, Bien, ProcesoJudicial
-5. [Documentos](#5-documentos) — Document, DocumentTemplate, DocumentFromDrive, DocumentGenerationRequest
-6. [Pagos](#6-pagos) — Payment
-7. [Operación / Seguridad](#7-operación--seguridad) — Notification, PasswordResetToken, AuditLog
+4. [Documentos](#4-documentos) — Document, DocumentTemplate, DocumentFromDrive, DocumentGenerationRequest
+5. [Pagos](#5-pagos) — Payment
+6. [Operación / Seguridad](#6-operación--seguridad) — Notification, PasswordResetToken, AuditLog
 
-**Total: 27 modelos.** (Nota: `Calendar` es una _feature_ de UI — `src/features/calendar/` — no tiene modelo Prisma propio; opera sobre `Case.hearingDate`/`firstHearingDate`.)
+**Total: 25 modelos** (28 en `dev` antes de esta edición — el conteo de 27 que traía este documento ya estaba desactualizado, de antes de que se agregaran modelos posteriores). (Nota: `Calendar` es una _feature_ de UI — `src/features/calendar/` — no tiene modelo Prisma propio; opera sobre `Case.hearingDate`/`firstHearingDate`. Los modelos `Acreedor`/`Bien`/`ProcesoJudicial` del Formulario Definitivo — Secciones V/VI/VII — se borraron el 2026-10-02: sin UI de captura en ningún entorno desde una reestructuración del wizard, sin datos de seed, y sin ninguna plantilla que consumiera sus placeholders. Ver `CLAUDE.md` → Roadmap → Quick Wins #5.)
 
 ---
 
@@ -369,7 +368,7 @@ Obligación de un caso frente a un acreedor.
 
 ### Asset
 
-Bien del caso — registro general (contraparte de `Bien`, la versión Sección VI del Formulario Definitivo).
+Bien del caso — registro general.
 
 | Campo                                                                                                    | Tipo     | Constraints       | FK →                   | Descripción                       |
 | -------------------------------------------------------------------------------------------------------- | -------- | ----------------- | ---------------------- | --------------------------------- |
@@ -386,7 +385,7 @@ Bien del caso — registro general (contraparte de `Bien`, la versión Sección 
 
 ### LegalProcess
 
-Proceso judicial — registro general (contraparte de `ProcesoJudicial`, Sección VII del Formulario Definitivo).
+Proceso judicial — registro general.
 
 | Campo                                                           | Tipo    | Constraints | FK →         | Descripción |
 | --------------------------------------------------------------- | ------- | ----------- | ------------ | ----------- |
@@ -426,75 +425,7 @@ Servicio suspendido por falta de pago.
 
 ---
 
-## 4. Capa Definitivo (snapshots congelados por caso)
-
-**Nota de diseño (no son duplicados de §2/§3):** `Acreedor`, `Bien` y `ProcesoJudicial` replican, campo por campo, las Secciones V, VI y VII del **Formulario Definitivo** legal — un registro detallado y congelado por caso, distinto del dato general capturado en `Creditor`/`Asset`/`LegalProcess` (§2/§3), que es reutilizable entre casos. El propio `schema.prisma` los marca con el comentario `// FORMULARIO DEFINITIVO - Sección V/VI/VII` (líneas 708–815), y la UI los muestra en cards tituladas "Acreedores Definitivo" / "Bienes Definitivo" (`case-details-dialog/definitivo-section.tsx`). Los tres tienen `onDelete: Cascade` desde `Case` — se destruyen junto con el caso, reforzando que son datos derivados/congelados del caso, no un registro maestro independiente.
-
-### Acreedor — Sección V: Relación Completa de Acreedores
-
-`@@map("acreedores")`
-
-| Campo                                                                                                            | Tipo      | Constraints                      | Descripción                      |
-| ---------------------------------------------------------------------------------------------------------------- | --------- | -------------------------------- | -------------------------------- |
-| id                                                                                                               | String    | `@id`                            | PK                               |
-| caseId                                                                                                           | String    | `onDelete: Cascade` → Case (N:1) |                                  |
-| tenantId                                                                                                         | String    | → Tenant (N:1)                   |                                  |
-| acreedorTipo                                                                                                     | String?   |                                  | 5.1 Identificación               |
-| acreedorNombreRazonSocial                                                                                        | String    | (requerido)                      |                                  |
-| acreedorTipoIdentificacion / acreedorIdentificacion                                                              | String?   |                                  |                                  |
-| acreedorDireccion / acreedorCiudad                                                                               | String?   |                                  |                                  |
-| acreedorCorreo / acreedorTelefono                                                                                | String?   |                                  |                                  |
-| tipoObligacion / numeroObligacion                                                                                | String?   |                                  | 5.2 Información de la obligación |
-| fechaOtorgamiento / fechaVencimiento / fechaMora                                                                 | DateTime? |                                  |                                  |
-| diasMora                                                                                                         | Int?      |                                  |                                  |
-| valorCapital, valorInteresesCorrientes, valorInteresesMora, valorGastosCobranza, valorTotalObligacion            | Decimal?  |                                  |                                  |
-| naturalezaCredito                                                                                                | String?   |                                  |                                  |
-| obligacionCodeudores                                                                                             | Boolean   | `@default(false)`                |                                  |
-| nombreCodeudores                                                                                                 | String?   |                                  |                                  |
-| garantiaAsociada                                                                                                 | Boolean   | `@default(false)`                |                                  |
-| tipoGarantia / descripcionGarantia                                                                               | String?   |                                  |                                  |
-| procesoJudicialEnCurso                                                                                           | Boolean   | `@default(false)`                | 5.3 Información judicial         |
-| tipoProcesoJudicial / juzgadoNombre / juzgadoCiudad / procesoJudicialRadicado / demandanteNombre / etapaProcesal | String?   |                                  |                                  |
-
-### Bien — Sección VI: Inventario Detallado de Bienes
-
-`@@map("bienes")`
-
-| Campo                                                     | Tipo     | Constraints                      | Descripción            |
-| --------------------------------------------------------- | -------- | -------------------------------- | ---------------------- |
-| id                                                        | String   | `@id`                            | PK                     |
-| caseId                                                    | String   | `onDelete: Cascade` → Case (N:1) |                        |
-| tenantId                                                  | String   | → Tenant (N:1)                   |                        |
-| bienTipo                                                  | String   | (requerido)                      | 6.1 Identificación     |
-| bienDescripcion / bienUbicacion                           | String?  |                                  |                        |
-| bienMatriculaInmobiliaria / bienPlaca                     | String?  |                                  |                        |
-| bienEntidadFinanciera                                     | String?  |                                  |                        |
-| bienValorComercial / bienValorCatastral / bienValorLibros | Decimal? |                                  | 6.2 Valoración         |
-| bienGravamenes                                            | Boolean  | `@default(false)`                | 6.3 Situación jurídica |
-| descripcionGravamen                                       | String?  |                                  |                        |
-| bienEmbargado                                             | Boolean  | `@default(false)`                |                        |
-| bienAfectadoViviendaFamiliar                              | Boolean  | `@default(false)`                |                        |
-| bienEnLeasing                                             | Boolean  | `@default(false)`                |                        |
-
-### ProcesoJudicial — Sección VII: Relación de Procesos Judiciales
-
-`@@map("procesos_judiciales")`
-
-| Campo                              | Tipo     | Constraints                      | Descripción |
-| ---------------------------------- | -------- | -------------------------------- | ----------- |
-| id                                 | String   | `@id`                            | PK          |
-| caseId                             | String   | `onDelete: Cascade` → Case (N:1) |             |
-| tenantId                           | String   | → Tenant (N:1)                   |             |
-| tipoProceso                        | String?  |                                  |             |
-| juzgadoNombre / juzgadoCiudad      | String?  |                                  |             |
-| procesoJudicialRadicado            | String?  |                                  |             |
-| demandanteNombre / demandadoNombre | String?  |                                  |             |
-| cuantiaProceso                     | Decimal? |                                  |             |
-| estadoProceso                      | String?  |                                  |             |
-
----
-
-## 5. Documentos
+## 4. Documentos
 
 ### Document
 
@@ -572,7 +503,7 @@ Constraint adicional: `@@index([tenantId, caseId, createdAt])`.
 
 ---
 
-## 6. Pagos
+## 5. Pagos
 
 ### Payment
 
@@ -598,7 +529,7 @@ Constraint adicional: `@@index([tenantId, caseId, createdAt])`.
 
 ---
 
-## 7. Operación / Seguridad
+## 6. Operación / Seguridad
 
 ### Notification
 

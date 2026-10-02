@@ -13,8 +13,12 @@
  * placeholder existente).
  *
  * Lo que sí puede seguir saliendo es el MONTO AGREGADO
- * (`gastosServiciosPublicos`): ese es un dato declarado del expediente, alimenta
- * la propuesta de pago y el Excel, y no es lo que se pidió ocultar.
+ * (`gastosServiciosPublicos`): ese es un dato declarado del expediente y
+ * alimenta el Excel directamente desde `caseData` (`generate-excel.ts`), no es
+ * lo que se pidió ocultar. No hay un placeholder equivalente en el mapper desde
+ * que se borró el Formulario Definitivo muerto (`mapFormularioDefinitivoFields`
+ * era la única fuente de `gastos_servicios_publicos`, y ningún documento lo
+ * consumía).
  */
 
 import {
@@ -109,16 +113,5 @@ describe('servicios de manutención — invariante de no aparecer en documentos'
         expect(Object.keys(contexto).some((k) => patron.test(k))).toBe(false);
       }
     }
-  });
-
-  it('el monto agregado sí sigue llegando al mapper (no es lo que se oculta)', () => {
-    // Guardia de la otra dirección: si alguien "arregla" esta invariante
-    // borrando gastos_servicios_publicos, se rompe la propuesta de pago y el
-    // Excel. El que se oculta es el desglose, no el total.
-    const placeholders = mapCaseToPlaceholders(
-      conDesglose('insolvencia-completa'),
-    );
-
-    expect(placeholders).toHaveProperty('gastos_servicios_publicos');
   });
 });

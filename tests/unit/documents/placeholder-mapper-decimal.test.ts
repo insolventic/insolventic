@@ -284,9 +284,12 @@ describe('el mapper produce lo mismo con Prisma.Decimal que con number', () => {
 
       // No vacuo: el mapper emite cientos de claves. El piso bajo de 800 a 650
       // al retirar los ~200 slots numerados de acreedor (AC{n}_* y el cuadro
-      // resumen) en el Paso 5 del plan de acreedores: esas claves ya no existen
-      // porque las plantillas iteran ACREEDORES con {{#each}}.
-      expect(Object.keys(withNumber).length).toBeGreaterThan(650);
+      // resumen) en el Paso 5 del plan de acreedores (esas claves ya no existen
+      // porque las plantillas iteran ACREEDORES con {{#each}}), y de 650 a 300
+      // al borrar el Formulario Definitivo muerto (Acreedor/Bien/ProcesoJudicial
+      // + mapFormularioDefinitivoFields): ninguna plantilla consumía ninguna de
+      // las dos capas, confirmado por render-hashes.json sin cambios.
+      expect(Object.keys(withNumber).length).toBeGreaterThan(300);
       expect(Object.keys(withDecimal)).toEqual(Object.keys(withNumber));
 
       const distintas = Object.keys(withNumber).filter(

@@ -1,11 +1,12 @@
 # Diagrama de Clases — INSOLVENTIC
 
-> Basado en los mismos 27 modelos de `src/prisma/schema.prisma` que el MER (`docs/MODELO_ENTIDAD_RELACION.md`), pero con enfoque orientado a objetos: atributos representativos por clase + asociaciones/composiciones con cardinalidad, en vez de tablas/FKs. Comparten fuente pero responden preguntas distintas — el MER es para diseñar el esquema relacional, este diagrama es para entender la estructura de dominio como la vería un desarrollador.
+> Basado en los mismos 25 modelos de `src/prisma/schema.prisma` que el MER (`docs/MODELO_ENTIDAD_RELACION.md`), pero con enfoque orientado a objetos: atributos representativos por clase + asociaciones/composiciones con cardinalidad, en vez de tablas/FKs. Comparten fuente pero responden preguntas distintas — el MER es para diseñar el esquema relacional, este diagrama es para entender la estructura de dominio como la vería un desarrollador.
 
 **Convención de relación usada:**
-- **Composición (`*--`)**: el hijo no puede existir sin el padre y se borra en cascada con él (`onDelete: Cascade` en el schema). Ej.: `Acreedor` no existe sin `Case`.
+
+- **Composición (`*--`)**: el hijo no puede existir sin el padre y se borra en cascada con él (`onDelete: Cascade` en el schema). Ej.: `Apoderado` no existe sin `Case`.
 - **Asociación (`--`)**: relación por FK sin cascada explícita — el hijo referencia al padre pero Prisma no lo destruye automáticamente si el padre se borra.
-- Misma división en 3 vistas que el MER, por la misma razón de legibilidad (27 clases en un solo diagrama no se lee).
+- Misma división en 3 vistas que el MER, por la misma razón de legibilidad (25 clases en un solo diagrama no se lee).
 
 ---
 
@@ -94,9 +95,7 @@ classDiagram
 
 ---
 
-## Vista 2 — Financiero/Patrimonial + Capa Definitivo
-
-**Distinción de dos capas (misma que en el MER, repetida aquí porque el diagrama de clases es el lugar donde más fácil se lee como redundancia si no se aclara):** `Debt`/`Asset`/`LegalProcess`/`Libranza`/`SuspendedService` son la capa general — asociaciones normales, sin cascada. `Acreedor`/`Bien`/`ProcesoJudicial` son **composiciones** de `Case` (`onDelete: Cascade`): existen únicamente como snapshot congelado de las Secciones V/VI/VII del Formulario Definitivo y mueren con el caso. La UML aquí hace explícita una diferencia que en el ERD solo se ve en el texto de la relación.
+## Vista 2 — Financiero/Patrimonial
 
 ```mermaid
 classDiagram
@@ -137,24 +136,6 @@ classDiagram
         +String creditorName
         +Decimal amountOwed
     }
-    class Acreedor {
-        +String id
-        +String acreedorNombreRazonSocial
-        +Decimal valorTotalObligacion
-        +Boolean procesoJudicialEnCurso
-    }
-    class Bien {
-        +String id
-        +String bienTipo
-        +Decimal bienValorComercial
-        +Boolean bienEmbargado
-    }
-    class ProcesoJudicial {
-        +String id
-        +String tipoProceso
-        +Decimal cuantiaProceso
-        +String estadoProceso
-    }
 
     Case "1" -- "many" Debt : "tiene (capa general)"
     Creditor "1" -- "many" Debt : "es acreedor de"
@@ -164,10 +145,6 @@ classDiagram
     Case "1" -- "many" LegalProcess : "tiene (capa general)"
     Case "1" -- "many" Libranza : tiene
     Case "1" -- "many" SuspendedService : tiene
-
-    Case "1" *-- "many" Acreedor : "snapshot §V Definitivo"
-    Case "1" *-- "many" Bien : "snapshot §VI Definitivo"
-    Case "1" *-- "many" ProcesoJudicial : "snapshot §VII Definitivo"
 ```
 
 ---

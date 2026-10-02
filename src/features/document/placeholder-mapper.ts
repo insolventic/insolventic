@@ -24,12 +24,6 @@ import {
   mapSuspendedServices,
   mapDependents,
 } from './placeholders/case-lists';
-import {
-  mapAcreedoresDefinitivo,
-  mapBienesDefinitivo,
-  mapProcesosJudicialesDefinitivo,
-  mapFormularioDefinitivoFields,
-} from './placeholders/formulario-definitivo';
 import { mapIncomeDeclaration } from './placeholders/income';
 import { escapePlaceholder, escapeAllUnlessHtml } from './placeholders/escape';
 import { mapDebts, mapAssets } from './placeholders/assets-debts';
@@ -702,11 +696,6 @@ export function mapCaseToPlaceholders(
     // Fracaso and audiencia specific mappings
     ...mapFracasoVariables(caseData),
     ...mapSentidoVotoVariables(caseData),
-    // Formulario definitivo mappings (lowercase snake_case for new templates)
-    ...mapAcreedoresDefinitivo(caseData),
-    ...mapBienesDefinitivo(caseData),
-    ...mapProcesosJudicialesDefinitivo(caseData),
-    ...mapFormularioDefinitivoFields(caseData),
     // Conciliation-specific placeholders (only relevant for CONCILIATION cases)
     ...(caseData.type === 'CONCILIATION'
       ? mapConciliationFields(caseData)

@@ -153,9 +153,13 @@ describe('golden master — mapCaseToPlaceholders / buildConciliationContext', (
 
     // No vacuo: el mapper emite cientos de claves en cada escenario. El piso
     // bajo de 700 a 550 al retirar los ~264 slots numerados de acreedor en el
-    // Paso 5 del plan de acreedores: esas claves ya no existen porque las dos
-    // plantillas que las consumian iteran ACREEDORES con {{#each}}.
-    expect(Object.keys(actual.placeholders).length).toBeGreaterThan(550);
+    // Paso 5 del plan de acreedores (esas claves ya no existen porque las dos
+    // plantillas que las consumian iteran ACREEDORES con {{#each}}), y de 550 a
+    // 300 al borrar el Formulario Definitivo muerto (Acreedor/Bien/
+    // ProcesoJudicial + las ~92 claves snake_case de mapFormularioDefinitivoFields):
+    // ninguna plantilla consumia ninguna de las dos capas, confirmado por
+    // render-hashes.json sin cambios al regenerar este golden.
+    expect(Object.keys(actual.placeholders).length).toBeGreaterThan(300);
 
     if (UPDATE) {
       fs.writeFileSync(file, serialize(actual));

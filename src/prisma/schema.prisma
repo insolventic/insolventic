@@ -52,10 +52,6 @@ model Tenant {
   libranzas           Libranza[]
   suspendedServices   SuspendedService[]
   dependents          Dependent[]
-  // Nuevos modelos del formulario definitivo
-  acreedores          Acreedor[]
-  bienes              Bien[]
-  procesosJudiciales  ProcesoJudicial[]
   apoderados          Apoderado[]
   auditLogs           AuditLog[]
   payments            Payment[]
@@ -461,10 +457,6 @@ model Case {
   libranzas               Libranza[]
   suspendedServices       SuspendedService[]
   dependents              Dependent[]
-  // Nuevos modelos del formulario definitivo
-  acreedores              Acreedor[]
-  bienes                  Bien[]
-  procesosJudiciales      ProcesoJudicial[]
   apoderados              Apoderado[]
   payments                Payment[]
   generationRequests      DocumentGenerationRequest[]
@@ -744,122 +736,6 @@ model LegalProcess {
   precautionaryMeasure  String?
   case                  Case     @relation(fields: [caseId], references: [id])
   tenant                Tenant   @relation(fields: [tenantId], references: [id])
-}
-
-// ============================================================
-// FORMULARIO DEFINITIVO - Sección V: Relación Completa de Acreedores
-// ============================================================
-model Acreedor {
-  id                         String    @id @default(cuid())
-  caseId                     String
-  tenantId                   String
-
-  // 5.1 Identificación del acreedor
-  acreedorTipo               String?   @map("acreedor_tipo")
-  acreedorNombreRazonSocial  String    @map("acreedor_nombre_razon_social")
-  acreedorTipoIdentificacion String?   @map("acreedor_tipo_identificacion")
-  acreedorIdentificacion     String?   @map("acreedor_identificacion")
-  acreedorDireccion          String?   @map("acreedor_direccion")
-  acreedorCiudad             String?   @map("acreedor_ciudad")
-  acreedorCorreo             String?   @map("acreedor_correo")
-  acreedorTelefono           String?   @map("acreedor_telefono")
-
-  // 5.2 Información de la obligación
-  tipoObligacion             String?   @map("tipo_obligacion")
-  numeroObligacion           String?   @map("numero_obligacion")
-  fechaOtorgamiento          DateTime? @map("fecha_otorgamiento")
-  fechaVencimiento           DateTime? @map("fecha_vencimiento")
-  fechaMora                  DateTime? @map("fecha_mora")
-  diasMora                   Int?      @map("dias_mora")
-  valorCapital               Decimal?  @map("valor_capital")
-  valorInteresesCorrientes   Decimal?  @map("valor_intereses_corrientes")
-  valorInteresesMora         Decimal?  @map("valor_intereses_mora")
-  valorGastosCobranza        Decimal?  @map("valor_gastos_cobranza")
-  valorTotalObligacion       Decimal?  @map("valor_total_obligacion")
-  naturalezaCredito          String?   @map("naturaleza_credito")
-  obligacionCodeudores       Boolean   @default(false) @map("obligacion_codeudores")
-  nombreCodeudores           String?   @map("nombre_codeudores")
-  garantiaAsociada           Boolean   @default(false) @map("garantia_asociada")
-  tipoGarantia               String?   @map("tipo_garantia")
-  descripcionGarantia        String?   @map("descripcion_garantia")
-
-  // 5.3 Información judicial
-  procesoJudicialEnCurso     Boolean   @default(false) @map("proceso_judicial_en_curso")
-  tipoProcesoJudicial        String?   @map("tipo_proceso_judicial")
-  juzgadoNombre              String?   @map("juzgado_nombre")
-  juzgadoCiudad              String?   @map("juzgado_ciudad")
-  procesoJudicialRadicado    String?   @map("proceso_judicial_radicado")
-  demandanteNombre           String?   @map("demandante_nombre")
-  etapaProcesal              String?   @map("etapa_procesal")
-
-  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
-
-  @@map("acreedores")
-}
-
-// ============================================================
-// FORMULARIO DEFINITIVO - Sección VI: Inventario Detallado de Bienes
-// ============================================================
-model Bien {
-  id                          String    @id @default(cuid())
-  caseId                      String
-  tenantId                    String
-
-  // 6.1 Identificación del bien
-  bienTipo                    String    @map("bien_tipo")
-  bienDescripcion             String?   @map("bien_descripcion")
-  bienUbicacion               String?   @map("bien_ubicacion")
-  bienMatriculaInmobiliaria   String?   @map("bien_matricula_inmobiliaria")
-  bienPlaca                   String?   @map("bien_placa")
-  bienEntidadFinanciera       String?   @map("bien_entidad_financiera")
-
-  // 6.2 Valoración
-  bienValorComercial          Decimal?  @map("bien_valor_comercial")
-  bienValorCatastral          Decimal?  @map("bien_valor_catastral")
-  bienValorLibros             Decimal?  @map("bien_valor_libros")
-
-  // 6.3 Situación jurídica
-  bienGravamenes              Boolean   @default(false) @map("bien_gravamenes")
-  descripcionGravamen         String?   @map("descripcion_gravamen")
-  bienEmbargado               Boolean   @default(false) @map("bien_embargado")
-  bienAfectadoViviendaFamiliar Boolean  @default(false) @map("bien_afectado_vivienda_familiar")
-  bienEnLeasing               Boolean   @default(false) @map("bien_en_leasing")
-
-  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
-
-  @@map("bienes")
-}
-
-// ============================================================
-// FORMULARIO DEFINITIVO - Sección VII: Relación de Procesos Judiciales
-// ============================================================
-model ProcesoJudicial {
-  id                        String    @id @default(cuid())
-  caseId                    String
-  tenantId                  String
-
-  // Misma lista que LegalProcess.processType: TIPOS_PROCESO_JUDICIAL
-  // (src/features/case/proceso-judicial-tipos.ts).
-  tipoProceso               String?   @map("tipo_proceso")
-  // Texto libre, solo cuando tipoProceso == 'OTROS'. El formulario ya lo
-  // capturaba y el zod ya lo aceptaba; sin esta columna se descartaba en
-  // silencio al persistir.
-  tipoProcesoOtro           String?   @map("tipo_proceso_otro")
-  juzgadoNombre             String?   @map("juzgado_nombre")
-  juzgadoCiudad             String?   @map("juzgado_ciudad")
-  juzgadoCorreo             String?   @map("juzgado_correo")
-  procesoJudicialRadicado   String?   @map("proceso_judicial_radicado")
-  demandanteNombre          String?   @map("demandante_nombre")
-  demandadoNombre           String?   @map("demandado_nombre")
-  cuantiaProceso            Decimal?  @map("cuantia_proceso")
-  estadoProceso             String?   @map("estado_proceso")
-
-  case     Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  tenant   Tenant @relation(fields: [tenantId], references: [id])
-
-  @@map("procesos_judiciales")
 }
 
 // ============================================================

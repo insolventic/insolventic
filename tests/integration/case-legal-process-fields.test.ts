@@ -3,14 +3,16 @@
  *
  * Dos cosas que se perdían entre el formulario y la fila:
  *
- *  - `tipoProcesoOtro` estaba en el zod de la Sección VII y el formulario lo
- *    capturaba, pero no existía la columna y la proyección de `createCase` no lo
- *    listaba: se descartaba en silencio, sin que tsc ni Prisma se quejaran.
+ *  - `processTypeOther` estaba en el zod y el formulario lo capturaba, pero la
+ *    proyección de `createCase` no lo listaba: se descartaba en silencio, sin
+ *    que tsc ni Prisma se quejaran.
  *  - el correo del juzgado no existía en ninguna parte, y es a donde se manda el
  *    oficio de suspensión.
  *
- * Se ejercen los dos modelos que guardan procesos, porque los dos comparten
- * ahora la misma lista de tipos.
+ * Antes se ejercían dos modelos (`LegalProcess` y el snapshot muerto
+ * `ProcesoJudicial` del Formulario Definitivo, que compartía la misma lista de
+ * tipos). `ProcesoJudicial` se borró junto con el resto del Formulario
+ * Definitivo sin UI ni consumidor en ninguna plantilla; solo queda `LegalProcess`.
  */
 
 process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only';
@@ -118,12 +120,6 @@ describe('procesos judiciales — "Otros" y correo del juzgado', () => {
       const fields = fieldsOf('LegalProcess');
       expect(fields.has('processTypeOther')).toBe(true);
       expect(fields.has('courtEmail')).toBe(true);
-    });
-
-    it('ProcesoJudicial tiene tipoProcesoOtro y juzgadoCorreo', () => {
-      const fields = fieldsOf('ProcesoJudicial');
-      expect(fields.has('tipoProcesoOtro')).toBe(true);
-      expect(fields.has('juzgadoCorreo')).toBe(true);
     });
   });
 
@@ -285,29 +281,6 @@ describe('procesos judiciales — "Otros" y correo del juzgado', () => {
       });
 
       expect(nestedCreate('legalProcesses')[0].courtEmail).toBeNull();
-    });
-  });
-
-  describe('ProcesoJudicial (Sección VII) — createCase', () => {
-    it('ya no descarta tipoProcesoOtro ni el correo del juzgado', async () => {
-      await createCase({
-        ...BASE,
-        procesosJudiciales: [
-          {
-            tipoProceso: 'OTROS',
-            tipoProcesoOtro: 'Acción de tutela',
-            juzgadoNombre: 'Juzgado 8 Civil',
-            juzgadoCiudad: 'Cali',
-            juzgadoCorreo: JUZGADO_CORREO,
-          },
-        ],
-      });
-
-      expect(nestedCreate('procesosJudiciales')[0]).toMatchObject({
-        tipoProceso: 'OTROS',
-        tipoProcesoOtro: 'Acción de tutela',
-        juzgadoCorreo: JUZGADO_CORREO,
-      });
     });
   });
 });

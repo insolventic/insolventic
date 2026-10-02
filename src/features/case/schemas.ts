@@ -362,164 +362,7 @@ export const legalProcessSchema = z
     }
   });
 
-// ============================================================
-// FORMULARIO DEFINITIVO - Schemas de formulario
-// ============================================================
-
-// Sección V: Relación Completa de Acreedores
-export const acreedorFormSchema = z.object({
-  id: z.string().optional(),
-  // 5.1 Identificación del acreedor
-  acreedorTipo: z.string().optional(),
-  acreedorNombreRazonSocial: z
-    .string()
-    .min(1, 'El nombre o razón social es requerido'),
-  acreedorTipoIdentificacion: z.string().optional(),
-  acreedorIdentificacion: z.string().optional(),
-  acreedorDireccion: z.string().optional(),
-  acreedorCiudad: z.string().optional(),
-  acreedorCorreo: z.string().optional(),
-  acreedorTelefono: z.string().optional(),
-  // 5.2 Información de la obligación
-  tipoObligacion: z.string().optional(),
-  numeroObligacion: z.string().optional(),
-  fechaOtorgamiento: z.string().optional(),
-  fechaVencimiento: z.string().optional(),
-  fechaMora: z.string().optional(),
-  diasMora: z.number().optional(),
-  valorCapital: z.string().optional(),
-  valorInteresesCorrientes: z.string().optional(),
-  valorInteresesMora: z.string().optional(),
-  valorGastosCobranza: z.string().optional(),
-  valorTotalObligacion: z.string().optional(),
-  naturalezaCredito: z.string().optional(),
-  obligacionCodeudores: z.boolean().default(false),
-  nombreCodeudores: z.string().optional(),
-  garantiaAsociada: z.boolean().default(false),
-  tipoGarantia: z.string().optional(),
-  descripcionGarantia: z.string().optional(),
-  // 5.3 Información judicial
-  procesoJudicialEnCurso: z.boolean().default(false),
-  tipoProcesoJudicial: z.string().optional(),
-  juzgadoNombre: z.string().optional(),
-  juzgadoCiudad: z.string().optional(),
-  procesoJudicialRadicado: z.string().optional(),
-  demandanteNombre: z.string().optional(),
-  etapaProcesal: z.string().optional(),
-});
-
-export type AcreedorFormData = z.infer<typeof acreedorFormSchema>;
-
-// Sección VI: Inventario Detallado de Bienes
-export const bienFormSchema = z.object({
-  id: z.string().optional(),
-  // 6.1 Identificación del bien
-  bienTipo: z.string().min(1, 'El tipo de bien es requerido'),
-  bienDescripcion: z.string().optional(),
-  bienUbicacion: z.string().optional(),
-  bienMatriculaInmobiliaria: z.string().optional(),
-  bienPlaca: z.string().optional(),
-  bienEntidadFinanciera: z.string().optional(),
-  // 6.2 Valoración
-  bienValorComercial: z.string().optional(),
-  bienValorCatastral: z.string().optional(),
-  bienValorLibros: z.string().optional(),
-  // 6.3 Situación jurídica
-  bienGravamenes: z.boolean().default(false),
-  descripcionGravamen: z.string().optional(),
-  bienEmbargado: z.boolean().default(false),
-  bienAfectadoViviendaFamiliar: z.boolean().default(false),
-  bienEnLeasing: z.boolean().default(false),
-});
-
-export type BienFormData = z.infer<typeof bienFormSchema>;
-
-// Sección VII: Relación de Procesos Judiciales
-export const procesoJudicialFormSchema = z.object({
-  id: z.string().optional(),
-  tipoProceso: z.string().optional(),
-  tipoProcesoOtro: z.string().optional(),
-  juzgadoNombre: z.string().optional(),
-  juzgadoCiudad: z.string().optional(),
-  juzgadoCorreo: z.string().optional(),
-  procesoJudicialRadicado: z.string().optional(),
-  demandanteNombre: z.string().optional(),
-  demandadoNombre: z.string().optional(),
-  cuantiaProceso: z.string().optional(),
-  estadoProceso: z.string().optional(),
-});
-
-export type ProcesoJudicialFormData = z.infer<typeof procesoJudicialFormSchema>;
-
 // Database response schemas for new models
-const acreedorForCaseSchema = z.object({
-  id: z.string(),
-  acreedorTipo: z.string().nullable(),
-  acreedorNombreRazonSocial: z.string(),
-  acreedorTipoIdentificacion: z.string().nullable(),
-  acreedorIdentificacion: z.string().nullable(),
-  acreedorDireccion: z.string().nullable(),
-  acreedorCiudad: z.string().nullable(),
-  acreedorCorreo: z.string().nullable(),
-  acreedorTelefono: z.string().nullable(),
-  tipoObligacion: z.string().nullable(),
-  numeroObligacion: z.string().nullable(),
-  fechaOtorgamiento: z.coerce.date().nullable(),
-  fechaVencimiento: z.coerce.date().nullable(),
-  fechaMora: z.coerce.date().nullable(),
-  diasMora: z.number().nullable(),
-  valorCapital: decimalToNumber.nullable(),
-  valorInteresesCorrientes: decimalToNumber.nullable(),
-  valorInteresesMora: decimalToNumber.nullable(),
-  valorGastosCobranza: decimalToNumber.nullable(),
-  valorTotalObligacion: decimalToNumber.nullable(),
-  naturalezaCredito: z.string().nullable(),
-  obligacionCodeudores: z.boolean(),
-  nombreCodeudores: z.string().nullable(),
-  garantiaAsociada: z.boolean(),
-  tipoGarantia: z.string().nullable(),
-  descripcionGarantia: z.string().nullable(),
-  procesoJudicialEnCurso: z.boolean(),
-  tipoProcesoJudicial: z.string().nullable(),
-  juzgadoNombre: z.string().nullable(),
-  juzgadoCiudad: z.string().nullable(),
-  procesoJudicialRadicado: z.string().nullable(),
-  demandanteNombre: z.string().nullable(),
-  etapaProcesal: z.string().nullable(),
-});
-
-const bienForCaseSchema = z.object({
-  id: z.string(),
-  bienTipo: z.string(),
-  bienDescripcion: z.string().nullable(),
-  bienUbicacion: z.string().nullable(),
-  bienMatriculaInmobiliaria: z.string().nullable(),
-  bienPlaca: z.string().nullable(),
-  bienEntidadFinanciera: z.string().nullable(),
-  bienValorComercial: decimalToNumber.nullable(),
-  bienValorCatastral: decimalToNumber.nullable(),
-  bienValorLibros: decimalToNumber.nullable(),
-  bienGravamenes: z.boolean(),
-  descripcionGravamen: z.string().nullable(),
-  bienEmbargado: z.boolean(),
-  bienAfectadoViviendaFamiliar: z.boolean(),
-  bienEnLeasing: z.boolean(),
-});
-
-const procesoJudicialForCaseSchema = z.object({
-  id: z.string(),
-  tipoProceso: z.string().nullable(),
-  tipoProcesoOtro: z.string().nullable(),
-  juzgadoNombre: z.string().nullable(),
-  juzgadoCiudad: z.string().nullable(),
-  juzgadoCorreo: z.string().nullable(),
-  procesoJudicialRadicado: z.string().nullable(),
-  demandanteNombre: z.string().nullable(),
-  demandadoNombre: z.string().nullable(),
-  cuantiaProceso: decimalToNumber.nullable(),
-  estadoProceso: z.string().nullable(),
-});
-
 const apoderadoForCaseSchema = z.object({
   id: z.string(),
   orden: z.number(),
@@ -946,10 +789,6 @@ export const caseWithRelationsSchema = caseSchema.extend({
   suspendedServices: z.array(suspendedServiceForCaseSchema).optional(),
   dependents: z.array(dependentForCaseSchema).optional(),
   legalProcesses: z.array(legalProcessForCaseSchema).optional(),
-  // Formulario definitivo
-  acreedores: z.array(acreedorForCaseSchema).optional(),
-  bienes: z.array(bienForCaseSchema).optional(),
-  procesosJudiciales: z.array(procesoJudicialForCaseSchema).optional(),
   apoderados: z.array(apoderadoForCaseSchema).optional(),
 });
 
@@ -2647,10 +2486,6 @@ export const createCaseFormSchema = createCaseSchema.extend({
   suspendedServices: z.array(suspendedServiceSchema).default([]).optional(),
   dependents: z.array(dependentSchema).default([]).optional(),
   legalProcesses: z.array(legalProcessSchema).default([]).optional(),
-  // Formulario definitivo
-  acreedores: z.array(acreedorFormSchema).default([]).optional(),
-  bienes: z.array(bienFormSchema).default([]).optional(),
-  procesosJudiciales: z.array(procesoJudicialFormSchema).default([]).optional(),
   apoderados: z.array(apoderadoFormSchema).default([]).optional(),
 });
 
@@ -2661,10 +2496,6 @@ export const updateCaseFormSchema = updateCaseSchema.extend({
   suspendedServices: z.array(suspendedServiceSchema).default([]).optional(),
   dependents: z.array(dependentSchema).default([]).optional(),
   legalProcesses: z.array(legalProcessSchema).default([]).optional(),
-  // Formulario definitivo
-  acreedores: z.array(acreedorFormSchema).default([]).optional(),
-  bienes: z.array(bienFormSchema).default([]).optional(),
-  procesosJudiciales: z.array(procesoJudicialFormSchema).default([]).optional(),
   apoderados: z.array(apoderadoFormSchema).default([]).optional(),
 });
 
