@@ -5,8 +5,6 @@
 
 import type { CaseWithRelations } from '../case/schemas';
 import { nowColombia } from '@/lib/date-colombia';
-import { getDebtClass } from '../case/validation-rules';
-import { tipoProcesoLabel } from '../case/proceso-judicial-tipos';
 import { renderTemplate } from './handlebars-lite';
 import {
   formatCurrency,
@@ -16,11 +14,8 @@ import {
   getDayInWords,
   getMonthName,
   getYear,
-  formatDateComplete,
   boolToSiNo,
   getGenderPrefix,
-  getGenderArticle,
-  formatIdNumber,
 } from './placeholders/format';
 import {
   mapCauses,
@@ -39,19 +34,23 @@ import { mapIncomeDeclaration } from './placeholders/income';
 import { escapePlaceholder, escapeAllUnlessHtml } from './placeholders/escape';
 import { mapDebts, mapAssets } from './placeholders/assets-debts';
 import {
-  generateDetalleBienes,
-  generateDetallePagoCapital,
-  generateFormaPagoAcreedores,
-  generateProyeccionPagos,
-  generateInventarioBienes,
-  generateCalificacionGraduacionTable,
-  generatePropuestaPagoHtml,
-} from './placeholders/html-builders';
-import {
   buildConciliationContext,
   mapConciliationFields,
 } from './placeholders/conciliacion';
 import { mapApoyoFields } from './placeholders/apoyo';
+import {
+  mapApplicantScope,
+  mapAgreementResult,
+} from './placeholders/solicitante-acuerdo';
+import {
+  mapExtendedDates,
+  mapExternalEntities,
+  mapFracasoVariables,
+} from './placeholders/fechas-entidades-fracaso';
+import {
+  mapDynamicTables,
+  mapPaymentProposal,
+} from './placeholders/tablas-dinamicas-pagos';
 // Re-exportada: a diferencia de los demás sub-mappers movidos, varios tests
 // la importan directo de este archivo (`@/features/document/placeholder-mapper`),
 // no solo `mapCaseToPlaceholders` — ver la nota en placeholders/conciliacion.ts.
@@ -59,24 +58,6 @@ export { buildConciliationContext } from './placeholders/conciliacion';
 
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
-
-// Map applicant scope
-function mapApplicantScope(scope: string[]): PlaceholderMap {
-  const isNonMerchant =
-    scope.includes('PERSONA_NATURAL_NO_COMERCIANTE') ||
-    scope.some((s) => s.toLowerCase().includes('no comerciante'));
-  const isSmallMerchant =
-    scope.includes('PERSONA_NATURAL_PEQUENA_COMERCIANTE') ||
-    scope.some((s) => s.toLowerCase().includes('pequeño comerciante'));
-
-  return {
-    APLICACION_NO_COMERCIANTE: isNonMerchant ? 'SI' : 'NO',
-    APLICACION_PEQUENA_COMERCIANTE: isSmallMerchant ? 'SI' : 'NO',
-    TIPO_SOLICITANTE: isSmallMerchant
-      ? 'Persona Natural Pequeño Comerciante'
-      : 'Persona Natural No Comerciante',
-  };
-}
 
 // Map check list variables (SI/NO validations)
 function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
@@ -196,189 +177,6 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
   };
 }
 
-// Map additional date variables (ANO_*, DIA_*, MES_*)
-function mapExtendedDates(caseData: CaseWithRelations): PlaceholderMap {
-  const now = nowColombia();
-  const filingDate = caseData.filingDate ? new Date(caseData.filingDate) : null;
-
-  return {
-    // Year variables
-    ANO: getYear(now),
-    ANO_RADICADO: getYear(filingDate) || getYear(now),
-    ANO_TRAMITE: getYear(filingDate) || getYear(now),
-    ANO_CONSTANCIA: getYear(now),
-    ANO_BILATERAL: getYear(now),
-    // DIA/MES/ANO_FRACASO no se definen aquí: los produce mapFracasoVariables
-    // desde failureDate (con marcador manual si falta). Tenerlos duplicados
-    // con valores distintos dependía del orden del spread en
-    // mapCaseToPlaceholders, y el "// Manual" de aquí nunca llegaba al documento.
-    // ANO_INICIO_PAGO/ANO_VIGENCIA: ídem, los produce mapAgreementResult desde
-    // paymentStartDate/agreementValidityDate (Hallazgo-2).
-    // resultDate guarda la fecha del desistimiento (docs/DISENO_FASES_NUEVAS_2026-09-11.md
-    // §6); cae a "now" si todavía no se registró, igual que ANO_RADICADO con filingDate.
-    ANO_DESISTIMIENTO: getYear(caseData.resultDate) || getYear(now),
-
-    // Day variables
-    DIA: getDayNumber(now),
-    DIA_DESISTIMIENTO: getDayNumber(caseData.resultDate) || getDayNumber(now),
-
-    // Month variables
-    MES: getMonthName(now),
-    MES_DESISTIMIENTO: getMonthName(caseData.resultDate) || getMonthName(now),
-
-    // Complete date
-    FECHA_COMPLETA: formatDateComplete(now),
-
-    // Constancia
-    NUMERO_CONSTANCIA: caseData.caseNumber || '',
-  };
-}
-
-// Map external entities (judges, plaintiffs, etc.)
-function mapExternalEntities(caseData: CaseWithRelations): PlaceholderMap {
-  // Get first legal process if exists
-  const firstProcess = caseData.legalProcesses?.[0];
-
-  // Get first libranza if exists
-  const firstLibranza = caseData.libranzas?.[0];
-
-  return {
-    // Judge information (Manual - filled during suspension)
-    NOMBRE_JUZGADO: firstProcess?.court || '',
-    NUMERO_JUZGADO: firstProcess?.fileNumber || '',
-    NOMBRE_DEMANDANTE: firstProcess?.plaintiff || '',
-    // La ETIQUETA, no el valor persistido: los tipos se guardan como
-    // 'RESTITUCION_INMUEBLE' / 'OTROS' (ver proceso-judicial-tipos.ts) y eso es
-    // lo que salia impreso en el oficio que lee el juzgado. En 'OTROS' el
-    // helper devuelve el texto libre que escribio el operador.
-    TIPO_PROCESO: tipoProcesoLabel(
-      firstProcess?.processType,
-      firstProcess?.processTypeOther,
-    ),
-
-    // Payer entity (from libranzas)
-    NOMBRE_ENTIDAD_PAGADORA: firstLibranza?.payerName || '',
-
-    // Bilateral agreement (Manual)
-    RADICADO_BILATERAL: '',
-  };
-}
-
-// Map agreement and result variables
-function mapAgreementResult(caseData: CaseWithRelations): PlaceholderMap {
-  // Calculate voting results
-  const totalCreditors = caseData.debts.length;
-  const totalDebt = caseData.debts.reduce(
-    (sum, d) => sum + (Number(d.amount) || 0),
-    0,
-  );
-  const totalCapital = caseData.debts.reduce(
-    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
-    0,
-  );
-
-  // Find majority creditor (largest debt)
-  const sortedDebts = [...caseData.debts].sort(
-    (a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0),
-  );
-  const majorityCreditor = sortedDebts[0];
-  const majorityCreditorName = majorityCreditor?.creditor?.name || '';
-  const majorityCreditorAmount = Number(majorityCreditor?.amount) || 0;
-  const majorityPercentage =
-    totalDebt > 0 ? (majorityCreditorAmount / totalDebt) * 100 : 0;
-
-  // Approval percentage from database or calculate
-  const approvalPercentage = caseData.approvalPercentage || 0;
-
-  // These would come from actual voting data - placeholders for now
-  const negativeVotes = 0;
-  const negativePercentage =
-    totalCreditors > 0 ? (negativeVotes / totalCreditors) * 100 : 0;
-
-  return {
-    // Voting results
-    ACREEDORES_NEGATIVOS: negativeVotes.toString(),
-    PORCENTAJE_NEGATIVO: negativePercentage.toFixed(2) + '%',
-    PORCENTAJE_APROBACION_REAL: approvalPercentage.toString() + '%',
-    PORCENTAJE_VOTACION: approvalPercentage.toFixed(2) + '%',
-
-    // Majority creditor (for fracaso documents)
-    ACREEDOR_MAYORITARIO: majorityCreditorName,
-    VALOR_ACREEDOR_MAYORITARIO: formatCurrency(majorityCreditorAmount),
-    PORCENTAJE_ACREEDOR_MAYORITARIO: majorityPercentage.toFixed(2) + '%',
-
-    // Total capital (for fracaso documents)
-    TOTAL_CAPITAL_ADEUDADO: formatCurrency(totalCapital),
-    TOTAL_CAPITAL_FRACASO: formatCurrency(totalCapital),
-
-    // Payment value
-    VALOR_PAGO: formatCurrency(Number(caseData.monthlyPaymentAmount) || 0),
-
-    // Applicant type
-    TIPO_SOLICITANTE: (caseData.applicantScope || []).includes(
-      'PERSONA_NATURAL_PEQUENA_COMERCIANTE',
-    )
-      ? 'Persona Natural Pequeño Comerciante'
-      : 'Persona Natural No Comerciante',
-
-    // Gender variants - improved logic
-    GENERO_DEUDOR_SINGULAR: getGenderArticle(caseData.debtor.name),
-
-    // Año de firma (usado en constancias)
-    ANO_FIRMA: getYear(nowColombia()),
-
-    // Nombres en formatos adicionales
-    NOMBRE_DEUDOR_MAYUSCULAS: caseData.debtor.name?.toUpperCase() || '',
-    CEDULA_DEUDOR_FORMATO: formatIdNumber(caseData.debtor.idNumber),
-  };
-}
-
-// Map fracaso (failure) specific variables
-function mapFracasoVariables(caseData: CaseWithRelations): PlaceholderMap {
-  // Failure date - now comes from database field
-  const failureDate = caseData.failureDate
-    ? new Date(caseData.failureDate)
-    : null;
-  const firstProcess = caseData.legalProcesses?.[0];
-
-  // Get bilateral creditor - if isBilateral is true, use bilateralCreditorId to find creditor name
-  let bilateralCreditorName = '';
-  if (caseData.isBilateral && caseData.bilateralCreditorId) {
-    const bilateralDebt = caseData.debts?.find(
-      (d) => d.creditorId === caseData.bilateralCreditorId,
-    );
-    bilateralCreditorName = bilateralDebt?.creditor?.name || '';
-  }
-  // Fallback to first creditor if no bilateral creditor specified
-  if (!bilateralCreditorName) {
-    bilateralCreditorName = caseData.debts?.[0]?.creditor?.name || '';
-  }
-
-  return {
-    // Fechas de fracaso - Ahora vienen de la BD
-    DIA_FRACASO: failureDate ? getDayNumber(failureDate) : '____',
-    MES_FRACASO: failureDate ? getMonthName(failureDate) : '____________',
-    ANO_FRACASO: failureDate ? getYear(failureDate) : '______',
-    FECHA_FRACASO: failureDate ? formatDate(failureDate) : '________________',
-    TIPO_FRACASO: caseData.failureType || '',
-
-    // Información del juzgado
-    NUMERO_JUZGADO: firstProcess?.fileNumber || '____',
-    NUMERO_JUZGADO_FINAL: firstProcess?.fileNumber || '____',
-
-    // Acuerdo bilateral - Ahora viene de la BD
-    NOMBRE_ACREEDOR_BILATERAL:
-      bilateralCreditorName || '________________________________',
-    RADICADO_BILATERAL: caseData.bilateralAgreementNumber || '________________',
-    ANO_BILATERAL: getYear(nowColombia()),
-    ES_BILATERAL: caseData.isBilateral ? 'SI' : 'NO',
-
-    // Constancia
-    NUMERO_CONSTANCIA: caseData.caseNumber?.replace(/[^0-9]/g, '') || '',
-    ANO_CONSTANCIA: getYear(nowColombia()),
-  };
-}
-
 // Los sub-mappers del Formulario Definitivo viven en
 // ./placeholders/formulario-definitivo.ts (Paso 3 de la division).
 
@@ -403,238 +201,6 @@ function mapSentidoVotoVariables(caseData: CaseWithRelations): PlaceholderMap {
     observaciones: '', // MANUAL
     votacion: '', // MANUAL - SI/NO
     firma_votante: '', // MANUAL
-  };
-}
-
-// Map dynamic tables (these generate HTML content)
-function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
-  // Build creditors list for edicto
-  const creditorsList = caseData.debts
-    .map(
-      (d, i) =>
-        `${i + 1}. ${escapePlaceholder(d.creditor.name)} - ${formatCurrency(Number(d.amount) || 0)}`,
-    )
-    .join('<br>');
-
-  // Build total creditors table
-  const totalCreditors = caseData.debts.length;
-  const totalDebt = caseData.debts.reduce(
-    (sum, d) => sum + (Number(d.amount) || 0),
-    0,
-  );
-  const totalCapital = caseData.debts.reduce(
-    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
-    0,
-  );
-  const monthlyAmount = Number(caseData.monthlyPaymentAmount) || 0;
-
-  // Build Calificación y Graduación table
-  const calificacionTable = generateCalificacionGraduacionTable(
-    caseData.debts,
-    totalCapital,
-  );
-
-  // Build propuesta de pago HTML
-  const propuestaPago = generatePropuestaPagoHtml(caseData);
-
-  // Build new dynamic content
-  const detalleBienes = generateDetalleBienes(caseData.assets);
-  const detallePagoCapital = generateDetallePagoCapital(
-    caseData.debts,
-    monthlyAmount,
-    totalCapital,
-  );
-  const formaPagoAcreedores = generateFormaPagoAcreedores(caseData.debts);
-  const proyeccionPagos = generateProyeccionPagos(
-    totalCapital,
-    caseData.paymentTermMonths || 0,
-    monthlyAmount,
-  );
-  const inventarioBienes = generateInventarioBienes(caseData.assets);
-
-  return {
-    // Dynamic table placeholders
-    LISTA_ACREEDORES: creditorsList || '',
-
-    // Creditor count for conditional rendering
-    TIENE_ACREEDORES: caseData.debts.length > 0 ? 'SI' : 'NO',
-    TIENE_BIENES: caseData.assets.length > 0 ? 'SI' : 'NO',
-    TIENE_PROCESOS: (caseData.legalProcesses?.length || 0) > 0 ? 'SI' : 'NO',
-
-    // Summary tables
-    CUADRO_TOTAL_ACREEDORES: `
-      <table border="1" cellpadding="5" style="width:100%; border-collapse: collapse;">
-        <tr><th style="text-align:left; padding:8px;">Total Acreedores</th><td style="padding:8px;">${totalCreditors}</td></tr>
-        <tr><th style="text-align:left; padding:8px;">Total Deuda</th><td style="padding:8px;">${formatCurrency(totalDebt)}</td></tr>
-      </table>
-    `,
-
-    // Calificación y Graduación completa
-    CUADRO_CALIFICACION_GRADUACION: calificacionTable,
-    CUADRO_CALIFICACION_FIRMADO: calificacionTable,
-
-    // Fracaso tables
-    CUADRO_ACUERDO_BILATERAL: calificacionTable,
-    CUADRO_FRACASO_NEGOCIACION: calificacionTable,
-
-    // Propuesta de pago
-    PROPUESTA_PAGO: propuestaPago,
-    PROPUESTA_REFORMA_PAGO: propuestaPago,
-
-    // Proyecto calificación
-    PROYECTO_CALIFICACION_GRADUACION: calificacionTable,
-
-    // New dynamic content generators (FASE 2 del plan)
-    DETALLE_BIENES: detalleBienes,
-    INVENTARIO_BIENES: inventarioBienes,
-    DETALLE_PAGO_CAPITAL: detallePagoCapital,
-    FORMA_PAGO_ACREEDORES: formaPagoAcreedores,
-    PROYECCION_PAGOS: proyeccionPagos,
-  };
-}
-
-// Map payment proposal
-function mapPaymentProposal(caseData: CaseWithRelations): PlaceholderMap {
-  const monthlyIncome =
-    Number(caseData.monthlyIncome) ||
-    Number(caseData.debtor.monthlyIncome) ||
-    0;
-  const otherIncome =
-    Number(caseData.otherIncomeAmount) ||
-    Number(caseData.debtor.otherIncomeAmount) ||
-    0;
-  const totalIncome = monthlyIncome + otherIncome;
-  const monthlyExpenses =
-    Number(caseData.monthlyExpenses) ||
-    Number(caseData.debtor.monthlyExpenses) ||
-    0;
-  const available = totalIncome - monthlyExpenses;
-
-  // Calculate total capital from debts (Number() prevents Decimal string concatenation)
-  const totalCapital = caseData.debts.reduce(
-    (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
-    0,
-  );
-
-  // Auto-calculate class totals from debts for prelación
-  const classTotals = {
-    primera: 0,
-    segunda: 0,
-    tercera: 0,
-    cuarta: 0,
-    quinta: 0,
-  };
-  for (const debt of caseData.debts) {
-    const capital = Number(debt.capitalAmount) || Number(debt.amount) || 0;
-    const interest = Number(debt.interestAmount) || 0;
-    const total = capital + interest;
-    const type = ((debt as Record<string, unknown>).type as string) || '';
-    const cls = getDebtClass(type);
-    classTotals[cls] += total;
-  }
-
-  // Apply quitas percentage to calculate post-reduction values
-  const quitasPercent = Number(caseData.capitalReductionPercent) || 0;
-  const quitasFactor = 1 - quitasPercent / 100;
-
-  return {
-    // Income/Expenses summary — uses TOTAL income (principal + otros)
-    PROPUESTA_TOTAL_CAPITAL: formatCurrency(totalCapital),
-    PROPUESTA_INGRESOS: formatCurrency(totalIncome),
-    PROPUESTA_GASTOS: formatCurrency(monthlyExpenses),
-    PROPUESTA_DISPONIBLE: formatCurrency(available),
-
-    // Grace period
-    PROP_GRACIA_SI: caseData.gracePeriodRequested ? 'X' : '',
-    PROP_GRACIA_NO: !caseData.gracePeriodRequested ? 'X' : '',
-    PROP_GRACIA_MESES: caseData.gracePeriodMonths?.toString() || '',
-
-    // Dation in payment
-    PROP_DACION_SI: caseData.paymentInKind ? 'X' : '',
-    PROP_DACION_NO: !caseData.paymentInKind ? 'X' : '',
-    PROP_DACION_DESC: caseData.paymentInKindDescription || '',
-
-    // Asset sale
-    PROP_VENTA_SI: caseData.assetSaleAuthorized ? 'X' : '',
-    PROP_VENTA_NO: !caseData.assetSaleAuthorized ? 'X' : '',
-    PROP_VENTA_DESC: caseData.assetSaleDescription || '',
-
-    // Cash flow payment
-    PROP_FLUJO_SI: caseData.cashFlowPayment ? 'X' : '',
-    PROP_FLUJO_NO: !caseData.cashFlowPayment ? 'X' : '',
-
-    // Term — cuota mensual: use manual value if set, otherwise calculate totalCapital / plazo
-    PROP_PLAZO: caseData.paymentTermMonths?.toString() || '',
-    PROP_CUOTA_MENSUAL: formatCurrency(
-      Number(caseData.monthlyPaymentAmount) ||
-        (caseData.paymentTermMonths && caseData.paymentTermMonths > 0
-          ? totalCapital / caseData.paymentTermMonths
-          : 0),
-    ),
-    PROP_CUOTA_VARIABLE: formatCurrency(Number(caseData.variablePayment) || 0),
-
-    // Extraordinary payment (cesantías, primas, horas extra, bonificaciones)
-    PROP_EXTRAORDINARIA_SI: caseData.extraordinaryPayment ? 'X' : '',
-    PROP_EXTRAORDINARIA_NO: !caseData.extraordinaryPayment ? 'X' : '',
-    PROP_EXTRA_FECHA: caseData.extraordinaryPaymentDate || '',
-    PROP_EXTRA_MES: caseData.extraordinaryPaymentDate
-      ? getMonthName(new Date(caseData.extraordinaryPaymentDate))
-      : '',
-
-    // Interest rate offered (placeholder - needs to be calculated based on business rules)
-    PROP_TASA_MENSUAL: '0%',
-    PROP_TASA_ANUAL: '0%',
-
-    // Capital reduction (quitas)
-    PROP_QUITAS_SI: caseData.capitalReduction ? 'X' : '',
-    PROP_QUITAS_NO: !caseData.capitalReduction ? 'X' : '',
-    PROP_QUITAS_PORCENTAJE: caseData.capitalReductionPercent?.toString() || '',
-    PROP_QUITAS_VALOR: formatCurrency(totalCapital * quitasFactor),
-
-    // Insurance
-    PROP_SEGURO_INCENDIO: caseData.insuranceOffering?.includes('incendio')
-      ? 'X'
-      : '',
-    PROP_SEGURO_VIDA: caseData.insuranceOffering?.includes('vida') ? 'X' : '',
-
-    // Interest forgiveness
-    PROP_COND_CAUSADO: boolToSiNo(caseData.forgiveAccruedInterest),
-    PROP_COND_FUTURO: boolToSiNo(caseData.forgiveFutureInterest),
-
-    // Payment order (prelation) — auto-calculated from debt types, with quitas applied
-    PROP_PRELACION_1:
-      classTotals.primera > 0
-        ? `${formatCurrency(classTotals.primera)} → ${formatCurrency(classTotals.primera * quitasFactor)}`
-        : '$0',
-    PROP_PRELACION_2:
-      classTotals.segunda > 0
-        ? `${formatCurrency(classTotals.segunda)} → ${formatCurrency(classTotals.segunda * quitasFactor)}`
-        : '$0',
-    PROP_PRELACION_3:
-      classTotals.tercera > 0
-        ? `${formatCurrency(classTotals.tercera)} → ${formatCurrency(classTotals.tercera * quitasFactor)}`
-        : '$0',
-    PROP_PRELACION_4:
-      classTotals.cuarta > 0
-        ? `${formatCurrency(classTotals.cuarta)} → ${formatCurrency(classTotals.cuarta * quitasFactor)}`
-        : '$0',
-    PROP_PRELACION_5:
-      classTotals.quinta > 0
-        ? `${formatCurrency(classTotals.quinta)} → ${formatCurrency(classTotals.quinta * quitasFactor)}`
-        : '$0',
-
-    // Class privileges
-    PROP_PRIVILEGIOS_SI: caseData.hasClassPrivileges ? 'X' : '',
-    PROP_PRIVILEGIOS_NO: !caseData.hasClassPrivileges ? 'X' : '',
-    PROP_PRIVILEGIOS_DESC: caseData.classPrivilegesDescription || '',
-
-    // Third party payment
-    PROP_PAGO_TERCEROS_SI: caseData.thirdPartyPaymentAuth ? 'X' : '',
-    PROP_PAGO_TERCEROS_NO: !caseData.thirdPartyPaymentAuth ? 'X' : '',
-
-    // Guarantee substitution
-    PROP_GARANTIAS_SI: caseData.guaranteeSubstitution ? 'X' : '',
-    PROP_GARANTIAS_NO: !caseData.guaranteeSubstitution ? 'X' : '',
   };
 }
 
