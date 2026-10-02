@@ -20,6 +20,7 @@ export function ConciliationPartiesSection() {
   const { register, setValue, watch } = useFormContext();
   const [showRepLegal, setShowRepLegal] = useState(false);
   const [showApoderadoConvocante, setShowApoderadoConvocante] = useState(false);
+  const [showApoderadoConvocado, setShowApoderadoConvocado] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -223,6 +224,93 @@ export function ConciliationPartiesSection() {
             <div>
               <Label>Celular</Label>
               <Input {...register('concApoderadoConvocanteCel')} />
+            </div>
+          </div>
+        </fieldset>
+      )}
+
+      {/* Apoderado Convocado (optional) */}
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 text-sm font-medium text-purple-600 hover:text-purple-800"
+        onClick={() => setShowApoderadoConvocado(!showApoderadoConvocado)}
+      >
+        <UserPlus className="h-4 w-4" />
+        Apoderado del Convocado (opcional)
+        {showApoderadoConvocado ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
+      </button>
+
+      {showApoderadoConvocado && (
+        <fieldset className="rounded-lg border border-purple-200 bg-purple-50/50 p-4">
+          <legend className="px-2 text-sm font-semibold text-purple-700">
+            Apoderado del Convocado
+          </legend>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <Label htmlFor="concApoderadoConvocadoName">
+                Nombre completo
+              </Label>
+              <Input
+                id="concApoderadoConvocadoName"
+                {...register('concApoderadoConvocadoName')}
+                placeholder="Dr(a). Nombre Completo"
+              />
+            </div>
+            <div>
+              <Label htmlFor="concApoderadoConvocadoTipoId">Tipo ID</Label>
+              <Select
+                value={watch('concApoderadoConvocadoTipoId') || 'CC'}
+                onValueChange={(v) =>
+                  setValue('concApoderadoConvocadoTipoId', v)
+                }
+              >
+                <SelectTrigger id="concApoderadoConvocadoTipoId">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPO_ID_OPTIONS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="concApoderadoConvocadoId">Número ID</Label>
+              <Input
+                id="concApoderadoConvocadoId"
+                {...register('concApoderadoConvocadoId')}
+              />
+            </div>
+            <div>
+              <Label htmlFor="concApoderadoConvocadoTP">
+                Tarjeta Profesional
+              </Label>
+              <Input
+                id="concApoderadoConvocadoTP"
+                {...register('concApoderadoConvocadoTP')}
+                placeholder="TP-XXXXXX"
+              />
+            </div>
+            <div>
+              <Label htmlFor="concApoderadoConvocadoCorreo">Correo</Label>
+              <Input
+                id="concApoderadoConvocadoCorreo"
+                type="email"
+                {...register('concApoderadoConvocadoCorreo')}
+              />
+            </div>
+            <div>
+              <Label htmlFor="concApoderadoConvocadoCel">Celular</Label>
+              <Input
+                id="concApoderadoConvocadoCel"
+                {...register('concApoderadoConvocadoCel')}
+              />
             </div>
           </div>
         </fieldset>
