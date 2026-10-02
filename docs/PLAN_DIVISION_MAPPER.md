@@ -1,6 +1,7 @@
 # Plan de división de `placeholder-mapper.ts`
 
-> Estado: **Pasos 0–4 hechos.** Corte de seguridad extraído a
+> Estado: **Pasos 0–5 hechos** (el 6 — builders HTML — está en PR abierto,
+> #94, sin mergear todavía). Corte de seguridad extraído a
 > `placeholders/escape.ts` (fuera de la numeración, ver más abajo). Última
 > actualización: 2026-10-02.
 
@@ -61,11 +62,12 @@ para una misma clave sin ganar nada.
 | 1    | Los 12 helpers de formato (funciones hoja, sin dependencias)                                                                                                  | `placeholders/format.ts`                | #45      |
 | 2    | 5 sub-mappers de listas simples: `mapCauses`, `mapLegalProcesses`, `mapLibranzas`, `mapSuspendedServices`, `mapDependents`                                    | `placeholders/case-lists.ts`            | #52      |
 | 3    | 4 sub-mappers del Formulario Definitivo: `mapAcreedoresDefinitivo`, `mapBienesDefinitivo`, `mapProcesosJudicialesDefinitivo`, `mapFormularioDefinitivoFields` | `placeholders/formulario-definitivo.ts` | #81      |
-| 4    | Ingresos: `mapIncomeDeclaration` + su helper interno `buildIncomeNarrative`                                                                                   | `placeholders/income.ts`                | este     |
+| 4    | Ingresos: `mapIncomeDeclaration` + su helper interno `buildIncomeNarrative`                                                                                   | `placeholders/income.ts`                | #91      |
+| 5    | Patrimonio: `mapDebts` + `mapAssets`                                                                                                                          | `placeholders/assets-debts.ts`          | este     |
 
 Tamaño del mapper: 2.936 → 2.774 (Paso 1) → 2.915 con lo que se agregó después
 → 2.638 (Paso 3) → 2.554 con lo que se agregó después (PRs #84, #85, #88, #89)
-→ **2.447** (Paso 4).
+→ 2.447 (Paso 4) → **2.260** (Paso 5).
 
 ### Hallazgo del Paso 4: un segundo contrato de AST no seguía `placeholders/*`
 
@@ -136,18 +138,25 @@ desde `placeholder-mapper.ts` — importa de `placeholders/escape.ts`, igual
 que `placeholder-mapper.ts`. El ciclo desapareció. Los pasos 6, 7 y 9 importan
 directamente de `placeholders/escape.ts`, sin crear ninguno nuevo.
 
+### Paso 5: sin novedades
+
+A diferencia del Paso 4, ni `mapDebts` ni `mapAssets` llaman a
+`escapePlaceholder` (solo formatean números y concatenan campos planos), así
+que no repite la dependencia circular. El bloqueo original por #79 (que
+reescribía `mapDebts` al retirar los 264 slots numerados) ya no aplicaba: ese
+PR se mergeó antes de este paso.
+
 ## Pasos propuestos
 
 El orden de acá en adelante es una propuesta, no un compromiso: lo que lo fija
 son las dependencias y los PRs abiertos, no la numeración.
 
-| Paso | Grupo                                                                                                                                                                    | Líneas    | Colisiona                                    | Bloqueado por                                                                       |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 5    | `mapAssets` + `mapDebts`                                                                                                                                                 | 155 + 17  | no                                           | nada — **#79** ya mergeado, retiró los 264 slots numerados de `mapDebts` (117 → 17) |
-| 6    | Builders HTML: los 7 `generate*`                                                                                                                                         | ~293      | no (las claves las emiten sus llamadores)    | conviene después del 5: dos de ellos recorren bienes                                |
-| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                       | 107 + 265 | sí (`NOMBRE_CONVOCANTE`, 3 de desistimiento) | nada                                                                                |
-| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                  | 99        | no                                           | nada                                                                                |
-| 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404      | sí, por definición                           | conviene último: es el que más contrato mueve                                       |
+| Paso | Grupo                                                                                                                                                                    | Líneas    | Colisiona                                    | Bloqueado por                                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | -------------------------------------------- | ---------------------------------------------------- |
+| 6    | Builders HTML: los 7 `generate*`                                                                                                                                         | ~293      | no (las claves las emiten sus llamadores)    | conviene después del 5: dos de ellos recorren bienes |
+| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                       | 107 + 265 | sí (`NOMBRE_CONVOCANTE`, 3 de desistimiento) | nada                                                 |
+| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                  | 99        | no                                           | nada                                                 |
+| 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404      | sí, por definición                           | conviene último: es el que más contrato mueve        |
 
 ### Lo que se queda en `placeholder-mapper.ts`
 
