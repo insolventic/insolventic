@@ -1,6 +1,6 @@
 # Pendientes de decisión legal
 
-**Última actualización:** 2026-10-01
+**Última actualización:** 2026-10-02
 
 Lista única de las preguntas abiertas que **no las resuelve el equipo de
 desarrollo**: dependen de la abogada o del cliente, y cada una bloquea algo
@@ -12,21 +12,21 @@ recitando de memoria en cada ronda.
 respuesta, y se actualiza el documento donde vive el detalle. Este archivo es
 el índice, no la fuente de verdad de cada tema.
 
-| #   | Pregunta                                                                                                                                              | Bloquea                                                                                                                              | Detalle en                                                            |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
-| 1   | **SMMLV 2026 transitorio** (Decreto 0159): ¿hay fallo de fondo o decreto definitivo?                                                                  | El `TODO(legal)` de `validation-rules.ts`, y con él los umbrales de cuantía                                                          | `docs/CHECKPOINT_2026-09-28.md` §9                                    |
-| 2   | **Check List — 3 párrafos sin resolver**                                                                                                              | Mover `mapCheckList` en la división del mapper (el Paso 2 lo evitó a propósito)                                                      | `docs/CHECKPOINT_2026-09-28.md` §5.3 · `docs/PLAN_DIVISION_MAPPER.md` |
-| 3   | **Texto legal de "Fracaso por reforma del acuerdo"** (⓵ⓓ de #40)                                                                                      | El contenido de esa plantilla reclasificada, no su merge                                                                             | `docs/CHECKPOINT_2026-09-28.md` §9                                    |
-| 4   | **Párrafo legal de comparendos** del vehículo (#11 de la ronda del formulario)                                                                        | Imprimir el dato que ya se captura                                                                                                   | `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`                     |
-| 5   | **¿La Solicitud lista todos los acreedores o hay tope con anexo?**                                                                                    | Nada ya: los PR #77/#78/#79 se construyeron sobre la opción (1), **asumida**                                                         | `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md` §2                     |
-| 6   | **Plazo de corrección tras nulidad: ¿días hábiles o corridos?**                                                                                       | El tamaño del scanner del issue #16 (~4 h en corridos; bastante más en hábiles, porque no hay calendario de festivos en el proyecto) | issue #16                                                             |
-| 7   | **Acta de Disolución de Unión Marital cita la Ley 640 de 2001**, derogada por la 2220 de 2022, y no cita la vigente                                   | Corregir el fundamento normativo de esa plantilla                                                                                    | Auditoría del formulario de conciliación, hallazgo B2                 |
-| 8   | **¿El Auto de Desistimiento y el Informe Conciliador deben citar norma?** Hoy no citan ninguna                                                        | Nada; es una pregunta de completitud                                                                                                 | Auditoría de conciliación, hallazgo B3                                |
-| 9   | **¿La caducidad de tres meses debe ser una causal nombrada** de terminación anormal, o sigue cayendo en "OTRA" (texto libre)?                         | Agregar la opción al selector y el `{{#if}}` a la plantilla (~2 h)                                                                   | Auditoría de conciliación, hallazgo B4                                |
-| 10  | **¿Qué es obligatorio en cada documento de conciliación?** Hoy las 12 plantillas no tienen ningún requisito declarado                                 | El PR 4 de la auditoría de conciliación (validación)                                                                                 | Auditoría de conciliación, hallazgo A2                                |
-| 11  | **¿Qué rótulo va en el membrete de Armonía?** El tucán dice "Asociación para el Fomento…" y el sello dice "Centro de Conciliación Armonía Concertada" | El banner de encabezado del plan de branding                                                                                         | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                           |
-| 12  | **¿Quién firma por Armonía?** Llegaron dos firmas y las plantillas tienen un hueco                                                                    | Si hacen falta uno o dos assets de firma                                                                                             | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                           |
-| 13  | **Apoderado del acreedor en el CYG**: ¿debe imprimirse o se sigue llenando a mano en la audiencia?                                                    | Si hay que agregar la columna a `Debt` y el campo al formulario                                                                      | Este documento, §1                                                    |
+| #   | Pregunta                                                                                                                                                                                     | Bloquea                                                                                                                              | Detalle en                                                                 |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| 1   | **SMMLV 2026 transitorio** (Decreto 0159): ¿hay fallo de fondo o decreto definitivo?                                                                                                         | El `TODO(legal)` de `validation-rules.ts`, y con él los umbrales de cuantía                                                          | `docs/CHECKPOINT_2026-09-28.md` §9                                         |
+| 2   | **Check List — 3 párrafos sin resolver**                                                                                                                                                     | Mover `mapCheckList` en la división del mapper (el Paso 2 lo evitó a propósito)                                                      | `docs/CHECKPOINT_2026-09-28.md` §5.3 · `docs/PLAN_DIVISION_MAPPER.md`      |
+| 3   | **Texto legal de "Fracaso por reforma del acuerdo"** (⓵ⓓ de #40)                                                                                                                             | El contenido de esa plantilla reclasificada, no su merge                                                                             | `docs/CHECKPOINT_2026-09-28.md` §9                                         |
+| 4   | **Párrafo legal de comparendos** del vehículo (#11 de la ronda del formulario)                                                                                                               | Imprimir el dato que ya se captura                                                                                                   | `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`                          |
+| 5   | **¿La Solicitud lista todos los acreedores o hay tope con anexo?**                                                                                                                           | Nada ya: los PR #77/#78/#79 se construyeron sobre la opción (1), **asumida**                                                         | `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md` §2                          |
+| 6   | **Plazo de corrección tras nulidad: ¿días hábiles o corridos?**                                                                                                                              | El tamaño del scanner del issue #16 (~4 h en corridos; bastante más en hábiles, porque no hay calendario de festivos en el proyecto) | issue #16                                                                  |
+| 7   | **Acta de Disolución de Unión Marital cita la Ley 640 de 2001**, derogada por la 2220 de 2022, y no cita la vigente. La misma cita aparece también en dos plantillas de insolvencia (ver §3) | Corregir el fundamento normativo de esas plantillas                                                                                  | Auditoría del formulario de conciliación, hallazgo B2 · este documento, §3 |
+| 8   | **¿El Auto de Desistimiento y el Informe Conciliador deben citar norma?** Hoy no citan ninguna                                                                                               | Nada; es una pregunta de completitud                                                                                                 | Auditoría de conciliación, hallazgo B3                                     |
+| 9   | **¿La caducidad de tres meses debe ser una causal nombrada** de terminación anormal, o sigue cayendo en "OTRA" (texto libre)?                                                                | Agregar la opción al selector y el `{{#if}}` a la plantilla (~2 h)                                                                   | Auditoría de conciliación, hallazgo B4                                     |
+| 10  | **¿Qué es obligatorio en cada documento de conciliación?** Hoy las 12 plantillas no tienen ningún requisito declarado                                                                        | El PR 4 de la auditoría de conciliación (validación)                                                                                 | Auditoría de conciliación, hallazgo A2                                     |
+| 11  | **¿Qué rótulo va en el membrete de Armonía?** El tucán dice "Asociación para el Fomento…" y el sello dice "Centro de Conciliación Armonía Concertada"                                        | El banner de encabezado del plan de branding                                                                                         | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                                |
+| 12  | **¿Quién firma por Armonía?** Llegaron dos firmas y las plantillas tienen un hueco                                                                                                           | Si hacen falta uno o dos assets de firma                                                                                             | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                                |
+| 13  | **Apoderado del acreedor en el CYG**: ¿debe imprimirse o se sigue llenando a mano en la audiencia?                                                                                           | Si hay que agregar la columna a `Debt` y el campo al formulario                                                                      | Este documento, §1                                                         |
 
 ---
 
@@ -70,3 +70,26 @@ Pendientes que dependen de otra cosa, no de una decisión legal:
   a Drive** — son tuyas.
 - **Revisión del PDF renderizado con 1, 3, 15 y 50 acreedores** — hecha el
   2026-10-01, maquetación aprobada.
+
+---
+
+## 3. La misma cita a la Ley 640 de 2001, también en dos plantillas de insolvencia (ítem 7)
+
+Anotado el 2026-10-02, en una auditoría transversal formulario → plantillas.
+
+La cláusula de registro del acuerdo — _"sólo se surtirán una vez se haya procedido
+a su registro en los términos que contempla el artículo 14 de la ley 640 del
+2001"_ — no está solo en el Acta de Disolución de Unión Marital (conciliación).
+Aparece idéntica en dos plantillas de insolvencia, cada una en su propia
+cláusula de "CLÁUSULAS VARIAS":
+
+- `templates/insolvency/Tipo de Acuerdo/Acuerdo de Pago Tramite.html:169`
+- `templates/insolvency/Tipo de Acuerdo/Acuerdo Bilateral Tramite.html:164`
+
+En ambas, el resto del documento cita correctamente el régimen vigente (CGP /
+Ley 2445 de 2025 — arts. 538, 539, 550, 553, 556, 558, 560, Decreto 1069 de
+2015, Decreto 2677 de 2012), así que esta cláusula de registro quedó atrás del
+resto del texto. Misma pregunta que el ítem 7 original: ¿corresponde
+actualizarla a la norma vigente, o la referencia al art. 14 de la Ley 640/2001
+sigue aplicando en la práctica por alguna remisión que el registro todavía
+usa?
