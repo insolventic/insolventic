@@ -29,10 +29,6 @@ async function resetDatabase(tenantId?: TenantId) {
     await prisma.libranza.deleteMany({ where: tenantFilter });
     await prisma.asset.deleteMany({ where: tenantFilter });
     await prisma.debt.deleteMany({ where: tenantFilter });
-    // Formulario definitivo models
-    await prisma.acreedor.deleteMany({ where: tenantFilter });
-    await prisma.bien.deleteMany({ where: tenantFilter });
-    await prisma.procesoJudicial.deleteMany({ where: tenantFilter });
 
     await prisma.case.deleteMany({ where: tenantFilter });
 
@@ -61,10 +57,6 @@ async function resetDatabase(tenantId?: TenantId) {
     await prisma.libranza.deleteMany({});
     await prisma.asset.deleteMany({});
     await prisma.debt.deleteMany({});
-    // Formulario definitivo models
-    await prisma.acreedor.deleteMany({});
-    await prisma.bien.deleteMany({});
-    await prisma.procesoJudicial.deleteMany({});
 
     await prisma.case.deleteMany({});
 

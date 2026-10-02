@@ -69,9 +69,12 @@ describe('migración que retira rejection y withdrawal', () => {
 
   it('existe y es posterior a la última migración previa', () => {
     expect(name).toBeDefined();
+    // Solo migraciones ANTERIORES a esta (no "todas menos esta"): una
+    // migración más nueva que se agregue después (como la que borra el
+    // Formulario Definitivo muerto) no debe volver falso este test.
     const previous = fs
       .readdirSync(dir)
-      .filter((d) => /^\d{14}_/.test(d) && d !== name)
+      .filter((d) => /^\d{14}_/.test(d) && d !== name && d < name!)
       .sort()
       .pop()!;
     expect(name! > previous).toBe(true);

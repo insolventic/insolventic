@@ -2,14 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
 
@@ -410,148 +402,7 @@ export function DefinitivoSection({
         </CardContent>
       </Card>
 
-      {/* Card 4: Acreedores Definitivo */}
-      {caseData.acreedores && caseData.acreedores.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Acreedores Definitivo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre / Razón Social</TableHead>
-                    <TableHead>Tipo Doc.</TableHead>
-                    <TableHead>No. Documento</TableHead>
-                    <TableHead>Capital</TableHead>
-                    <TableHead>Intereses</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Naturaleza</TableHead>
-                    <TableHead>Garantía</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {caseData.acreedores.map((acreedor) => (
-                    <TableRow key={acreedor.id}>
-                      <TableCell>
-                        {acreedor.acreedorNombreRazonSocial || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {acreedor.acreedorTipoIdentificacion || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {acreedor.acreedorIdentificacion || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(acreedor.valorCapital)}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(acreedor.valorInteresesCorrientes)}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(acreedor.valorTotalObligacion)}
-                      </TableCell>
-                      <TableCell>
-                        {acreedor.naturalezaCredito || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {formatBoolean(acreedor.garantiaAsociada)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Card 5: Bienes Definitivo */}
-      {caseData.bienes && caseData.bienes.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Bienes Definitivo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Descripción</TableHead>
-                    <TableHead>Valor Comercial</TableHead>
-                    <TableHead>Gravámenes</TableHead>
-                    <TableHead>Embargado</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {caseData.bienes.map((bien) => (
-                    <TableRow key={bien.id}>
-                      <TableCell>{bien.bienTipo || 'N/A'}</TableCell>
-                      <TableCell>{bien.bienDescripcion || 'N/A'}</TableCell>
-                      <TableCell>
-                        {formatCurrency(bien.bienValorComercial)}
-                      </TableCell>
-                      <TableCell>
-                        {formatBoolean(bien.bienGravamenes)}
-                      </TableCell>
-                      <TableCell>{formatBoolean(bien.bienEmbargado)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Card 6: Procesos Judiciales Definitivo */}
-      {caseData.procesosJudiciales &&
-        caseData.procesosJudiciales.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Procesos Judiciales Definitivo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Tipo Proceso</TableHead>
-                      <TableHead>Juzgado</TableHead>
-                      <TableHead>Radicado</TableHead>
-                      <TableHead>Demandante</TableHead>
-                      <TableHead>Estado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {caseData.procesosJudiciales.map((proceso) => (
-                      <TableRow key={proceso.id}>
-                        <TableCell>{proceso.tipoProceso || 'N/A'}</TableCell>
-                        <TableCell>
-                          {proceso.juzgadoNombre || 'N/A'}
-                          {proceso.juzgadoCiudad
-                            ? ` - ${proceso.juzgadoCiudad}`
-                            : ''}
-                        </TableCell>
-                        <TableCell>
-                          {proceso.procesoJudicialRadicado || 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {proceso.demandanteNombre || 'N/A'}
-                        </TableCell>
-                        <TableCell>{proceso.estadoProceso || 'N/A'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-      {/* Card 7: Declaraciones */}
+      {/* Card 4: Declaraciones */}
       <Card>
         <CardHeader>
           <CardTitle>Declaraciones</CardTitle>
@@ -610,7 +461,7 @@ export function DefinitivoSection({
         </CardContent>
       </Card>
 
-      {/* Card 8: Propuesta Inicial de Pago */}
+      {/* Card 5: Propuesta Inicial de Pago */}
       <Card>
         <CardHeader>
           <CardTitle>Propuesta Inicial de Pago</CardTitle>
@@ -671,7 +522,7 @@ export function DefinitivoSection({
         </CardContent>
       </Card>
 
-      {/* Card 9: Documentos Anexos */}
+      {/* Card 6: Documentos Anexos */}
       <Card>
         <CardHeader>
           <CardTitle>Documentos Anexos</CardTitle>
@@ -738,7 +589,7 @@ export function DefinitivoSection({
         </CardContent>
       </Card>
 
-      {/* Card 10: Apoderado(s). La lista nueva (tabla apoderados) manda; las 8
+      {/* Card 7: Apoderado(s). La lista nueva (tabla apoderados) manda; las 8
           columnas escalares son el respaldo para casos anteriores a la lista. */}
       {caseData.apoderados && caseData.apoderados.length > 0
         ? caseData.apoderados.map((apoderado, index) => (
@@ -770,7 +621,7 @@ export function DefinitivoSection({
             />
           )}
 
-      {/* Card 11: Radicación Interna */}
+      {/* Card 8: Radicación Interna */}
       {(caseData.fechaRadicacion || caseData.expedienteNumero) && (
         <Card>
           <CardHeader>

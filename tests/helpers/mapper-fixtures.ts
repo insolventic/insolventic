@@ -214,9 +214,6 @@ export interface CaseOptions {
   libranzas?: number;
   suspendedServices?: number;
   legalProcesses?: Row[];
-  acreedores?: number;
-  bienes?: number;
-  procesosJudiciales?: number;
   apoderados?: Row[];
   documents?: Row[];
   causes?: string[];
@@ -263,9 +260,6 @@ export function makeCase(opts: CaseOptions = {}): Row {
   c.libranzas = many('Libranza', opts.libranzas ?? 0);
   c.suspendedServices = many('SuspendedService', opts.suspendedServices ?? 0);
   c.legalProcesses = opts.legalProcesses ?? [];
-  c.acreedores = many('Acreedor', opts.acreedores ?? 0);
-  c.bienes = many('Bien', opts.bienes ?? 0);
-  c.procesosJudiciales = many('ProcesoJudicial', opts.procesosJudiciales ?? 0);
   c.apoderados = opts.apoderados ?? [];
   c.causes = opts.causes ?? [];
   c.applicantScope = opts.applicantScope ?? [];

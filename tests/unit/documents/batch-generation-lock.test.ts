@@ -90,9 +90,6 @@ describe('batchGenerateDocuments — lock anti-duplicados (C-4)', () => {
       suspendedServices: [],
       dependents: [],
       legalProcesses: [],
-      acreedores: [],
-      bienes: [],
-      procesosJudiciales: [],
       operator: ADMIN_USER,
     });
   });

@@ -788,9 +788,6 @@ export async function batchGenerateDocuments(input: {
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
         apoderados: { orderBy: { orden: 'asc' } },
         // CaseWithRelations exige `_count`. El mapper no lo lee, pero el
         // compilador ya verifica este objeto contra ese tipo (antes lo tapaba

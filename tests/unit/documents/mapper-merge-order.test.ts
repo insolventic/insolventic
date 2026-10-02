@@ -62,10 +62,6 @@ const EXPECTED_MERGE_ORDER = [
   'mapDynamicTables',
   'mapFracasoVariables',
   'mapSentidoVotoVariables',
-  'mapAcreedoresDefinitivo',
-  'mapBienesDefinitivo',
-  'mapProcesosJudicialesDefinitivo',
-  'mapFormularioDefinitivoFields',
   'mapConciliationFields', // solo CONCILIATION
   'mapApoyoFields', // solo SUPPORT_AGREEMENT
 ];

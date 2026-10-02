@@ -57,9 +57,6 @@ const completa = (extra: Row = {}, opts: Parameters<typeof makeCase>[0] = {}) =>
     libranzas: 1,
     suspendedServices: 1,
     legalProcesses: [makeLegalProcess(0), makeLegalProcess(1)],
-    acreedores: 3,
-    bienes: 2,
-    procesosJudiciales: 2,
     apoderados: [APODERADO],
     documents: documents(),
     causes: ['Pérdida de empleo', 'Enfermedad grave'],
@@ -233,7 +230,7 @@ export const SCENARIOS: Record<string, Scenario> = {
   'insolvencia-completa': {
     kind: 'INSOLVENCY',
     covers:
-      'Caso admitido con todas las ramas pobladas: 3 acreedores, inmueble + vehículo + electrónicos, dependientes, libranza, servicio suspendido, 2 procesos, snapshots del formulario definitivo, apoderado y anexos. Colisiones: base<mapDynamicTables (DETALLE_BIENES, DETALLE_PAGO_CAPITAL, FORMA_PAGO_ACREEDORES, PROYECCION_PAGOS, CUADRO_CALIFICACION_GRADUACION) y base<mapAgreementResult (ANO_FIRMA).',
+      'Caso admitido con todas las ramas pobladas: 3 acreedores, inmueble + vehículo + electrónicos, dependientes, libranza, servicio suspendido, 2 procesos, apoderado y anexos. Colisiones: base<mapDynamicTables (DETALLE_BIENES, DETALLE_PAGO_CAPITAL, FORMA_PAGO_ACREEDORES, PROYECCION_PAGOS, CUADRO_CALIFICACION_GRADUACION) y base<mapAgreementResult (ANO_FIRMA).',
     build: () => completa(),
   },
 
@@ -309,7 +306,6 @@ export const SCENARIOS: Record<string, Scenario> = {
         {
           debts: debts(13),
           dependents: 6,
-          acreedores: 12,
           assets: [
             makeAsset('INMUEBLE', 250_000_000),
             makeAsset('INMUEBLE', 120_000_000),

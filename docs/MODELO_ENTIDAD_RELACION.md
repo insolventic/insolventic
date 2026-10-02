@@ -1,16 +1,16 @@
 # Modelo Entidad-Relación (MER) — INSOLVENTIC
 
-> Generado desde `src/prisma/schema.prisma` (27 modelos, 54 `@relation`). Para el detalle campo-por-campo, tipos y constraints ver `docs/DICCIONARIO_DATOS.md` — este documento se enfoca en entidades, atributos estructurales (PK/FK y algunos representativos) y cardinalidad.
+> Generado desde `src/prisma/schema.prisma` (25 modelos). Para el detalle campo-por-campo, tipos y constraints ver `docs/DICCIONARIO_DATOS.md` — este documento se enfoca en entidades, atributos estructurales (PK/FK y algunos representativos) y cardinalidad.
 
 ## Por qué 3 vistas y no 1
 
-Un solo diagrama con las 27 entidades y sus ~54 relaciones no es legible (es el mismo problema que tendría cualquier ERD de un sistema con formularios legales de ~400 campos). Se divide en 3 vistas temáticas que comparten algunas entidades "puente" (`Case`, `Debtor`, `Tenant`) para que se puedan leer por separado sin perder el hilo:
+Un solo diagrama con las ~25 entidades y sus relaciones no es legible (es el mismo problema que tendría cualquier ERD de un sistema con formularios legales de ~400 campos). Se divide en 3 vistas temáticas que comparten algunas entidades "puente" (`Case`, `Debtor`, `Tenant`) para que se puedan leer por separado sin perder el hilo:
 
 1. **Núcleo + Personas** — multi-tenant, RBAC, el caso, y las personas del dominio.
-2. **Financiero/Patrimonial + Capa Definitivo** — la vista donde se distingue con más claridad por qué `Creditor`/`Asset`/`LegalProcess` y `Acreedor`/`Bien`/`ProcesoJudicial` **no son redundantes**.
+2. **Financiero/Patrimonial** — las entidades reutilizables de deuda, bienes y procesos judiciales.
 3. **Documentos + Pagos + Operación** — generación documental, trazabilidad de pagos, notificaciones y auditoría.
 
-`Tenant` es la raíz de aislamiento multi-tenant para las 26 entidades restantes (cada una tiene `tenantId → Tenant`, N:1) — se muestra completo solo en la Vista 1 para no repetir 26 flechas idénticas en las otras dos vistas.
+`Tenant` es la raíz de aislamiento multi-tenant para las entidades restantes (cada una tiene `tenantId → Tenant`, N:1) — se muestra completo solo en la Vista 1 para no repetir flechas idénticas en las otras dos vistas.
 
 ---
 
@@ -111,9 +111,7 @@ erDiagram
 
 ---
 
-## Vista 2 — Financiero/Patrimonial + Capa Definitivo
-
-**Esta es la vista que resuelve la pregunta "¿por qué hay dos entidades de acreedor/bien/proceso judicial?"** Las entidades de la izquierda (capa general) son reutilizables y viven durante toda la negociación; las de la derecha (capa Definitivo) son un **snapshot congelado por caso** de las Secciones V/VI/VII del Formulario Definitivo legal — por eso tienen `onDelete: Cascade` desde `Case` y las de la izquierda no. Ver detalle en `CLAUDE.md` → Roadmap → Quick Wins #5.
+## Vista 2 — Financiero/Patrimonial
 
 ```mermaid
 erDiagram
@@ -125,10 +123,6 @@ erDiagram
     Case ||--o{ LegalProcess : "tiene (capa general)"
     Case ||--o{ Libranza : "tiene"
     Case ||--o{ SuspendedService : "tiene"
-
-    Case ||--o{ Acreedor : "snapshot §V Definitivo (cascade)"
-    Case ||--o{ Bien : "snapshot §VI Definitivo (cascade)"
-    Case ||--o{ ProcesoJudicial : "snapshot §VII Definitivo (cascade)"
 
     Case {
         string id PK
@@ -173,24 +167,6 @@ erDiagram
         string id PK
         string caseId FK
         decimal amountOwed
-    }
-    Acreedor {
-        string id PK
-        string caseId FK
-        string acreedorNombreRazonSocial
-        decimal valorTotalObligacion
-    }
-    Bien {
-        string id PK
-        string caseId FK
-        string bienTipo
-        decimal bienValorComercial
-    }
-    ProcesoJudicial {
-        string id PK
-        string caseId FK
-        string tipoProceso
-        decimal cuantiaProceso
     }
 ```
 

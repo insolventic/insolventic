@@ -73,9 +73,6 @@ import {
   type SuspendedServiceData,
   type DependentData,
   type LegalProcessData,
-  type AcreedorFormData,
-  type BienFormData,
-  type ProcesoJudicialFormData,
 } from './schemas';
 
 // Prisma Json fields reject `null` — they need `Prisma.JsonNull` or omission.
@@ -248,9 +245,6 @@ export async function getCaseById(id: string): Promise<{
         suspendedServices: true,
         dependents: true,
         legalProcesses: true,
-        acreedores: true,
-        bienes: true,
-        procesosJudiciales: true,
         apoderados: { orderBy: { orden: 'asc' } },
         _count: {
           select: {
@@ -353,10 +347,6 @@ export async function createCase(
       suspendedServices,
       dependents,
       legalProcesses,
-      // Formulario definitivo relations
-      acreedores,
-      bienes,
-      procesosJudiciales,
       apoderados,
       // Formulario definitivo date fields (strings -> Date)
       fechaCesacionPagos,
@@ -634,117 +624,6 @@ export async function createCase(
                   precautionaryMeasure: process.precautionaryMeasure,
                   tenantId,
                 })),
-              }
-            : undefined,
-        // Formulario definitivo - nested relations
-        acreedores:
-          acreedores && acreedores.length > 0
-            ? {
-                create: acreedores.map((a: AcreedorFormData) => ({
-                  acreedorTipo: a.acreedorTipo,
-                  acreedorNombreRazonSocial: a.acreedorNombreRazonSocial,
-                  acreedorTipoIdentificacion: a.acreedorTipoIdentificacion,
-                  acreedorIdentificacion: a.acreedorIdentificacion,
-                  acreedorDireccion: a.acreedorDireccion,
-                  acreedorCiudad: a.acreedorCiudad,
-                  acreedorCorreo: a.acreedorCorreo,
-                  acreedorTelefono: a.acreedorTelefono,
-                  tipoObligacion: a.tipoObligacion,
-                  numeroObligacion: a.numeroObligacion,
-                  fechaOtorgamiento: a.fechaOtorgamiento
-                    ? new Date(a.fechaOtorgamiento)
-                    : null,
-                  fechaVencimiento: a.fechaVencimiento
-                    ? new Date(a.fechaVencimiento)
-                    : null,
-                  fechaMora: a.fechaMora ? new Date(a.fechaMora) : null,
-                  diasMora: a.diasMora,
-                  valorCapital: a.valorCapital
-                    ? parseFloat(a.valorCapital)
-                    : null,
-                  valorInteresesCorrientes: a.valorInteresesCorrientes
-                    ? parseFloat(a.valorInteresesCorrientes)
-                    : null,
-                  valorInteresesMora: a.valorInteresesMora
-                    ? parseFloat(a.valorInteresesMora)
-                    : null,
-                  valorGastosCobranza: a.valorGastosCobranza
-                    ? parseFloat(a.valorGastosCobranza)
-                    : null,
-                  valorTotalObligacion: a.valorTotalObligacion
-                    ? parseFloat(a.valorTotalObligacion)
-                    : null,
-                  naturalezaCredito: a.naturalezaCredito,
-                  obligacionCodeudores: a.obligacionCodeudores ?? false,
-                  nombreCodeudores: a.nombreCodeudores,
-                  garantiaAsociada: a.garantiaAsociada ?? false,
-                  tipoGarantia: a.tipoGarantia,
-                  descripcionGarantia: a.descripcionGarantia,
-                  procesoJudicialEnCurso: a.procesoJudicialEnCurso ?? false,
-                  tipoProcesoJudicial: a.tipoProcesoJudicial,
-                  juzgadoNombre: a.juzgadoNombre,
-                  juzgadoCiudad: a.juzgadoCiudad,
-                  procesoJudicialRadicado: a.procesoJudicialRadicado,
-                  demandanteNombre: a.demandanteNombre,
-                  etapaProcesal: a.etapaProcesal,
-                  tenantId,
-                })),
-              }
-            : undefined,
-        bienes:
-          bienes && bienes.length > 0
-            ? {
-                create: bienes.map((b: BienFormData) => ({
-                  bienTipo: b.bienTipo,
-                  bienDescripcion: b.bienDescripcion,
-                  bienUbicacion: b.bienUbicacion,
-                  bienMatriculaInmobiliaria: b.bienMatriculaInmobiliaria,
-                  bienPlaca: b.bienPlaca,
-                  bienEntidadFinanciera: b.bienEntidadFinanciera,
-                  bienValorComercial: b.bienValorComercial
-                    ? parseFloat(b.bienValorComercial)
-                    : null,
-                  bienValorCatastral: b.bienValorCatastral
-                    ? parseFloat(b.bienValorCatastral)
-                    : null,
-                  bienValorLibros: b.bienValorLibros
-                    ? parseFloat(b.bienValorLibros)
-                    : null,
-                  bienGravamenes: b.bienGravamenes ?? false,
-                  descripcionGravamen: b.descripcionGravamen,
-                  bienEmbargado: b.bienEmbargado ?? false,
-                  bienAfectadoViviendaFamiliar:
-                    b.bienAfectadoViviendaFamiliar ?? false,
-                  bienEnLeasing: b.bienEnLeasing ?? false,
-                  tenantId,
-                })),
-              }
-            : undefined,
-        procesosJudiciales:
-          procesosJudiciales && procesosJudiciales.length > 0
-            ? {
-                create: procesosJudiciales.map(
-                  (p: ProcesoJudicialFormData) => ({
-                    tipoProceso: p.tipoProceso,
-                    // Antes se descartaba en silencio: el zod lo aceptaba y esta
-                    // proyección no lo listaba, así que el texto de "Otros" se
-                    // perdía entre el formulario y la fila.
-                    tipoProcesoOtro: requiresOtherDetail(p.tipoProceso)
-                      ? p.tipoProcesoOtro
-                      : null,
-                    juzgadoNombre: p.juzgadoNombre,
-                    juzgadoCiudad: p.juzgadoCiudad,
-                    juzgadoCorreo: p.juzgadoCorreo || null,
-                    procesoJudicialRadicado: p.procesoJudicialRadicado,
-                    demandanteNombre: p.demandanteNombre,
-                    demandadoNombre: p.demandadoNombre,
-                    cuantiaProceso: p.cuantiaProceso
-                      ? parseFloat(p.cuantiaProceso)
-                      : null,
-                    estadoProceso: p.estadoProceso,
-                    tenantId,
-                  }),
-                ),
               }
             : undefined,
         // Apoderados (Sección XI): lista completa en la tabla nueva + espejo del
@@ -1993,7 +1872,7 @@ export async function deleteCase(
       await tx.suspendedService.deleteMany({ where: { caseId: id, tenantId } });
       await tx.dependent.deleteMany({ where: { caseId: id, tenantId } });
 
-      // 2. Delete the case (Acreedor, Bien, ProcesoJudicial, Notification cascade automatically)
+      // 2. Delete the case (Apoderado, Notification, DocumentGenerationRequest, Payment cascade automatically)
       return tx.case.delete({
         where: {
           id,

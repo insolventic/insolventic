@@ -139,12 +139,10 @@ const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
   porcentajePasivo: 'situation',
   obligacionesEnMora: 'situation',
   procesosEjecutivos: 'situation',
-  procesosJudiciales: 'situation',
   legalProcesses: 'situation',
   hasLegalProcesses: 'situation',
   // Tab 3 – Acreedores
   debts: 'creditors',
-  acreedores: 'creditors',
   totalDebt: 'creditors',
   creditors: 'creditors',
   libranzas: 'creditors',
@@ -152,7 +150,6 @@ const FIELD_TAB_MAP: Record<string, (typeof TAB_ORDER)[number]> = {
   dependents: 'creditors',
   // Tab 4 – Bienes
   assets: 'assets',
-  bienes: 'assets',
   // Tab 5 – Propuesta
   gracePeriod: 'proposal',
   paymentInKind: 'proposal',
@@ -1147,131 +1144,6 @@ export function CreateCaseDialog({
     form.setValue('porcentajePasivoEnMora', 85);
     form.setValue('obligacionesEnMora90Dias', true);
     form.setValue('procesosEjecutivosVigentes', true);
-
-    // Tab 3: Acreedores Definitivo
-    form.setValue('acreedores', [
-      {
-        acreedorTipo: 'Persona jurídica',
-        acreedorNombreRazonSocial: 'Banco ABC S.A.',
-        acreedorTipoIdentificacion: 'NIT',
-        acreedorIdentificacion: '860000001-5',
-        acreedorDireccion: 'Calle 100 #15-20, Bogotá',
-        acreedorCiudad: 'Bogotá',
-        acreedorCorreo: 'cobranzas@bancoabc.com',
-        acreedorTelefono: '6013001234',
-        tipoObligacion: 'Tarjeta de crédito',
-        numeroObligacion: 'TC-2022-001234',
-        naturalezaCredito: 'Quirografario',
-        fechaOtorgamiento: '2022-01-15',
-        fechaVencimiento: '2024-01-15',
-        fechaMora: '2024-02-15',
-        diasMora: 180,
-        valorCapital: '15000000',
-        valorInteresesCorrientes: '2500000',
-        valorInteresesMora: '1000000',
-        valorGastosCobranza: '500000',
-        valorTotalObligacion: '19000000',
-        obligacionCodeudores: false,
-        nombreCodeudores: '',
-        garantiaAsociada: false,
-        tipoGarantia: '',
-        descripcionGarantia: '',
-        procesoJudicialEnCurso: true,
-        tipoProcesoJudicial: 'Ejecutivo singular',
-        juzgadoNombre: 'Juzgado 15 Civil del Circuito',
-        juzgadoCiudad: 'Bogotá',
-        procesoJudicialRadicado: '2024-00123-00',
-        demandanteNombre: 'Banco ABC S.A.',
-        etapaProcesal: 'Mandamiento de pago',
-      },
-      {
-        acreedorTipo: 'Persona jurídica',
-        acreedorNombreRazonSocial: 'Financiera XYZ S.A.',
-        acreedorTipoIdentificacion: 'NIT',
-        acreedorIdentificacion: '900456789-3',
-        acreedorDireccion: 'Av. El Dorado #68-51, Bogotá',
-        acreedorCiudad: 'Bogotá',
-        acreedorCorreo: 'cartera@financieraxyz.com',
-        acreedorTelefono: '6014567890',
-        tipoObligacion: 'Crédito de libre inversión',
-        numeroObligacion: 'CLI-2021-005678',
-        naturalezaCredito: 'Quirografario',
-        fechaOtorgamiento: '2021-06-01',
-        fechaVencimiento: '2023-06-01',
-        fechaMora: '2023-07-01',
-        diasMora: 240,
-        valorCapital: '20000000',
-        valorInteresesCorrientes: '3500000',
-        valorInteresesMora: '1500000',
-        valorGastosCobranza: '800000',
-        valorTotalObligacion: '25800000',
-        obligacionCodeudores: true,
-        nombreCodeudores: 'Pedro López Gómez - CC 79456123',
-        garantiaAsociada: false,
-        tipoGarantia: '',
-        descripcionGarantia: '',
-        procesoJudicialEnCurso: false,
-        tipoProcesoJudicial: '',
-        juzgadoNombre: '',
-        juzgadoCiudad: '',
-        procesoJudicialRadicado: '',
-        demandanteNombre: '',
-        etapaProcesal: '',
-      },
-    ]);
-
-    // Tab 4: Bienes Definitivo
-    form.setValue('bienes', [
-      {
-        bienTipo: 'Inmueble',
-        bienDescripcion:
-          'Apartamento en conjunto residencial Torres del Parque',
-        bienUbicacion: 'Calle 127 #20-45 Apto 302, Bogotá',
-        bienMatriculaInmobiliaria: '50N-12345678',
-        bienPlaca: '',
-        bienEntidadFinanciera: '',
-        bienValorComercial: '180000000',
-        bienValorCatastral: '120000000',
-        bienValorLibros: '150000000',
-        bienGravamenes: true,
-        descripcionGravamen:
-          'Hipoteca a favor de Banco Popular por $90.000.000',
-        bienEmbargado: false,
-        bienAfectadoViviendaFamiliar: true,
-        bienEnLeasing: false,
-      },
-      {
-        bienTipo: 'Vehiculo',
-        bienDescripcion: 'Automóvil Mazda CX-5 modelo 2020',
-        bienUbicacion: 'Bogotá D.C.',
-        bienMatriculaInmobiliaria: '',
-        bienPlaca: 'ABC123',
-        bienEntidadFinanciera: '',
-        bienValorComercial: '35000000',
-        bienValorCatastral: '',
-        bienValorLibros: '30000000',
-        bienGravamenes: true,
-        descripcionGravamen:
-          'Prenda a favor de Banco de Occidente por $25.000.000',
-        bienEmbargado: false,
-        bienAfectadoViviendaFamiliar: false,
-        bienEnLeasing: false,
-      },
-    ]);
-
-    // Procesos Judiciales
-    form.setValue('procesosJudiciales', [
-      {
-        tipoProceso: 'Ejecutivo singular',
-        juzgadoNombre: 'Juzgado 15 Civil del Circuito',
-        juzgadoCiudad: 'Bogotá',
-        procesoJudicialRadicado: '2024-00123-00',
-        demandanteNombre: 'Banco ABC S.A.',
-        demandadoNombre: 'Juan Carlos Rodríguez',
-        cuantiaProceso: '19000000',
-        estadoProceso: 'Admitido',
-      },
-    ]);
 
     // Tab 7: Declaraciones y Legal
     form.setValue('declaracionVeracidadInformacion', true);
