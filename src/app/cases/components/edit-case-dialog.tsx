@@ -46,6 +46,10 @@ import {
   pickTypeSpecificFields,
   pickTypeSpecificValues,
 } from './edit-case-dialog/type-specific-fields';
+import {
+  pickGeneralFields,
+  pickGeneralValues,
+} from './edit-case-dialog/general-fields';
 import { DocumentsSection } from './create-case-dialog/documents-section';
 import { CaseDetailsSection } from './create-case-dialog/case-details-section';
 import { LegalProcessSection } from './create-case-dialog/legal-process-section';
@@ -175,10 +179,7 @@ export function EditCaseDialog({
                 | 'CONCILIATION'
                 | 'SUPPORT_AGREEMENT',
 
-              totalDebt: fullCase.totalDebt.toString(),
               creditors: fullCase.creditors,
-              operatorId: fullCase.operatorId,
-              causes: fullCase.causes ?? [],
               debts: (fullCase.debts ?? []).map((debt) => ({
                 id: debt.id,
                 creditor: debt.creditor.name,
@@ -225,37 +226,6 @@ export function EditCaseDialog({
               hearingDate: fullCase.hearingDate
                 ? fullCase.hearingDate.toISOString().split('T')[0]
                 : null,
-              tramite: fullCase.tramite ?? '',
-              filingDate: fullCase.filingDate
-                ? fullCase.filingDate.toISOString().split('T')[0]
-                : '',
-              debtorIdNumber: fullCase.debtorIdNumber ?? '',
-              convened: fullCase.convened ?? '',
-              attorney: fullCase.attorney ?? '',
-              owedCapital: fullCase.owedCapital?.toString() ?? '',
-              designatedOperator: fullCase.designatedOperator ?? '',
-              designationDate: fullCase.designationDate
-                ? fullCase.designationDate.toISOString().split('T')[0]
-                : '',
-              positionAcceptanceDate: fullCase.positionAcceptanceDate
-                ? fullCase.positionAcceptanceDate.toISOString().split('T')[0]
-                : '',
-              inadmissionDate: fullCase.inadmissionDate
-                ? fullCase.inadmissionDate.toISOString().split('T')[0]
-                : '',
-              admissionDate: fullCase.admissionDate
-                ? fullCase.admissionDate.toISOString().split('T')[0]
-                : '',
-              firstHearingDate: fullCase.firstHearingDate
-                ? fullCase.firstHearingDate.toISOString().split('T')[0]
-                : '',
-              firstHearingTime: fullCase.firstHearingTime ?? '',
-              hasLegalProcesses: fullCase.hasLegalProcesses ?? false,
-              riskCenterCommunication:
-                fullCase.riskCenterCommunication ?? false,
-
-              // Ámbito de Aplicación
-              applicantScope: fullCase.applicantScope ?? [],
 
               // Ingresos y Gastos (from debtor)
               monthlyIncome: fullCase.debtor?.monthlyIncome?.toString() ?? '',
@@ -314,53 +284,18 @@ export function EditCaseDialog({
                 }),
               ),
 
-              // Propuesta de Pago
-              gracePeriodRequested: fullCase.gracePeriodRequested ?? false,
-              gracePeriodMonths: fullCase.gracePeriodMonths ?? undefined,
-              paymentInKind: fullCase.paymentInKind ?? false,
-              paymentInKindDescription: fullCase.paymentInKindDescription ?? '',
-              assetSaleAuthorized: fullCase.assetSaleAuthorized ?? false,
-              assetSaleDescription: fullCase.assetSaleDescription ?? '',
-              cashFlowPayment: fullCase.cashFlowPayment ?? false,
-              paymentTermMonths: fullCase.paymentTermMonths ?? undefined,
-              monthlyPaymentAmount:
-                fullCase.monthlyPaymentAmount?.toString() ?? '',
-              variablePayment: fullCase.variablePayment?.toString() ?? '',
-              extraordinaryPayment: fullCase.extraordinaryPayment ?? false,
-              extraordinaryPaymentDate: fullCase.extraordinaryPaymentDate ?? '',
-              capitalReduction: fullCase.capitalReduction ?? false,
-              capitalReductionPercent:
-                fullCase.capitalReductionPercent?.toString() ?? '',
-              insuranceOffering: fullCase.insuranceOffering ?? '',
-              forgiveAccruedInterest: fullCase.forgiveAccruedInterest ?? false,
-              forgiveFutureInterest: fullCase.forgiveFutureInterest ?? false,
-              paymentOrder: fullCase.paymentOrder ?? {},
-              hasClassPrivileges: fullCase.hasClassPrivileges ?? false,
-              classPrivilegesDescription:
-                fullCase.classPrivilegesDescription ?? '',
-              thirdPartyPaymentAuth: fullCase.thirdPartyPaymentAuth ?? false,
-              guaranteeSubstitution: fullCase.guaranteeSubstitution ?? false,
-
-              // Sociedad Conyugal
-              spouseName: fullCase.spouseName ?? '',
-              spouseIdNumber: fullCase.spouseIdNumber ?? '',
-              spouseAddress: fullCase.spouseAddress ?? '',
-              spousePhone: fullCase.spousePhone ?? '',
-              spouseEmail: fullCase.spouseEmail ?? '',
-
-              // Tarifa y Fundamentos
-              requestedFee: fullCase.requestedFee ?? '',
-              legalFoundations: fullCase.legalFoundations ?? '',
-
-              // Notificaciones
-              notificationAddress: fullCase.notificationAddress ?? '',
-              notificationPhone: fullCase.notificationPhone ?? '',
-              notificationEmail: fullCase.notificationEmail ?? '',
-
-              // Firma
-              applicantSignatureName: fullCase.applicantSignatureName ?? '',
-              applicantSignatureId: fullCase.applicantSignatureId ?? '',
-              applicantSignature: fullCase.applicantSignature ?? '',
+              // Todo lo demás del caso (propuesta de pago, cónyuge, info
+              // laboral, cesación de pagos, declaraciones, apoderado legacy,
+              // tarifa, notificaciones, firma, etc.): se deriva de
+              // GENERAL_SCALAR_FIELDS en vez de enumerarse a mano. Enumerar a
+              // mano es exactamente cómo 19 campos de Sección III, 10 de
+              // cónyuge, 6 de cesación, 8 de declaraciones, 8 del apoderado
+              // legacy y `notificationCity`/`otherCauseDetail` quedaron
+              // afuera sin que nada avisara (hallazgo de la auditoría
+              // transversal, 2026-10-02).
+              ...pickGeneralFields(
+                fullCase as unknown as Record<string, unknown>,
+              ),
 
               // Campos propios de Conciliacion y Acuerdo de Apoyo. Van por
               // prefijo y no enumerados: son 100 columnas y listarlas a mano
@@ -437,30 +372,9 @@ export function EditCaseDialog({
         version: data.version,
         debtorId: data.debtorId,
         type: data.type,
-        totalDebt: data.totalDebt,
         creditors: creditorsCount,
-        operatorId: data.operatorId,
         hearingDate: data.hearingDate,
         phase: data.phase ?? undefined,
-        causes: data.causes,
-        tramite: data.tramite,
-        filingDate: data.filingDate,
-        debtorIdNumber: data.debtorIdNumber,
-        convened: data.convened,
-        attorney: data.attorney,
-        owedCapital: data.owedCapital,
-        designatedOperator: data.designatedOperator,
-        designationDate: data.designationDate,
-        positionAcceptanceDate: data.positionAcceptanceDate,
-        inadmissionDate: data.inadmissionDate,
-        admissionDate: data.admissionDate,
-        firstHearingDate: data.firstHearingDate,
-        firstHearingTime: data.firstHearingTime,
-        hasLegalProcesses: data.hasLegalProcesses,
-        riskCenterCommunication: data.riskCenterCommunication,
-
-        // Ámbito de Aplicación
-        applicantScope: data.applicantScope,
 
         // Ingresos y Gastos (update debtor separately if needed)
         monthlyIncome: data.monthlyIncome,
@@ -478,50 +392,11 @@ export function EditCaseDialog({
         // Dependientes
         dependents: data.dependents,
 
-        // Propuesta de Pago
-        gracePeriodRequested: data.gracePeriodRequested,
-        gracePeriodMonths: data.gracePeriodMonths,
-        paymentInKind: data.paymentInKind,
-        paymentInKindDescription: data.paymentInKindDescription,
-        assetSaleAuthorized: data.assetSaleAuthorized,
-        assetSaleDescription: data.assetSaleDescription,
-        cashFlowPayment: data.cashFlowPayment,
-        paymentTermMonths: data.paymentTermMonths,
-        monthlyPaymentAmount: data.monthlyPaymentAmount,
-        variablePayment: data.variablePayment,
-        extraordinaryPayment: data.extraordinaryPayment,
-        extraordinaryPaymentDate: data.extraordinaryPaymentDate,
-        capitalReduction: data.capitalReduction,
-        capitalReductionPercent: data.capitalReductionPercent,
-        insuranceOffering: data.insuranceOffering,
-        forgiveAccruedInterest: data.forgiveAccruedInterest,
-        forgiveFutureInterest: data.forgiveFutureInterest,
-        paymentOrder: data.paymentOrder,
-        hasClassPrivileges: data.hasClassPrivileges,
-        classPrivilegesDescription: data.classPrivilegesDescription,
-        thirdPartyPaymentAuth: data.thirdPartyPaymentAuth,
-        guaranteeSubstitution: data.guaranteeSubstitution,
-
-        // Sociedad Conyugal
-        spouseName: data.spouseName,
-        spouseIdNumber: data.spouseIdNumber,
-        spouseAddress: data.spouseAddress,
-        spousePhone: data.spousePhone,
-        spouseEmail: data.spouseEmail,
-
-        // Tarifa y Fundamentos
-        requestedFee: data.requestedFee,
-        legalFoundations: data.legalFoundations,
-
-        // Notificaciones
-        notificationAddress: data.notificationAddress,
-        notificationPhone: data.notificationPhone,
-        notificationEmail: data.notificationEmail,
-
-        // Firma
-        applicantSignatureName: data.applicantSignatureName,
-        applicantSignatureId: data.applicantSignatureId,
-        applicantSignature: data.applicantSignature,
+        // Todo lo demás del caso (propuesta de pago, cónyuge, info laboral,
+        // cesación de pagos, declaraciones, apoderado legacy, tarifa,
+        // notificaciones, firma, etc.): se deriva de GENERAL_SCALAR_FIELDS en
+        // vez de enumerarse a mano, mismo motivo que en el reset de arriba.
+        ...pickGeneralValues(data as unknown as Record<string, unknown>),
 
         // Conciliacion y Acuerdo de Apoyo. Sin esto el payload no llevaba
         // ni un `conc*` ni un `apoyo*`, y como `updateCase` deja intacta la
