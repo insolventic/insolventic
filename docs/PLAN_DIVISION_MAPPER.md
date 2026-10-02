@@ -1,6 +1,8 @@
 # Plan de división de `placeholder-mapper.ts`
 
-> Estado: **Pasos 0–4 hechos.** Última actualización: 2026-10-02.
+> Estado: **Pasos 0–4 hechos.** Corte de seguridad extraído a
+> `placeholders/escape.ts` (fuera de la numeración, ver más abajo). Última
+> actualización: 2026-10-02.
 
 Este plan existía solo en las transcripciones de las sesiones y en los cuerpos
 de los PRs #43, #45 y #52. Se escribe acá porque ya se perdió una vez: el
@@ -79,16 +81,60 @@ ya usaba `mapper-merge-order.test.ts`, en vez de escribir uno nuevo.
 
 ### Nota de diseño del Paso 4: dependencia circular con `escapePlaceholder`
 
-Es el primer paso que mueve una función que llama a `escapePlaceholder`, que
-se queda a propósito en `placeholder-mapper.ts` (ver más abajo). `income.ts`
-la importa de vuelta desde ahí: un ciclo real entre los dos archivos, pero
-seguro, porque ninguno de los dos la usa al cargar el módulo —solo dentro de
-una llamada a función, después de que el ciclo ya se resolvió—. El golden
-master de `insolvencia-xss` (que ejercita `NARRATIVA_INGRESOS` con una carga
-hostil) pasó sin cambios, lo que confirma que el enlace sigue escapando en
-runtime. Los pasos 7 (conciliación) y 9 (colisiones) también llaman a
-`escapePlaceholder` desde fuera del archivo principal — van a repetir este
-mismo patrón, no es exclusivo de ingresos.
+Es el primer paso que mueve una función que llama a `escapePlaceholder`.
+Cuando se escribió esta nota, `escapePlaceholder` todavía estaba en
+`placeholder-mapper.ts` y `income.ts` la importaba de vuelta desde ahí: un
+ciclo real entre los dos archivos, seguro pero evitable. Los pasos 6
+(builders HTML), 7 (conciliación) y 9 (colisiones) iban a repetir el mismo
+parche. Se investigó si convenía resolverlo de raíz antes de seguir — ver la
+sección siguiente. Con esa extracción ya hecha, esta nota queda como registro
+de por qué se investigó, no como patrón a repetir.
+
+### Extracción del corte de seguridad a `placeholders/escape.ts` (fuera de la numeración, PR independiente)
+
+Antes de repetir el parche del Paso 4 en los pasos 6, 7 y 9, se investigó si
+convenía resolver la dependencia circular de raíz: extraer
+`escapePlaceholder`/`HTML_PLACEHOLDERS_ALLOWLIST`/`escapeAllUnlessHtml` a su
+propio archivo leaf (`placeholders/escape.ts`), del que tanto
+`placeholder-mapper.ts` como cualquier sub-mapper importan sin ciclo.
+
+**La pregunta concreta era si esto debilitaba la garantía de seguridad.** Se
+rastreó el origen de la nota "se mantiene en el punto de fusión a propósito":
+nace en el commit `758b733` (P2, Sesión 1 de `CLAUDE.md`, 2026-07-10) y se
+repite al escribir este plan en el Paso 3 (`ee3e16c`). Ninguno de los dos
+dice nada sobre en qué ARCHIVO debe vivir el código: los dos hablan de CUÁNDO
+escapar — centralizado en el punto de fusión de `mapCaseToPlaceholders`
+(safe-by-default), en vez de valor por valor en cada sub-mapper, para que un
+placeholder escalar nuevo quede protegido sin que nadie se acuerde de
+escaparlo. "Punto de fusión" nombra un lugar en el FLUJO DE EJECUCIÓN, no un
+archivo. Conclusión: **la extracción es segura**, es solo organización de
+código.
+
+Movido (sin cambiar su código, mismo proceso que cualquier paso de este
+plan):
+
+- Comparación byte a byte contra el original de `git`: idénticas, incluido el
+  texto de los tres comentarios JSDoc.
+- Mutación deliberada, con foco en los escenarios XSS (acá es donde está el
+  riesgo real): se probaron dos mutaciones por separado. (1) `escapePlaceholder`
+  deja de escapar `<`: fallan 6 tests, los cuatro específicos de la carga XSS
+  más los dos golden masters de `insolvencia-xss`/`conciliacion-xss`. (2)
+  `escapeAllUnlessHtml` ignora la allowlist y escapa todo: fallan 54 tests —
+  es el modo de falla (A) que el propio `html-escape-guard.test.ts` describe
+  en su docstring (HTML del sistema saliendo escapado por error). Las dos
+  mutaciones se revirtieron antes de commitear.
+- `html-escape-guard.test.ts` necesitó un segundo ajuste: `readAllowlist()`
+  parseaba solo `placeholder-mapper.ts` para encontrar
+  `HTML_PLACEHOLDERS_ALLOWLIST` (el mismo problema de fondo del hallazgo del
+  Paso 4, pero en la función que lee la allowlist en vez de la que junta
+  funciones). Se corrigió con el mismo criterio de un-solo-pase sobre
+  `./placeholders/*`.
+- Suite completa 1448/97, `tsc` limpio, `eslint` 0 errores, `next build` OK.
+
+Efecto en el Paso 4: `income.ts` ya no importa `escapePlaceholder` de vuelta
+desde `placeholder-mapper.ts` — importa de `placeholders/escape.ts`, igual
+que `placeholder-mapper.ts`. El ciclo desapareció. Los pasos 6, 7 y 9 importan
+directamente de `placeholders/escape.ts`, sin crear ninguno nuevo.
 
 ## Pasos propuestos
 
@@ -107,9 +153,6 @@ son las dependencias y los PRs abiertos, no la numeración.
 
 No es residuo: es la superficie pública del módulo.
 
-- `escapePlaceholder`, `HTML_PLACEHOLDERS_ALLOWLIST`, `escapeAllUnlessHtml` —
-  el corte de seguridad. Se mantiene en el punto de fusión a propósito
-  (safe-by-default, Sesión 1 de `CLAUDE.md`).
 - El tipo `PlaceholderMap`, del que dependen todos los módulos extraídos.
 - `mapCaseToPlaceholders` (335 líneas), que es el punto de fusión.
 - La API de render: `renderDocumentHtml`, `replacePlaceholders`,

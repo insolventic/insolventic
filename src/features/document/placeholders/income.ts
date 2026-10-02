@@ -14,19 +14,17 @@
  * SÍ escapa texto libre del usuario (ocupación, empleador, descripción de
  * otros ingresos) antes de interpolarlo en el HTML de `NARRATIVA_INGRESOS`
  * —una de las 16 claves de `HTML_PLACEHOLDERS_ALLOWLIST` (ver
- * `tests/unit/documents/html-escape-guard.test.ts`). `escapePlaceholder` se
- * queda deliberadamente en `placeholder-mapper.ts` (es el corte de seguridad
- * en el punto de fusión, Sesión 1 de `CLAUDE.md`), así que este módulo la
- * importa de vuelta desde ahí: es una dependencia circular real entre los dos
- * archivos, pero segura, porque ninguno de los dos la usa al cargar el módulo
- * —solo dentro de una llamada a función, para cuando el ciclo ya terminó de
- * resolverse—. El golden master de `insolvencia-xss` (que ejercita
- * `NARRATIVA_INGRESOS` con una carga hostil) es la prueba de que el enlace
- * circular sigue escapando en runtime, no solo en tipos.
+ * `tests/unit/documents/html-escape-guard.test.ts`). Al principio importaba
+ * `escapePlaceholder` de vuelta desde `placeholder-mapper.ts` —una dependencia
+ * circular real, aunque segura— porque el corte de seguridad vivía ahí. Ese
+ * ciclo se cerró extrayendo `escapePlaceholder` (y el resto del corte) a
+ * `placeholders/escape.ts`: ahora este módulo importa de ahí, igual que
+ * `placeholder-mapper.ts`, sin ciclo entre los dos.
  */
 
-import { escapePlaceholder, type PlaceholderMap } from '../placeholder-mapper';
+import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
+import { escapePlaceholder } from './escape';
 import { formatCurrency } from './format';
 
 // Build narrative paragraph for income certificate based on employment type
