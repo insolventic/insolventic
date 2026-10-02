@@ -98,11 +98,26 @@ const EXPECTED_COLLISIONS: Record<string, string[]> = {
 
 /**
  * Junta las `FunctionDeclaration` de un archivo con las de cualquier módulo
- * relativo que importe (`./placeholders/*`) — una sola pasada, no recursiva
- * (alcanza mientras los sub-mappers no importen sub-mappers entre sí). Así el
- * contrato sigue viendo los sub-mappers aunque el Paso N de la división los
- * haya movido de `placeholder-mapper.ts` a su propio archivo.
+ * relativo bajo `placeholders/` que importe, RECURSIVO: sigue tanto
+ * `./placeholders/*` (desde `placeholder-mapper.ts`) como los imports entre
+ * sub-mappers (`./otro-sub-mapper`, desde dentro de `placeholders/`), acotado
+ * a esa carpeta para no seguir también vecinos de `document/` como
+ * `handlebars-lite`. Así el contrato sigue viendo los sub-mappers sin
+ * importar cuántos pasos de división los muevan.
+ *
+ * Hasta el Paso 8 alcanzaba con una sola pasada. El Paso 9 introdujo el
+ * primer import entre sub-mappers (`tablas-dinamicas-pagos.ts` importa de
+ * `html-builders.ts`, dos niveles desde `placeholder-mapper.ts`) — no afecta
+ * a este contrato porque ninguna clave de `EXPECTED_COLLISIONS` involucra a
+ * los `generate*`, pero se hace recursivo igual, por consistencia con
+ * `html-escape-guard.test.ts` (que sí lo necesitó) y para no dejar la misma
+ * limitación sin corregir en los dos archivos.
  */
+const PLACEHOLDERS_DIR = path.join(
+  process.cwd(),
+  'src/features/document/placeholders',
+);
+
 function collectFunctions(
   filePath: string,
   text: string,
@@ -115,11 +130,14 @@ function collectFunctions(
     if (
       ts.isImportDeclaration(st) &&
       ts.isStringLiteral(st.moduleSpecifier) &&
-      st.moduleSpecifier.text.startsWith('./placeholders/')
+      st.moduleSpecifier.text.startsWith('.')
     ) {
       const importedPath =
         path.join(path.dirname(filePath), st.moduleSpecifier.text) + '.ts';
-      if (fs.existsSync(importedPath)) {
+      if (
+        importedPath.startsWith(PLACEHOLDERS_DIR) &&
+        fs.existsSync(importedPath)
+      ) {
         const importedText = fs.readFileSync(importedPath, 'utf8');
         for (const [name, fn] of collectFunctions(importedPath, importedText))
           functions.set(name, fn);

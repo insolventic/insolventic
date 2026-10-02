@@ -1,6 +1,6 @@
 # Plan de división de `placeholder-mapper.ts`
 
-> Estado: **Pasos 0–8 hechos.** Corte de seguridad extraído a
+> Estado: **Plan completo, Pasos 0–9.** Corte de seguridad extraído a
 > `placeholders/escape.ts` (fuera de la numeración, ver más abajo). Última
 > actualización: 2026-10-02.
 
@@ -55,30 +55,26 @@ para una misma clave sin ganar nada.
 
 ## Pasos hechos
 
-| Paso | Qué                                                                                                                                                                           | Módulo                                  | PR       |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | -------- |
-| 0    | Red de seguridad: golden master + contrato de las colisiones                                                                                                                  | `tests/unit/documents/`                 | #43, #44 |
-| 1    | Los 12 helpers de formato (funciones hoja, sin dependencias)                                                                                                                  | `placeholders/format.ts`                | #45      |
-| 2    | 5 sub-mappers de listas simples: `mapCauses`, `mapLegalProcesses`, `mapLibranzas`, `mapSuspendedServices`, `mapDependents`                                                    | `placeholders/case-lists.ts`            | #52      |
-| 3    | 4 sub-mappers del Formulario Definitivo: `mapAcreedoresDefinitivo`, `mapBienesDefinitivo`, `mapProcesosJudicialesDefinitivo`, `mapFormularioDefinitivoFields`                 | `placeholders/formulario-definitivo.ts` | #81      |
-| 4    | Ingresos: `mapIncomeDeclaration` + su helper interno `buildIncomeNarrative`                                                                                                   | `placeholders/income.ts`                | #91      |
-| 5    | Patrimonio: `mapDebts` + `mapAssets`                                                                                                                                          | `placeholders/assets-debts.ts`          | #92      |
-| 6    | Builders HTML: los 7 `generate*` (detalle de bienes, pago de capital, forma de pago, proyección de pagos, inventario de bienes, calificación y graduación, propuesta de pago) | `placeholders/html-builders.ts`         | #94      |
-| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                            | `placeholders/conciliacion.ts`          | #95      |
-| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                       | `placeholders/apoyo.ts`                 | este     |
+| Paso | Qué                                                                                                                                                                           | Módulo                                     | PR       |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ | -------- |
+| 0    | Red de seguridad: golden master + contrato de las colisiones                                                                                                                  | `tests/unit/documents/`                    | #43, #44 |
+| 1    | Los 12 helpers de formato (funciones hoja, sin dependencias)                                                                                                                  | `placeholders/format.ts`                   | #45      |
+| 2    | 5 sub-mappers de listas simples: `mapCauses`, `mapLegalProcesses`, `mapLibranzas`, `mapSuspendedServices`, `mapDependents`                                                    | `placeholders/case-lists.ts`               | #52      |
+| 3    | 4 sub-mappers del Formulario Definitivo: `mapAcreedoresDefinitivo`, `mapBienesDefinitivo`, `mapProcesosJudicialesDefinitivo`, `mapFormularioDefinitivoFields`                 | `placeholders/formulario-definitivo.ts`    | #81      |
+| 4    | Ingresos: `mapIncomeDeclaration` + su helper interno `buildIncomeNarrative`                                                                                                   | `placeholders/income.ts`                   | #91      |
+| 5    | Patrimonio: `mapDebts` + `mapAssets`                                                                                                                                          | `placeholders/assets-debts.ts`             | #92      |
+| 6    | Builders HTML: los 7 `generate*` (detalle de bienes, pago de capital, forma de pago, proyección de pagos, inventario de bienes, calificación y graduación, propuesta de pago) | `placeholders/html-builders.ts`            | #94      |
+| 7    | Conciliación: `buildConciliationContext` + `mapConciliationFields`                                                                                                            | `placeholders/conciliacion.ts`             | #95      |
+| 8    | Apoyo: `mapApoyoFields`                                                                                                                                                       | `placeholders/apoyo.ts`                    | #96      |
+| 9a   | `mapApplicantScope` + `mapAgreementResult` (colisión: `TIPO_SOLICITANTE`)                                                                                                     | `placeholders/solicitante-acuerdo.ts`      | este     |
+| 9b   | `mapExtendedDates` + `mapExternalEntities` + `mapFracasoVariables` (colisión: `ANO_BILATERAL`, `NUMERO_CONSTANCIA`, `ANO_CONSTANCIA`, `NUMERO_JUZGADO`, `RADICADO_BILATERAL`) | `placeholders/fechas-entidades-fracaso.ts` | este     |
+| 9c   | `mapDynamicTables` + `mapPaymentProposal` (sin colisión entre sí; agrupadas por dominio y vecindad en el archivo)                                                             | `placeholders/tablas-dinamicas-pagos.ts`   | este     |
 
 Tamaño del mapper: 2.936 → 2.774 (Paso 1) → 2.915 con lo que se agregó después
 → 2.638 (Paso 3) → 2.554 con lo que se agregó después (PRs #84, #85, #88, #89)
 → 2.447 (Paso 4) → 2.386 con el corte de seguridad ya extraído (#93) → 2.260
-(Paso 5, #92) → 1.901 (Paso 6, #94) → 1.516 (Paso 7, #95) → **1.414** (Paso 8).
-
-### Paso 8: sin novedades
-
-Igual que el Paso 5: `mapApoyoFields` no llama a `escapePlaceholder` (solo
-formatea un monto y pasa el resto de los campos tal cual), no depende de
-ningún otro sub-mapper y no colisiona. Movimiento limpio, sin hallazgos —
-idéntica byte a byte contra el original sin que prettier tuviera que partir
-ni la firma.
+(Paso 5, #92) → 1.901 (Paso 6, #94) → 1.516 (Paso 7, #95) → 1.414 (Paso 8,
+#96) → **980** (Paso 9).
 
 ### Por qué el 6 se hizo antes que el 5
 
@@ -221,24 +217,99 @@ que no repite la dependencia circular. El bloqueo original por #79 (que
 reescribía `mapDebts` al retirar los 264 slots numerados) ya no aplicaba: ese
 PR se mergeó antes de este paso.
 
-## Pasos propuestos
+### Paso 8: sin novedades
 
-El orden de acá en adelante es una propuesta, no un compromiso: lo que lo fija
-son las dependencias y los PRs abiertos, no la numeración.
+Igual que el Paso 5: `mapApoyoFields` no llama a `escapePlaceholder` (solo
+formatea un monto y pasa el resto de los campos tal cual), no depende de
+ningún otro sub-mapper y no colisiona. Movimiento limpio, sin hallazgos —
+idéntica byte a byte contra el original sin que prettier tuviera que partir
+ni la firma.
 
-| Paso | Grupo                                                                                                                                                                    | Líneas | Colisiona          | Bloqueado por                                 |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------------------ | --------------------------------------------- |
-| 9    | Los pares de colisión: `mapApplicantScope`+`mapAgreementResult`, `mapExternalEntities`+`mapFracasoVariables`+`mapExtendedDates`, `mapDynamicTables`+`mapPaymentProposal` | ~404   | sí, por definición | conviene último: es el que más contrato mueve |
+### Paso 9: el más grande, y el hallazgo que el plan anticipaba desde el Paso 0
+
+Cierra el plan: los tres pares de colisión que quedaban. Se repartieron en
+tres archivos, no uno solo, porque cada par es un clúster de colisión
+independiente de los otros dos — juntarlos en un único archivo no habría
+agregado nada y habría mezclado dominios sin relación (alcance del
+solicitante, fechas/entidades/fracaso, tablas de pago).
+
+**El hallazgo real: hizo falta el `collectFunctions` recursivo que el plan
+venía anunciando desde el Paso 0** ("si algún paso necesita que un sub-mapper
+importe a otro, primero hay que hacer recursivo `collectFunctions`").
+`mapDynamicTables` se movió a `placeholders/tablas-dinamicas-pagos.ts`, que a
+su vez importa los 7 `generate*` de `placeholders/html-builders.ts` (Paso 6) — dos niveles de distancia desde `placeholder-mapper.ts`. El
+`collectFunctions` de una sola pasada de `mapper-merge-order.test.ts` y
+`html-escape-guard.test.ts` solo seguía imports `./placeholders/*` **desde
+`placeholder-mapper.ts`**, no entre sub-mappers. `html-escape-guard.test.ts`
+dejó de ver los 7 `generate*` y dos de sus tests se pusieron en rojo
+(inventario de "funciones que generan HTML" y de "las que llaman a
+`escapePlaceholder`") — exactamente el modo de falla que el Paso 4 ya había
+mostrado una vez con una sola función (`buildIncomeNarrative`), ahora con
+siete y dos niveles de distancia.
+
+Se corrigió haciendo recursivos los dos `collectFunctions` (el de
+`html-escape-guard.test.ts`, que lo necesitaba de verdad, y el de
+`mapper-merge-order.test.ts`, por consistencia — no le hacía falta para pasar
+hoy, pero tenía la misma limitación latente), acotando la recursión a
+imports relativos (`.`) cuya ruta resuelta cae dentro de
+`src/features/document/placeholders/`, para no seguir también vecinos de
+`document/` como `handlebars-lite`.
+
+Limpieza de imports huérfanos en `placeholder-mapper.ts`, consecuencia
+directa de vaciar el archivo: el import de los 7 `generate*` (su único
+consumidor, `mapDynamicTables`, se fue entero) y los value imports de
+`getDebtClass`, `tipoProcesoLabel`, `formatDateComplete` y `getGenderArticle`
+(sin más call-sites tras el movimiento). `formatIdNumber` también dejó de
+usarse. Sin esto, `eslint` marcaba 7 warnings nuevas de `no-unused-vars`.
+
+Tres mutaciones deliberadas, una por archivo:
+
+1. `solicitante-acuerdo.ts`: se alteró `TIPO_SOLICITANTE` en
+   `mapAgreementResult` (la clave que colisiona). Falla el golden del
+   escenario `insolvencia-alcance-texto`, que existe justo para ejercitar
+   esa colisión.
+2. `fechas-entidades-fracaso.ts`: se alteró `NUMERO_JUZGADO` en
+   `mapFracasoVariables` (otra clave que colisiona). Fallan los golden
+   masters de varios escenarios de fracaso.
+3. `tablas-dinamicas-pagos.ts`: se quitó el `escapePlaceholder` del nombre
+   de acreedor en `mapDynamicTables` (`LISTA_ACREEDORES`). Fallan 9 tests —
+   los dos golden masters XSS, el de `insolvencia-caracteres-especiales`, el
+   de "render de cada plantilla", 4 detectores del guardián, **y el propio
+   inventario AST de `html-escape-guard.test.ts`** ("las que interpolan
+   texto del usuario llaman a `escapePlaceholder`") — confirmando que el
+   `collectFunctions` recursivo sigue viendo correctamente la función movida
+   dos niveles adentro.
+
+Las tres revertidas antes de commitear.
+
+Verificación final: golden master sin mover un byte; las 7 funciones
+idénticas byte a byte contra el original de `git` (los saltos de firma de
+siempre, por `export`); suite completa 1448/97; `tsc` limpio; `eslint` 0
+errores, 22 warnings (las mismas preexistentes de antes del paso, ninguna
+nueva); `next build` OK.
+
+## El plan está completo
+
+No quedan pasos propuestos: los 9 (con el 9 partido en 9a/9b/9c) cubren todos
+los sub-mappers que tenía sentido mover. Lo que sigue en
+`placeholder-mapper.ts` es deliberado, no pendiente.
 
 ### Lo que se queda en `placeholder-mapper.ts`
 
-No es residuo: es la superficie pública del módulo.
+No es residuo: es la superficie pública del módulo, más dos excepciones
+documentadas.
 
 - El tipo `PlaceholderMap`, del que dependen todos los módulos extraídos.
-- `mapCaseToPlaceholders` (335 líneas), que es el punto de fusión.
+- `mapCaseToPlaceholders`, el punto de fusión.
 - La API de render: `renderDocumentHtml`, `replacePlaceholders`,
   `validatePlaceholderCoverage`, `getPlaceholderCoverageReport`, `stripBlocks`.
 - `buildTemplateContext` / `buildInsolvencyContext` / `escapeContextItem`.
+- `mapCheckList` — ver más abajo, en pausa, no pendiente.
+- `mapSentidoVotoVariables` (23 líneas, sin colisiones ni dependencias):
+  nunca entró en la numeración del plan. Cumple el criterio de "menor
+  riesgo" igual que los pasos 2/5/8, así que sería un quick win si en algún
+  momento vale la pena vaciar el archivo del todo — pero no es parte de
+  este plan y no se mueve sin que se pida.
 
 ### `mapCheckList`: en pausa, no pendiente
 
