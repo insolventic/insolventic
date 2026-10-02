@@ -124,6 +124,18 @@ export function SuspendedServicesSection() {
                 {...form.register(`suspendedServices.${index}.suspensionDate`)}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={`suspendedServices.${index}.amountOwed`}>
+                Suma Adeudada
+              </Label>
+              <Input
+                id={`suspendedServices.${index}.amountOwed`}
+                type="number"
+                step="0.01"
+                {...form.register(`suspendedServices.${index}.amountOwed`)}
+              />
+            </div>
           </div>
         </div>
       ))}
