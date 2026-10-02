@@ -2334,6 +2334,47 @@ export const dependentResponseSchema = z.object({
   relationship: z.string(),
 });
 
+// ---------------------------------------------------------------------------
+// Apoderados (Sección XI) — alta/baja post-creación, mismo patrón que
+// Debt/Asset/Libranza/SuspendedService/Dependent: sin edición en el lugar,
+// corregir un apoderado es borrarlo y volver a agregarlo con el dato bueno.
+// ---------------------------------------------------------------------------
+
+export const addApoderadoToCaseSchema = z.object({
+  caseId: z.string().min(1, 'El ID del caso es requerido'),
+  nombreCompleto: z.string().min(1, 'El nombre completo es requerido'),
+  tipoIdentificacion: z.string().optional(),
+  identificacion: z.string().optional(),
+  tarjetaProfesional: z.string().optional(),
+  direccion: z.string().optional(),
+  telefono: z.string().optional(),
+  correo: z.string().optional(),
+  existePoderOtorgado: z.boolean().optional(),
+});
+
+export type AddApoderadoToCaseData = z.infer<typeof addApoderadoToCaseSchema>;
+
+export const removeApoderadoFromCaseSchema = z.object({
+  apoderadoId: z.string().min(1, 'El ID del apoderado es requerido'),
+});
+
+export type RemoveApoderadoFromCaseData = z.infer<
+  typeof removeApoderadoFromCaseSchema
+>;
+
+export const apoderadoResponseSchema = z.object({
+  id: z.string(),
+  orden: z.number(),
+  nombreCompleto: z.string(),
+  tipoIdentificacion: z.string().nullable(),
+  identificacion: z.string().nullable(),
+  tarjetaProfesional: z.string().nullable(),
+  direccion: z.string().nullable(),
+  telefono: z.string().nullable(),
+  correo: z.string().nullable(),
+  existePoderOtorgado: z.boolean(),
+});
+
 export const caseStatsSchema = z.object({
   total: z.coerce.number(),
   byType: z.array(
