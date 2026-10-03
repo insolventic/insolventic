@@ -40,6 +40,18 @@ Ante cualquier reporte de "no funciona", en este orden y sin saltear pasos:
    - `503 {"status":"degraded"}` → la BD no responde. Ir a **§3.1**.
    - Sin respuesta / timeout → la app no está sirviendo. Ir a **§3.2**.
 
+   **¿Qué commit está desplegado?** El detalle no es público: hay que
+   mandar el header con el valor de `HEALTH_DETAILS_TOKEN`.
+   ```bash
+   curl -s -H "x-health-token: $HEALTH_DETAILS_TOKEN" \
+     https://⟨DOMINIO-PRODUCCION⟩/api/health | jq .deployment
+   # → { "version": "0.3.0", "commit": "abc123…", "branch": "main", "deploymentEnv": "production" }
+   ```
+   Sirve para confirmar si el rollback tomó efecto, o si producción está
+   corriendo el commit que se cree. Si `commit` dice `unknown`, el proyecto
+   en Vercel no tiene habilitado "Automatically expose System Environment
+   Variables".
+
 2. **Sentry** — errores de las últimas horas, agrupados. Un pico que arranca
    en un timestamp concreto casi siempre correlaciona con un deploy.
 
@@ -274,6 +286,7 @@ un repositorio público, o salida de una persona con acceso).
 | `SMTP_PASSWORD`               | Nueva app password en https://myaccount.google.com/apppasswords                                                                              | Ninguno; los emails en vuelo pueden fallar.                                                                                                |
 | `CRON_SECRET`                 | Generar random y actualizar en Vercel                                                                                                        | El cron falla hasta que Vercel tome el valor nuevo (redeploy).                                                                             |
 | `UPSTASH_REDIS_REST_TOKEN`    | Rotar en la consola de Upstash                                                                                                               | Rate limiting degrada a in-memory hasta actualizar (no bloquea usuarios).                                                                  |
+| `HEALTH_DETAILS_TOKEN`        | Generar random y actualizar en Vercel                                                                                                        | Ninguno para los usuarios; hasta actualizarlo, `/api/health` deja de devolver el detalle del deploy.                                       |
 | `DATABASE_URL` + `DIRECT_URL` | Reset de la contraseña de `neondb_owner` en Neon y actualizar **ambas** variables en Production **y** Preview: `docs/RUNBOOK_ENV_VARS.md` §4 | Requiere redeploy; hay downtime breve. Rotar solo una deja una falla silenciosa (`DIRECT_URL` vieja rompe el próximo build de producción). |
 
 Después de cualquier rotación: actualizar en Vercel → **redeploy** →
