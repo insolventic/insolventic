@@ -9,6 +9,7 @@ import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { logger } from '@/lib/logger';
+import { withRetry } from '@/lib/retry';
 import { canGenerateDocument } from '../case/validation-rules';
 import {
   claimGenerationRequest,
@@ -1222,27 +1223,58 @@ export async function batchGenerateDocuments(input: {
             try {
               const { googleDriveService } = await import('@/lib/google-drive');
 
+              // Igual que createDocumentSubfolder (ruta automatica): la
+              // subcarpeta no lleva reintento propio, degrada a la carpeta
+              // del caso si falla (find-or-create en el siguiente intento
+              // la reconstruye; no vale la pena bloquear la subida por esto).
               let targetFolderId = caseFolderId;
               if (htmlDoc.template.folderPath.length > 0) {
-                targetFolderId = await googleDriveService.createFolderHierarchy(
-                  htmlDoc.template.folderPath,
-                  caseFolderId,
-                );
+                try {
+                  targetFolderId =
+                    await googleDriveService.createFolderHierarchy(
+                      htmlDoc.template.folderPath,
+                      caseFolderId,
+                    );
+                } catch (folderError) {
+                  logger.warn(
+                    'Error creating Drive subfolder, falling back to case folder',
+                    {
+                      action: 'batch-generate-documents',
+                      folderPath: htmlDoc.template.folderPath.join('/'),
+                      reason:
+                        folderError instanceof Error
+                          ? folderError.message
+                          : String(folderError),
+                    },
+                  );
+                }
               }
 
-              const uploadResult =
-                await googleDriveService.uploadDocumentToCase(
-                  variantDocName,
-                  variant.buffer,
-                  targetFolderId,
-                );
+              // Reintento con backoff (mismo patron que la ruta automatica,
+              // src/features/document/generate-documents.ts): un fallo
+              // transitorio de Drive no debe dejar el documento sin subir
+              // cuando un reintento lo hubiera resuelto.
+              const uploadResult = await withRetry(
+                () =>
+                  googleDriveService.uploadDocumentToCase(
+                    variantDocName,
+                    variant.buffer,
+                    targetFolderId,
+                  ),
+                { label: `upload:${variantDocName}` },
+              );
               fileId = uploadResult.fileId;
               fileUrl = uploadResult.fileUrl;
             } catch (uploadError) {
-              console.warn(
-                `Drive upload failed for ${htmlDoc.template.name} (${variant.ext}):`,
-                uploadError,
-              );
+              logger.warn('Drive upload failed', {
+                action: 'batch-generate-documents',
+                template: htmlDoc.template.name,
+                variant: variant.ext,
+                reason:
+                  uploadError instanceof Error
+                    ? uploadError.message
+                    : String(uploadError),
+              });
             }
           }
 
@@ -1271,10 +1303,11 @@ export async function batchGenerateDocuments(input: {
             status: 'success',
           });
         } catch (saveError) {
-          console.error(
-            `Error saving document ${htmlDoc.template.name} (${variant.ext}):`,
-            saveError,
-          );
+          logger.error('Error saving document', saveError, {
+            action: 'batch-generate-documents',
+            template: htmlDoc.template.name,
+            variant: variant.ext,
+          });
           documents.push({
             templateId: htmlDoc.template.id,
             templateName: htmlDoc.displayName,
