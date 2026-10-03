@@ -191,7 +191,7 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 - [ ] Code-split del dashboard (342 kB First Load → `next/dynamic` en gráficos) — ~8h
 - [ ] Split estructural del placeholder-mapper (2.877 líneas → builders HTML / mappers escalares / conciliación / apoyo) — ~4h
 - [ ] P1 pendiente de la auditoría de documentos: batch de Chromium en creación de casos (hoy 1 navegador por documento; `batchHtmlToPdf` ya existe) — ~8h
-- [ ] Reintentos en la ruta manual de generación (`batchGenerateDocuments`): la ruta automática envuelve la subida a Drive y la creación de carpetas en `withRetry` (backoff exponencial 3×, 4 call-sites); la manual no tiene ninguno, y es la que más usan los operadores desde `/documents`. Un fallo transitorio de Drive ahí se traduce en un documento que no se subió, sin reintento. Medido el 2026-10-01 al extraer la Fase 1 compartida (PR #85), que no toca esta asimetría porque vive en la Fase 3 de cada ruta. **No bloqueante** — ~4h
+- ~~Reintentos en la ruta manual de generación (`batchGenerateDocuments`)~~ → 🟢 **Resuelto.** La subida a Drive (`uploadDocumentToCase`) ahora usa `withRetry`, mismo patrón que la ruta automática. La creación de subcarpeta sigue el patrón de `createDocumentSubfolder` (degrada a la carpeta del caso si falla, sin reintento propio — no vale la pena bloquear la subida por eso). Los dos `console.*` que tocaba este cambio pasaron a `logger`.
 
 ### Fase 3 (Q3, ~26h)
 
