@@ -86,8 +86,34 @@ jobs:
       - name: DB smoke tests (wizard de casos, Prisma real)
         run: npm run test:db
 
+      # Sin esto, `playwright install --with-deps` descarga Chromium en cada
+      # corrida. Medido el 2026-10-01: 28s -> 79s -> 228s -> 572s en cuatro
+      # corridas consecutivas (ninguna cambió la versión de Playwright), y en
+      # la quinta se comió el timeout-minutes:25 del job antes de correr un
+      # solo test. La clave incluye la versión de @playwright/test: un bump
+      # invalida el cache en vez de usar binarios desactualizados.
+      - name: Get installed Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      # Cache miss: instala navegador + dependencias del sistema (apt).
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+
+      # Cache hit: el binario de Chromium ya está; solo faltan las
+      # dependencias de sistema, que no viven en ~/.cache/ms-playwright y por
+      # eso no quedan cubiertas por el cache.
+      - name: Install Playwright OS dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       # Mismo presupuesto de heap y mismo motivo que en pr.yml: sin esto el
       # build muere con OOM en la fase de type-check (~2050 MB en el runner).
