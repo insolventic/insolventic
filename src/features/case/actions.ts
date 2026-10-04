@@ -13,6 +13,10 @@ import {
   isValidDesistimientoSubtype,
 } from '@/lib/case-phases';
 import { logger } from '@/lib/logger';
+// Las fechas del formulario llegan como "YYYY-MM-DD" (<input type="date">), que
+// `new Date()` ancla a medianoche UTC y por tanto se imprimen un día antes en
+// hora de Colombia. `parseDateOnly` las ancla al mediodía UTC.
+import { parseDateOnly } from '@/lib/date-colombia';
 import {
   validateCaseBusinessRules,
   formatValidationErrors,
@@ -483,56 +487,23 @@ export async function createCase(
         // en "Acuerdo aprobado", saltándose admisión, negociación y toda su
         // documentación. Todo avance pasa ahora por `updateCasePhase`.
         phase: INITIAL_CASE_PHASE,
-        hearingDate:
-          hearingDate && hearingDate.trim() ? new Date(hearingDate) : null,
-        filingDate:
-          filingDate && filingDate.trim() ? new Date(filingDate) : null,
-        designationDate:
-          designationDate && designationDate.trim()
-            ? new Date(designationDate)
-            : null,
-        positionAcceptanceDate:
-          positionAcceptanceDate && positionAcceptanceDate.trim()
-            ? new Date(positionAcceptanceDate)
-            : null,
-        inadmissionDate:
-          inadmissionDate && inadmissionDate.trim()
-            ? new Date(inadmissionDate)
-            : null,
-        admissionDate:
-          admissionDate && admissionDate.trim()
-            ? new Date(admissionDate)
-            : null,
-        firstHearingDate:
-          firstHearingDate && firstHearingDate.trim()
-            ? new Date(firstHearingDate)
-            : null,
-        suspensionDate:
-          suspensionDate && suspensionDate.trim()
-            ? new Date(suspensionDate)
-            : null,
-        resultDeliveryDate:
-          resultDeliveryDate && resultDeliveryDate.trim()
-            ? new Date(resultDeliveryDate)
-            : null,
-        resultDate:
-          resultDate && resultDate.trim() ? new Date(resultDate) : null,
+        hearingDate: parseDateOnly(hearingDate),
+        filingDate: parseDateOnly(filingDate),
+        designationDate: parseDateOnly(designationDate),
+        positionAcceptanceDate: parseDateOnly(positionAcceptanceDate),
+        inadmissionDate: parseDateOnly(inadmissionDate),
+        admissionDate: parseDateOnly(admissionDate),
+        firstHearingDate: parseDateOnly(firstHearingDate),
+        suspensionDate: parseDateOnly(suspensionDate),
+        resultDeliveryDate: parseDateOnly(resultDeliveryDate),
+        resultDate: parseDateOnly(resultDate),
         monthlyPaymentAmount: monthlyPaymentAmount ?? null,
         variablePayment: variablePayment ?? null,
         capitalReductionPercent: capitalReductionPercent ?? null,
         // Formulario definitivo date conversions
-        fechaCesacionPagos:
-          fechaCesacionPagos && fechaCesacionPagos.trim()
-            ? new Date(fechaCesacionPagos)
-            : null,
-        propuestaFechaInicioPago:
-          propuestaFechaInicioPago && propuestaFechaInicioPago.trim()
-            ? new Date(propuestaFechaInicioPago)
-            : null,
-        fechaRadicacion:
-          fechaRadicacion && fechaRadicacion.trim()
-            ? new Date(fechaRadicacion)
-            : null,
+        fechaCesacionPagos: parseDateOnly(fechaCesacionPagos),
+        propuestaFechaInicioPago: parseDateOnly(propuestaFechaInicioPago),
+        fechaRadicacion: parseDateOnly(fechaRadicacion),
         // Note: debts, assets, and other relations are created separately after case creation
         assets:
           assets && assets.length > 0
@@ -700,8 +671,8 @@ export async function createCase(
               : null,
             isDeferred: debt.isDeferred ?? false,
             documentType: debt.documentType,
-            grantDate: debt.grantDate ? new Date(debt.grantDate) : null,
-            dueDate: debt.dueDate ? new Date(debt.dueDate) : null,
+            grantDate: parseDateOnly(debt.grantDate),
+            dueDate: parseDateOnly(debt.dueDate),
             creditClassification: debt.creditClassification,
             hasActiveLibranza: debt.hasActiveLibranza ?? false,
             creditorClass: debt.creditorClass,
@@ -929,42 +900,17 @@ export async function updateCase(
           version: { increment: 1 },
           debtor: { connect: { id: debtorId } },
           operator: { connect: { id: operatorId } },
-          hearingDate:
-            hearingDate && hearingDate.trim()
-              ? new Date(hearingDate)
-              : undefined,
-          filingDate:
-            filingDate && filingDate.trim() ? new Date(filingDate) : undefined,
-          designationDate:
-            designationDate && designationDate.trim()
-              ? new Date(designationDate)
-              : undefined,
+          hearingDate: parseDateOnly(hearingDate) ?? undefined,
+          filingDate: parseDateOnly(filingDate) ?? undefined,
+          designationDate: parseDateOnly(designationDate) ?? undefined,
           positionAcceptanceDate:
-            positionAcceptanceDate && positionAcceptanceDate.trim()
-              ? new Date(positionAcceptanceDate)
-              : undefined,
-          inadmissionDate:
-            inadmissionDate && inadmissionDate.trim()
-              ? new Date(inadmissionDate)
-              : undefined,
-          admissionDate:
-            admissionDate && admissionDate.trim()
-              ? new Date(admissionDate)
-              : undefined,
-          firstHearingDate:
-            firstHearingDate && firstHearingDate.trim()
-              ? new Date(firstHearingDate)
-              : undefined,
-          suspensionDate:
-            suspensionDate && suspensionDate.trim()
-              ? new Date(suspensionDate)
-              : undefined,
-          resultDeliveryDate:
-            resultDeliveryDate && resultDeliveryDate.trim()
-              ? new Date(resultDeliveryDate)
-              : undefined,
-          resultDate:
-            resultDate && resultDate.trim() ? new Date(resultDate) : undefined,
+            parseDateOnly(positionAcceptanceDate) ?? undefined,
+          inadmissionDate: parseDateOnly(inadmissionDate) ?? undefined,
+          admissionDate: parseDateOnly(admissionDate) ?? undefined,
+          firstHearingDate: parseDateOnly(firstHearingDate) ?? undefined,
+          suspensionDate: parseDateOnly(suspensionDate) ?? undefined,
+          resultDeliveryDate: parseDateOnly(resultDeliveryDate) ?? undefined,
+          resultDate: parseDateOnly(resultDate) ?? undefined,
         },
       });
     });
@@ -1082,8 +1028,8 @@ export async function addDebtToCase(
         interestAmount: interestAmount ? parseFloat(interestAmount) : null,
         isDeferred: isDeferred ?? false,
         documentType: cleanText(documentType),
-        grantDate: grantDate ? new Date(grantDate) : null,
-        dueDate: dueDate ? new Date(dueDate) : null,
+        grantDate: parseDateOnly(grantDate),
+        dueDate: parseDateOnly(dueDate),
         creditClassification: cleanText(creditClassification),
         hasActiveLibranza: hasActiveLibranza ?? false,
         creditorClass: cleanText(creditorClass),
@@ -1688,7 +1634,7 @@ export async function addAssetToCase(
       licensePlate: asset.licensePlate,
       transitAuthority: asset.transitAuthority,
       guaranteeInFavorOf: asset.guaranteeInFavorOf,
-      guaranteeAmount: asset.guaranteeAmount?.toString() ?? null,
+      guaranteeAmount: asset.guaranteeAmount?.toString(),
       material: asset.material,
     });
 
@@ -1767,7 +1713,7 @@ export async function removeAssetFromCase(
       licensePlate: deletedAsset.licensePlate,
       transitAuthority: deletedAsset.transitAuthority,
       guaranteeInFavorOf: deletedAsset.guaranteeInFavorOf,
-      guaranteeAmount: deletedAsset.guaranteeAmount?.toString() ?? null,
+      guaranteeAmount: deletedAsset.guaranteeAmount?.toString(),
       material: deletedAsset.material,
     });
 

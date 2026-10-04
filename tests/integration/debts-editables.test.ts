@@ -179,8 +179,13 @@ describe('acreedores detallados (Debt) — alta y baja post-creación', () => {
         coDebtorPhone: '3001234567',
         coDebtorEmail: 'codeudor@example.com',
       });
-      expect(call.data.grantDate).toEqual(new Date('2024-01-15'));
-      expect(call.data.dueDate).toEqual(new Date('2025-01-15'));
+      // Las fechas del formulario se anclan al MEDIODÍA UTC, no a la medianoche.
+      // `new Date('2024-01-15')` es medianoche UTC = 19:00 del 14 en Colombia, y
+      // por eso toda fecha salía impresa un día antes en los documentos
+      // (hallazgo T1 de docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md). Esta
+      // expectativa fijaba justamente el instante equivocado; cambia a propósito.
+      expect(call.data.grantDate).toEqual(new Date('2024-01-15T12:00:00.000Z'));
+      expect(call.data.dueDate).toEqual(new Date('2025-01-15T12:00:00.000Z'));
 
       // La respuesta vuelve con fecha como 'YYYY-MM-DD', no Date: mismo
       // formato que el reset de edit-case-dialog.tsx, para que el cliente la
