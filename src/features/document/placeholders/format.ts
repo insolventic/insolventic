@@ -2,16 +2,21 @@
  * Helpers de formato de los placeholders de documentos.
  *
  * Funciones PURAS y "hoja": no dependen de ningún mapper ni de ningún otro helper,
- * solo de `COLOMBIA_TZ`. Se movieron aquí desde `placeholder-mapper.ts` SIN cambiar
- * su código (primer paso de la división del archivo; ver docs del plan y la red de
- * seguridad en tests/unit/documents/mapper-golden.test.ts).
+ * solo de `displayTimeZone`. Se movieron aquí desde `placeholder-mapper.ts` SIN
+ * cambiar su código (primer paso de la división del archivo; ver docs del plan y la
+ * red de seguridad en tests/unit/documents/mapper-golden.test.ts).
+ *
+ * La zona de lectura ya NO se fija a `COLOMBIA_TZ`: la resuelve `displayTimeZone`
+ * por instante, para que una fecha-sin-hora guardada antes del arreglo del
+ * corrimiento (medianoche UTC) se lea como el día que es y no como el anterior.
+ * Ver `src/lib/date-colombia.ts`.
  *
  * OJO: se conservan tal cual, incluidas sus rarezas (p. ej. `getGenderArticle`
  * tiene una terminación mal codificada en su lista). Corregirlas es una decisión
  * aparte que debe cambiar el golden master a propósito.
  */
 
-import { COLOMBIA_TZ } from '@/lib/date-colombia';
+import { displayTimeZone } from '@/lib/date-colombia';
 
 // Helper to format currency
 export function formatCurrency(value: number | null | undefined): string {
@@ -35,7 +40,7 @@ export function formatDate(date: Date | string | null | undefined): string {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
-    timeZone: COLOMBIA_TZ,
+    timeZone: displayTimeZone(d),
   });
 }
 
@@ -51,7 +56,7 @@ export function formatShortDate(
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-    timeZone: COLOMBIA_TZ,
+    timeZone: displayTimeZone(d),
   });
 }
 
@@ -60,7 +65,10 @@ export function getDayNumber(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
   const colombiaDay = parseInt(
-    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
+    d.toLocaleDateString('es-CO', {
+      day: 'numeric',
+      timeZone: displayTimeZone(d),
+    }),
   );
   return colombiaDay.toString();
 }
@@ -70,7 +78,10 @@ export function getDayInWords(date: Date | string | null | undefined): string {
   if (!date) return '';
   const d = new Date(date);
   const day = parseInt(
-    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
+    d.toLocaleDateString('es-CO', {
+      day: 'numeric',
+      timeZone: displayTimeZone(d),
+    }),
   );
   const words = [
     '',
@@ -115,7 +126,7 @@ export function getMonthName(date: Date | string | null | undefined): string {
   const d = new Date(date);
   return d.toLocaleDateString('es-CO', {
     month: 'long',
-    timeZone: COLOMBIA_TZ,
+    timeZone: displayTimeZone(d),
   });
 }
 
@@ -125,7 +136,7 @@ export function getYear(date: Date | string | null | undefined): string {
   const d = new Date(date);
   return d.toLocaleDateString('es-CO', {
     year: 'numeric',
-    timeZone: COLOMBIA_TZ,
+    timeZone: displayTimeZone(d),
   });
 }
 
@@ -136,15 +147,18 @@ export function formatDateComplete(
   if (!date) return '';
   const d = new Date(date);
   const day = parseInt(
-    d.toLocaleDateString('es-CO', { day: 'numeric', timeZone: COLOMBIA_TZ }),
+    d.toLocaleDateString('es-CO', {
+      day: 'numeric',
+      timeZone: displayTimeZone(d),
+    }),
   );
   const month = d.toLocaleDateString('es-CO', {
     month: 'long',
-    timeZone: COLOMBIA_TZ,
+    timeZone: displayTimeZone(d),
   });
   const year = d.toLocaleDateString('es-CO', {
     year: 'numeric',
-    timeZone: COLOMBIA_TZ,
+    timeZone: displayTimeZone(d),
   });
   return `${day} de ${month} de ${year}`;
 }
