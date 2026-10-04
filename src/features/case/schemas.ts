@@ -174,6 +174,11 @@ const debtForCaseSchema = z.object({
   creditClassification: z.string().nullable(),
   hasActiveLibranza: z.boolean(),
   creditorClass: z.string().nullable(),
+  // Casillas "Desconozco" del formulario de acreedores. Default por si la
+  // consulta viene de un camino que todavia no las pide.
+  interestRateUnknown: z.boolean().default(false),
+  grantDateUnknown: z.boolean().default(false),
+  dueDateUnknown: z.boolean().default(false),
   percentageOfTotal: decimalToNumber.nullable(),
   daysOverdue: z.number().nullable(),
 

@@ -24,13 +24,13 @@ datasource db {
 }
 
 model Tenant {
-  id              String    @id @default(cuid())
-  name            String    @unique
-  slug            String    @unique
-  description     String?
-  logoUrl         String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   cases               Case[]
@@ -64,7 +64,7 @@ model Tenant {
 model ConciliationCenter {
   id              String   @id @default(cuid())
   tenantId        String
-  code            String   // identificador estable, ej. "armonia"
+  code            String // identificador estable, ej. "armonia"
   displayName     String
   driveFolderName String
   isActive        Boolean  @default(true)
@@ -78,16 +78,16 @@ model ConciliationCenter {
 }
 
 model Case {
-  id                      String         @id @default(cuid())
+  id                      String    @id @default(cuid())
   caseNumber              String
   debtorName              String
   type                    String
   totalDebt               Decimal
   creditors               Int
-  createdDate             DateTime       @default(now())
+  createdDate             DateTime  @default(now())
   hearingDate             DateTime?
   phase                   String?
-  causes                  String[]       @default([])
+  causes                  String[]  @default([])
   otherCauseDetail        String?
   debtorId                String
   operatorId              String
@@ -105,7 +105,7 @@ model Case {
   admissionDate           DateTime?
   firstHearingDate        DateTime?
   firstHearingTime        String?
-  hasLegalProcesses       Boolean        @default(false)
+  hasLegalProcesses       Boolean   @default(false)
   courtNumber             String?
   city                    String?
   processType             String?
@@ -116,279 +116,279 @@ model Case {
   resultType              String?
   resultDate              DateTime?
   siccacNumber            String?
-  riskCenterCommunication Boolean        @default(false)
+  riskCenterCommunication Boolean   @default(false)
 
   // Ámbito de Aplicación (legacy)
-  applicantScope          String[]       @default([])
+  applicantScope String[] @default([])
 
   // Propuesta de Pago (legacy - campos existentes conservados)
-  gracePeriodRequested    Boolean        @default(false)
-  gracePeriodMonths       Int?
-  paymentInKind           Boolean        @default(false)
-  paymentInKindDescription String?
-  assetSaleAuthorized     Boolean        @default(false)
-  assetSaleDescription    String?
-  cashFlowPayment         Boolean        @default(false)
-  paymentTermMonths       Int?
-  monthlyPaymentAmount    Decimal?
-  variablePayment         Decimal?
-  extraordinaryPayment    Boolean        @default(false)
-  extraordinaryPaymentDate String?
-  capitalReduction        Boolean        @default(false)
-  capitalReductionPercent Decimal?
-  insuranceOffering       String?
-  forgiveAccruedInterest  Boolean        @default(false)
-  forgiveFutureInterest   Boolean        @default(false)
-  paymentOrder            Json?
-  hasClassPrivileges      Boolean        @default(false)
+  gracePeriodRequested       Boolean  @default(false)
+  gracePeriodMonths          Int?
+  paymentInKind              Boolean  @default(false)
+  paymentInKindDescription   String?
+  assetSaleAuthorized        Boolean  @default(false)
+  assetSaleDescription       String?
+  cashFlowPayment            Boolean  @default(false)
+  paymentTermMonths          Int?
+  monthlyPaymentAmount       Decimal?
+  variablePayment            Decimal?
+  extraordinaryPayment       Boolean  @default(false)
+  extraordinaryPaymentDate   String?
+  capitalReduction           Boolean  @default(false)
+  capitalReductionPercent    Decimal?
+  insuranceOffering          String?
+  forgiveAccruedInterest     Boolean  @default(false)
+  forgiveFutureInterest      Boolean  @default(false)
+  paymentOrder               Json?
+  hasClassPrivileges         Boolean  @default(false)
   classPrivilegesDescription String?
-  thirdPartyPaymentAuth   Boolean        @default(false)
-  guaranteeSubstitution   Boolean        @default(false)
+  thirdPartyPaymentAuth      Boolean  @default(false)
+  guaranteeSubstitution      Boolean  @default(false)
 
   // Sociedad Conyugal (legacy)
-  spouseName              String?
-  spouseIdNumber          String?
-  spouseAddress           String?
-  spousePhone             String?
-  spouseEmail             String?
+  spouseName     String?
+  spouseIdNumber String?
+  spouseAddress  String?
+  spousePhone    String?
+  spouseEmail    String?
 
   // Tarifa y Fundamentos (legacy)
-  requestedFee            String?
-  legalFoundations        String?
+  requestedFee     String?
+  legalFoundations String?
 
   // Notificaciones (legacy)
-  notificationAddress     String?
-  notificationCity        String?
-  notificationPhone       String?
-  notificationEmail       String?
+  notificationAddress String?
+  notificationCity    String?
+  notificationPhone   String?
+  notificationEmail   String?
 
   // Firma (legacy)
-  applicantSignatureName  String?
-  applicantSignatureId    String?
-  applicantSignature      String?
+  applicantSignatureName String?
+  applicantSignatureId   String?
+  applicantSignature     String?
 
   // Zoom Meeting Info (legacy)
-  zoomMeetingId           String?
-  zoomPassword            String?
-  zoomLink                String?
+  zoomMeetingId String?
+  zoomPassword  String?
+  zoomLink      String?
 
   // Google Drive folder for case documents
-  driveFolderId           String?
+  driveFolderId String?
   // Storage layout version: 0 = legacy flat, 1 = sectioned (01-Generados / 02-Adjuntos / 03-Evidencias / 04-Historial)
-  layoutVersion           Int       @default(0) @map("layout_version")
+  layoutVersion Int     @default(0) @map("layout_version")
   // Optimistic locking: incremented on every update, checked before write
-  version                 Int       @default(0)
+  version       Int     @default(0)
 
   // Campos de ingresos/gastos del caso legacy
-  monthlyIncome           Decimal?
-  monthlyExpenses         Decimal?
-  otherIncomeDescription  String?
-  otherIncomeAmount       Decimal?
+  monthlyIncome            Decimal?
+  monthlyExpenses          Decimal?
+  otherIncomeDescription   String?
+  otherIncomeAmount        Decimal?
   hasEmployerCertification Boolean  @default(false)
 
   // Post-Acuerdo - Fechas y datos de resultado
-  paymentStartDate        DateTime?
-  agreementValidityDate   DateTime?
-  approvalPercentage      Decimal?
+  paymentStartDate      DateTime?
+  agreementValidityDate DateTime?
+  approvalPercentage    Decimal?
 
   // Fracaso - Datos específicos
-  failureDate             DateTime?
-  failureType             String?
+  failureDate DateTime?
+  failureType String?
 
   // Acuerdo Bilateral
-  isBilateral             Boolean   @default(false)
+  isBilateral              Boolean @default(false)
   bilateralAgreementNumber String?
-  bilateralCreditorId     String?
+  bilateralCreditorId      String?
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección II: Cónyuge
   // ============================================================
-  conyugeTipoIdentificacion    String?   @map("conyuge_tipo_identificacion")
-  conyugeIdentificacion        String?   @map("conyuge_identificacion")
-  conyugePrimerNombre          String?   @map("conyuge_primer_nombre")
-  conyugeSegundoNombre         String?   @map("conyuge_segundo_nombre")
-  conyugePrimerApellido        String?   @map("conyuge_primer_apellido")
-  conyugeSegundoApellido       String?   @map("conyuge_segundo_apellido")
-  conyugeNombreCompleto        String?   @map("conyuge_nombre_completo")
-  conyugeTelefono              String?   @map("conyuge_telefono")
-  conyugeCorreo                String?   @map("conyuge_correo")
-  sociedadConyugalDisuelta     Boolean   @default(false) @map("sociedad_conyugal_disuelta")
+  conyugeTipoIdentificacion String? @map("conyuge_tipo_identificacion")
+  conyugeIdentificacion     String? @map("conyuge_identificacion")
+  conyugePrimerNombre       String? @map("conyuge_primer_nombre")
+  conyugeSegundoNombre      String? @map("conyuge_segundo_nombre")
+  conyugePrimerApellido     String? @map("conyuge_primer_apellido")
+  conyugeSegundoApellido    String? @map("conyuge_segundo_apellido")
+  conyugeNombreCompleto     String? @map("conyuge_nombre_completo")
+  conyugeTelefono           String? @map("conyuge_telefono")
+  conyugeCorreo             String? @map("conyuge_correo")
+  sociedadConyugalDisuelta  Boolean @default(false) @map("sociedad_conyugal_disuelta")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección III: Información Laboral y Económica
   // ============================================================
-  deudorOcupacion              String?   @map("deudor_ocupacion")
-  deudorProfesion              String?   @map("deudor_profesion")
-  deudorActividadEconomica     String?   @map("deudor_actividad_economica")
-  deudorTipoVinculacion        String?   @map("deudor_tipo_vinculacion")
-  deudorNombreEmpleador        String?   @map("deudor_nombre_empleador")
-  deudorNitEmpleador           String?   @map("deudor_nit_empleador")
+  deudorOcupacion           String?  @map("deudor_ocupacion")
+  deudorProfesion           String?  @map("deudor_profesion")
+  deudorActividadEconomica  String?  @map("deudor_actividad_economica")
+  deudorTipoVinculacion     String?  @map("deudor_tipo_vinculacion")
+  deudorNombreEmpleador     String?  @map("deudor_nombre_empleador")
+  deudorNitEmpleador        String?  @map("deudor_nit_empleador")
   // Ingresos
-  ingresoPrincipalMensual      Decimal?  @map("ingreso_principal_mensual")
-  otrosIngresosMensuales       Decimal?  @map("otros_ingresos_mensuales")
-  totalIngresosMensuales       Decimal?  @map("total_ingresos_mensuales")
-  ingresosVariablesPromedio    Decimal?  @map("ingresos_variables_promedio")
-  ingresosNoOperacionales      Decimal?  @map("ingresos_no_operacionales")
+  ingresoPrincipalMensual   Decimal? @map("ingreso_principal_mensual")
+  otrosIngresosMensuales    Decimal? @map("otros_ingresos_mensuales")
+  totalIngresosMensuales    Decimal? @map("total_ingresos_mensuales")
+  ingresosVariablesPromedio Decimal? @map("ingresos_variables_promedio")
+  ingresosNoOperacionales   Decimal? @map("ingresos_no_operacionales")
   // Gastos
-  gastosVivienda               Decimal?  @map("gastos_vivienda")
-  gastosAlimentacion           Decimal?  @map("gastos_alimentacion")
-  gastosServiciosPublicos      Decimal?  @map("gastos_servicios_publicos")
-  gastosTransporte             Decimal?  @map("gastos_transporte")
-  gastosEducacion              Decimal?  @map("gastos_educacion")
-  gastosSalud                  Decimal?  @map("gastos_salud")
-  otrosGastos                  Decimal?  @map("otros_gastos")
-  totalGastosMensuales         Decimal?  @map("total_gastos_mensuales")
+  gastosVivienda            Decimal? @map("gastos_vivienda")
+  gastosAlimentacion        Decimal? @map("gastos_alimentacion")
+  gastosServiciosPublicos   Decimal? @map("gastos_servicios_publicos")
+  gastosTransporte          Decimal? @map("gastos_transporte")
+  gastosEducacion           Decimal? @map("gastos_educacion")
+  gastosSalud               Decimal? @map("gastos_salud")
+  otrosGastos               Decimal? @map("otros_gastos")
+  totalGastosMensuales      Decimal? @map("total_gastos_mensuales")
   // Capacidad económica
-  capacidadPagoEstimada        Decimal?  @map("capacidad_pago_estimada")
-  patrimonioTotalEstimado      Decimal?  @map("patrimonio_total_estimado")
-  pasivoTotalEstimado          Decimal?  @map("pasivo_total_estimado")
+  capacidadPagoEstimada     Decimal? @map("capacidad_pago_estimada")
+  patrimonioTotalEstimado   Decimal? @map("patrimonio_total_estimado")
+  pasivoTotalEstimado       Decimal? @map("pasivo_total_estimado")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IV: Declaración de Cesación de Pagos
   // ============================================================
-  cesacionPagos                Boolean   @default(false) @map("cesacion_pagos")
-  fechaCesacionPagos           DateTime? @map("fecha_cesacion_pagos")
-  numeroAcreedoresActual       Int?      @map("numero_acreedores_actual")
-  porcentajePasivoEnMora       Decimal?  @map("porcentaje_pasivo_en_mora")
-  obligacionesEnMora90Dias     Boolean   @default(false) @map("obligaciones_en_mora_90_dias")
-  procesosEjecutivosVigentes   Boolean   @default(false) @map("procesos_ejecutivos_vigentes")
+  cesacionPagos              Boolean   @default(false) @map("cesacion_pagos")
+  fechaCesacionPagos         DateTime? @map("fecha_cesacion_pagos")
+  numeroAcreedoresActual     Int?      @map("numero_acreedores_actual")
+  porcentajePasivoEnMora     Decimal?  @map("porcentaje_pasivo_en_mora")
+  obligacionesEnMora90Dias   Boolean   @default(false) @map("obligaciones_en_mora_90_dias")
+  procesosEjecutivosVigentes Boolean   @default(false) @map("procesos_ejecutivos_vigentes")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección VIII: Declaraciones del Deudor
   // ============================================================
-  declaracionVeracidadInformacion      Boolean @default(false) @map("declaracion_veracidad_informacion")
-  manifestacionBuenaFe                 Boolean @default(false) @map("manifestacion_buena_fe")
-  manifestacionNoOcultamientoBienes    Boolean @default(false) @map("manifestacion_no_ocultamiento_bienes")
-  autorizacionNotificacionesCorreo     Boolean @default(false) @map("autorizacion_notificaciones_correo")
-  autorizacionConsultaCentralesRiesgo  Boolean @default(false) @map("autorizacion_consulta_centrales_riesgo")
-  autorizacionTratamientoDatos         Boolean @default(false) @map("autorizacion_tratamiento_datos")
-  declaracionNoOmisiones               Boolean @default(false) @map("declaracion_no_omisiones")
-  declaracionConocimientoNorma         Boolean @default(false) @map("declaracion_conocimiento_norma")
+  declaracionVeracidadInformacion     Boolean @default(false) @map("declaracion_veracidad_informacion")
+  manifestacionBuenaFe                Boolean @default(false) @map("manifestacion_buena_fe")
+  manifestacionNoOcultamientoBienes   Boolean @default(false) @map("manifestacion_no_ocultamiento_bienes")
+  autorizacionNotificacionesCorreo    Boolean @default(false) @map("autorizacion_notificaciones_correo")
+  autorizacionConsultaCentralesRiesgo Boolean @default(false) @map("autorizacion_consulta_centrales_riesgo")
+  autorizacionTratamientoDatos        Boolean @default(false) @map("autorizacion_tratamiento_datos")
+  declaracionNoOmisiones              Boolean @default(false) @map("declaracion_no_omisiones")
+  declaracionConocimientoNorma        Boolean @default(false) @map("declaracion_conocimiento_norma")
 
   // ============================================================
   // CONCILIACIÓN - Campos específicos del servicio de conciliación
   // ============================================================
-  concAsunto                           String?   @map("conc_asunto")
-  concDescripcionHechos                String?   @map("conc_descripcion_hechos") @db.Text
-  concPretensiones                     String?   @map("conc_pretensiones") @db.Text
-  concCuantiaPesos                     String?   @map("conc_cuantia_pesos")
-  concCuantiaLetras                    String?   @map("conc_cuantia_letras")
-  concRelacionPruebas                  String?   @map("conc_relacion_pruebas") @db.Text
-  concOtroMedioComunicacion            String?   @map("conc_otro_medio_comunicacion")
-  concFechaNacimiento                  String?   @map("conc_fecha_nacimiento")
+  concAsunto                         String? @map("conc_asunto")
+  concDescripcionHechos              String? @map("conc_descripcion_hechos") @db.Text
+  concPretensiones                   String? @map("conc_pretensiones") @db.Text
+  concCuantiaPesos                   String? @map("conc_cuantia_pesos")
+  concCuantiaLetras                  String? @map("conc_cuantia_letras")
+  concRelacionPruebas                String? @map("conc_relacion_pruebas") @db.Text
+  concOtroMedioComunicacion          String? @map("conc_otro_medio_comunicacion")
+  concFechaNacimiento                String? @map("conc_fecha_nacimiento")
   // Convocante (solicitante)
-  concConvocanteName                   String?   @map("conc_convocante_name")
-  concConvocanteTipoId                 String?   @map("conc_convocante_tipo_id")
-  concConvocanteId                     String?   @map("conc_convocante_id")
-  concConvocanteDireccion              String?   @map("conc_convocante_direccion")
-  concConvocanteCiudad                 String?   @map("conc_convocante_ciudad")
-  concConvocanteCorreo                 String?   @map("conc_convocante_correo")
-  concConvocanteCel                    String?   @map("conc_convocante_cel")
+  concConvocanteName                 String? @map("conc_convocante_name")
+  concConvocanteTipoId               String? @map("conc_convocante_tipo_id")
+  concConvocanteId                   String? @map("conc_convocante_id")
+  concConvocanteDireccion            String? @map("conc_convocante_direccion")
+  concConvocanteCiudad               String? @map("conc_convocante_ciudad")
+  concConvocanteCorreo               String? @map("conc_convocante_correo")
+  concConvocanteCel                  String? @map("conc_convocante_cel")
   // Convocado (contraparte)
-  concConvocadoName                    String?   @map("conc_convocado_name")
-  concConvocadoTipoId                  String?   @map("conc_convocado_tipo_id")
-  concConvocadoId                      String?   @map("conc_convocado_id")
-  concConvocadoDireccion               String?   @map("conc_convocado_direccion")
-  concConvocadoCiudad                  String?   @map("conc_convocado_ciudad")
-  concConvocadoCorreo                  String?   @map("conc_convocado_correo")
-  concConvocadoCel                     String?   @map("conc_convocado_cel")
+  concConvocadoName                  String? @map("conc_convocado_name")
+  concConvocadoTipoId                String? @map("conc_convocado_tipo_id")
+  concConvocadoId                    String? @map("conc_convocado_id")
+  concConvocadoDireccion             String? @map("conc_convocado_direccion")
+  concConvocadoCiudad                String? @map("conc_convocado_ciudad")
+  concConvocadoCorreo                String? @map("conc_convocado_correo")
+  concConvocadoCel                   String? @map("conc_convocado_cel")
   // Representante legal
-  concRepLegalName                     String?   @map("conc_rep_legal_name")
-  concRepLegalTipoId                   String?   @map("conc_rep_legal_tipo_id")
-  concRepLegalId                       String?   @map("conc_rep_legal_id")
-  concRepLegalDireccion                String?   @map("conc_rep_legal_direccion")
-  concRepLegalCiudad                   String?   @map("conc_rep_legal_ciudad")
-  concRepLegalCorreo                   String?   @map("conc_rep_legal_correo")
-  concRepLegalCel                      String?   @map("conc_rep_legal_cel")
+  concRepLegalName                   String? @map("conc_rep_legal_name")
+  concRepLegalTipoId                 String? @map("conc_rep_legal_tipo_id")
+  concRepLegalId                     String? @map("conc_rep_legal_id")
+  concRepLegalDireccion              String? @map("conc_rep_legal_direccion")
+  concRepLegalCiudad                 String? @map("conc_rep_legal_ciudad")
+  concRepLegalCorreo                 String? @map("conc_rep_legal_correo")
+  concRepLegalCel                    String? @map("conc_rep_legal_cel")
   // Apoderado convocante
-  concApoderadoConvocanteName          String?   @map("conc_apoderado_convocante_name")
-  concApoderadoConvocanteTipoId        String?   @map("conc_apoderado_convocante_tipo_id")
-  concApoderadoConvocanteId            String?   @map("conc_apoderado_convocante_id")
-  concApoderadoConvocanteDireccion     String?   @map("conc_apoderado_convocante_direccion")
-  concApoderadoConvocanteCiudad        String?   @map("conc_apoderado_convocante_ciudad")
-  concApoderadoConvocanteCorreo        String?   @map("conc_apoderado_convocante_correo")
-  concApoderadoConvocanteCel           String?   @map("conc_apoderado_convocante_cel")
-  concApoderadoConvocanteTP            String?   @map("conc_apoderado_convocante_tp")
+  concApoderadoConvocanteName        String? @map("conc_apoderado_convocante_name")
+  concApoderadoConvocanteTipoId      String? @map("conc_apoderado_convocante_tipo_id")
+  concApoderadoConvocanteId          String? @map("conc_apoderado_convocante_id")
+  concApoderadoConvocanteDireccion   String? @map("conc_apoderado_convocante_direccion")
+  concApoderadoConvocanteCiudad      String? @map("conc_apoderado_convocante_ciudad")
+  concApoderadoConvocanteCorreo      String? @map("conc_apoderado_convocante_correo")
+  concApoderadoConvocanteCel         String? @map("conc_apoderado_convocante_cel")
+  concApoderadoConvocanteTP          String? @map("conc_apoderado_convocante_tp")
   // Apoderado convocado
-  concApoderadoConvocadoName           String?   @map("conc_apoderado_convocado_name")
-  concApoderadoConvocadoTipoId         String?   @map("conc_apoderado_convocado_tipo_id")
-  concApoderadoConvocadoId             String?   @map("conc_apoderado_convocado_id")
-  concApoderadoConvocadoCorreo         String?   @map("conc_apoderado_convocado_correo")
-  concApoderadoConvocadoCel            String?   @map("conc_apoderado_convocado_cel")
-  concApoderadoConvocadoTP             String?   @map("conc_apoderado_convocado_tp")
+  concApoderadoConvocadoName         String? @map("conc_apoderado_convocado_name")
+  concApoderadoConvocadoTipoId       String? @map("conc_apoderado_convocado_tipo_id")
+  concApoderadoConvocadoId           String? @map("conc_apoderado_convocado_id")
+  concApoderadoConvocadoCorreo       String? @map("conc_apoderado_convocado_correo")
+  concApoderadoConvocadoCel          String? @map("conc_apoderado_convocado_cel")
+  concApoderadoConvocadoTP           String? @map("conc_apoderado_convocado_tp")
   // Conciliadora
-  concConciliadoraName                 String?   @map("conc_conciliadora_name")
-  concConciliadoraCC                   String?   @map("conc_conciliadora_cc")
-  concConciliadoraTP                   String?   @map("conc_conciliadora_tp")
+  concConciliadoraName               String? @map("conc_conciliadora_name")
+  concConciliadoraCC                 String? @map("conc_conciliadora_cc")
+  concConciliadoraTP                 String? @map("conc_conciliadora_tp")
   // Acuerdo/Acta
-  concAcuerdoConciliatorio             String?   @map("conc_acuerdo_conciliatorio") @db.Text
-  concInfoAdicional                    String?   @map("conc_info_adicional") @db.Text
+  concAcuerdoConciliatorio           String? @map("conc_acuerdo_conciliatorio") @db.Text
+  concInfoAdicional                  String? @map("conc_info_adicional") @db.Text
   // Alimentos
-  concClausulaPrimeroAlimentos         String?   @map("conc_clausula_primero_alimentos") @db.Text
-  concClausulaSegundoAlimentos         String?   @map("conc_clausula_segundo_alimentos") @db.Text
-  concClausulaTerceroAlimentos         String?   @map("conc_clausula_tercero_alimentos") @db.Text
-  concNombreMenor                      String?   @map("conc_nombre_menor")
+  concClausulaPrimeroAlimentos       String? @map("conc_clausula_primero_alimentos") @db.Text
+  concClausulaSegundoAlimentos       String? @map("conc_clausula_segundo_alimentos") @db.Text
+  concClausulaTerceroAlimentos       String? @map("conc_clausula_tercero_alimentos") @db.Text
+  concNombreMenor                    String? @map("conc_nombre_menor")
   // Cláusulas adicionales (texto libre — modelo simple, multi-cláusula = futuro)
-  concNumeroClausula                   String?   @map("conc_numero_clausula")
-  concTextoClausula                    String?   @map("conc_texto_clausula") @db.Text
-  concNumeroClausulaAdicional          String?   @map("conc_numero_clausula_adicional")
-  concTextoClausulaAdicional           String?   @map("conc_texto_clausula_adicional") @db.Text
+  concNumeroClausula                 String? @map("conc_numero_clausula")
+  concTextoClausula                  String? @map("conc_texto_clausula") @db.Text
+  concNumeroClausulaAdicional        String? @map("conc_numero_clausula_adicional")
+  concTextoClausulaAdicional         String? @map("conc_texto_clausula_adicional") @db.Text
   // Situacion bienes/alimentos
-  concSituacionBienes                  String?   @map("conc_situacion_bienes") @db.Text
-  concSituacionAlimentos               String?   @map("conc_situacion_alimentos") @db.Text
+  concSituacionBienes                String? @map("conc_situacion_bienes") @db.Text
+  concSituacionAlimentos             String? @map("conc_situacion_alimentos") @db.Text
   // Informe/Terminacion
-  concDescripcionResultado             String?   @map("conc_descripcion_resultado") @db.Text
-  concTipoConstanciaSolicitada         String?   @map("conc_tipo_constancia_solicitada")
-  concDescripcionCausaAnormal          String?   @map("conc_descripcion_causa_anormal") @db.Text
-  concHoraProgramada                   String?   @map("conc_hora_programada")
+  concDescripcionResultado           String? @map("conc_descripcion_resultado") @db.Text
+  concTipoConstanciaSolicitada       String? @map("conc_tipo_constancia_solicitada")
+  concDescripcionCausaAnormal        String? @map("conc_descripcion_causa_anormal") @db.Text
+  concHoraProgramada                 String? @map("conc_hora_programada")
   // Causa de terminación / resultado (enum-like: mutual-exclusive flags)
-  concCausaTerminacion                 String?   @map("conc_causa_terminacion")
-  concResultadoInforme                 String?   @map("conc_resultado_informe")
+  concCausaTerminacion               String? @map("conc_causa_terminacion")
+  concResultadoInforme               String? @map("conc_resultado_informe")
   // JSON arrays for repeatable sections (handlebars-lite {{#each}})
-  concMenoresAlimentos                 Json?     @map("conc_menores_alimentos")
-  concMenoresUnion                     Json?     @map("conc_menores_union")
-  concClausulasAdicionalesAlimentos    Json?     @map("conc_clausulas_adicionales_alimentos")
-  concClausulasAdicionalesUnion        Json?     @map("conc_clausulas_adicionales_union")
-  concClausulasAdicionalesDisolucion   Json?     @map("conc_clausulas_adicionales_disolucion")
-  concClausulasAcuerdo                 Json?     @map("conc_clausulas_acuerdo")
+  concMenoresAlimentos               Json?   @map("conc_menores_alimentos")
+  concMenoresUnion                   Json?   @map("conc_menores_union")
+  concClausulasAdicionalesAlimentos  Json?   @map("conc_clausulas_adicionales_alimentos")
+  concClausulasAdicionalesUnion      Json?   @map("conc_clausulas_adicionales_union")
+  concClausulasAdicionalesDisolucion Json?   @map("conc_clausulas_adicionales_disolucion")
+  concClausulasAcuerdo               Json?   @map("conc_clausulas_acuerdo")
 
   // ============================================================
   // ACUERDO DE APOYO - Campos específicos del servicio
   // ============================================================
-  apoyoAsunto                          String?   @map("apoyo_asunto")
-  apoyoDescripcionHechos               String?   @map("apoyo_descripcion_hechos") @db.Text
-  apoyoPretensiones                    String?   @map("apoyo_pretensiones") @db.Text
-  apoyoMontoMensual                    String?   @map("apoyo_monto_mensual")
-  apoyoPlazoMeses                      String?   @map("apoyo_plazo_meses")
-  apoyoCondiciones                     String?   @map("apoyo_condiciones") @db.Text
-  apoyoTipoApoyo                       String?   @map("apoyo_tipo_apoyo")
+  apoyoAsunto                String? @map("apoyo_asunto")
+  apoyoDescripcionHechos     String? @map("apoyo_descripcion_hechos") @db.Text
+  apoyoPretensiones          String? @map("apoyo_pretensiones") @db.Text
+  apoyoMontoMensual          String? @map("apoyo_monto_mensual")
+  apoyoPlazoMeses            String? @map("apoyo_plazo_meses")
+  apoyoCondiciones           String? @map("apoyo_condiciones") @db.Text
+  apoyoTipoApoyo             String? @map("apoyo_tipo_apoyo")
   // Beneficiario (quien recibe el apoyo)
-  apoyoBeneficiarioName                String?   @map("apoyo_beneficiario_name")
-  apoyoBeneficiarioTipoId              String?   @map("apoyo_beneficiario_tipo_id")
-  apoyoBeneficiarioId                  String?   @map("apoyo_beneficiario_id")
-  apoyoBeneficiarioDireccion           String?   @map("apoyo_beneficiario_direccion")
-  apoyoBeneficiarioCiudad              String?   @map("apoyo_beneficiario_ciudad")
-  apoyoBeneficiarioCorreo              String?   @map("apoyo_beneficiario_correo")
-  apoyoBeneficiarioCel                 String?   @map("apoyo_beneficiario_cel")
+  apoyoBeneficiarioName      String? @map("apoyo_beneficiario_name")
+  apoyoBeneficiarioTipoId    String? @map("apoyo_beneficiario_tipo_id")
+  apoyoBeneficiarioId        String? @map("apoyo_beneficiario_id")
+  apoyoBeneficiarioDireccion String? @map("apoyo_beneficiario_direccion")
+  apoyoBeneficiarioCiudad    String? @map("apoyo_beneficiario_ciudad")
+  apoyoBeneficiarioCorreo    String? @map("apoyo_beneficiario_correo")
+  apoyoBeneficiarioCel       String? @map("apoyo_beneficiario_cel")
   // Prestador de apoyo (quien se compromete)
-  apoyoPrestadorName                   String?   @map("apoyo_prestador_name")
-  apoyoPrestadorTipoId                 String?   @map("apoyo_prestador_tipo_id")
-  apoyoPrestadorId                     String?   @map("apoyo_prestador_id")
-  apoyoPrestadorDireccion              String?   @map("apoyo_prestador_direccion")
-  apoyoPrestadorCiudad                 String?   @map("apoyo_prestador_ciudad")
-  apoyoPrestadorCorreo                 String?   @map("apoyo_prestador_correo")
-  apoyoPrestadorCel                    String?   @map("apoyo_prestador_cel")
-  apoyoPrestadorRelacion               String?   @map("apoyo_prestador_relacion")
+  apoyoPrestadorName         String? @map("apoyo_prestador_name")
+  apoyoPrestadorTipoId       String? @map("apoyo_prestador_tipo_id")
+  apoyoPrestadorId           String? @map("apoyo_prestador_id")
+  apoyoPrestadorDireccion    String? @map("apoyo_prestador_direccion")
+  apoyoPrestadorCiudad       String? @map("apoyo_prestador_ciudad")
+  apoyoPrestadorCorreo       String? @map("apoyo_prestador_correo")
+  apoyoPrestadorCel          String? @map("apoyo_prestador_cel")
+  apoyoPrestadorRelacion     String? @map("apoyo_prestador_relacion")
   // Conciliadora asignada
-  apoyoConciliadoraName                String?   @map("apoyo_conciliadora_name")
-  apoyoConciliadoraCC                  String?   @map("apoyo_conciliadora_cc")
-  apoyoConciliadoraTP                  String?   @map("apoyo_conciliadora_tp")
+  apoyoConciliadoraName      String? @map("apoyo_conciliadora_name")
+  apoyoConciliadoraCC        String? @map("apoyo_conciliadora_cc")
+  apoyoConciliadoraTP        String? @map("apoyo_conciliadora_tp")
   // Acuerdo y resultado
-  apoyoAcuerdo                         String?   @map("apoyo_acuerdo") @db.Text
-  apoyoResultado                       String?   @map("apoyo_resultado") @db.Text
-  apoyoCausaTerminacion                String?   @map("apoyo_causa_terminacion")
+  apoyoAcuerdo               String? @map("apoyo_acuerdo") @db.Text
+  apoyoResultado             String? @map("apoyo_resultado") @db.Text
+  apoyoCausaTerminacion      String? @map("apoyo_causa_terminacion")
   // Cláusulas del acuerdo (JSON array: [{NUMERO_CLAUSULA, TEXTO_CLAUSULA}])
-  apoyoClausulas                       Json?     @map("apoyo_clausulas")
+  apoyoClausulas             Json?   @map("apoyo_clausulas")
 
   // Desglose de servicios de manutención por tipo — gas, agua, luz y los que el
   // operador agregue con "+ Otros".
@@ -398,68 +398,68 @@ model Case {
   // Dato INTERNO del operador: NO se lleva a los documentos generados. El monto
   // agregado sigue siendo `gastosServiciosPublicos`, que es el que alimenta la
   // propuesta de pago y el Excel; esto es el detalle de qué servicios hay.
-  serviciosManutencion                 Json?     @map("servicios_manutencion")
+  serviciosManutencion Json? @map("servicios_manutencion")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
-  propuestaPlazoMeses          Int?      @map("propuesta_plazo_meses")
-  propuestaPeriodicidadPago    String?   @map("propuesta_periodicidad_pago")
-  propuestaTasaInteres         Decimal?  @map("propuesta_tasa_interes")
-  propuestaQuitaPromedio       Decimal?  @map("propuesta_quita_promedio")
-  propuestaFechaInicioPago     DateTime? @map("propuesta_fecha_inicio_pago")
-  propuestaObservaciones       String?   @map("propuesta_observaciones")
+  propuestaPlazoMeses       Int?      @map("propuesta_plazo_meses")
+  propuestaPeriodicidadPago String?   @map("propuesta_periodicidad_pago")
+  propuestaTasaInteres      Decimal?  @map("propuesta_tasa_interes")
+  propuestaQuitaPromedio    Decimal?  @map("propuesta_quita_promedio")
+  propuestaFechaInicioPago  DateTime? @map("propuesta_fecha_inicio_pago")
+  propuestaObservaciones    String?   @map("propuesta_observaciones")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección X: Documentos Anexos
   // ============================================================
-  anexaSoporteIngresos         Boolean   @default(false) @map("anexa_soporte_ingresos")
-  anexaExtractosBancarios      Boolean   @default(false) @map("anexa_extractos_bancarios")
-  anexaCertificadosDeuda       Boolean   @default(false) @map("anexa_certificados_deuda")
-  anexaCertificadoTradicion    Boolean   @default(false) @map("anexa_certificado_tradicion")
-  anexaRelacionProcesos        Boolean   @default(false) @map("anexa_relacion_procesos")
-  anexaDeclaracionRenta        Boolean   @default(false) @map("anexa_declaracion_renta")
-  anexaDocumentoIdentidad      Boolean   @default(false) @map("anexa_documento_identidad")
+  anexaSoporteIngresos      Boolean @default(false) @map("anexa_soporte_ingresos")
+  anexaExtractosBancarios   Boolean @default(false) @map("anexa_extractos_bancarios")
+  anexaCertificadosDeuda    Boolean @default(false) @map("anexa_certificados_deuda")
+  anexaCertificadoTradicion Boolean @default(false) @map("anexa_certificado_tradicion")
+  anexaRelacionProcesos     Boolean @default(false) @map("anexa_relacion_procesos")
+  anexaDeclaracionRenta     Boolean @default(false) @map("anexa_declaracion_renta")
+  anexaDocumentoIdentidad   Boolean @default(false) @map("anexa_documento_identidad")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección XI: Información del Apoderado
   // ============================================================
-  apoderadoNombreCompleto      String?   @map("apoderado_nombre_completo")
-  apoderadoTipoIdentificacion  String?   @map("apoderado_tipo_identificacion")
-  apoderadoIdentificacion      String?   @map("apoderado_identificacion")
-  apoderadoTarjetaProfesional  String?   @map("apoderado_tarjeta_profesional")
-  apoderadoDireccion           String?   @map("apoderado_direccion")
-  apoderadoTelefono            String?   @map("apoderado_telefono")
-  apoderadoCorreo              String?   @map("apoderado_correo")
-  existePoderOtorgado          Boolean   @default(false) @map("existe_poder_otorgado")
+  apoderadoNombreCompleto     String? @map("apoderado_nombre_completo")
+  apoderadoTipoIdentificacion String? @map("apoderado_tipo_identificacion")
+  apoderadoIdentificacion     String? @map("apoderado_identificacion")
+  apoderadoTarjetaProfesional String? @map("apoderado_tarjeta_profesional")
+  apoderadoDireccion          String? @map("apoderado_direccion")
+  apoderadoTelefono           String? @map("apoderado_telefono")
+  apoderadoCorreo             String? @map("apoderado_correo")
+  existePoderOtorgado         Boolean @default(false) @map("existe_poder_otorgado")
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección XII: Datos Radicación Interna (sistema)
   // ============================================================
-  expedienteNumero             String?   @map("expediente_numero")
-  expedienteAnio               Int?      @map("expediente_anio")
-  fechaRadicacion              DateTime? @map("fecha_radicacion_interna")
-  centroConciliacionNombre     String?   @map("centro_conciliacion_nombre")
-  conciliadorAsignado          String?   @map("conciliador_asignado")
-  ciudadRadicacion             String?   @map("ciudad_radicacion")
+  expedienteNumero         String?   @map("expediente_numero")
+  expedienteAnio           Int?      @map("expediente_anio")
+  fechaRadicacion          DateTime? @map("fecha_radicacion_interna")
+  centroConciliacionNombre String?   @map("centro_conciliacion_nombre")
+  conciliadorAsignado      String?   @map("conciliador_asignado")
+  ciudadRadicacion         String?   @map("ciudad_radicacion")
 
   // ============================================================
   // Relations
   // ============================================================
-  assets                  Asset[]
-  debtor                  Debtor         @relation(fields: [debtorId], references: [id])
-  operator                User           @relation(fields: [operatorId], references: [id])
-  tenant                  Tenant         @relation(fields: [tenantId], references: [id])
-  debts                   Debt[]
-  documents               Document[]
-  legalProcesses          LegalProcess[]
-  Notification            Notification[]
-  libranzas               Libranza[]
-  suspendedServices       SuspendedService[]
-  dependents              Dependent[]
-  apoderados              Apoderado[]
-  payments                Payment[]
-  generationRequests      DocumentGenerationRequest[]
+  assets             Asset[]
+  debtor             Debtor                      @relation(fields: [debtorId], references: [id])
+  operator           User                        @relation(fields: [operatorId], references: [id])
+  tenant             Tenant                      @relation(fields: [tenantId], references: [id])
+  debts              Debt[]
+  documents          Document[]
+  legalProcesses     LegalProcess[]
+  Notification       Notification[]
+  libranzas          Libranza[]
+  suspendedServices  SuspendedService[]
+  dependents         Dependent[]
+  apoderados         Apoderado[]
+  payments           Payment[]
+  generationRequests DocumentGenerationRequest[]
 
   @@unique([caseNumber, tenantId])
 }
@@ -555,50 +555,50 @@ model Debtor {
   tenantId         String
 
   // Additional income details (legacy)
-  otherIncomeDescription String?
-  otherIncomeAmount      Decimal?
-  hasEmployerCertification Boolean @default(false)
+  otherIncomeDescription   String?
+  otherIncomeAmount        Decimal?
+  hasEmployerCertification Boolean  @default(false)
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección I: Identificación del Deudor
   // ============================================================
   // 1.1 Datos personales
-  deudorTipoIdentificacion     String?   @map("deudor_tipo_identificacion")
-  deudorIdentificacion         String?   @map("deudor_identificacion")
-  deudorPrimerNombre           String?   @map("deudor_primer_nombre")
-  deudorSegundoNombre          String?   @map("deudor_segundo_nombre")
-  deudorPrimerApellido         String?   @map("deudor_primer_apellido")
-  deudorSegundoApellido        String?   @map("deudor_segundo_apellido")
-  deudorNombreCompleto         String?   @map("deudor_nombre_completo")
-  deudorFechaNacimiento        DateTime? @map("deudor_fecha_nacimiento")
-  deudorLugarNacimiento        String?   @map("deudor_lugar_nacimiento")
-  deudorNacionalidad           String?   @map("deudor_nacionalidad")
+  deudorTipoIdentificacion  String?   @map("deudor_tipo_identificacion")
+  deudorIdentificacion      String?   @map("deudor_identificacion")
+  deudorPrimerNombre        String?   @map("deudor_primer_nombre")
+  deudorSegundoNombre       String?   @map("deudor_segundo_nombre")
+  deudorPrimerApellido      String?   @map("deudor_primer_apellido")
+  deudorSegundoApellido     String?   @map("deudor_segundo_apellido")
+  deudorNombreCompleto      String?   @map("deudor_nombre_completo")
+  deudorFechaNacimiento     DateTime? @map("deudor_fecha_nacimiento")
+  deudorLugarNacimiento     String?   @map("deudor_lugar_nacimiento")
+  deudorNacionalidad        String?   @map("deudor_nacionalidad")
   // 1.2 Información civil
-  deudorEstadoCivil            String?   @map("deudor_estado_civil")
-  deudorRegimenMatrimonial     String?   @map("deudor_regimen_matrimonial")
-  sociedadConyugalVigente      Boolean   @default(false) @map("sociedad_conyugal_vigente")
-  existeCapitulaciones         Boolean   @default(false) @map("existe_capitulaciones")
+  deudorEstadoCivil         String?   @map("deudor_estado_civil")
+  deudorRegimenMatrimonial  String?   @map("deudor_regimen_matrimonial")
+  sociedadConyugalVigente   Boolean   @default(false) @map("sociedad_conyugal_vigente")
+  existeCapitulaciones      Boolean   @default(false) @map("existe_capitulaciones")
   // 1.3 Información de contacto
-  deudorDireccionResidencia    String?   @map("deudor_direccion_residencia")
-  deudorCiudad                 String?   @map("deudor_ciudad_form")
-  deudorDepartamento           String?   @map("deudor_departamento_form")
-  deudorCodigoPostal           String?   @map("deudor_codigo_postal")
-  deudorTelefonoFijo           String?   @map("deudor_telefono_fijo")
-  deudorTelefonoCelular        String?   @map("deudor_telefono_celular")
-  deudorCorreoElectronico      String?   @map("deudor_correo_electronico")
+  deudorDireccionResidencia String?   @map("deudor_direccion_residencia")
+  deudorCiudad              String?   @map("deudor_ciudad_form")
+  deudorDepartamento        String?   @map("deudor_departamento_form")
+  deudorCodigoPostal        String?   @map("deudor_codigo_postal")
+  deudorTelefonoFijo        String?   @map("deudor_telefono_fijo")
+  deudorTelefonoCelular     String?   @map("deudor_telefono_celular")
+  deudorCorreoElectronico   String?   @map("deudor_correo_electronico")
 
-  tenant           Tenant    @relation(fields: [tenantId], references: [id])
-  assets           Asset[]
-  cases            Case[]
-  debts            Debt[]
-  payments         Payment[]
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  assets   Asset[]
+  cases    Case[]
+  debts    Debt[]
+  payments Payment[]
 
   @@unique([idNumber, tenantId])
   @@unique([email, tenantId])
 }
 
 model Debt {
-  id           String   @id @default(cuid())
+  id           String  @id @default(cuid())
   amount       Decimal
   interestRate Float
   type         String
@@ -613,27 +613,35 @@ model Debt {
   creditorEmail        String?
   capitalAmount        Decimal?
   interestAmount       Decimal?
-  isDeferred           Boolean  @default(false)
+  isDeferred           Boolean   @default(false)
   documentType         String?
   grantDate            DateTime?
   dueDate              DateTime?
   creditClassification String?
-  hasActiveLibranza    Boolean  @default(false)
+  hasActiveLibranza    Boolean   @default(false)
   creditorClass        String?
   percentageOfTotal    Decimal?
   daysOverdue          Int?
 
-  // Co-debtor/Guarantor info
-  coDebtorName         String?
-  coDebtorCity         String?
-  coDebtorAddress      String?
-  coDebtorPhone        String?
-  coDebtorEmail        String?
+  // Casillas "Desconozco" del formulario de acreedores. El deudor puede
+  // manifestar bajo juramento que no conoce con exactitud la tasa o las fechas
+  // del credito (art. 539 CGP), y la Solicitud tiene que imprimir "Desconoce",
+  // que no es lo mismo que dejar el campo vacio. Ver features/case/datos-desconocidos.ts.
+  interestRateUnknown Boolean @default(false) @map("interest_rate_unknown")
+  grantDateUnknown    Boolean @default(false) @map("grant_date_unknown")
+  dueDateUnknown      Boolean @default(false) @map("due_date_unknown")
 
-  case         Case     @relation(fields: [caseId], references: [id])
-  creditor     Creditor @relation(fields: [creditorId], references: [id])
-  debtor       Debtor?  @relation(fields: [debtorId], references: [id])
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  // Co-debtor/Guarantor info
+  coDebtorName    String?
+  coDebtorCity    String?
+  coDebtorAddress String?
+  coDebtorPhone   String?
+  coDebtorEmail   String?
+
+  case     Case     @relation(fields: [caseId], references: [id])
+  creditor Creditor @relation(fields: [creditorId], references: [id])
+  debtor   Debtor?  @relation(fields: [debtorId], references: [id])
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
 }
 
 model Asset {
@@ -646,35 +654,35 @@ model Asset {
   tenantId String
 
   // Real Estate specific fields
-  propertyType          String?
-  address               String?
-  registrationNumber    String?
-  encumbrance           String?
-  affectation           String?
-  precautionaryMeasure  String?
-  proofDocument         String?
-  isFamilyHome          Boolean @default(false)
+  propertyType           String?
+  address                String?
+  registrationNumber     String?
+  encumbrance            String?
+  affectation            String?
+  precautionaryMeasure   String?
+  proofDocument          String?
+  isFamilyHome           Boolean @default(false)
   isInalienablePatrimony Boolean @default(false)
 
   // Personal Property specific fields
-  brand                 String?
-  model                 String?
-  condition             String?
-  licensePlate          String?
-  transitAuthority      String?
+  brand                  String?
+  model                  String?
+  condition              String?
+  licensePlate           String?
+  transitAuthority       String?
   // ¿El vehículo tiene comparendos o impuestos pendientes de pago?
   // Solo aplica a bienes de tipo VEHICULO. De acá cuelga un párrafo dirigido a
   // la Secretaría de Hacienda que todavía NO está implementado: falta el texto
   // legal. Este PR es solo la captura.
-  hasPendingFinesOrTaxes Boolean @default(false)
-  guaranteeInFavorOf    String?
-  guaranteeAmount       Decimal?
-  material              String?
-  description           String?
+  hasPendingFinesOrTaxes Boolean  @default(false)
+  guaranteeInFavorOf     String?
+  guaranteeAmount        Decimal?
+  material               String?
+  description            String?
 
-  case     Case    @relation(fields: [caseId], references: [id])
-  debtor   Debtor? @relation(fields: [debtorId], references: [id])
-  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  case   Case    @relation(fields: [caseId], references: [id])
+  debtor Debtor? @relation(fields: [debtorId], references: [id])
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
 }
 
 model Creditor {
@@ -718,24 +726,24 @@ model Contact {
 }
 
 model LegalProcess {
-  id                    String   @id @default(cuid())
-  description           String
-  caseId                String
-  tenantId              String
+  id                   String  @id @default(cuid())
+  description          String
+  caseId               String
+  tenantId             String
   // Valor de TIPOS_PROCESO_JUDICIAL (src/features/case/proceso-judicial-tipos.ts).
   // String y no enum de Prisma: el schema no usa enums, y migrar los valores ya
   // guardados en producción no aporta nada acá.
-  processType           String?
+  processType          String?
   // Texto libre, solo cuando processType == 'OTROS'.
-  processTypeOther      String?
-  plaintiff             String?
-  court                 String?
+  processTypeOther     String?
+  plaintiff            String?
+  court                String?
   // Correo del juzgado: es a donde se manda el oficio de suspensión.
-  courtEmail            String?
-  fileNumber            String?
-  precautionaryMeasure  String?
-  case                  Case     @relation(fields: [caseId], references: [id])
-  tenant                Tenant   @relation(fields: [tenantId], references: [id])
+  courtEmail           String?
+  fileNumber           String?
+  precautionaryMeasure String?
+  case                 Case    @relation(fields: [caseId], references: [id])
+  tenant               Tenant  @relation(fields: [tenantId], references: [id])
 }
 
 // ============================================================
@@ -767,18 +775,18 @@ model Apoderado {
 }
 
 model User {
-  id               String         @id @default(cuid())
-  name             String
-  email            String
-  lastLogin        DateTime?
-  professionalCard String
-  phone            String
-  address          String
-  createdDate      DateTime       @default(now())
-  roleId           String
-  password         String?
-  mustChangePassword Boolean  @default(false) @map("must_change_password")
-  tenantId         String
+  id                 String         @id @default(cuid())
+  name               String
+  email              String
+  lastLogin          DateTime?
+  professionalCard   String
+  phone              String
+  address            String
+  createdDate        DateTime       @default(now())
+  roleId             String
+  password           String?
+  mustChangePassword Boolean        @default(false) @map("must_change_password")
+  tenantId           String
   assignedCases      Case[]
   role               Role           @relation(fields: [roleId], references: [id])
   tenant             Tenant         @relation(fields: [tenantId], references: [id])
@@ -860,20 +868,20 @@ model PasswordResetToken {
 }
 
 model AuditLog {
-  id            String   @id @default(cuid())
-  action        String   // created, updated, deleted
-  entityType    String   // case, debtor, creditor, user, role, contact, document
-  entityId      String
-  entityName    String
-  userId        String
-  userName      String
-  userCedula    String
-  description   String   // Mensaje completo de auditoría
-  metadata      Json?    // Datos adicionales opcionales (cambios, IPs, etc.)
-  tenantId      String
-  createdAt     DateTime @default(now())
+  id          String   @id @default(cuid())
+  action      String // created, updated, deleted
+  entityType  String // case, debtor, creditor, user, role, contact, document
+  entityId    String
+  entityName  String
+  userId      String
+  userName    String
+  userCedula  String
+  description String // Mensaje completo de auditoría
+  metadata    Json? // Datos adicionales opcionales (cambios, IPs, etc.)
+  tenantId    String
+  createdAt   DateTime @default(now())
 
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId, createdAt])
   @@index([tenantId, entityType])
@@ -882,31 +890,31 @@ model AuditLog {
 }
 
 model Libranza {
-  id               String  @id @default(cuid())
-  payerName        String
-  payerAddress     String?
-  payerEmail       String?
-  payerPhone       String?
-  deductedAmount   Decimal
+  id                 String  @id @default(cuid())
+  payerName          String
+  payerAddress       String?
+  payerEmail         String?
+  payerPhone         String?
+  deductedAmount     Decimal
   productAndCreditor String?
+  caseId             String
+  tenantId           String
+  case               Case    @relation(fields: [caseId], references: [id])
+  tenant             Tenant  @relation(fields: [tenantId], references: [id])
+}
+
+model SuspendedService {
+  id               String  @id @default(cuid())
+  creditorName     String
+  address          String?
+  email            String?
+  phone            String?
+  suspendedProduct String?
+  amountOwed       Decimal
   caseId           String
   tenantId         String
   case             Case    @relation(fields: [caseId], references: [id])
   tenant           Tenant  @relation(fields: [tenantId], references: [id])
-}
-
-model SuspendedService {
-  id             String  @id @default(cuid())
-  creditorName   String
-  address        String?
-  email          String?
-  phone          String?
-  suspendedProduct String?
-  amountOwed     Decimal
-  caseId         String
-  tenantId       String
-  case           Case    @relation(fields: [caseId], references: [id])
-  tenant         Tenant  @relation(fields: [tenantId], references: [id])
 }
 
 model Dependent {
@@ -977,10 +985,10 @@ model Payment {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  case         Case    @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  debtor       Debtor  @relation(fields: [debtorId], references: [id])
-  tenant       Tenant  @relation(fields: [tenantId], references: [id])
-  registeredBy User?   @relation(fields: [registeredById], references: [id])
+  case         Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  debtor       Debtor @relation(fields: [debtorId], references: [id])
+  tenant       Tenant @relation(fields: [tenantId], references: [id])
+  registeredBy User?  @relation(fields: [registeredById], references: [id])
 
   @@index([caseId])
   @@index([tenantId, status])
