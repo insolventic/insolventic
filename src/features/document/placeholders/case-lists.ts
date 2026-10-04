@@ -25,36 +25,46 @@ import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { formatCurrency } from './format';
 import { tipoProcesoLabel } from '../../case/proceso-judicial-tipos';
+import {
+  CAUSAS_INSOLVENCIA,
+  CAUSA_OTROS,
+  normalizeCausas,
+  unknownCausas,
+} from '../../case/causas-insolvencia';
 
-// Map causes to individual placeholders
+/**
+ * Las 12 filas SI/NO de la Sección 2 de la Solicitud, más el texto de "Otros".
+ *
+ * La lista y su ORDEN viven en `case/causas-insolvencia.ts`, que es la misma
+ * fuente que pinta las casillas del formulario: antes había una copia acá y el
+ * formulario guardaba etiquetas mientras esto comparaba valores, así que las 12
+ * filas salían "NO" siempre (hallazgo T2 de la verificación de 2026-10-03).
+ *
+ * `normalizeCausas` acepta además las etiquetas con las que quedaron guardados
+ * los expedientes anteriores a la unificación, así que los casos viejos también
+ * imprimen bien sin migrar datos.
+ */
 export function mapCauses(
   causes: string[],
   otherCauseDetail?: string | null,
 ): PlaceholderMap {
-  // Match by DB value (SOBREENDEUDAMIENTO, PERDIDA_EMPLEO, etc.)
-  // The form stores enum values, not display labels
-  const causeValues = [
-    'SOBREENDEUDAMIENTO',
-    'PERDIDA_EMPLEO',
-    'DIVORCIO',
-    'ENFERMEDAD',
-    'ACCIDENTE',
-    'ESTAFA',
-    'DISMINUCION_INGRESOS',
-    'MALA_EDUCACION_FINANCIERA',
-    'MUERTE_CONYUGE',
-    'NUEVOS_CREDITOS',
-    'MALA_INVERSION',
-    'OTROS',
-  ];
+  const seleccionadas = new Set(normalizeCausas(causes ?? []));
+
+  // Lo que no corresponde a ninguna causa conocida es una causa escrita a mano:
+  // cuenta como "Otros" y, si nadie llenó el campo de texto, se imprime ahí.
+  const libres = unknownCausas(causes ?? []);
+  if (libres.length > 0) seleccionadas.add(CAUSA_OTROS);
 
   const result: PlaceholderMap = {};
-  for (let i = 0; i < 12; i++) {
-    const causeKey = `CAUSA_${i + 1}`;
-    result[causeKey] = causes.includes(causeValues[i]) ? 'SI' : 'NO';
-  }
-  result['CAUSA_12_DETALLE'] =
-    otherCauseDetail || causes.find((c) => !causeValues.includes(c)) || '';
+  CAUSAS_INSOLVENCIA.forEach((causa, i) => {
+    result[`CAUSA_${i + 1}`] = seleccionadas.has(causa.value) ? 'SI' : 'NO';
+  });
+
+  // OJO: NO cae a "la primera causa marcada" como antes. Ese fallback hacía que
+  // un deudor que marcaba solo "Sobreendeudamiento" viera, en el mismo
+  // documento, esa fila en "NO" y la palabra "Sobreendeudamiento" dentro de
+  // "OTROS ¿CUÁL?".
+  result['CAUSA_12_DETALLE'] = otherCauseDetail?.trim() || libres.join('; ');
   return result;
 }
 

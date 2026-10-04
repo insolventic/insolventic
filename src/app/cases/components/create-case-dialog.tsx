@@ -19,6 +19,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { normalizeCausas } from '@/features/case/causas-insolvencia';
+
 import { createCase } from '@/features/case/actions';
 import { getAllCreditors } from '@/features/creditor/actions';
 import { getAllDebtors, createDebtor } from '@/features/debtor/actions';
@@ -441,27 +443,15 @@ export function CreateCaseDialog({
     }
   }, [selectedDebtorId, debtors, form]);
 
-  const insolvencyCauses = [
-    'Sobreendeudamiento por falta de recursos',
-    'Pérdida de empleo',
-    'Divorcio',
-    'Enfermedad',
-    'Accidente',
-    'Estafa',
-    'Disminución de ingresos',
-    'Falta de educación financiera',
-    'Muerte de cónyuge',
-    'Nuevos créditos para cubrir otros',
-    'Mala inversión',
-    'Otros',
-  ];
-
-  const handleCauseChange = (cause: string) => {
-    const currentCauses = form.getValues('causes') ?? [];
-    const newCauses = currentCauses.includes(cause)
-      ? currentCauses.filter((c) => c !== cause)
-      : [...currentCauses, cause];
-    form.setValue('causes', newCauses);
+  const handleCauseChange = (causa: string) => {
+    // Se normaliza la lista entera, no solo la causa tocada: un expediente
+    // guardado antes de la unificacion trae etiquetas, y tocar una casilla lo
+    // deja con valores canonicos en vez de mezclar las dos formas.
+    const actuales = normalizeCausas(form.getValues('causes') ?? []);
+    const nuevas = actuales.includes(causa)
+      ? actuales.filter((c) => c !== causa)
+      : [...actuales, causa];
+    form.setValue('causes', nuevas);
   };
 
   // Validate coherence and set warnings
@@ -911,9 +901,9 @@ export function CreateCaseDialog({
     form.setValue('type', 'INSOLVENCY');
     // totalDebt se calcula automáticamente de los acreedores
     form.setValue('causes', [
-      'Sobreendeudamiento por falta de recursos',
-      'Pérdida de empleo',
-      'Disminución de ingresos',
+      'SOBREENDEUDAMIENTO',
+      'PERDIDA_EMPLEO',
+      'DISMINUCION_INGRESOS',
     ]);
     form.setValue('phase', 'Inicial');
     form.setValue('attorney', 'Dr. Juan Pérez');
@@ -1249,7 +1239,6 @@ export function CreateCaseDialog({
                     debtors={debtors}
                     selectedDebtorId={selectedDebtorId}
                     selectedDebtor={selectedDebtor}
-                    insolvencyCauses={insolvencyCauses}
                     onDebtorSelect={setSelectedDebtorId}
                     onCreateDebtorClick={() => setShowCreateDebtorDialog(true)}
                     onCauseChange={handleCauseChange}
