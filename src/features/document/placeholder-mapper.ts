@@ -26,6 +26,7 @@ import {
 } from './placeholders/case-lists';
 import { mapIncomeDeclaration } from './placeholders/income';
 import { escapePlaceholder, escapeAllUnlessHtml } from './placeholders/escape';
+import { ETIQUETA_DESCONOCIDO } from '../case/datos-desconocidos';
 import { mapDebts, mapAssets } from './placeholders/assets-debts';
 import {
   buildConciliationContext,
@@ -320,13 +321,20 @@ export function buildInsolvencyContext(
       CAPITAL: formatCurrency(capital),
       INTERESES: formatCurrency(interest),
       POSTERGADO: boolToSiNo(debt.isDeferred),
-      TASA:
-        String(debt.interestRate) === 'DESCONOZCO'
-          ? 'Desconoce'
-          : `${Number(debt.interestRate) || 0}%`,
+      // La comparacion contra el literal 'DESCONOZCO' era codigo muerto: la
+      // columna es Float, nunca pudo contener ese texto, y marcar la casilla
+      // reventaba la creacion del caso antes de llegar aca. Ahora el estado
+      // viaja en una bandera propia.
+      TASA: debt.interestRateUnknown
+        ? ETIQUETA_DESCONOCIDO
+        : `${Number(debt.interestRate) || 0}%`,
       DOCUMENTO: debt.documentType || '',
-      FECHA_OTORGAMIENTO: formatShortDate(debt.grantDate),
-      FECHA_VENCIMIENTO: formatShortDate(debt.dueDate),
+      FECHA_OTORGAMIENTO: debt.grantDateUnknown
+        ? ETIQUETA_DESCONOCIDO
+        : formatShortDate(debt.grantDate),
+      FECHA_VENCIMIENTO: debt.dueDateUnknown
+        ? ETIQUETA_DESCONOCIDO
+        : formatShortDate(debt.dueDate),
       CLASIFICACION: debt.creditClassification || '',
       CODEUDOR_NOMBRE: codeudor(debt.coDebtorName),
       CODEUDOR_DOMICILIO: codeudor(debt.coDebtorCity),

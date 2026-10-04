@@ -17,6 +17,7 @@ import { logger } from '@/lib/logger';
 // `new Date()` ancla a medianoche UTC y por tanto se imprimen un día antes en
 // hora de Colombia. `parseDateOnly` las ancla al mediodía UTC.
 import { parseDateOnly } from '@/lib/date-colombia';
+import { parseTasaInteres, parseFechaCredito } from './datos-desconocidos';
 import {
   validateCaseBusinessRules,
   formatValidationErrors,
@@ -474,221 +475,251 @@ export async function createCase(
 
     const safeRest = sanitizeJsonFields(rest);
 
-    const newCase = await prisma.case.create({
-      data: {
-        ...safeRest,
-        tramite: autoTramite,
-        debtorId,
-        caseNumber: finalCaseNumber,
-        debtorName: debtor.name,
-        tenantId,
-        // C-1: la fase inicial no es negociable desde el cliente. Antes era
-        // `rest.phase ?? 'Inicial'`, así que se podía crear un expediente ya
-        // en "Acuerdo aprobado", saltándose admisión, negociación y toda su
-        // documentación. Todo avance pasa ahora por `updateCasePhase`.
-        phase: INITIAL_CASE_PHASE,
-        hearingDate: parseDateOnly(hearingDate),
-        filingDate: parseDateOnly(filingDate),
-        designationDate: parseDateOnly(designationDate),
-        positionAcceptanceDate: parseDateOnly(positionAcceptanceDate),
-        inadmissionDate: parseDateOnly(inadmissionDate),
-        admissionDate: parseDateOnly(admissionDate),
-        firstHearingDate: parseDateOnly(firstHearingDate),
-        suspensionDate: parseDateOnly(suspensionDate),
-        resultDeliveryDate: parseDateOnly(resultDeliveryDate),
-        resultDate: parseDateOnly(resultDate),
-        monthlyPaymentAmount: monthlyPaymentAmount ?? null,
-        variablePayment: variablePayment ?? null,
-        capitalReductionPercent: capitalReductionPercent ?? null,
-        // Formulario definitivo date conversions
-        fechaCesacionPagos: parseDateOnly(fechaCesacionPagos),
-        propuestaFechaInicioPago: parseDateOnly(propuestaFechaInicioPago),
-        fechaRadicacion: parseDateOnly(fechaRadicacion),
-        // Note: debts, assets, and other relations are created separately after case creation
-        assets:
-          assets && assets.length > 0
-            ? {
-                create: assets.map((asset: AssetData) => ({
-                  name: asset.name,
-                  type: asset.type,
-                  value: parseFloat(asset.value),
-                  description: asset.description,
-                  tenantId,
-                  // Real estate specific
-                  propertyType: asset.propertyType,
-                  address: asset.address,
-                  registrationNumber: asset.registrationNumber,
-                  encumbrance: asset.encumbrance,
-                  affectation: asset.affectation,
-                  precautionaryMeasure: asset.precautionaryMeasure,
-                  proofDocument: asset.proofDocument,
-                  isFamilyHome: asset.isFamilyHome,
-                  isInalienablePatrimony: asset.isInalienablePatrimony,
-                  hasPendingFinesOrTaxes: asset.hasPendingFinesOrTaxes,
-                  // Vehicle specific
-                  brand: asset.brand,
-                  model: asset.model,
-                  condition: asset.condition,
-                  licensePlate: asset.licensePlate,
-                  transitAuthority: asset.transitAuthority,
-                  guaranteeInFavorOf: asset.guaranteeInFavorOf,
-                  guaranteeAmount: asset.guaranteeAmount
-                    ? parseFloat(asset.guaranteeAmount)
-                    : null,
-                  material: asset.material,
-                })),
-              }
-            : undefined,
-        libranzas:
-          libranzas && libranzas.length > 0
-            ? {
-                create: libranzas.map((libranza: LibranzaData) => ({
-                  payerName: libranza.payerName,
-                  payerAddress: libranza.payerAddress,
-                  payerEmail: libranza.payerEmail,
-                  payerPhone: libranza.payerPhone,
-                  deductedAmount: parseFloat(libranza.deductedAmount),
-                  productAndCreditor: libranza.productAndCreditor,
-                  tenantId,
-                })),
-              }
-            : undefined,
-        suspendedServices:
-          suspendedServices && suspendedServices.length > 0
-            ? {
-                create: suspendedServices.map(
-                  (service: SuspendedServiceData) => ({
-                    creditorName: service.creditorName,
-                    address: service.address,
-                    email: service.email,
-                    phone: service.phone,
-                    suspendedProduct: service.suspendedProduct,
-                    amountOwed: parseFloat(service.amountOwed),
-                    tenantId,
-                  }),
-                ),
-              }
-            : undefined,
-        dependents:
-          dependents && dependents.length > 0
-            ? {
-                create: dependents.map((dependent: DependentData) => ({
-                  name: dependent.name,
-                  age: parseInt(dependent.age.toString()),
-                  relationship: dependent.relationship,
-                  tenantId,
-                })),
-              }
-            : undefined,
-        legalProcesses:
-          legalProcesses && legalProcesses.length > 0
-            ? {
-                create: legalProcesses.map((process: LegalProcessData) => ({
-                  // La descripción es el resumen que se muestra en listados: en
-                  // "Otros" el valor crudo no dice nada, así que se usa el texto
-                  // que escribió el usuario.
-                  description: `${tipoProcesoLabel(
-                    process.processType,
-                    process.processTypeOther,
-                  )} - ${process.plaintiff}`,
-                  processType: process.processType,
-                  processTypeOther: requiresOtherDetail(process.processType)
-                    ? process.processTypeOther
-                    : null,
-                  plaintiff: process.plaintiff,
-                  court: process.court,
-                  courtEmail: process.courtEmail || null,
-                  fileNumber: process.fileNumber,
-                  precautionaryMeasure: process.precautionaryMeasure,
-                  tenantId,
-                })),
-              }
-            : undefined,
-        // Apoderados (Sección XI): lista completa en la tabla nueva + espejo del
-        // principal en las 8 columnas escalares (solo si vienen vacías).
-        apoderados: buildApoderadosCreate(apoderados, tenantId),
-        ...mirrorPrincipalApoderado(apoderados, rest),
-      },
-    });
-
-    // Create debts with creditors (separate step to handle creditor creation)
-    if (debts && debts.length > 0) {
-      for (const debt of debts) {
-        // Find or create creditor by name
-        let creditorId = debt.creditorId;
-
-        if (!creditorId || creditorId === 'PENDING') {
-          const creditorName = debt.creditor || 'Acreedor sin nombre';
-
-          // Try to find existing creditor by name
-          let existingCreditor = await prisma.creditor.findFirst({
-            where: {
-              name: creditorName,
-              tenantId,
-            },
-            select: { id: true },
-          });
-
-          // If not found, create new creditor with required fields
-          if (!existingCreditor) {
-            const autoNit = `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            existingCreditor = await prisma.creditor.create({
-              data: {
-                name: creditorName,
-                nit: autoNit,
-                type: 'BANK', // Default type
-                email: `${autoNit.toLowerCase()}@placeholder.com`, // Required field
-                phone: 'N/A', // Required field
-                address: 'Pendiente de actualizar', // Required field
-                representative: 'Pendiente de actualizar', // Required field
-                tenantId,
-              },
-              select: { id: true },
-            });
-          }
-
-          creditorId = existingCreditor.id;
-        }
-
-        // Create the debt with the creditor ID
-        await prisma.debt.create({
+    // Una sola transaccion para el caso y sus deudas.
+    //
+    // Antes el caso se creaba solo y las deudas en un bucle posterior, fuera de
+    // cualquier transaccion: si una deuda fallaba -y con la casilla
+    // "Desconozco" fallaban todas-, el operador veia el error y en la base
+    // quedaba un expediente con el numero de radicado ya consumido y cero
+    // acreedores. Reintentar creaba otro.
+    //
+    // timeout generoso a proposito: el tope legal son 150 acreedores y cada uno
+    // puede implicar buscar o crear su Creditor, asi que los 5 s por defecto de
+    // Prisma se quedan cortos en los expedientes grandes.
+    const newCase = await prisma.$transaction(
+      async (tx) => {
+        const created = await tx.case.create({
           data: {
-            amount: debt.capitalAmount ?? debt.amount ?? '0',
-            interestRate: parseFloat(debt.interestRate || '0'),
-            type: debt.type || 'CREDIT',
-            creditorId,
-            caseId: newCase.id,
+            ...safeRest,
+            tramite: autoTramite,
+            debtorId,
+            caseNumber: finalCaseNumber,
+            debtorName: debtor.name,
             tenantId,
-            // Detailed creditor info
-            creditorAddress: debt.creditorAddress,
-            creditorCity: debt.creditorCity,
-            creditorEmail: debt.creditorEmail,
-            capitalAmount: debt.capitalAmount
-              ? parseFloat(debt.capitalAmount)
-              : null,
-            interestAmount: debt.interestAmount
-              ? parseFloat(debt.interestAmount)
-              : null,
-            isDeferred: debt.isDeferred ?? false,
-            documentType: debt.documentType,
-            grantDate: parseDateOnly(debt.grantDate),
-            dueDate: parseDateOnly(debt.dueDate),
-            creditClassification: debt.creditClassification,
-            hasActiveLibranza: debt.hasActiveLibranza ?? false,
-            creditorClass: debt.creditorClass,
-            percentageOfTotal: debt.percentageOfTotal
-              ? parseFloat(debt.percentageOfTotal)
-              : null,
-            daysOverdue: debt.daysOverdue ?? 0,
-            coDebtorName: debt.coDebtorName,
-            coDebtorCity: debt.coDebtorCity,
-            coDebtorAddress: debt.coDebtorAddress,
-            coDebtorPhone: debt.coDebtorPhone,
-            coDebtorEmail: debt.coDebtorEmail,
+            // C-1: la fase inicial no es negociable desde el cliente. Antes era
+            // `rest.phase ?? 'Inicial'`, así que se podía crear un expediente ya
+            // en "Acuerdo aprobado", saltándose admisión, negociación y toda su
+            // documentación. Todo avance pasa ahora por `updateCasePhase`.
+            phase: INITIAL_CASE_PHASE,
+            hearingDate: parseDateOnly(hearingDate),
+            filingDate: parseDateOnly(filingDate),
+            designationDate: parseDateOnly(designationDate),
+            positionAcceptanceDate: parseDateOnly(positionAcceptanceDate),
+            inadmissionDate: parseDateOnly(inadmissionDate),
+            admissionDate: parseDateOnly(admissionDate),
+            firstHearingDate: parseDateOnly(firstHearingDate),
+            suspensionDate: parseDateOnly(suspensionDate),
+            resultDeliveryDate: parseDateOnly(resultDeliveryDate),
+            resultDate: parseDateOnly(resultDate),
+            monthlyPaymentAmount: monthlyPaymentAmount ?? null,
+            variablePayment: variablePayment ?? null,
+            capitalReductionPercent: capitalReductionPercent ?? null,
+            // Formulario definitivo date conversions
+            fechaCesacionPagos: parseDateOnly(fechaCesacionPagos),
+            propuestaFechaInicioPago: parseDateOnly(propuestaFechaInicioPago),
+            fechaRadicacion: parseDateOnly(fechaRadicacion),
+            // Note: debts, assets, and other relations are created separately after case creation
+            assets:
+              assets && assets.length > 0
+                ? {
+                    create: assets.map((asset: AssetData) => ({
+                      name: asset.name,
+                      type: asset.type,
+                      value: parseFloat(asset.value),
+                      description: asset.description,
+                      tenantId,
+                      // Real estate specific
+                      propertyType: asset.propertyType,
+                      address: asset.address,
+                      registrationNumber: asset.registrationNumber,
+                      encumbrance: asset.encumbrance,
+                      affectation: asset.affectation,
+                      precautionaryMeasure: asset.precautionaryMeasure,
+                      proofDocument: asset.proofDocument,
+                      isFamilyHome: asset.isFamilyHome,
+                      isInalienablePatrimony: asset.isInalienablePatrimony,
+                      hasPendingFinesOrTaxes: asset.hasPendingFinesOrTaxes,
+                      // Vehicle specific
+                      brand: asset.brand,
+                      model: asset.model,
+                      condition: asset.condition,
+                      licensePlate: asset.licensePlate,
+                      transitAuthority: asset.transitAuthority,
+                      guaranteeInFavorOf: asset.guaranteeInFavorOf,
+                      guaranteeAmount: asset.guaranteeAmount
+                        ? parseFloat(asset.guaranteeAmount)
+                        : null,
+                      material: asset.material,
+                    })),
+                  }
+                : undefined,
+            libranzas:
+              libranzas && libranzas.length > 0
+                ? {
+                    create: libranzas.map((libranza: LibranzaData) => ({
+                      payerName: libranza.payerName,
+                      payerAddress: libranza.payerAddress,
+                      payerEmail: libranza.payerEmail,
+                      payerPhone: libranza.payerPhone,
+                      deductedAmount: parseFloat(libranza.deductedAmount),
+                      productAndCreditor: libranza.productAndCreditor,
+                      tenantId,
+                    })),
+                  }
+                : undefined,
+            suspendedServices:
+              suspendedServices && suspendedServices.length > 0
+                ? {
+                    create: suspendedServices.map(
+                      (service: SuspendedServiceData) => ({
+                        creditorName: service.creditorName,
+                        address: service.address,
+                        email: service.email,
+                        phone: service.phone,
+                        suspendedProduct: service.suspendedProduct,
+                        amountOwed: parseFloat(service.amountOwed),
+                        tenantId,
+                      }),
+                    ),
+                  }
+                : undefined,
+            dependents:
+              dependents && dependents.length > 0
+                ? {
+                    create: dependents.map((dependent: DependentData) => ({
+                      name: dependent.name,
+                      age: parseInt(dependent.age.toString()),
+                      relationship: dependent.relationship,
+                      tenantId,
+                    })),
+                  }
+                : undefined,
+            legalProcesses:
+              legalProcesses && legalProcesses.length > 0
+                ? {
+                    create: legalProcesses.map((process: LegalProcessData) => ({
+                      // La descripción es el resumen que se muestra en listados: en
+                      // "Otros" el valor crudo no dice nada, así que se usa el texto
+                      // que escribió el usuario.
+                      description: `${tipoProcesoLabel(
+                        process.processType,
+                        process.processTypeOther,
+                      )} - ${process.plaintiff}`,
+                      processType: process.processType,
+                      processTypeOther: requiresOtherDetail(process.processType)
+                        ? process.processTypeOther
+                        : null,
+                      plaintiff: process.plaintiff,
+                      court: process.court,
+                      courtEmail: process.courtEmail || null,
+                      fileNumber: process.fileNumber,
+                      precautionaryMeasure: process.precautionaryMeasure,
+                      tenantId,
+                    })),
+                  }
+                : undefined,
+            // Apoderados (Sección XI): lista completa en la tabla nueva + espejo del
+            // principal en las 8 columnas escalares (solo si vienen vacías).
+            apoderados: buildApoderadosCreate(apoderados, tenantId),
+            ...mirrorPrincipalApoderado(apoderados, rest),
           },
         });
-      }
-    }
+
+        // Las deudas van en el mismo `tx`: o entra el expediente completo o no
+        // entra nada.
+        if (debts && debts.length > 0) {
+          for (const debt of debts) {
+            // Find or create creditor by name
+            let creditorId = debt.creditorId;
+
+            if (!creditorId || creditorId === 'PENDING') {
+              const creditorName = debt.creditor || 'Acreedor sin nombre';
+
+              // Try to find existing creditor by name
+              let existingCreditor = await tx.creditor.findFirst({
+                where: {
+                  name: creditorName,
+                  tenantId,
+                },
+                select: { id: true },
+              });
+
+              // If not found, create new creditor with required fields
+              if (!existingCreditor) {
+                const autoNit = `AUTO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                existingCreditor = await tx.creditor.create({
+                  data: {
+                    name: creditorName,
+                    nit: autoNit,
+                    type: 'BANK', // Default type
+                    email: `${autoNit.toLowerCase()}@placeholder.com`, // Required field
+                    phone: 'N/A', // Required field
+                    address: 'Pendiente de actualizar', // Required field
+                    representative: 'Pendiente de actualizar', // Required field
+                    tenantId,
+                  },
+                  select: { id: true },
+                });
+              }
+
+              creditorId = existingCreditor.id;
+            }
+
+            // Las casillas "Desconozco" guardan la bandera, no un NaN ni un
+            // Invalid Date (ver features/case/datos-desconocidos.ts).
+            const tasa = parseTasaInteres(debt.interestRate);
+            const otorgamiento = parseFechaCredito(
+              debt.grantDate,
+              parseDateOnly,
+            );
+            const vencimiento = parseFechaCredito(debt.dueDate, parseDateOnly);
+
+            await tx.debt.create({
+              data: {
+                amount: debt.capitalAmount ?? debt.amount ?? '0',
+                interestRate: tasa.interestRate,
+                interestRateUnknown: tasa.interestRateUnknown,
+                type: debt.type || 'CREDIT',
+                creditorId,
+                caseId: created.id,
+                tenantId,
+                // Detailed creditor info
+                creditorAddress: debt.creditorAddress,
+                creditorCity: debt.creditorCity,
+                creditorEmail: debt.creditorEmail,
+                capitalAmount: debt.capitalAmount
+                  ? parseFloat(debt.capitalAmount)
+                  : null,
+                interestAmount: debt.interestAmount
+                  ? parseFloat(debt.interestAmount)
+                  : null,
+                isDeferred: debt.isDeferred ?? false,
+                documentType: debt.documentType,
+                grantDate: otorgamiento.value,
+                grantDateUnknown: otorgamiento.unknown,
+                dueDate: vencimiento.value,
+                dueDateUnknown: vencimiento.unknown,
+                creditClassification: debt.creditClassification,
+                hasActiveLibranza: debt.hasActiveLibranza ?? false,
+                creditorClass: debt.creditorClass,
+                percentageOfTotal: debt.percentageOfTotal
+                  ? parseFloat(debt.percentageOfTotal)
+                  : null,
+                daysOverdue: debt.daysOverdue ?? 0,
+                coDebtorName: debt.coDebtorName,
+                coDebtorCity: debt.coDebtorCity,
+                coDebtorAddress: debt.coDebtorAddress,
+                coDebtorPhone: debt.coDebtorPhone,
+                coDebtorEmail: debt.coDebtorEmail,
+              },
+            });
+          }
+        }
+
+        return created;
+      },
+      { timeout: 30_000 },
+    );
 
     revalidateTag('cases');
 
@@ -1012,10 +1043,18 @@ export async function addDebtToCase(
       return { success: false, error: 'Caso no encontrado' };
     }
 
+    // Mismo tratamiento que en la creacion del caso: la UI de edicion todavia
+    // no ofrece las casillas "Desconozco", pero la action acepta el literal y
+    // reventaria igual.
+    const tasaAgregada = parseTasaInteres(interestRate);
+    const otorgamientoAgregado = parseFechaCredito(grantDate, parseDateOnly);
+    const vencimientoAgregado = parseFechaCredito(dueDate, parseDateOnly);
+
     const debt = await prisma.debt.create({
       data: {
         amount: parseFloat(amount.replace(/[^0-9.-]/g, '')),
-        interestRate: parseFloat(interestRate),
+        interestRate: tasaAgregada.interestRate,
+        interestRateUnknown: tasaAgregada.interestRateUnknown,
         type,
         caseId,
         creditorId,
@@ -1028,8 +1067,10 @@ export async function addDebtToCase(
         interestAmount: interestAmount ? parseFloat(interestAmount) : null,
         isDeferred: isDeferred ?? false,
         documentType: cleanText(documentType),
-        grantDate: parseDateOnly(grantDate),
-        dueDate: parseDateOnly(dueDate),
+        grantDate: otorgamientoAgregado.value,
+        grantDateUnknown: otorgamientoAgregado.unknown,
+        dueDate: vencimientoAgregado.value,
+        dueDateUnknown: vencimientoAgregado.unknown,
         creditClassification: cleanText(creditClassification),
         hasActiveLibranza: hasActiveLibranza ?? false,
         creditorClass: cleanText(creditorClass),

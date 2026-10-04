@@ -364,6 +364,29 @@ export const SCENARIOS: Record<string, Scenario> = {
       ),
   },
 
+  'insolvencia-datos-desconocidos': {
+    kind: 'INSOLVENCY',
+    covers:
+      'Acreedor con las tres casillas "Desconozco" marcadas (tasa y las dos fechas): la ficha imprime "Desconoce", no "0%" ni vacio.',
+    build: () =>
+      completa(
+        {},
+        {
+          debts: [
+            makeDebt(0, {
+              interestRate: 0,
+              interestRateUnknown: true,
+              grantDate: null,
+              grantDateUnknown: true,
+              dueDate: null,
+              dueDateUnknown: true,
+            }),
+            makeDebt(1),
+          ],
+        },
+      ),
+  },
+
   'insolvencia-varon': {
     kind: 'INSOLVENCY',
     covers:
