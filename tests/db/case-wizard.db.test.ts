@@ -37,14 +37,13 @@ jest.mock('@/features/document/generation-job', () => ({
   runInitialGenerationJob: jest.fn(),
 }));
 
-import { Prisma } from '@prisma/client';
-
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { createAccessToken } from '@/lib/auth';
 import { createCase, updateCase } from '@/features/case/actions';
 import { createCaseFormSchema } from '@/features/case/schemas';
 import { mockCookies } from '../__mocks__/next-headers';
+import { purgeTenant, wizardSubmit } from './helpers/tenant';
 
 const TAG = `dbsmoke-${Date.now().toString(36)}`;
 
@@ -60,64 +59,6 @@ const ctx = {
 
 /** Auditoría y notificaciones se escriben sin esperar: contamos lo esperado. */
 let expectedAuditRows = 0;
-
-const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
-
-/**
- * Modelos con `tenantId` en el orden en que se pueden borrar sin violar claves
- * foráneas (hijos antes que padres), derivado de Prisma.dmmf: no hay que
- * mantener una lista a mano cuando se agregue una tabla.
- */
-function tenantScopedModelsChildrenFirst(): string[] {
-  const models = Prisma.dmmf.datamodel.models.filter(
-    (m) =>
-      m.name !== 'Tenant' &&
-      m.fields.some((f) => f.name === 'tenantId' && f.kind === 'scalar'),
-  );
-  const names = new Set(models.map((m) => m.name));
-
-  // parents[A] = modelos de los que A depende (A tiene la FK): A se borra antes.
-  const referencedBy = new Map<string, Set<string>>(
-    models.map((m) => [m.name, new Set<string>()]),
-  );
-  for (const m of models) {
-    for (const f of m.fields) {
-      const isForeignKey =
-        f.kind === 'object' && (f.relationFromFields?.length ?? 0) > 0;
-      if (isForeignKey && names.has(f.type) && f.type !== m.name) {
-        referencedBy.get(f.type)!.add(m.name);
-      }
-    }
-  }
-
-  const order: string[] = [];
-  const remaining = new Set(names);
-  while (remaining.size > 0) {
-    const leaves = [...remaining].filter(
-      (name) => ![...referencedBy.get(name)!].some((c) => remaining.has(c)),
-    );
-    // Un ciclo de FK no debería existir; si lo hubiera, se sigue sin bloquear.
-    const batch = leaves.length > 0 ? leaves : [...remaining];
-    for (const name of batch) {
-      order.push(name);
-      remaining.delete(name);
-    }
-  }
-  return order.map(lowerFirst);
-}
-
-/** Borra todo lo del tenant y luego el tenant. */
-async function purgeTenant(tenantId: string) {
-  for (const delegate of tenantScopedModelsChildrenFirst()) {
-    await (
-      prisma as unknown as Record<
-        string,
-        { deleteMany: (a: object) => Promise<unknown> }
-      >
-    )[delegate].deleteMany({ where: { tenantId } });
-  }
-  await prisma.tenant.delete({ where: { id: tenantId } });
-}
 
 /** Espera a que las escrituras "fire-and-forget" (auditoría) lleguen a la base. */
 async function waitForAuditRows(tenantId: string, expected: number) {
@@ -230,45 +171,6 @@ const wizardInput = () => ({
   ],
   apoderados: APODERADOS,
 });
-
-/**
- * Réplica de la transformación de `handleSubmit` del wizard
- * (create-case-dialog.tsx): `data` es la salida de zodResolver. Añade los
- * campos calculados y sincroniza los legados que el wizard siempre envía.
- */
-function wizardSubmit(data: ReturnType<typeof createCaseFormSchema.parse>) {
-  const d = data as Record<string, unknown> & { debts?: unknown[] };
-  const spouseName =
-    [
-      d.conyugePrimerNombre,
-      d.conyugeSegundoNombre,
-      d.conyugePrimerApellido,
-      d.conyugeSegundoApellido,
-    ]
-      .filter(Boolean)
-      .join(' ') ||
-    (d.spouseName as string) ||
-    '';
-
-  return {
-    ...d,
-    creditors: d.debts?.length ?? 0,
-    phase: (d.phase as string | null) ?? undefined,
-    spouseName,
-    spouseIdNumber:
-      (d.conyugeIdentificacion as string) || (d.spouseIdNumber as string) || '',
-    spouseAddress: (d.spouseAddress as string) || '',
-    spousePhone:
-      (d.conyugeTelefono as string) || (d.spousePhone as string) || '',
-    spouseEmail: (d.conyugeCorreo as string) || (d.spouseEmail as string) || '',
-    conyugeNombreCompleto:
-      spouseName || (d.conyugeNombreCompleto as string) || '',
-    monthlyIncome:
-      (d.ingresoPrincipalMensual as number) || (d.monthlyIncome as number) || 0,
-    monthlyExpenses:
-      (d.totalGastosMensuales as number) || (d.monthlyExpenses as number) || 0,
-  };
-}
 
 /** Envía el wizard: parse del schema (zodResolver) + handleSubmit + createCase. */
 async function submitWizard(overrides: Record<string, unknown> = {}) {

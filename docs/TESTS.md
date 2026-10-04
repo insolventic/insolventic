@@ -49,6 +49,60 @@ docker rm -f insolventic-smoke-pg      # al terminar
 
 **Seguridad (importante).** Estos tests crean y borran filas. `tests/db/db-guard.ts` (probada en `tests/unit/config/db-guard.test.ts`) aborta el runner, antes de importar Prisma, si `DATABASE_URL`/`DIRECT_URL`: (1) no está definida —no hay fallback al `.env`, que en `pr.yml` es el de Vercel con la URL real de Neon—; (2) no apunta a `localhost`/`127.0.0.1`/`::1`; o (3) la base no tiene `e2e`, `test` o `smoke` en el nombre. Cada corrida crea su propio tenant y lo borra al terminar (no depende del seed).
 
+### 2.2 Verificación de punta a punta: formulario → BD → documento
+
+`case-wizard.db.test.ts` comprueba que el wizard **guarda** bien. Estas dos
+suites comprueban lo siguiente: que lo guardado **llega al documento**. Son dos
+preguntas distintas, y la segunda no la cubría nada — ni los unitarios (que
+mockean Prisma y arman el caso a mano), ni el golden master (que congela la
+salida actual, errores incluidos), ni el E2E de Playwright.
+
+| Suite                                    | Qué hace                                                                                                                                                                               |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tests/db/documentos-e2e.db.test.ts`     | Crea 8 expedientes sintéticos con datos realistas (los tres trámites, con y sin apoderado, con y sin cónyuge, de 1 a 12 acreedores) y renderiza **las 65 plantillas** contra cada uno. |
+| `tests/db/persistencia-casos.db.test.ts` | Pruebas de **un campo a la vez**: parte de un payload que funciona y le agrega exactamente una cosa, de modo que el fallo sea atribuible a esa cosa.                                   |
+
+Los expedientes viven en `tests/db/helpers/casos-sinteticos.ts`. Cada valor es
+distintivo a propósito —direcciones con número, montos irrepetibles, nombres con
+segundo apellido, placas— para poder buscarlo **literalmente** en el documento
+renderizado. Es lo contrario del relleno automático de desarrollo, donde cada
+campo vale su propio nombre y nada se distingue de nada.
+
+**Qué detecta, sin que nadie mire.** Cinco familias:
+
+1. Una plantilla que referencia un placeholder que el mapper no produce. No es
+   cosmético: las dos rutas de generación cortan, así que esa plantilla no
+   produce documento para ningún expediente.
+2. Marcadores `«FALTA:»`, llaves sin resolver, `NaN`, `undefined`,
+   `[object Object]`, `Invalid Date`.
+3. Un valor cargado en el formulario que no aparece en ningún documento.
+4. Una fecha impresa con un día distinto al que se cargó.
+5. Un campo escalar o una lista anidada que se pierde entre el formulario y la
+   fila de `Case`.
+
+**No genera PDF.** Todo lo anterior vive en el HTML renderizado; el PDF solo
+agrega el paso de Chromium, que es lento y no aporta señal. La ronda manual de
+2026-10-03 sí los generó, para revisarlos a ojo.
+
+#### El inventario de pendientes
+
+`tests/db/helpers/pendientes-conocidos.ts` lista los hallazgos de
+`VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md` que todavía **no** están arreglados
+—el Check List, las cláusulas del Acuerdo de Apoyo, las listas truncadas, los
+campos capturados que ninguna plantilla usa—.
+
+No es una lista de excepciones para que los tests pasen: la suite exige que
+coincida **exactamente**. Si alguien arregla uno y no lo borra de la lista, el
+test falla por "ya no está roto"; si aparece uno nuevo, también. Las dos
+direcciones importan, y así el backlog queda verificado por máquina en vez de
+dormido en un documento.
+
+#### De dónde salieron
+
+La ronda de verificación del 2026-10-03 encontró 17 defectos, 4 críticos. Este
+harness los detecta sin intervención humana: contra el `dev` anterior a los
+arreglos deja **20 tests en rojo**, y cada uno nombra su hallazgo.
+
 ---
 
 ## 3. Inventario de suites
