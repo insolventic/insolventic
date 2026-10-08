@@ -135,8 +135,16 @@ describe('buildInsolvencyContext', () => {
       expect(ctx).not.toHaveProperty('ACREEDORES');
     });
 
-    it('SUPPORT_AGREEMENT no aporta bloques, igual que antes', () => {
-      expect(buildTemplateContext(build('apoyo-completo'))).toBeUndefined();
+    it('SUPPORT_AGREEMENT devuelve el contexto de apoyo (CLAUSULAS_APOYO), no ACREEDORES ni CLAUSULAS_ACUERDO', () => {
+      // Hasta el fix del hallazgo §4.3 (docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md)
+      // este dispatcher devolvía undefined para SUPPORT_AGREEMENT, y
+      // CLAUSULAS_APOYO viajaba por el mapa escalar con un cast que
+      // escapeAllUnlessHtml convertía en "[object Object],...".
+      const ctx = buildTemplateContext(build('apoyo-completo'));
+      expect(ctx).toHaveProperty('CLAUSULAS_APOYO');
+      expect(ctx).toHaveProperty('TIENE_CLAUSULAS_APOYO');
+      expect(ctx).not.toHaveProperty('ACREEDORES');
+      expect(ctx).not.toHaveProperty('CLAUSULAS_ACUERDO');
     });
   });
 

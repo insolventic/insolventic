@@ -60,12 +60,14 @@ export const VALORES_QUE_NO_LLEGAN: Readonly<Record<string, string>> = {
   deudorActividadEconomica: 'T8',
   deudorNitEmpleador: 'T8',
 
-  // --- §4.3: las cláusulas del Acuerdo de Apoyo se pierden ------------------
-  // El array viaja por el mapa de placeholders y `escapeAllUnlessHtml` lo
-  // convierte en '[object Object],…', así que `{{#each}}` no itera nada y queda
-  // el encabezado "CLÁUSULAS" sin cláusulas debajo.
-  clausula1: 'Severidad alta — hallazgo §4.3',
-  clausula3: 'Severidad alta — hallazgo §4.3',
+  // --- §4.3: las cláusulas del Acuerdo de Apoyo se pierden -------------------
+  // 🟢 RESUELTO 2026-10-08 (clausula1/clausula3): CLAUSULAS_APOYO pasó a viajar
+  // por `extraContext` (buildApoyoContext), igual que las cláusulas de
+  // conciliación — ya no pasa por `escapeAllUnlessHtml`, que era lo que las
+  // convertía en '[object Object],…'. Solo queda sin resolver la plantilla
+  // misma, que no imprime la dirección del prestador en ningún renglón —
+  // eso no es un bug del mapper, es contenido que la plantilla nunca tuvo.
+  //
   // Acotado a A1: en A2 el prestador vive en la misma dirección que la
   // beneficiaria, que sí se imprime, así que el texto aparece por otra vía.
   'A1-apoyo-completo:apoyoPrestadorDireccion':
