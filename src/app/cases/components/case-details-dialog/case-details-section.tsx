@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
+import { causaLabel } from '@/features/case/causas-insolvencia';
 
 interface CaseDetailsSectionProps {
   caseData: CaseWithRelations;
@@ -65,7 +66,7 @@ export function CaseDetailsSection({
           <div className="mt-2 flex flex-wrap gap-2">
             {caseData?.causes?.map((cause) => (
               <Badge key={cause} variant="secondary">
-                {cause}
+                {causaLabel(cause)}
               </Badge>
             )) || (
               <span className="text-muted-foreground text-sm">

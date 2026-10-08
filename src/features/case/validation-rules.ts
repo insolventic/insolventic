@@ -153,29 +153,15 @@ export const CREDIT_CLASSIFICATIONS = {
   QUIROGRAFARIO: 'Crédito Quirografario',
 } as const;
 
-export const CAUSE_OPTIONS = [
-  {
-    value: 'SOBREENDEUDAMIENTO',
-    label: 'Sobreendeudamiento por falta de recursos',
-  },
-  { value: 'PERDIDA_EMPLEO', label: 'Pérdida de empleo' },
-  { value: 'DIVORCIO', label: 'Divorcio' },
-  { value: 'ENFERMEDAD', label: 'Enfermedad' },
-  { value: 'ACCIDENTE', label: 'Accidente' },
-  { value: 'ESTAFA', label: 'Estafa' },
-  { value: 'DISMINUCION_INGRESOS', label: 'Disminución de ingresos' },
-  {
-    value: 'MALA_EDUCACION_FINANCIERA',
-    label: 'Falta de educación financiera y malos hábitos',
-  },
-  { value: 'MUERTE_CONYUGE', label: 'Muerte de cónyuge' },
-  {
-    value: 'NUEVOS_CREDITOS',
-    label: 'Acudí a nuevos créditos para cubrir otros',
-  },
-  { value: 'MALA_INVERSION', label: 'Mala inversión' },
-  { value: 'OTROS', label: 'Otros' },
-] as const;
+// Las causas de la insolvencia viven en `causas-insolvencia.ts`, junto con el
+
+// normalizador que entiende las etiquetas con las que quedaron guardados los
+
+// expedientes viejos. Aqui habia una cuarta copia de la misma lista, sin un
+
+// solo consumidor, mientras el formulario y el mapper usaban otras dos.
+
+export { CAUSAS_INSOLVENCIA, CAUSA_OTROS } from './causas-insolvencia';
 
 export const MARITAL_STATUS_OPTIONS = [
   { value: 'SOLTERO', label: 'Soltero(a)' },

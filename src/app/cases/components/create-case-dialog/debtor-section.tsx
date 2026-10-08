@@ -38,11 +38,16 @@ import {
 import { useFormContext } from 'react-hook-form';
 import type { DebtorOption } from '@/features/case/schemas';
 
+import {
+  CAUSAS_INSOLVENCIA,
+  normalizeCausas,
+  requiresOtherCauseDetail,
+} from '@/features/case/causas-insolvencia';
+
 interface DebtorSectionProps {
   debtors: DebtorOption[];
   selectedDebtorId: string;
   selectedDebtor: DebtorOption | null;
-  insolvencyCauses: string[];
   onDebtorSelect: (debtorId: string) => void;
   onCreateDebtorClick: () => void;
   onCauseChange: (cause: string) => void;
@@ -53,7 +58,6 @@ export function DebtorSection({
   debtors,
   selectedDebtorId,
   selectedDebtor,
-  insolvencyCauses,
   onDebtorSelect,
   onCreateDebtorClick,
   onCauseChange,
@@ -248,23 +252,31 @@ export function DebtorSection({
             <FormItem>
               <FormLabel>Causas de la Insolvencia</FormLabel>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                {insolvencyCauses.map((cause) => (
-                  <div key={cause} className="flex items-center space-x-2">
+                {CAUSAS_INSOLVENCIA.map((causa) => (
+                  <div
+                    key={causa.value}
+                    className="flex items-center space-x-2"
+                  >
                     <Checkbox
-                      id={`cause-${cause}`}
-                      checked={field.value?.includes(cause) ?? false}
-                      onCheckedChange={() => onCauseChange(cause)}
+                      id={`cause-${causa.value}`}
+                      // Se compara normalizado para que un expediente guardado
+                      // antes de la unificacion (que trae la etiqueta, no el
+                      // valor) siga mostrando sus casillas marcadas.
+                      checked={normalizeCausas(field.value ?? []).includes(
+                        causa.value,
+                      )}
+                      onCheckedChange={() => onCauseChange(causa.value)}
                     />
                     <Label
-                      htmlFor={`cause-${cause}`}
+                      htmlFor={`cause-${causa.value}`}
                       className="text-sm font-normal"
                     >
-                      {cause}
+                      {causa.label}
                     </Label>
                   </div>
                 ))}
               </div>
-              {field.value?.includes('Otros') && (
+              {requiresOtherCauseDetail(field.value ?? []) && (
                 <div className="mt-3">
                   <FormField
                     control={form.control}

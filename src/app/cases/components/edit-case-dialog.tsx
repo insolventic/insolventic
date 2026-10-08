@@ -17,6 +17,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { normalizeCausas } from '@/features/case/causas-insolvencia';
+
 import { updateCase, getCaseById } from '@/features/case/actions';
 import { uploadCaseDocuments } from '@/features/document/actions';
 import {
@@ -355,26 +357,15 @@ export function EditCaseDialog({
     }
   }, [selectedDebtorId, debtors, form]);
 
-  const insolvencyCauses = [
-    'Sobreendeudamiento por falta de recursos',
-    'Pérdida de empleo',
-    'Divorcio',
-    'Enfermedad',
-    'Accidente',
-    'Estafa',
-    'Disminución de ingresos',
-    'Falta de educación financiera',
-    'Muerte de cónyuge',
-    'Nuevos créditos para cubrir otros',
-    'Mala inversión',
-  ];
-
-  const handleCauseChange = (cause: string) => {
-    const currentCauses = form.getValues('causes') ?? [];
-    const newCauses = currentCauses.includes(cause)
-      ? currentCauses.filter((c: string) => c !== cause)
-      : [...currentCauses, cause];
-    form.setValue('causes', newCauses);
+  const handleCauseChange = (causa: string) => {
+    // Se normaliza la lista entera, no solo la causa tocada: un expediente
+    // guardado antes de la unificacion trae etiquetas, y tocar una casilla lo
+    // deja con valores canonicos en vez de mezclar las dos formas.
+    const actuales = normalizeCausas(form.getValues('causes') ?? []);
+    const nuevas = actuales.includes(causa)
+      ? actuales.filter((c) => c !== causa)
+      : [...actuales, causa];
+    form.setValue('causes', nuevas);
   };
 
   const handleSubmit = (data: UpdateCaseFormData) => {
@@ -635,7 +626,6 @@ export function EditCaseDialog({
                     debtors={debtors}
                     selectedDebtorId={selectedDebtorId}
                     selectedDebtor={selectedDebtor}
-                    insolvencyCauses={insolvencyCauses}
                     onDebtorSelect={setSelectedDebtorId}
                     onCreateDebtorClick={() => setShowCreateDebtorDialog(true)}
                     onCauseChange={handleCauseChange}
