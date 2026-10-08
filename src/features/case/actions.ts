@@ -343,6 +343,18 @@ export async function createCase(
       suspensionDate,
       resultDeliveryDate,
       resultDate,
+      // Tres columnas DateTime que se quedaron fuera de esta lista: viajaban con
+      // el resto del payload como el string "YYYY-MM-DD" del <input type="date">
+      // y Prisma las rechazaba ("premature end of input. Expected ISO-8601
+      // DateTime"), asi que llenar cualquiera de las tres hacia fallar la
+      // creacion entera.
+      //
+      // OJO: no escribir aqui el literal del spread. El test de guardia
+      // case-input-contract.test.ts delimita este bloque buscando su primera
+      // aparicion en el archivo, y un comentario que lo mencione lo trunca.
+      paymentStartDate,
+      agreementValidityDate,
+      failureDate,
       monthlyPaymentAmount,
       variablePayment,
       capitalReductionPercent,
@@ -511,6 +523,9 @@ export async function createCase(
             suspensionDate: parseDateOnly(suspensionDate),
             resultDeliveryDate: parseDateOnly(resultDeliveryDate),
             resultDate: parseDateOnly(resultDate),
+            paymentStartDate: parseDateOnly(paymentStartDate),
+            agreementValidityDate: parseDateOnly(agreementValidityDate),
+            failureDate: parseDateOnly(failureDate),
             monthlyPaymentAmount: monthlyPaymentAmount ?? null,
             variablePayment: variablePayment ?? null,
             capitalReductionPercent: capitalReductionPercent ?? null,
@@ -834,6 +849,11 @@ export async function updateCase(
       suspensionDate,
       resultDeliveryDate,
       resultDate,
+      // Mismas tres columnas DateTime que en createCase. `agreementValidityDate`
+      // es la que manda pre-generation-form.tsx para el Paquete 3.
+      paymentStartDate,
+      agreementValidityDate,
+      failureDate,
       // Debtor fields (not Case fields)
       monthlyIncome,
       monthlyExpenses,
@@ -929,8 +949,13 @@ export async function updateCase(
         data: {
           ...safeRestUpdate,
           version: { increment: 1 },
-          debtor: { connect: { id: debtorId } },
-          operator: { connect: { id: operatorId } },
+          // Condicional: el schema declara los dos ids como opcionales, pero el
+          // `connect` era incondicional, asi que CUALQUIER updateCase que no los
+          // reenviara fallaba. Es lo que hace pre-generation-form.tsx -manda
+          // solo {id} mas los campos del paquete-, de modo que el formulario de
+          // "Datos requeridos para Admision" no funcionaba nunca.
+          ...(debtorId ? { debtor: { connect: { id: debtorId } } } : {}),
+          ...(operatorId ? { operator: { connect: { id: operatorId } } } : {}),
           hearingDate: parseDateOnly(hearingDate) ?? undefined,
           filingDate: parseDateOnly(filingDate) ?? undefined,
           designationDate: parseDateOnly(designationDate) ?? undefined,
@@ -942,6 +967,10 @@ export async function updateCase(
           suspensionDate: parseDateOnly(suspensionDate) ?? undefined,
           resultDeliveryDate: parseDateOnly(resultDeliveryDate) ?? undefined,
           resultDate: parseDateOnly(resultDate) ?? undefined,
+          paymentStartDate: parseDateOnly(paymentStartDate) ?? undefined,
+          agreementValidityDate:
+            parseDateOnly(agreementValidityDate) ?? undefined,
+          failureDate: parseDateOnly(failureDate) ?? undefined,
         },
       });
     });
