@@ -1,6 +1,6 @@
 # Pendientes de decisión legal
 
-**Última actualización:** 2026-10-02 (ítem 7 parcialmente resuelto)
+**Última actualización:** 2026-10-08 (ítem 2 parcialmente resuelto)
 
 Lista única de las preguntas abiertas que **no las resuelve el equipo de
 desarrollo**: dependen de la abogada o del cliente, y cada una bloquea algo
@@ -15,7 +15,7 @@ el índice, no la fuente de verdad de cada tema.
 | #   | Pregunta                                                                                                                                                                                                                     | Bloquea                                                                                                                              | Detalle en                                                                 |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
 | 1   | **SMMLV 2026 transitorio** (Decreto 0159): ¿hay fallo de fondo o decreto definitivo?                                                                                                                                         | El `TODO(legal)` de `validation-rules.ts`, y con él los umbrales de cuantía                                                          | `docs/CHECKPOINT_2026-09-28.md` §9                                         |
-| 2   | **Check List — 3 párrafos sin resolver**                                                                                                                                                                                     | Mover `mapCheckList` en la división del mapper (el Paso 2 lo evitó a propósito)                                                      | `docs/CHECKPOINT_2026-09-28.md` §5.3 · `docs/PLAN_DIVISION_MAPPER.md`      |
+| 2   | 🟡 **PARCIAL 2026-10-08** — Check List, Parágrafo 3: ¿qué cuenta como "informado" entre "tiene soporte de obligaciones" y "manifiesta que no las posee"?                                                                    | El Check List sigue sin poderse generar (bloqueado por `SI`/`NO_PARAGRAFO_3`); mover `mapCheckList` en la división del mapper        | `docs/CHECKPOINT_2026-09-28.md` §5.3 · `docs/PLAN_DIVISION_MAPPER.md` · este documento, §4 |
 | 3   | **Texto legal de "Fracaso por reforma del acuerdo"** (⓵ⓓ de #40)                                                                                                                                                             | El contenido de esa plantilla reclasificada, no su merge                                                                             | `docs/CHECKPOINT_2026-09-28.md` §9                                         |
 | 4   | **Párrafo legal de comparendos** del vehículo (#11 de la ronda del formulario)                                                                                                                                               | Imprimir el dato que ya se captura                                                                                                   | `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`                          |
 | 5   | **¿La Solicitud lista todos los acreedores o hay tope con anexo?**                                                                                                                                                           | Nada ya: los PR #77/#78/#79 se construyeron sobre la opción (1), **asumida**                                                         | `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md` §2                          |
@@ -127,3 +127,57 @@ distinta (constancia de incumplimiento de un acuerdo de apoyo, no un acta ni
 un acuerdo de pago). Misma pregunta de fondo que 3.2: ¿corresponde actualizar
 a la Ley 2220/2022, o esa remisión puntual del art. 2° sigue vigente en la
 práctica? Sin respuesta — no se toca.
+
+---
+
+## 4. Check List — Parágrafo 3 (ítem 2)
+
+Anotado el 2026-10-08, al resolver los otros dos párrafos del mismo hallazgo
+(§5.3 de `CHECKPOINT_2026-09-28.md`). Los Parágrafos 1 y 2 ya se wirearon —
+`SI`/`NO_PARAGRAFO_1` sale de `declaracionNoOmisiones` (campo limpio del
+formulario) y `SI`/`NO_PARAGRAFO_2` queda fijo en `SI` (es texto fijo que la
+Solicitud imprime siempre, no una declaración condicional). El Parágrafo 3
+queda **a propósito sin wirear** — `mapCheckList` no produce
+`SI_PARAGRAFO_3`/`NO_PARAGRAFO_3`, y el Check List sigue bloqueado por esos
+dos placeholders sin resolver.
+
+**La pregunta exacta**, tal como la imprime la plantilla
+(`templates/insolvency/Check List.html:192`):
+
+> Parágrafo 3. Informa si tiene soporte de obligaciones o manifestación de
+> que no las posee
+
+**Por qué no hay campo limpio.** El texto describe una disyunción entre dos
+situaciones distintas del deudor — "tiene el soporte documental de sus
+obligaciones" o, alternativamente, "manifiesta que no lo tiene" — y el
+formulario no captura ninguna de las dos por separado:
+
+- No hay una casilla de "adjunto/no adjunto soporte de obligaciones" en
+  ninguna sección del wizard (la Sección de Declaraciones solo tiene las dos
+  casillas que ya alimentan los Parágrafos 1 y 2 más otras no relacionadas con
+  esto).
+- No hay tampoco una casilla de "manifiesto que no tengo soporte" — y aunque
+  la hubiera, el texto del Parágrafo exige poder distinguir "SÍ tiene
+  soporte" de "SÍ manifestó que no lo tiene" de "no contestó nada", que son
+  tres estados, no dos.
+- Los documentos adjuntos del expediente (`caseData.documents`) tampoco
+  sirven como proxy limpio: no hay un tipo de documento en el catálogo que
+  corresponda específicamente a "soporte de obligaciones" distinto de los
+  certificados de deuda u otros adjuntos ya tipados para otros fines.
+
+Inventar una regla acá —por ejemplo, "SI si el caso tiene al menos un
+documento adjunto"— sería una decisión de criterio legal disfrazada de
+decisión técnica: no hay forma de derivarla del dato sin asumir qué cuenta
+como "informar" en el sentido del Parágrafo. Por eso se deja como estaba.
+
+**Lo que haría falta para resolverlo**, una vez la abogada responda:
+
+1. Si la respuesta es "basta con que el deudor declare una de las dos cosas":
+   agregar la(s) casilla(s) correspondiente(s) a la Sección de Declaraciones
+   del formulario (mismo patrón que `declaracionNoOmisiones`), ~1 h.
+2. Si la respuesta depende de los documentos adjuntos reales: definir qué tipo
+   de documento cuenta como "soporte de obligaciones" en el catálogo de
+   adjuntos y derivar el placeholder de ahí, alcance mayor (toca
+   `document-requirements.ts` y el catálogo de tipos).
+
+No se puede estimar cuál de las dos hasta que haya respuesta.
