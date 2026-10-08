@@ -174,6 +174,13 @@ export function makeDebt(
     daysOverdue: 30 * (i + 1),
     hasActiveLibranza: i === 1,
     isDeferred: false,
+    // Las casillas "Desconozco" van explicitamente en false: `row('Debt')`
+    // las llenaria con un booleano derivado del hash del nombre de la columna,
+    // y el escenario base dejaria de cubrir el camino normal (tasa y fechas
+    // impresas). El camino "Desconoce" tiene su propio escenario.
+    interestRateUnknown: false,
+    grantDateUnknown: false,
+    dueDateUnknown: false,
     ...overrides,
   };
 }
