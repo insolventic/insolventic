@@ -2,6 +2,8 @@
 
 > Diagnóstico de solo lectura. No se modificó ningún archivo del repositorio ni se hizo commit.
 > Este documento es el único artefacto nuevo y queda **sin trackear** en `docs/`.
+>
+> **Actualizado 2026-10-08.** Este propio documento se commiteó el 2026-09-17 (`623f654`), junto con `scripts/verificar-deriva-esquema.sql`. El ítem 1 de §6 ("Recuperar los tres documentos... que faltan") quedó resuelto el 2026-10-08: `AUDITORIA_PREPRODUCCION_2026-08-25.md`, `IMPLEMENTACION_SEMANA_1.md` e `IMPLEMENTACION_SEMANA_2.md` se recuperaron del árbol local (habían vuelto a aparecer sin commitear) y se commitearon a `dev` (`5486fab`). El link de `RUNBOOK.md:323`, roto en el momento de este checkpoint, ya resuelve. La rama `fix/health-version-gated` —la otra mitad del mismo ítem— se había recuperado y mergeado antes, como PR #109.
 
 ---
 
@@ -175,7 +177,7 @@ Ya documentado como pendiente en `CLAUDE.md`; lo repito porque bloquea directame
 
 En orden de bloqueo.
 
-1. **Recuperar los tres documentos y la rama que faltan.** `AUDITORIA_PREPRODUCCION_2026-08-25.md`, `IMPLEMENTACION_SEMANA_1.md`, `IMPLEMENTACION_SEMANA_2.md` y `fix/health-version-gated` no están en `origin` ni en esta máquina. Están en otra máquina o en una sesión web. Sin la auditoría original no puedo cerrar los 21 ítems; sin la rama no puedo evaluar el gate de versión.
+1. ~~**Recuperar los tres documentos y la rama que faltan.**~~ → 🟢 **Resuelto.** `fix/health-version-gated` se recuperó y mergeó como PR #109. Los tres documentos (`AUDITORIA_PREPRODUCCION_2026-08-25.md`, `IMPLEMENTACION_SEMANA_1.md`, `IMPLEMENTACION_SEMANA_2.md`) se commitearon a `dev` el 2026-10-08 (`5486fab`) — ver la nota al inicio de este documento.
 2. **Decidir cómo inicializar Sentry (N-1).** Recomendación: `src/instrumentation.ts` + `src/instrumentation-client.ts`, sin `withSentryConfig`. Después, vos mirás la consola de Sentry para confirmar el evento de prueba. Hasta entonces, A-7 y el runbook son teóricos.
 3. **Acceso a Vercel.** Pedir que `insolvenic@gmail.com` invite a tu cuenta al team `insolventics-projects`, o loguear el CLI con esa cuenta. Sin esto no se puede confirmar Upstash (A-2), DSN (A-7), `NEXT_PUBLIC_APP_ENV`, `CRON_SECRET`, ni leer logs.
 4. **M-8, branch protection: qué mirar exactamente en GitHub.** Con la cuenta owner `insolventic` (la tuya no es admin): `github.com/insolventic/insolventic` → **Settings** → **Branches** (menú izquierdo, sección "Code and automation"). Vas a ver una de dos cosas:
