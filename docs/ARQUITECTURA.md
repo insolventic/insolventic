@@ -43,34 +43,43 @@ flowchart TB
 
 ---
 
-## 2. Multi-tenant por instancia de BD
+## 2. Multi-tenant por `tenantId` en una sola BD
 
-Cada centro de conciliación opera con su propia base de datos aislada. El cliente Prisma se selecciona en tiempo de request:
+Los dos centros comparten **una única base de datos física** y **un único cliente Prisma**. El aislamiento es **lógico**: `tenantId` va en el `where` de cada query, y el tenant del usuario viaja dentro del JWT.
 
 ```mermaid
 sequenceDiagram
     participant Browser
     participant Middleware
-    participant PrismaResolver as "src/lib/prisma.ts"
-    participant DB_Armonia as "BD Armonía"
-    participant DB_Construpaz as "BD Constructores de Paz"
+    participant Action as "Server action"
+    participant Prisma as "src/lib/prisma.ts (cliente unico)"
+    participant DB as "BD unica (DATABASE_URL)"
 
-    Browser->>Middleware: Request + cookie "tenant=armonia"
-    Middleware->>PrismaResolver: getPrismaClient(tenantSlug)
-    alt tenant = armonia
-        PrismaResolver->>DB_Armonia: PrismaClient(DATABASE_URL_ARMONIA)
-    else tenant = constructores-de-paz
-        PrismaResolver->>DB_Construpaz: PrismaClient(DATABASE_URL_CONSTRUCTORES_PAZ)
-    end
-    PrismaResolver-->>Middleware: client
-    Middleware->>Browser: Response
+    Browser->>Middleware: Request + cookie "access-token" (JWT)
+    Middleware->>Action: JWT valido
+    Action->>Action: authenticateUser() -> { userId, tenantId }
+    Action->>Prisma: query con where { tenantId, ... }
+    Prisma->>DB: SQL scopeado por tenantId
+    DB-->>Prisma: solo filas de ese centro
+    Prisma-->>Action: datos
+    Action-->>Browser: Response
 ```
+
+**Dónde está esto en el código:**
+
+- `src/lib/prisma.ts` crea **un solo** `PrismaClient` (sin override de `datasources`), así que toma la `url` del datasource: `env("DATABASE_URL")`. Lo único que ese módulo expone por tenant es **metadata para la UI** (`getTenantConfig` / `getAvailableTenants`: nombre, slug, logo) — no clientes ni conexiones.
+- `src/prisma/schema.prisma` declara un solo datasource: `url = env("DATABASE_URL")` + `directUrl = env("DIRECT_URL")`.
+- Los usuarios son filas de la misma base con unicidad compuesta: `switchTenant` los busca por `email_tenantId`. Si cada centro tuviera su propia BD, bastaría con `email`.
 
 **Garantías:**
 
 - `tenantId` siempre presente en `where` de queries (no se comparte data entre centros).
 - El JWT embebe `tenantId` → el usuario no puede forzar otro tenant sin re-login.
 - `switchTenant` fuerza validación de `mustChangePassword` antes de emitir el nuevo token.
+
+> **Corregido el 2026-10-09.** Esta sección describía una BD por centro, con un `getPrismaClient(tenantSlug)` que resolvía `DATABASE_URL_ARMONIA` / `DATABASE_URL_CONSTRUCTORES_PAZ` en tiempo de request. **Eso no existe en el código.** Esas dos variables sí están en `.env.example`, pero las lee únicamente `src/scripts/run-prisma.ts` (script manual) y `.github/workflows/e2e.yml`; el runtime las ignora. Para configurar o rotar credenciales en Vercel, las únicas que cuentan son `DATABASE_URL` y `DIRECT_URL` — el detalle está en `docs/RUNBOOK_ENV_VARS.md` §1 y §1.1.
+>
+> **Consecuencia de diseño, no cosmética:** al ser aislamiento lógico y no físico, una query a la que se le olvide el `tenantId` **devuelve datos del otro centro** en vez de fallar. Por eso la convención de `CLAUDE.md` ("toda server action: `authenticateUser()` → check de permiso → queries scoped por `tenantId`") es una barrera de seguridad, no un detalle de estilo.
 
 ---
 
