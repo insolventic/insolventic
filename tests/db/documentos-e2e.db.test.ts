@@ -73,6 +73,7 @@ import {
 } from './helpers/pendientes-conocidos';
 import { brandingRef } from '@/lib/branding-assets';
 import { mapBrandingAssets } from '@/features/document/placeholders/branding';
+import { mapMembreteCentro } from '@/features/document/placeholders/membrete';
 
 const TAG = `e2edocs-${Date.now().toString(36)}`;
 
@@ -188,7 +189,24 @@ beforeAll(async () => {
       where: { id: result.data.id },
       include: CASE_GENERATION_INCLUDE,
     });
-    const caseData = asCaseWithRelations(stored as never);
+
+    // El caso para RENDERIZAR usa un centro REAL, no el tenant sintético.
+    //
+    // Las filas vienen de Postgres —que es el punto de esta suite— pero el
+    // centro se fuerza a `constructores-paz`. El tenant de la suite es
+    // sintético (`e2edocs-<tag>`) para poder purgarlo al terminar sin tocar
+    // nada más, y un centro desconocido NO es un estado que producción pueda
+    // tener: solo existen los dos centros configurados.
+    //
+    // Importa porque el membrete por centro falla CERRADO ante un centro
+    // desconocido: con el tenant sintético, las 48 plantillas que imprimen el
+    // membrete quedarían con placeholders sin resolver y la suite reportaría
+    // como "plantilla incompleta" algo que en producción está completo. El
+    // fail-closed con un centro desconocido se verifica aparte, abajo.
+    const caseData = asCaseWithRelations({
+      ...stored,
+      tenant: { slug: 'constructores-paz' },
+    } as never);
     const placeholders = mapCaseToPlaceholders(caseData);
     const extraContext = buildTemplateContext(caseData);
 
@@ -418,6 +436,20 @@ describe('branding por centro: el tenant del row llega al mapper', () => {
         brandingRef(asset, stored.tenantId as string),
       );
     }
+  });
+
+  it('FAIL-CLOSED contra la base real: un centro desconocido no emite membrete', () => {
+    // El tenant de esta suite es sintético (`e2edocs-<tag>`), o sea un centro
+    // que el mapa no conoce. Con la fila REAL de Postgres —sin forzar el centro
+    // como se hace para renderizar— el membrete no emite ninguna clave, y el
+    // gate de generación cortaría. Es la contracara de la decisión de producto:
+    // antes un error visible que un documento con el centro equivocado.
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
+    const slugDelRow = (stored as { tenant?: { slug?: string } }).tenant?.slug;
+
+    expect(slugDelRow).toBe(ctx.tenantSlug);
+    expect(['armonia', 'constructores-paz']).not.toContain(slugDelRow);
+    expect(mapMembreteCentro(asCaseWithRelations(stored as never))).toEqual({});
   });
 
   it('contra Postgres real, tenantId y el slug son valores DISTINTOS', () => {
