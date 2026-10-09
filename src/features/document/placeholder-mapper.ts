@@ -131,6 +131,43 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
     NO_SOLICITUD: '',
     OK: '✓',
 
+    // PARÁGRAFOS — mapCheckList no producía NINGUNO de los 6 placeholders que
+    // usa esta sección de la plantilla (SI/NO_PARAGRAFO_1/2/3): el documento
+    // no se podía generar nunca, las dos rutas de generación lo bloqueaban por
+    // placeholders sin resolver. Ver docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md
+    // §4.1 y docs/CHECKPOINT_2026-09-28.md §5.3 ("pendiente de la abogada").
+    //
+    // Parágrafo 1 — "¿Realiza manifestación de que no ha incurrido en
+    // omisiones, imprecisiones o errores?": corresponde 1:1 con la casilla
+    // `declaracionNoOmisiones` de la Sección de Declaraciones del formulario
+    // ("No he incurrido en omisiones, imprecisiones o datos incorrectos...",
+    // create-case-dialog/declaraciones-section.tsx). Campo limpio, se wirea.
+    SI_PARAGRAFO_1: caseData.declaracionNoOmisiones ? 'X' : '',
+    NO_PARAGRAFO_1: !caseData.declaracionNoOmisiones ? 'X' : '',
+
+    // Parágrafo 2 — "¿Informa que la relación de acreedores la hace con corte
+    // al último día del mes anterior a la presentación de la solicitud?":
+    // NO hay un campo del formulario que capture esto porque no es una
+    // declaración que el deudor elige hacer — es texto fijo que la Solicitud
+    // de Insolvencia IMPRIME SIEMPRE, sin condición, en su Sección 3 ("La
+    // información... está diligenciada con corte al último día calendario del
+    // mes inmediatamente anterior..."). El Check List solo puede estar
+    // confirmando algo que ya es estructuralmente cierto en todo documento
+    // generado: por eso siempre X, no condicional a ningún dato del caso.
+    SI_PARAGRAFO_2: 'X',
+    NO_PARAGRAFO_2: '',
+
+    // Parágrafo 3 — "Informa si tiene soporte de obligaciones o manifestación
+    // de que no las posee": a propósito SIN WIREAR. No hay un campo limpio: es
+    // una disyunción entre dos declaraciones distintas ("tiene el soporte" vs.
+    // "manifiesta que no lo tiene") que el formulario no captura por separado
+    // de ninguna otra forma, y no hay base para inventar una regla sin que la
+    // abogada confirme qué cuenta como "informado". Pendiente en
+    // docs/PENDIENTES_DECISION_LEGAL.md (ítem 2). SI_PARAGRAFO_3/
+    // NO_PARAGRAFO_3 siguen sin producirse: el Check List sigue bloqueado por
+    // esos dos hasta que se resuelva, que es el comportamiento correcto
+    // mientras no haya un criterio.
+
     // New checklist: certificate/acreedor verification
     SI_CERT_AHORROS: '', // Manual: savings/guarantee certificate
     NO_CERT_AHORROS: 'X',
@@ -158,8 +195,14 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
     NO_DOC_GASTOS: 'X',
     SI_DOC_EXTRACTOS: '', // Manual verification
     NO_DOC_EXTRACTOS: 'X',
-    SI_DOC_CONOCE_NORMA: '', // Manual: manifestacion conocer norma
-    NO_DOC_CONOCE_NORMA: 'X',
+    // Estaba hardcodeado a NO sin importar lo que declarara el deudor —
+    // "Manifiesta que conoce la norma..." salía siempre marcado NO, aunque el
+    // formulario SÍ captura esto: `declaracionConocimientoNorma`, la misma
+    // casilla de declaraciones-section.tsx ("Manifiesto que conozco la norma
+    // aplicable al procedimiento..."). Mismo mapper, mismo riesgo que los
+    // Parágrafos de arriba.
+    SI_DOC_CONOCE_NORMA: caseData.declaracionConocimientoNorma ? 'X' : '',
+    NO_DOC_CONOCE_NORMA: !caseData.declaracionConocimientoNorma ? 'X' : '',
     SI_DOC_FIRMA: 'X', // Always present when generating
     NO_DOC_FIRMA: '',
 

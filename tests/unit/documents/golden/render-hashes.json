@@ -106,85 +106,57 @@
  },
  "INSOLVENCY/check-list|insolvencia-completa": {
   "t": "3c4b5d9b7009",
-  "h": "ddb52f6ad180",
+  "h": "cbaf2d54de36",
   "u": [
-   "NO_PARAGRAFO_1",
-   "NO_PARAGRAFO_2",
    "NO_PARAGRAFO_3",
-   "SI_PARAGRAFO_1",
-   "SI_PARAGRAFO_2",
    "SI_PARAGRAFO_3"
   ]
  },
  "INSOLVENCY/check-list|insolvencia-minima": {
   "t": "3c4b5d9b7009",
-  "h": "0734ef5c7ebf",
+  "h": "82c0ce0e88e3",
   "u": [
-   "NO_PARAGRAFO_1",
-   "NO_PARAGRAFO_2",
    "NO_PARAGRAFO_3",
-   "SI_PARAGRAFO_1",
-   "SI_PARAGRAFO_2",
    "SI_PARAGRAFO_3"
   ]
  },
  "INSOLVENCY/check-list|insolvencia-acuerdo-aprobado": {
   "t": "3c4b5d9b7009",
-  "h": "ddb52f6ad180",
+  "h": "cbaf2d54de36",
   "u": [
-   "NO_PARAGRAFO_1",
-   "NO_PARAGRAFO_2",
    "NO_PARAGRAFO_3",
-   "SI_PARAGRAFO_1",
-   "SI_PARAGRAFO_2",
    "SI_PARAGRAFO_3"
   ]
  },
  "INSOLVENCY/check-list|insolvencia-fracaso-con-datos": {
   "t": "3c4b5d9b7009",
-  "h": "ddb52f6ad180",
+  "h": "cbaf2d54de36",
   "u": [
-   "NO_PARAGRAFO_1",
-   "NO_PARAGRAFO_2",
    "NO_PARAGRAFO_3",
-   "SI_PARAGRAFO_1",
-   "SI_PARAGRAFO_2",
    "SI_PARAGRAFO_3"
   ]
  },
  "INSOLVENCY/check-list|insolvencia-desistimiento": {
   "t": "3c4b5d9b7009",
-  "h": "ddb52f6ad180",
+  "h": "cbaf2d54de36",
   "u": [
-   "NO_PARAGRAFO_1",
-   "NO_PARAGRAFO_2",
    "NO_PARAGRAFO_3",
-   "SI_PARAGRAFO_1",
-   "SI_PARAGRAFO_2",
    "SI_PARAGRAFO_3"
   ]
  },
  "INSOLVENCY/check-list|insolvencia-xss": {
   "t": "3c4b5d9b7009",
-  "h": "57c319d5ed4c",
+  "h": "ee825640bc64",
   "u": [
-   "NO_PARAGRAFO_1",
-   "NO_PARAGRAFO_2",
    "NO_PARAGRAFO_3",
-   "SI_PARAGRAFO_1",
-   "SI_PARAGRAFO_2",
    "SI_PARAGRAFO_3"
   ]
  },
  "INSOLVENCY/check-list|insolvencia-muchos": {
   "t": "3c4b5d9b7009",
-  "h": "6ab0948cfc17",
+  "h": "fef88dbdd79b",
   "u": [
-   "NO_PARAGRAFO_1",
-   "NO_PARAGRAFO_2",
    "NO_PARAGRAFO_3",
-   "SI_PARAGRAFO_1",
-   "SI_PARAGRAFO_2",
    "SI_PARAGRAFO_3"
   ]
  },
