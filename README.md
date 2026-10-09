@@ -283,3 +283,5 @@ Un badge sutil en la esquina inferior izquierda muestra la versión activa con s
 Software propietario. Copia, transferencia o reproducción no autorizada estrictamente prohibida.
 
 © 2025–2026 INSOLVENTIC — Sistema de Gestión de Procesos de Insolvencia
+
+<!-- No-op: PR de prueba para disparar un Preview deployment y verificar a qué base de datos conecta (2026-10-09). Sin efecto en el render ni en el build. NO MERGEAR. -->
