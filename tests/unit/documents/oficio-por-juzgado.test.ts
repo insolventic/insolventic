@@ -41,6 +41,10 @@ type Proceso = {
 const makeCase = (legalProcesses: Proceso[] = []) =>
   ({
     type: 'INSOLVENCY',
+    // Tenant REAL: el membrete por centro falla cerrado ante un tenant
+    // desconocido (membrete-centro.ts), asi que un caso sin el no resuelve los
+    // placeholders del membrete y el gate bloquearia la generacion.
+    tenantId: 'constructores-paz',
     caseNumber: 'INS-2026-077',
     debtor: {
       name: 'Ana Torres',

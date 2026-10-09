@@ -248,7 +248,11 @@ export function makeCase(opts: CaseOptions = {}): Row {
     totalDebt: 87_500_000,
     creditors: (opts.debts ?? []).length,
     version: 1,
-    tenantId: 'tenant-golden',
+    // Un tenant REAL, no sintetico: en produccion Case.tenantId es el slug del
+    // centro ('constructores-paz' | 'armonia'), y el membrete por centro falla
+    // cerrado ante un tenant desconocido (membrete-centro.ts). Con un id
+    // inventado los escenarios no podrian ejercitar el membrete.
+    tenantId: 'constructores-paz',
     createdDate: new Date(Date.UTC(2026, 1, 10, 15, 0, 0)),
     ...opts.overrides,
   });

@@ -59,6 +59,10 @@ const EXPECTED_MERGE_ORDER = [
   // que no participa en ninguna colisión y su posición en el orden es
   // indiferente. Ver src/features/document/placeholders/branding.ts.
   'mapBrandingAssets',
+  // Membrete por centro: emite 23 claves nuevas (CENTRO_*, OPERADOR_*) que
+  // ningun otro sub-mapper produce, asi que no participa en ninguna colision.
+  // Ver src/features/document/placeholders/membrete.ts.
+  'mapMembreteCentro',
   'mapCheckList',
   'mapIncomeDeclaration',
   'mapExtendedDates',
