@@ -21,6 +21,24 @@ import type { CaseWithRelations } from '../case/schemas';
  */
 export const CASE_GENERATION_INCLUDE = {
   debtor: true,
+  /**
+   * El SLUG del centro (`armonia` | `constructores-paz`), que es la clave de
+   * los mapas por tenant (`branding-assets.ts`, y el membrete cuando entre).
+   *
+   * NO alcanza con `Case.tenantId`: ese campo guarda el **`Tenant.id`**, que es
+   * un cuid. El recorrido real es: el JWT lleva el slug → `authenticateUser()`
+   * resuelve el tenant con `where: { slug }` y devuelve `tenant.id` →
+   * `createCase` persiste **ese cuid** en `Case.tenantId`, y la FK
+   * `Case_tenantId_fkey` apunta a `Tenant("id")`, así que no puede ser otra
+   * cosa.
+   *
+   * Sin este `select`, los mapas por tenant reciben un cuid, nunca encuentran
+   * la fila y caen siempre al valor por defecto. Es lo que hacía que el
+   * branding por centro **no funcionara** aunque sus tests pasaran: los
+   * fixtures le pasaban `'constructores-paz'` a mano, un valor que producción
+   * nunca produce.
+   */
+  tenant: { select: { slug: true } },
   operator: {
     // `professionalCard` alimenta TP_CONCILIADORA en los documentos de
     // conciliacion: sin pedirla aca el fallback seria `undefined` en

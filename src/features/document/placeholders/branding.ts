@@ -26,32 +26,32 @@ import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { brandingRef, type CarpetasPorTenant } from '@/lib/branding-assets';
 
+import { tenantSlugDelCaso } from './tenant-slug';
+
 /**
- * `tenantId` es una columna real de `Case` y viaja en el payload de Prisma,
- * pero `CaseWithRelations` (el schema Zod) no la declara. Se lee con el mismo
- * patrón que ya usan `mapApoyoFields`, `mapCheckList` y
- * `buildConciliationContext` para campos no declarados: el cast a
- * `Record<string, unknown>`. `asCaseWithRelations` es un spread, no un
- * `.parse()`, así que no descarta la clave.
+ * La carpeta se elige por el **slug** del centro, no por `Case.tenantId`.
+ *
+ * `Case.tenantId` guarda el `Tenant.id` — un cuid —, así que usarlo como clave
+ * del mapa nunca encontraba la fila y caía siempre al valor por defecto: el
+ * branding por centro no elegía por centro. El porqué completo, el recorrido
+ * del dato y por qué los tests no lo atrapaban están en `tenant-slug.ts`.
  */
 export function mapBrandingAssets(
   caseData: CaseWithRelations,
   /**
    * Mapa tenant → carpeta. Producción nunca lo pasa: el default es el mapa real
    * de `branding-assets.ts`. Los tests inyectan uno con una carpeta distinta por
-   * tenant para poder verificar que el `tenantId` del expediente es el que
-   * decide — con el mapa real, los dos centros comparten carpeta y la aserción
-   * no distinguiría el fallback.
+   * tenant para poder verificar que el slug del expediente es el que decide —
+   * con el mapa real, los dos centros comparten carpeta y la aserción no
+   * distinguiría el fallback.
    */
   carpetas?: CarpetasPorTenant,
 ): PlaceholderMap {
-  const tenantId = (caseData as Record<string, unknown>).tenantId as
-    | string
-    | undefined;
+  const slug = tenantSlugDelCaso(caseData);
 
   return {
-    LOGO_ENCABEZADO_SRC: brandingRef('logo-encabezado', tenantId, carpetas),
-    LOGO_FIRMA_SRC: brandingRef('logo-firma', tenantId, carpetas),
-    FIRMA_OPERADOR_SRC: brandingRef('firma-operador', tenantId, carpetas),
+    LOGO_ENCABEZADO_SRC: brandingRef('logo-encabezado', slug, carpetas),
+    LOGO_FIRMA_SRC: brandingRef('logo-firma', slug, carpetas),
+    FIRMA_OPERADOR_SRC: brandingRef('firma-operador', slug, carpetas),
   };
 }

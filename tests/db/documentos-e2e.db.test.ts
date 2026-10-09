@@ -97,7 +97,7 @@ interface CasoRenderizado {
   htmlCompleto: string;
 }
 
-const ctx = { tenantId: '', userId: '' };
+const ctx = { tenantId: '', tenantSlug: '', userId: '' };
 const renderizados = new Map<string, CasoRenderizado>();
 const fallosDeCreacion: Array<{ key: string; error: string }> = [];
 
@@ -158,6 +158,9 @@ function fechasDelFormulario(
 beforeAll(async () => {
   const tenant = await crearTenantDePrueba(TAG);
   ctx.tenantId = tenant.tenantId;
+  // El slug, aparte del id: son valores DISTINTOS en la base real, y los mapas
+  // por centro se keyean por el slug (ver placeholders/tenant-slug.ts).
+  ctx.tenantSlug = tenant.tenantSlug;
   ctx.userId = tenant.userId;
   mockCookies.setToken('access-token', tenant.token);
 
@@ -417,19 +420,34 @@ describe('branding por centro: el tenant del row llega al mapper', () => {
     }
   });
 
-  it('el tenantId del row es el que elige la carpeta (mapa inyectado)', () => {
+  it('contra Postgres real, tenantId y el slug son valores DISTINTOS', () => {
+    // Este es el dato que hacía falta y que ningún test registraba. En la base
+    // real `Case.tenantId` es el `Tenant.id` (un cuid) y el slug vive en la
+    // relación. Fijarlo acá es lo que convierte en detectable el bug de keyear
+    // los mapas por `tenantId`.
     const { stored } = renderizados.get(FIXTURES[0].key)!;
+    const slug = (stored as { tenant?: { slug?: string } }).tenant?.slug;
 
-    // POR QUÉ UN MAPA INYECTADO. Con el mapa real, `brandingRef(asset, tenant)`
-    // y `brandingRef(asset, undefined)` devuelven el MISMO string: los dos
-    // centros comparten la carpeta de Constructores y el fallback también. Una
-    // aserción contra el mapa real se cumple incluso si `asCaseWithRelations`
-    // descartara `tenantId` y el sub-mapper cayera al fallback — que es
-    // justamente el modo de falla que este test existe para detectar.
+    expect(typeof slug).toBe('string');
+    expect(slug).toBe(ctx.tenantSlug);
+    expect(stored.tenantId).not.toBe(slug);
+  });
+
+  it('el SLUG del row es el que elige la carpeta (mapa inyectado)', () => {
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
+    const slug = (stored as { tenant?: { slug?: string } }).tenant!.slug!;
+
+    // POR QUÉ UN MAPA INYECTADO. Con el mapa real los dos centros comparten la
+    // carpeta de Constructores, igual que el fallback, así que una aserción
+    // contra el mapa real se cumple pase lo que pase. Apuntando SOLO el slug a
+    // una carpeta propia, el test falla si el mapper usa cualquier otra cosa.
     //
-    // Apuntando el tenant real a una carpeta propia, perder el `tenantId`
-    // devuelve la carpeta del fallback y el test falla.
-    const carpetas = { [stored.tenantId as string]: 'carpeta-del-row' };
+    // Y POR QUÉ KEYEADO POR EL SLUG Y NO POR `stored.tenantId`: con el cuid la
+    // aserción pasaba por construcción —el mapa contenía justo el valor que el
+    // mapper leía—, aunque en producción ese valor nunca coincidiera con el
+    // mapa real. Era el agujero por el que el branding por centro no funcionaba
+    // con sus tests en verde.
+    const carpetas = { [slug]: 'carpeta-del-slug' };
 
     const branding = mapBrandingAssets(
       asCaseWithRelations(stored as never),
@@ -437,14 +455,23 @@ describe('branding por centro: el tenant del row llega al mapper', () => {
     );
 
     expect(branding.LOGO_ENCABEZADO_SRC).toBe(
-      '/branding/carpeta-del-row/logo-encabezado.png',
+      '/branding/carpeta-del-slug/logo-encabezado.png',
     );
     expect(branding.LOGO_FIRMA_SRC).toBe(
-      '/branding/carpeta-del-row/logo-firma.png',
+      '/branding/carpeta-del-slug/logo-firma.png',
     );
     expect(branding.FIRMA_OPERADOR_SRC).toBe(
-      '/branding/carpeta-del-row/firma-operador.png',
+      '/branding/carpeta-del-slug/firma-operador.png',
     );
+
+    // Y el cuid NO alcanza: si el mapper volviera a leer `tenantId`, con un
+    // mapa que solo conoce el slug caería al fallback.
+    const soloCuid = { [stored.tenantId as string]: 'carpeta-del-cuid' };
+    const conCuid = mapBrandingAssets(
+      asCaseWithRelations(stored as never),
+      soloCuid,
+    );
+    expect(conCuid.LOGO_ENCABEZADO_SRC).not.toContain('carpeta-del-cuid');
   });
 });
 
