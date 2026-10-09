@@ -33,6 +33,11 @@ import {
   camposFaltantes,
   membreteDelCentro,
 } from '@/lib/membrete-centro';
+import {
+  esSlugDeCentroConocido,
+  tenantSlugDelCaso,
+  tieneFormaDeSlug,
+} from '@/features/document/placeholders/tenant-slug';
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { SCENARIOS } from '../../helpers/mapper-scenarios';
 
@@ -44,6 +49,25 @@ function caso(overrides: Record<string, unknown> = {}): CaseWithRelations {
   return { ...base, ...overrides } as CaseWithRelations;
 }
 
+/** Un cuid como los que genera Prisma para `Tenant.id`. */
+const CUID = 'cmluzsnr0000qwertyuiop123';
+
+/**
+ * Caso con la forma REAL de producción: `tenantId` es el cuid del tenant y el
+ * slug viaja en la relación `tenant`.
+ *
+ * POR QUÉ IMPORTA. Verificado contra la base de producción el 2026-10-09: los
+ * `Tenant.id` son cuids y no coinciden con el slug. Si estos tests usaran
+ * `{ tenantId: 'constructores-paz' }` —un valor que producción nunca produce—
+ * pasarían en verde mientras el membrete falla cerrado en producción para los
+ * DOS centros, que con el fail-closed es un apagón de la generación. Es el
+ * mismo error que dejó al branding por centro sin funcionar con sus tests
+ * verdes.
+ */
+function casoComoEnProduccion(slug: string): CaseWithRelations {
+  return caso({ tenantId: CUID, tenant: { slug } });
+}
+
 describe('1. Constructores de Paz: completo, y con los valores exactos', () => {
   it('no le falta ningún campo', () => {
     expect(camposFaltantes('constructores-paz')).toEqual([]);
@@ -51,7 +75,7 @@ describe('1. Constructores de Paz: completo, y con los valores exactos', () => {
   });
 
   it('el mapper emite las 23 claves', () => {
-    const map = mapMembreteCentro(caso({ tenantId: 'constructores-paz' }));
+    const map = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
     expect(Object.keys(map).sort()).toEqual([...CLAVES_MEMBRETE].sort());
     expect(CLAVES_MEMBRETE).toHaveLength(CAMPOS_MEMBRETE.length);
   });
@@ -60,7 +84,7 @@ describe('1. Constructores de Paz: completo, y con los valores exactos', () => {
     // Extracción 1:1. Si alguien "corrige" una de estas cadenas (la tilde de
     // LÓPEZ, la capitalización de "interior 1 Oficina 308"), el HTML renderizado
     // deja de ser idéntico al de antes y el golden master se mueve.
-    const map = mapMembreteCentro(caso({ tenantId: 'constructores-paz' }));
+    const map = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
     expect(map.CENTRO_ENTIDAD_PROMOTORA).toBe(
       'Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia',
     );
@@ -84,7 +108,9 @@ describe('1. Constructores de Paz: completo, y con los valores exactos', () => {
   });
 
   it('llega hasta el punto de fusión', () => {
-    const map = mapCaseToPlaceholders(caso({ tenantId: 'constructores-paz' }));
+    const map = mapCaseToPlaceholders(
+      casoComoEnProduccion('constructores-paz'),
+    );
     for (const clave of CLAVES_MEMBRETE) {
       expect(typeof map[clave]).toBe('string');
       expect(map[clave]).not.toBe('');
@@ -110,12 +136,12 @@ describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
   });
 
   it('REGRESIÓN: Armonía NO cae a los datos de Constructores', () => {
-    const map = mapMembreteCentro(caso({ tenantId: 'armonia' }));
+    const map = mapMembreteCentro(casoComoEnProduccion('armonia'));
     // Cero claves: el gate de placeholders sin resolver corta la generación.
     expect(map).toEqual({});
 
     // Y en el punto de fusión tampoco aparecen con los valores del otro centro.
-    const completo = mapCaseToPlaceholders(caso({ tenantId: 'armonia' }));
+    const completo = mapCaseToPlaceholders(casoComoEnProduccion('armonia'));
     for (const clave of CLAVES_MEMBRETE) {
       expect(completo[clave]).toBeUndefined();
     }
@@ -133,14 +159,14 @@ describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
     ]);
     expect(membreteDelCentro('tenant-que-no-existe')).toBeNull();
     expect(
-      mapMembreteCentro(caso({ tenantId: 'tenant-que-no-existe' })),
+      mapMembreteCentro(casoComoEnProduccion('tenant-que-no-existe')),
     ).toEqual({});
   });
 
   it.each(TENANTS_CON_MEMBRETE)(
     '%s: o está completo, o no emite ninguna clave (nunca a medias)',
     (tenantId) => {
-      const map = mapMembreteCentro(caso({ tenantId }));
+      const map = mapMembreteCentro(casoComoEnProduccion(tenantId));
       const claves = Object.keys(map).length;
       expect(claves === 0 || claves === CLAVES_MEMBRETE.length).toBe(true);
     },
@@ -181,4 +207,65 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
     ).map((f) => path.relative(process.cwd(), f));
     expect(culpables).toEqual([]);
   });
+});
+
+describe('4. GUARDIÁN DE PERTENENCIA: el centro se identifica por un slug conocido', () => {
+  /**
+   * El mismo guardián que `tenant-slug.test.ts`, aplicado al membrete — y acá
+   * con más consecuencia que en el branding.
+   *
+   * Si el valor que el mapper usa para identificar el centro no es un slug que
+   * el mapa conoce, `membreteDelCentro` devuelve `null`, el sub-mapper no emite
+   * nada y el gate corta la generación. Para los DOS centros. Con el branding
+   * eso era un default silencioso; acá es un apagón.
+   *
+   * La forma sola no alcanza para detectarlo: un cuid es minúsculas y
+   * alfanumérico, y un identificador inventado como `tenant-golden` tiene forma
+   * de slug perfecta. Lo que lo detecta es la pertenencia al mapa.
+   */
+  it('el valor que el mapper usa con la forma de producción es un slug CONOCIDO', () => {
+    for (const slug of TENANTS_CON_MEMBRETE) {
+      const usado = tenantSlugDelCaso(casoComoEnProduccion(slug));
+      expect(tieneFormaDeSlug(usado)).toBe(true);
+      expect(esSlugDeCentroConocido(usado)).toBe(true);
+      // Y explícitamente: NO es el cuid que está en Case.tenantId.
+      expect(usado).not.toBe(CUID);
+    }
+  });
+
+  it('REGRESIÓN: un cuid no identifica a ningún centro, así que no emite nada', () => {
+    // Esto es lo que habría apagado la generación en producción si el mapper
+    // hubiera seguido leyendo `Case.tenantId`.
+    expect(esSlugDeCentroConocido(CUID)).toBe(false);
+    expect(camposFaltantes(CUID)).toEqual([...CAMPOS_MEMBRETE]);
+
+    const sinRelacion = caso({ tenantId: CUID }) as Record<string, unknown>;
+    delete sinRelacion.tenant;
+    expect(
+      mapMembreteCentro(sinRelacion as unknown as CaseWithRelations),
+    ).toEqual({});
+  });
+
+  // Sintéticos SIN dígitos: pasan el filtro de forma, así que solo los frena la
+  // pertenencia al mapa. Son los peligrosos, los que podrían colarse.
+  it.each(['tenant-golden', 'tenant-test-id', 'prueba-smoke'])(
+    'el identificador sintético %p no se cuela por tener forma de slug',
+    (sintetico) => {
+      expect(tieneFormaDeSlug(sintetico)).toBe(true);
+      expect(esSlugDeCentroConocido(sintetico)).toBe(false);
+      expect(mapMembreteCentro(casoComoEnProduccion(sintetico))).toEqual({});
+    },
+  );
+
+  // Sintéticos CON dígitos (los tags de `tests/db`, tipo `e2edocs-m2k3j4`):
+  // los frena ya el filtro de forma, antes de la pertenencia. Se fija aparte
+  // para que quede claro cuál de los dos niveles actúa en cada caso.
+  it.each(['e2edocs-m2k3j4', 'smoke-1a2b3c', 'cmluzsnr0000qwertyuiop123'])(
+    'el identificador %p lo rechaza ya la forma, sin llegar a la pertenencia',
+    (sintetico) => {
+      expect(tieneFormaDeSlug(sintetico)).toBe(false);
+      expect(esSlugDeCentroConocido(sintetico)).toBe(false);
+      expect(mapMembreteCentro(casoComoEnProduccion(sintetico))).toEqual({});
+    },
+  );
 });

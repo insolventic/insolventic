@@ -32,6 +32,8 @@ import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { membreteDelCentro, type MembreteCentro } from '@/lib/membrete-centro';
 
+import { tenantSlugDelCaso } from './tenant-slug';
+
 /**
  * Qué placeholder emite cada campo del membrete.
  *
@@ -70,18 +72,21 @@ const CLAVE_POR_CAMPO: Record<keyof MembreteCentro, string> = {
 export const CLAVES_MEMBRETE = Object.values(CLAVE_POR_CAMPO);
 
 /**
- * `tenantId` es una columna real de `Case` y viaja en el payload de Prisma,
- * pero `CaseWithRelations` (el schema Zod) no la declara. Se lee con el mismo
- * patrón que ya usan `mapBrandingAssets`, `mapApoyoFields` y `mapCheckList`:
- * el cast a `Record<string, unknown>`. `asCaseWithRelations` es un spread, no
- * un `.parse()`, así que no descarta la clave.
+ * El centro se identifica por su **slug**, no por `Case.tenantId`.
+ *
+ * `Case.tenantId` guarda el `Tenant.id`, que es un cuid: el JWT lleva el slug,
+ * `authenticateUser()` resuelve el tenant por slug y devuelve `tenant.id`, y
+ * eso es lo que `createCase` persiste. Verificado contra la base de producción
+ * el 2026-10-09: los `Tenant.id` son cuids (`cmluzsnr…`) y no coinciden con el
+ * slug. El recorrido completo está en `tenant-slug.ts`.
+ *
+ * Acá importa más que en el branding: con un cuid, `membreteDelCentro` no
+ * encuentra la fila y, por el fail-closed, **no se generaría ningún documento
+ * para ningún centro**. El branding solo caía a un default silencioso; esto
+ * sería un apagón.
  */
 export function mapMembreteCentro(caseData: CaseWithRelations): PlaceholderMap {
-  const tenantId = (caseData as Record<string, unknown>).tenantId as
-    | string
-    | undefined;
-
-  const membrete = membreteDelCentro(tenantId);
+  const membrete = membreteDelCentro(tenantSlugDelCaso(caseData));
 
   // Centro incompleto o desconocido: no se emite NADA. El gate de placeholders
   // sin resolver corta la generación y nombra los campos que faltan. Ver el

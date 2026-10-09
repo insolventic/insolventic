@@ -252,7 +252,13 @@ export function makeCase(opts: CaseOptions = {}): Row {
     // centro ('constructores-paz' | 'armonia'), y el membrete por centro falla
     // cerrado ante un tenant desconocido (membrete-centro.ts). Con un id
     // inventado los escenarios no podrian ejercitar el membrete.
-    tenantId: 'constructores-paz',
+    // FORMA DE PRODUCCION: tenantId es el cuid del Tenant y el slug viaja en la
+    // relacion. Verificado contra la base real el 2026-10-09: los Tenant.id son
+    // cuids y NO coinciden con el slug. Con el slug puesto aca como tenantId,
+    // ningun escenario ejercitaba el camino real (tenant.slug) y un mapper que
+    // volviera a leer tenantId crudo pasaria en verde.
+    tenantId: 'cmluzsnr0000qwertyuiop123',
+    tenant: { slug: 'constructores-paz' },
     createdDate: new Date(Date.UTC(2026, 1, 10, 15, 0, 0)),
     ...opts.overrides,
   });
