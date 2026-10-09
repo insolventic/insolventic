@@ -72,6 +72,7 @@ import {
   VALORES_QUE_NO_LLEGAN,
 } from './helpers/pendientes-conocidos';
 import { brandingRef } from '@/lib/branding-assets';
+import { mapBrandingAssets } from '@/features/document/placeholders/branding';
 
 const TAG = `e2edocs-${Date.now().toString(36)}`;
 
@@ -386,27 +387,63 @@ describe('branding por centro: el tenant del row llega al mapper', () => {
   // declaradas— el branding se caería al fallback sin que nada avise, y los dos
   // centros volverían a compartir assets en silencio. Esto solo se puede
   // verificar contra Prisma real: los fixtures unitarios arman el caso a mano.
-  it('el row de Prisma trae tenantId y el mapper resuelve los assets con él', () => {
+  it('el row de Prisma trae tenantId', () => {
     const { stored } = renderizados.get(FIXTURES[0].key)!;
 
     expect(stored.tenantId).toBe(ctx.tenantId);
     expect(typeof stored.tenantId).toBe('string');
+  });
 
+  it('las tres claves de branding salen del mapper completo', () => {
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
     const placeholders = mapCaseToPlaceholders(
       asCaseWithRelations(stored as never),
     );
 
-    // No se compara contra una ruta literal: se compara contra lo que la
-    // función de resolución da PARA ESE tenant. Así el test prueba el cableado
-    // (el tenant del row es el que decide) sin fijar qué carpeta le toca.
-    expect(placeholders.LOGO_ENCABEZADO_SRC).toBe(
-      brandingRef('logo-encabezado', stored.tenantId as string),
+    // Con el mapa real los dos centros comparten carpeta, así que acá solo se
+    // fija que las claves EXISTAN y salgan del punto de fusión real. Que el
+    // tenant del row sea el que decide lo prueba el caso de abajo, que es el
+    // único que puede fallar por ese motivo.
+    const esperados = [
+      ['LOGO_ENCABEZADO_SRC', 'logo-encabezado'],
+      ['LOGO_FIRMA_SRC', 'logo-firma'],
+      ['FIRMA_OPERADOR_SRC', 'firma-operador'],
+    ] as const;
+
+    for (const [clave, asset] of esperados) {
+      expect(placeholders[clave]).toBe(
+        brandingRef(asset, stored.tenantId as string),
+      );
+    }
+  });
+
+  it('el tenantId del row es el que elige la carpeta (mapa inyectado)', () => {
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
+
+    // POR QUÉ UN MAPA INYECTADO. Con el mapa real, `brandingRef(asset, tenant)`
+    // y `brandingRef(asset, undefined)` devuelven el MISMO string: los dos
+    // centros comparten la carpeta de Constructores y el fallback también. Una
+    // aserción contra el mapa real se cumple incluso si `asCaseWithRelations`
+    // descartara `tenantId` y el sub-mapper cayera al fallback — que es
+    // justamente el modo de falla que este test existe para detectar.
+    //
+    // Apuntando el tenant real a una carpeta propia, perder el `tenantId`
+    // devuelve la carpeta del fallback y el test falla.
+    const carpetas = { [stored.tenantId as string]: 'carpeta-del-row' };
+
+    const branding = mapBrandingAssets(
+      asCaseWithRelations(stored as never),
+      carpetas,
     );
-    expect(placeholders.LOGO_FIRMA_SRC).toBe(
-      brandingRef('logo-firma', stored.tenantId as string),
+
+    expect(branding.LOGO_ENCABEZADO_SRC).toBe(
+      '/branding/carpeta-del-row/logo-encabezado.png',
     );
-    expect(placeholders.FIRMA_OPERADOR_SRC).toBe(
-      brandingRef('firma-operador', stored.tenantId as string),
+    expect(branding.LOGO_FIRMA_SRC).toBe(
+      '/branding/carpeta-del-row/logo-firma.png',
+    );
+    expect(branding.FIRMA_OPERADOR_SRC).toBe(
+      '/branding/carpeta-del-row/firma-operador.png',
     );
   });
 });

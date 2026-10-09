@@ -22,6 +22,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import { mapCaseToPlaceholders } from '@/features/document/placeholder-mapper';
+import { mapBrandingAssets } from '@/features/document/placeholders/branding';
 import {
   ASSETS_REQUERIDOS,
   BRANDING_REF_PREFIX,
@@ -68,12 +69,60 @@ describe('1. el mapper produce los tres placeholders de branding', () => {
 });
 
 describe('2. la elección pasa por el mapa de tenants, no por el fallback', () => {
+  /**
+   * Mapa inyectado con UNA CARPETA DISTINTA POR TENANT.
+   *
+   * Es lo que le da dientes a este bloque. Con el mapa real los dos centros
+   * comparten `constructores-paz`, igual que el fallback de tenant desconocido:
+   * con esos valores, `expect(map.X).toBe(brandingRef('x', tenantId))` se cumple
+   * incluso si el sub-mapper pierde el `tenantId` por completo y cae al
+   * fallback — la aserción no distingue los dos casos. Verificado: ignorando
+   * `caseData` en `mapBrandingAssets`, los 676 tests de documentos seguían
+   * pasando, golden master incluido.
+   *
+   * Con una carpeta por tenant, perder el `tenantId` devuelve la carpeta del
+   * fallback y el test falla.
+   */
+  const CARPETAS_DISTINTAS: Record<string, string> = {
+    'constructores-paz': 'carpeta-de-constructores',
+    armonia: 'carpeta-de-armonia',
+  };
+
+  /** Qué placeholder emite cada asset. */
+  const CLAVE_POR_ASSET: Record<string, string> = {
+    'logo-encabezado': 'LOGO_ENCABEZADO_SRC',
+    'logo-firma': 'LOGO_FIRMA_SRC',
+    'firma-operador': 'FIRMA_OPERADOR_SRC',
+  };
+
   it.each(TENANTS_CON_BRANDING)(
-    '%s resuelve sus tres assets por mapa',
+    '%s: el tenant del expediente es el que elige la carpeta',
+    (tenantId) => {
+      const brandingDelCaso = mapBrandingAssets(
+        caso({ tenantId }),
+        CARPETAS_DISTINTAS,
+      );
+
+      for (const asset of ASSETS_REQUERIDOS) {
+        expect(brandingDelCaso[CLAVE_POR_ASSET[asset]]).toBe(
+          `${BRANDING_REF_PREFIX}${CARPETAS_DISTINTAS[tenantId]}/${asset}.png`,
+        );
+      }
+
+      // Y no es la carpeta del OTRO centro ni la del fallback.
+      expect(brandingDelCaso.LOGO_ENCABEZADO_SRC).not.toContain(
+        'constructores-paz',
+      );
+    },
+  );
+
+  it.each(TENANTS_CON_BRANDING)(
+    '%s resuelve sus tres assets por el mapa real (hoy compartido)',
     (tenantId) => {
       const map = mapCaseToPlaceholders(caso({ tenantId }));
-      // Hoy los dos centros comparten carpeta; lo que importa es que el valor
-      // salga del mapa para un tenant REAL, no del fallback de los fixtures.
+      // Con el mapa real los dos centros comparten carpeta a propósito: esto
+      // fija el estado actual, no el cableado (de eso se encarga el caso de
+      // arriba, con el mapa inyectado).
       for (const asset of ASSETS_REQUERIDOS) {
         expect(brandingRef(asset, tenantId)).toBe(
           `${BRANDING_REF_PREFIX}constructores-paz/${asset}.png`,

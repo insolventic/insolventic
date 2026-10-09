@@ -60,6 +60,21 @@ const CARPETA_POR_TENANT: Record<TenantId, string> = {
 const CARPETA_POR_DEFECTO = 'constructores-paz';
 
 /**
+ * Forma del mapa tenant → carpeta, para poder inyectar uno en los tests.
+ *
+ * POR QUÉ ES INYECTABLE. Mientras los dos centros compartan la carpeta de
+ * Constructores, el mapa real y el fallback devuelven el MISMO string, así que
+ * ninguna aserción contra `brandingRef(asset, tenantId)` puede distinguir "el
+ * mapper usó el tenant del expediente" de "el mapper perdió el tenant y cayó al
+ * fallback". Con el mapa inyectado, los tests apuntan cada tenant a una carpeta
+ * distinta y la aserción pasa a tener dientes: si el `tenantId` no llega al
+ * sub-mapper, el valor cae al fallback y el test falla.
+ *
+ * El default es siempre el mapa real; producción nunca pasa este parámetro.
+ */
+export type CarpetasPorTenant = Readonly<Record<string, string>>;
+
+/**
  * El ref que va en el `src` del `<img>` de la plantilla, p. ej.
  * `/branding/constructores-paz/logo-encabezado.png`.
  *
@@ -67,17 +82,16 @@ const CARPETA_POR_DEFECTO = 'constructores-paz';
  * fixtures sintéticos de los tests (que construyen el caso a mano, sin la
  * columna `tenantId` de Prisma) y es el mismo valor que hoy producen los dos
  * centros reales, así que no cambia ningún documento. Si algún día los centros
- * dejan de compartir assets, este fallback deja de ser inocuo: por eso el test
- * `branding-assets.test.ts` verifica que los dos tenants reales resuelvan por
- * mapa y no por fallback.
+ * dejan de compartir assets, este fallback deja de ser inocuo: por eso
+ * `branding-assets.test.ts` inyecta un mapa con una carpeta por tenant y
+ * verifica que la elección la decida el tenant del expediente.
  */
 export function brandingRef(
   asset: BrandingAsset,
   tenantId?: string | null,
+  carpetas: CarpetasPorTenant = CARPETA_POR_TENANT,
 ): string {
-  const carpeta =
-    (tenantId && CARPETA_POR_TENANT[tenantId as TenantId]) ||
-    CARPETA_POR_DEFECTO;
+  const carpeta = (tenantId && carpetas[tenantId]) || CARPETA_POR_DEFECTO;
   return `${BRANDING_REF_PREFIX}${carpeta}/${asset}.png`;
 }
 

@@ -24,7 +24,7 @@
 
 import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
-import { brandingRef } from '@/lib/branding-assets';
+import { brandingRef, type CarpetasPorTenant } from '@/lib/branding-assets';
 
 /**
  * `tenantId` es una columna real de `Case` y viaja en el payload de Prisma,
@@ -34,14 +34,24 @@ import { brandingRef } from '@/lib/branding-assets';
  * `Record<string, unknown>`. `asCaseWithRelations` es un spread, no un
  * `.parse()`, así que no descarta la clave.
  */
-export function mapBrandingAssets(caseData: CaseWithRelations): PlaceholderMap {
+export function mapBrandingAssets(
+  caseData: CaseWithRelations,
+  /**
+   * Mapa tenant → carpeta. Producción nunca lo pasa: el default es el mapa real
+   * de `branding-assets.ts`. Los tests inyectan uno con una carpeta distinta por
+   * tenant para poder verificar que el `tenantId` del expediente es el que
+   * decide — con el mapa real, los dos centros comparten carpeta y la aserción
+   * no distinguiría el fallback.
+   */
+  carpetas?: CarpetasPorTenant,
+): PlaceholderMap {
   const tenantId = (caseData as Record<string, unknown>).tenantId as
     | string
     | undefined;
 
   return {
-    LOGO_ENCABEZADO_SRC: brandingRef('logo-encabezado', tenantId),
-    LOGO_FIRMA_SRC: brandingRef('logo-firma', tenantId),
-    FIRMA_OPERADOR_SRC: brandingRef('firma-operador', tenantId),
+    LOGO_ENCABEZADO_SRC: brandingRef('logo-encabezado', tenantId, carpetas),
+    LOGO_FIRMA_SRC: brandingRef('logo-firma', tenantId, carpetas),
+    FIRMA_OPERADOR_SRC: brandingRef('firma-operador', tenantId, carpetas),
   };
 }
