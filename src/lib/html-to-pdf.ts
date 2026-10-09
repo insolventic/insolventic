@@ -9,6 +9,8 @@
 
 import puppeteer from 'puppeteer-core';
 
+import { BRANDING_REF_PREFIX } from './branding-assets';
+
 // Dynamic import for serverless environments
 let chromium: typeof import('@sparticuz/chromium') | null = null;
 
@@ -161,10 +163,22 @@ export async function inlineAssets(
   const pathModule = await import('path');
   const relativeBase = docDir || assetsBaseDir;
 
-  const resolveAssetPath = (ref: string): string =>
-    ref.startsWith('/')
+  const resolveAssetPath = (ref: string): string => {
+    // `/branding/...` es el único prefijo compartido por los tres tipos de
+    // caso: los assets por centro viven en `templates/branding/{centro}/`, un
+    // nivel POR ENCIMA de cada `assetsBaseDir` (templates/insolvency,
+    // templates/conciliation, templates/support-agreements). Sin esta rama
+    // habría que triplicar cada logo y cada firma, una copia por tipo de caso,
+    // que es exactamente la duplicación que el branding por centro viene a
+    // eliminar. El resto de los refs root-relative (`/CSS/...`, `/img/...`)
+    // siguen resolviendo contra el directorio del tipo de caso, sin cambios.
+    if (ref.startsWith(BRANDING_REF_PREFIX)) {
+      return pathModule.join(pathModule.dirname(assetsBaseDir), ref);
+    }
+    return ref.startsWith('/')
       ? pathModule.join(assetsBaseDir, ref)
       : pathModule.resolve(relativeBase, ref);
+  };
 
   let result = html;
 

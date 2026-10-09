@@ -71,6 +71,8 @@ import {
   PLANTILLAS_CON_PLACEHOLDER_FALTANTE,
   VALORES_QUE_NO_LLEGAN,
 } from './helpers/pendientes-conocidos';
+import { brandingRef } from '@/lib/branding-assets';
+import { mapBrandingAssets } from '@/features/document/placeholders/branding';
 
 const TAG = `e2edocs-${Date.now().toString(36)}`;
 
@@ -374,6 +376,75 @@ describe('la Solicitud de Insolvencia declara las causas que marcó el deudor', 
 
     // Y las no marcadas siguen en NO: la tabla no puede decir SI a todo.
     expect(filas.some(([, marca]) => marca === 'NO')).toBe(true);
+  });
+});
+
+describe('branding por centro: el tenant del row llega al mapper', () => {
+  // El eje de todo el branding por centro: `tenantId` es una columna real de
+  // `Case` pero NO está declarada en `CaseWithRelations` (el schema Zod), así
+  // que `branding.ts` la lee con el cast a `Record<string, unknown>`. Si algún
+  // día `asCaseWithRelations` pasara a hacer `.parse()` —que descarta claves no
+  // declaradas— el branding se caería al fallback sin que nada avise, y los dos
+  // centros volverían a compartir assets en silencio. Esto solo se puede
+  // verificar contra Prisma real: los fixtures unitarios arman el caso a mano.
+  it('el row de Prisma trae tenantId', () => {
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
+
+    expect(stored.tenantId).toBe(ctx.tenantId);
+    expect(typeof stored.tenantId).toBe('string');
+  });
+
+  it('las tres claves de branding salen del mapper completo', () => {
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
+    const placeholders = mapCaseToPlaceholders(
+      asCaseWithRelations(stored as never),
+    );
+
+    // Con el mapa real los dos centros comparten carpeta, así que acá solo se
+    // fija que las claves EXISTAN y salgan del punto de fusión real. Que el
+    // tenant del row sea el que decide lo prueba el caso de abajo, que es el
+    // único que puede fallar por ese motivo.
+    const esperados = [
+      ['LOGO_ENCABEZADO_SRC', 'logo-encabezado'],
+      ['LOGO_FIRMA_SRC', 'logo-firma'],
+      ['FIRMA_OPERADOR_SRC', 'firma-operador'],
+    ] as const;
+
+    for (const [clave, asset] of esperados) {
+      expect(placeholders[clave]).toBe(
+        brandingRef(asset, stored.tenantId as string),
+      );
+    }
+  });
+
+  it('el tenantId del row es el que elige la carpeta (mapa inyectado)', () => {
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
+
+    // POR QUÉ UN MAPA INYECTADO. Con el mapa real, `brandingRef(asset, tenant)`
+    // y `brandingRef(asset, undefined)` devuelven el MISMO string: los dos
+    // centros comparten la carpeta de Constructores y el fallback también. Una
+    // aserción contra el mapa real se cumple incluso si `asCaseWithRelations`
+    // descartara `tenantId` y el sub-mapper cayera al fallback — que es
+    // justamente el modo de falla que este test existe para detectar.
+    //
+    // Apuntando el tenant real a una carpeta propia, perder el `tenantId`
+    // devuelve la carpeta del fallback y el test falla.
+    const carpetas = { [stored.tenantId as string]: 'carpeta-del-row' };
+
+    const branding = mapBrandingAssets(
+      asCaseWithRelations(stored as never),
+      carpetas,
+    );
+
+    expect(branding.LOGO_ENCABEZADO_SRC).toBe(
+      '/branding/carpeta-del-row/logo-encabezado.png',
+    );
+    expect(branding.LOGO_FIRMA_SRC).toBe(
+      '/branding/carpeta-del-row/logo-firma.png',
+    );
+    expect(branding.FIRMA_OPERADOR_SRC).toBe(
+      '/branding/carpeta-del-row/firma-operador.png',
+    );
   });
 });
 
