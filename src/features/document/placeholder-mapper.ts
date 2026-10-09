@@ -32,7 +32,7 @@ import {
   buildConciliationContext,
   mapConciliationFields,
 } from './placeholders/conciliacion';
-import { mapApoyoFields } from './placeholders/apoyo';
+import { mapApoyoFields, buildApoyoContext } from './placeholders/apoyo';
 import {
   mapApplicantScope,
   mapAgreementResult,
@@ -421,6 +421,7 @@ export function buildTemplateContext(
   if (caseData.type === 'CONCILIATION')
     return buildConciliationContext(caseData);
   if (caseData.type === 'INSOLVENCY') return buildInsolvencyContext(caseData);
+  if (caseData.type === 'SUPPORT_AGREEMENT') return buildApoyoContext(caseData);
   return undefined;
 }
 
