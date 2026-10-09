@@ -16,23 +16,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
-    # Deterministic Postgres service — no reliance on external secrets for E2E
-    # DB connectivity. Credentials are ephemeral (container-scoped) and match
-    # the DATABASE_URL_* env vars below.
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: insolventic_e2e
-          POSTGRES_PASSWORD: insolventic_e2e
-          POSTGRES_DB: insolventic_e2e
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U insolventic_e2e -d insolventic_e2e"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
+    # SIN service container a propósito. Antes este job levantaba
+    # `postgres:16-alpine` como service, y el 2026-10-09 el job falló dos veces
+    # seguidas en "Initialize containers" con:
+    #
+    #   Error response from daemon: toomanyrequests: You have reached your
+    #   unauthenticated pull rate limit.
+    #
+    # El límite de descargas anónimas de Docker Hub es por IP del runner, que es
+    # compartida, así que no depende de nosotros ni se arregla reintentando: los
+    # tres reintentos del propio runner fallaron igual. Y cuando ese paso falla,
+    # TODOS los siguientes quedan `skipped` — incluido `test:db`, que es el gate
+    # de los PRs que tocan la base. O sea: el gate quedaba a merced de una
+    # lotería externa.
+    #
+    # La imagen de Ubuntu del runner ya trae PostgreSQL instalado, así que
+    # usarlo elimina la dependencia de registries externos y de secretos nuevos.
+    # Verificado contra `actions/runner-images` el 2026-10-09:
+    # `ubuntu-latest` → Ubuntu 24.04, con **PostgreSQL 16.15** — el mismo major
+    # que el `postgres:16-alpine` que reemplaza, y las migraciones no usan
+    # ninguna extensión ni nada posterior a 16 (solo `IF EXISTS`, `DO $$`,
+    # `information_schema` y un índice único parcial).
+    # El servicio viene **deshabilitado** por defecto: hay que arrancarlo.
 
     env:
       CI: 'true'
@@ -70,6 +75,40 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+
+      # Reemplaza al service container (ver el comentario de arriba). El rol y
+      # la base se llaman igual que antes, así que el bloque `env` de las
+      # DATABASE_URL_* no cambia.
+      #
+      # Dos detalles que no son obvios y que hacen falta:
+      #
+      #  - CREATEDB en el rol: `tests/db/migraciones-desde-cero.db.test.ts`
+      #    (el guardián del replay del historial) crea y borra una base por
+      #    corrida. Sin ese atributo falla con "permission denied to create
+      #    database". No hace falta SUPERUSER: el rol es dueño de las bases que
+      #    crea, así que también puede borrarlas.
+      #  - OWNER en la base: desde PostgreSQL 15 el schema `public` ya no es
+      #    escribible por cualquiera; pertenece a `pg_database_owner`. Creando
+      #    la base con OWNER el rol hereda CREATE sobre `public` y
+      #    `prisma db push` puede crear las tablas.
+      - name: Start preinstalled PostgreSQL and create the E2E role/database
+        run: |
+          sudo systemctl start postgresql.service
+          # Esperar a que acepte conexiones: `systemctl start` vuelve antes de
+          # que el postmaster esté listo.
+          for _ in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 && break
+            sleep 1
+          done
+          pg_isready -h localhost -p 5432
+          sudo -u postgres psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE insolventic_e2e WITH LOGIN PASSWORD 'insolventic_e2e' CREATEDB;
+          CREATE DATABASE insolventic_e2e OWNER insolventic_e2e;
+          SQL
+          # Prueba de humo de la conexión que van a usar Prisma y los tests:
+          # por TCP, con contraseña, como el rol de la aplicación.
+          PGPASSWORD=insolventic_e2e psql -h localhost -U insolventic_e2e \
+            -d insolventic_e2e -c 'SELECT version();'
 
       - name: Apply schema to Postgres
         run: npx prisma db push --skip-generate
