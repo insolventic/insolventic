@@ -193,10 +193,33 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 - [ ] P1 pendiente de la auditoría de documentos: batch de Chromium en creación de casos (hoy 1 navegador por documento; `batchHtmlToPdf` ya existe) — ~8h
 - ~~Reintentos en la ruta manual de generación (`batchGenerateDocuments`)~~ → 🟢 **Resuelto.** La subida a Drive (`uploadDocumentToCase`) ahora usa `withRetry`, mismo patrón que la ruta automática. La creación de subcarpeta sigue el patrón de `createDocumentSubfolder` (degrada a la carpeta del caso si falla, sin reintento propio — no vale la pena bloquear la subida por eso). Los dos `console.*` que tocaba este cambio pasaron a `logger`.
 
-### Fase 3 (Q3, ~26h)
+### Fase 3 (Q3, ~32h)
 
 - [ ] Soft-delete para expedientes legales (borrado físico→lógico, capacidad de recuperación; hoy `deleteCase` borra en cascada) — ~20h
 - [ ] Auditoría de accesibilidad (19 refs `aria-*` en todo el proyecto → pasada semántica en las 5 pantallas núcleo) — ~6h
+- [ ] **Cerrar la deriva entre el historial de migraciones y `schema.prisma`** — ~6h · 🔴 **bloqueado: necesita acceso a Neon + decidir el camino**
+
+  Medido el 2026-10-08 al arreglar el replay desde cero (#122, `fix/migraciones-desde-cero`). Con la cadena de migraciones corriendo contra una base vacía, el schema reconstruido sigue a **30 statements** de `src/prisma/schema.prisma`:
+
+  | Qué falta                                                        | Cuánto |
+  | ---------------------------------------------------------------- | ------ |
+  | Tablas enteras (`ConciliationCenter`, `audit_logs`, `payments`)  | 3      |
+  | Columnas (`Case`, `Debtor`, `Document`, `User`, `notifications`) | 5      |
+  | Índices                                                          | 14     |
+  | Foreign keys                                                     | 7      |
+  | DropEnum                                                         | 1      |
+
+  Son objetos que viven en `schema.prisma` **y en la base real** (los creó algún `db push`) pero que **ninguna migración crea**. Es la misma clase de deriva que el incidente de las 29 columnas `apoyo_*` (`docs/CHECKPOINT_2026-09-09.md` §8), vista desde el otro lado: allá faltaban en la base, acá faltan en el historial.
+
+  **No afecta producción ni el camino feliz.** Muerde en los dos escenarios que ya rompió #122: restaurar un backup a una base nueva (A-4, que sigue sin probarse) y levantar un entorno desde cero.
+
+  **Las dos salidas, y por qué no se elige sola:**
+  - _Migración de catch-up idempotente_ (`IF NOT EXISTS` en todo): no-op en producción, rellena desde cero. Más conservadora, pero deja el historial con una migración de "parche" que no refleja ninguna intención de diseño.
+  - _Baseline/squash del historial_: es lo que Prisma recomienda para exactamente esta situación. Más limpio a futuro, pero necesita `migrate resolve --applied` contra cada base ya migrada — y un error ahí sí toca producción.
+
+  Las dos necesitan Neon, así que la decisión se toma cuando haya acceso y ventana. **No decidir no es gratis pero sí es seguro:** el estado actual es estable mientras nadie reconstruya una base.
+
+  **Qué lo sostiene mientras tanto:** `tests/db/migraciones-desde-cero.db.test.ts` corre `migrate deploy` real contra una base vacía por corrida y tiene la brecha inventariada en `BRECHA_CONOCIDA`, con el patrón bidireccional de `pendientes-conocidos.ts`: si alguien la cierra, el test falla por "ya no está roto"; si aparece deriva nueva, falla por "apareció algo". Ojo con leer el `statements: 30` como literal: cuenta líneas `^--` de `migrate diff --script`, que es un proxy del número de statements, no el número.
 
 ### Quick Wins (<4h c/u, paralelizables)
 
