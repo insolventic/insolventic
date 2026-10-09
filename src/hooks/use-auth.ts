@@ -34,40 +34,55 @@ export function useAuth(): UseAuthReturn {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const loadingStartTimeRef = useRef<number>(Date.now());
-  const lastLogTimeRef = useRef<number>(0);
+  const loadingStartedAtRef = useRef<number>(Date.now());
 
-  // Solo log cada 2 segundos para evitar spam, y cuando hay cambios importantes
-  const currentTime = Date.now();
-  const shouldLog = currentTime - lastLogTimeRef.current > 2000;
+  /**
+   * Marca el inicio de CADA episodio de carga.
+   *
+   * Antes el ref se reseteaba cuando la carga TERMINABA (`if (!isLoading)`), así
+   * que lo que se medía como "duración de la carga" era en realidad el tiempo
+   * transcurrido DESDE que la carga terminó, y crecía sin límite mientras el
+   * hook siguiera montado.
+   */
+  useEffect(() => {
+    if (isLoading) {
+      loadingStartedAtRef.current = Date.now();
+    }
+  }, [isLoading]);
 
-  if ((isLoading || !user) && shouldLog) {
-    const loadingDuration = Math.round(
-      (currentTime - loadingStartTimeRef.current) / 1000,
-    );
+  /**
+   * Traza de estado, en un efecto y no en el cuerpo del render.
+   *
+   * ANTES: el log vivía en el cuerpo del componente, con un throttle de 2s
+   * guardado en un ref que se mutaba durante el render, y la condición de
+   * entrada era `(isLoading || !user)`. Dos consecuencias:
+   *
+   *  1. Efecto secundario durante el render, que React no garantiza que corra
+   *     una sola vez (StrictMode lo duplica en desarrollo).
+   *  2. La rama `!user` mantenía la traza viva para CUALQUIER visitante no
+   *     autenticado. Combinada con el ref mal reseteado, todo el que estuviera
+   *     más de 30 segundos en `/login` —escribiendo su contraseña, o con la
+   *     pestaña abierta— disparaba `logger.warn('useAuth loading for over 30
+   *     seconds')`, que va a Sentry, una vez cada 2 segundos. El mensaje era
+   *     además imposible: el timeout de seguridad de más abajo fuerza
+   *     `isLoading = false` a los 5s, así que la carga NUNCA puede durar 30
+   *     segundos. Era un falso positivo garantizado en la pantalla más visitada
+   *     por usuarios sin sesión.
+   *
+   * Ahora loguea en los cambios de estado (no por render), y la advertencia de
+   * los 30s se elimina: el único umbral real es el de 5s del timeout de
+   * seguridad, que ya avisa por su cuenta.
+   */
+  useEffect(() => {
     logger.debug('useAuth state', {
       action: 'useAuth',
       hasUser: !!user,
       isLoading,
-      loadingDurationSeconds: loadingDuration,
+      loadingDurationSeconds: isLoading
+        ? Math.round((Date.now() - loadingStartedAtRef.current) / 1000)
+        : 0,
     });
-    lastLogTimeRef.current = currentTime;
-
-    // Advertencia si lleva demasiado tiempo loading
-    if (loadingDuration > 30) {
-      logger.warn('useAuth loading for over 30 seconds', {
-        action: 'useAuth',
-        loadingDurationSeconds: loadingDuration,
-      });
-    }
-  }
-
-  // Reset loading start time when loading ends
-  useEffect(() => {
-    if (!isLoading) {
-      loadingStartTimeRef.current = Date.now();
-    }
-  }, [isLoading]);
+  }, [isLoading, user]);
 
   const refreshSession = useCallback(async () => {
     try {
