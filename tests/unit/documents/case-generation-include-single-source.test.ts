@@ -75,6 +75,11 @@ describe('include de generación de documentos: una sola fuente', () => {
         'libranzas',
         'operator',
         'suspendedServices',
+        // `tenant` trae SOLO el slug, que es la clave de los mapas por centro
+        // (branding, membrete). Sin él los mapas reciben el `Tenant.id` —un
+        // cuid— y caen siempre al valor por defecto. Ver
+        // `src/features/document/placeholders/tenant-slug.ts`.
+        'tenant',
       ].sort(),
     );
   });
