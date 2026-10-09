@@ -25,9 +25,31 @@ ADD COLUMN     "courtEmail" TEXT;
 -- 6.19.3 no verifica el checksum de las migraciones ya aplicadas, ni en
 -- `migrate deploy` ni en `migrate status`. Verificado empíricamente contra un
 -- Postgres con las 11 migraciones aplicadas: tras editar este archivo, los dos
--- comandos reportan "up to date" sin ninguna queja. SI SE ACTUALIZA PRISMA,
--- hay que volver a verificarlo: una versión que sí valide checksums exigiría un
--- `migrate resolve` contra cada base ya migrada.
+-- comandos reportan "up to date" sin ninguna queja. Confirmado además contra el
+-- código del schema engine: el filtro de migraciones pendientes de
+-- `apply_migrations.rs` compara SOLO `migration_name` (los únicos otros
+-- chequeos sobre las filas de la base son `finished_at` / `rolled_back_at`), y
+-- `migrate status` en el CLI 6.19.3 solo consume `history.diagnostic`,
+-- `hasMigrationsTable` y `failedMigrationNames` — no tiene ninguna rama de
+-- migración editada. SI SE ACTUALIZA PRISMA, hay que volver a verificarlo: una
+-- versión que sí valide checksums en deploy exigiría un `migrate resolve`
+-- contra cada base ya migrada.
+--
+-- SALVEDAD IMPORTANTE — `migrate dev` SÍ valida el checksum.
+--   La validación existe, en `diagnose_migration_history.rs`
+--   (`!fs_migration.matches_checksum(&db_migration.checksum)` →
+--   `edited_migration_names`), y `dev_diagnostic.rs` la convierte en un RESET:
+--   "The migration `X` was modified after it was applied."
+--
+--   Ese comando es `npm run db:migrate` (= `prisma migrate dev`). Es decir:
+--   quien tenga una base LOCAL donde esta migración ya se aplicó va a recibir
+--   ese mensaje y el pedido de resetear la base en su próximo `db:migrate`. Es
+--   esperable y no es un problema (son bases de prueba descartables: `db:reset`
+--   / `db:reset:seed` las rearman), pero conviene saberlo antes de asustarse.
+--
+--   Producción NO se ve afectada: el deploy corre `prisma migrate deploy`
+--   (gateado por `$VERCEL_ENV=production` en el `buildCommand` de
+--   `vercel.json`), que como está dicho arriba compara solo por nombre.
 --
 -- El replay desde cero lo cubre ahora `tests/db/migraciones-desde-cero.db.test.ts`.
 ALTER TABLE IF EXISTS "procesos_judiciales" ADD COLUMN     "tipo_proceso_otro" TEXT,
