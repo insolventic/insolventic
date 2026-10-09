@@ -278,7 +278,7 @@ describe('Case Actions — src/features/case/actions.ts', () => {
         });
       });
 
-      const result = await deleteCase({ id: 'case-test-id' });
+      await deleteCase({ id: 'case-test-id' });
 
       // Transaction should be called (cascading delete)
       expect(mockPrisma.$transaction).toHaveBeenCalled();

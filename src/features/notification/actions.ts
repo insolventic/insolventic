@@ -313,40 +313,36 @@ export async function createNotificationForAction(
   actorInfo?: ActionActorInfo,
 ) {
   const actionMap = {
-    case_created: { action: 'creado', entity: 'caso', verb: 'creó' },
-    case_updated: { action: 'actualizado', entity: 'caso', verb: 'actualizó' },
-    case_deleted: { action: 'eliminado', entity: 'caso', verb: 'eliminó' },
-    creditor_created: { action: 'creado', entity: 'acreedor', verb: 'creó' },
+    case_created: { action: 'creado', entity: 'caso' },
+    case_updated: { action: 'actualizado', entity: 'caso' },
+    case_deleted: { action: 'eliminado', entity: 'caso' },
+    creditor_created: { action: 'creado', entity: 'acreedor' },
     creditor_updated: {
       action: 'actualizado',
       entity: 'acreedor',
-      verb: 'actualizó',
     },
     creditor_deleted: {
       action: 'eliminado',
       entity: 'acreedor',
-      verb: 'eliminó',
     },
-    debtor_created: { action: 'creado', entity: 'deudor', verb: 'creó' },
+    debtor_created: { action: 'creado', entity: 'deudor' },
     debtor_updated: {
       action: 'actualizado',
       entity: 'deudor',
-      verb: 'actualizó',
     },
-    debtor_deleted: { action: 'eliminado', entity: 'deudor', verb: 'eliminó' },
-    user_created: { action: 'creado', entity: 'usuario', verb: 'creó' },
+    debtor_deleted: { action: 'eliminado', entity: 'deudor' },
+    user_created: { action: 'creado', entity: 'usuario' },
     user_updated: {
       action: 'actualizado',
       entity: 'usuario',
-      verb: 'actualizó',
     },
-    user_deleted: { action: 'eliminado', entity: 'usuario', verb: 'eliminó' },
-    role_created: { action: 'creado', entity: 'rol', verb: 'creó' },
-    role_updated: { action: 'actualizado', entity: 'rol', verb: 'actualizó' },
-    role_deleted: { action: 'eliminado', entity: 'rol', verb: 'eliminó' },
+    user_deleted: { action: 'eliminado', entity: 'usuario' },
+    role_created: { action: 'creado', entity: 'rol' },
+    role_updated: { action: 'actualizado', entity: 'rol' },
+    role_deleted: { action: 'eliminado', entity: 'rol' },
   };
 
-  const { action, entity, verb } = actionMap[type];
+  const { action, entity } = actionMap[type];
   const title = `${entity.charAt(0).toUpperCase() + entity.slice(1)} ${action}`;
   const article =
     entity === 'acreedor'

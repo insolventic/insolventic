@@ -79,7 +79,6 @@ import {
   deleteCaseSchema,
   caseStatsSchema,
   dashboardStatsSchema,
-  type DebtData,
   type AssetData,
   type LibranzaData,
   type SuspendedServiceData,

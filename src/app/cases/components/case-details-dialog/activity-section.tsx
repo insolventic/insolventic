@@ -117,7 +117,7 @@ export function ActivitySection({ caseData }: Readonly<ActivitySectionProps>) {
           {/* Timeline line */}
           <div className="bg-border absolute top-0 left-4 h-full w-px" />
 
-          {logs.map((log, idx) => {
+          {logs.map((log) => {
             const config =
               ACTION_CONFIG[log.action as keyof typeof ACTION_CONFIG] ??
               ACTION_CONFIG.updated;

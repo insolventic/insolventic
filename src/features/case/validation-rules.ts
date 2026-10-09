@@ -5,7 +5,7 @@
  * the main Zod schemas in schemas.ts
  */
 
-import type { CreateCaseFormData, CreateCaseFormInput } from './schemas';
+import type { CreateCaseFormInput } from './schemas';
 
 // ============================================
 // CONSTANTS

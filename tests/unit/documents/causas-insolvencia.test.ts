@@ -11,7 +11,6 @@
 
 import {
   CAUSAS_INSOLVENCIA,
-  CAUSA_OTROS,
   causaLabel,
   normalizeCausa,
   normalizeCausas,

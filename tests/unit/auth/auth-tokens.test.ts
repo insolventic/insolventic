@@ -3,7 +3,7 @@
  * Tests token creation, verification, expiration, and session management.
  */
 
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT } from 'jose';
 
 // Set env before imports
 process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only';

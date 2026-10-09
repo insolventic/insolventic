@@ -3,7 +3,7 @@
  * Validates JWT token integrity, signature verification, and expiration handling.
  */
 
-import { SignJWT, jwtVerify } from 'jose';
+import { SignJWT } from 'jose';
 import {
   createAccessToken,
   verifyToken,
