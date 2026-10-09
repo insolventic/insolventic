@@ -63,31 +63,60 @@ manual) y el workflow de E2E. `src/lib/prisma.ts` crea **un solo**
 
 ---
 
-## 2. Production y Preview: variables separadas, misma base física
+## 2. Production y Preview: variables separadas y bases separadas
 
 En Vercel → Project → Settings → Environment Variables, cada variable se
 asigna a uno o más **Environments**: Production, Preview y Development.
 
 - **Production** y **Preview** son entradas **independientes**: cambiar una
   no cambia la otra.
-- Pero ambas apuntan **a la misma base de datos física en Neon**. No hay un
-  branch de Neon distinto para Preview.
+- Y desde el **2026-10-09** apuntan a **branches distintos de Neon**:
+  Production al branch de producción, Preview a un branch `preview` propio.
 
-Esto no es obvio por el nombre y causó confusión real el 2026-09-19 (rotación
-de contraseña + variables desactualizadas). Consecuencias prácticas:
+> **Verificado el 2026-10-09.** Se abrió un PR no-op contra `dev` (`#125`,
+> commit `dff4d43`, un comentario HTML en el `README.md`) solo para producir
+> un Preview deployment, y se observó en el panel de Neon que **la actividad
+> de conexión apareció en el branch `preview`, no en el de producción**. El
+> `/api/health` de ese Preview dio `200` con `environment: "preview"` y
+> `checks.database.status: "ok"` — pero ojo: ese endpoint **no** sirve para
+> identificar la base (oculta host y connection string a propósito, ver el
+> docblock de `src/app/api/health/route.ts`). La evidencia que cuenta es la
+> del panel de Neon.
 
-1. **Un Preview opera sobre datos reales.** Cualquier acción hecha en un
-   Preview (crear/editar/borrar un caso) escribe en producción. Los datos de
-   los dos centros no están aislados del código en revisión.
-2. **Rotar la contraseña rompe Production y Preview a la vez.** Hay que
-   actualizar **ambos** Environments; con solo uno actualizado, el otro
-   queda muerto aunque "parezca" configurado.
+Esto cambió una vez (antes los dos Environments compartían la base física, y
+esa confusión costó un incidente el 2026-09-19). Consecuencias prácticas:
+
+1. **Un Preview ya NO opera sobre datos reales.** Hasta el 2026-10-09,
+   cualquier acción en un Preview (crear/editar/borrar un caso) escribía en
+   producción. Con el branch propio, un Preview escribe en datos de prueba.
+   `⟨VERIFICAR antes de confiar en esto para TODA rama⟩`: lo medido fue un
+   deployment de **una** rama. Si la `DATABASE_URL` de Preview se guardó con
+   un override de rama específica (punto 5), el aislamiento aplicaría solo a
+   esa rama y el resto seguiría pegándole a producción. Confirmar que la
+   entrada de Preview está asignada a todas las ramas no productivas.
+2. **Rotar la contraseña afecta a los dos Environments, pero los
+   connection strings ya no son el mismo.** Cada branch de Neon tiene su
+   propio host, así que **no se puede pegar el string de Production en
+   Preview**: hay que sacar el de cada branch por separado.
+   `⟨VERIFICAR⟩`: si un **Reset password** del rol `neondb_owner` se propaga
+   a todos los branches del proyecto o es por branch. De eso depende si una
+   rotación obliga a tocar las cuatro entradas (`DATABASE_URL` y
+   `DIRECT_URL` × Production y Preview) o solo las dos de producción. **§4
+   está escrito para un solo branch y todavía no refleja esto.**
 3. **Las migraciones solo corren en el build de producción**
    (`[ "$VERCEL_ENV" != "production" ] || npx prisma migrate deploy`). Un
    Preview con una migración nueva en su rama **no** la aplica: corre el
    código nuevo contra el esquema viejo, salvo que la migración ya se haya
    aplicado a mano. Respetar la regla de migraciones aditivas de
    `RUNBOOK.md §2.2`.
+
+   Con el branch propio esto se vuelve **más** filoso, no menos: el branch
+   `preview` arranca con el esquema que tenía el de producción al crearse y
+   **nadie le aplica migraciones nunca**, así que se va quedando atrás a
+   medida que producción avanza. Un Preview puede fallar por un esquema
+   viejo que ya no existe en ninguna parte. Si pasa, re-crear el branch de
+   Neon desde producción es más barato que migrarlo a mano.
+
 4. **Los cambios de variables no llegan a deployments ya creados.** Vercel
    aplica un cambio de env vars solo a deployments **nuevos**. Un deployment
    viejo (de Production o de Preview) conserva las credenciales con las que
@@ -103,10 +132,24 @@ de contraseña + variables desactualizadas). Consecuencias prácticas:
    las baja. No se puede "copiar el valor de Production a Preview": hay que
    pegar el connection string nuevo en cada entrada.
 
-> **Decisión de negocio/arquitectura pendiente (no es un fix técnico):**
-> aislar Preview con un branch de Neon propio eliminaría el punto 1, pero
-> cambia el modelo de costos y de datos de prueba. No está decidido; este
-> runbook documenta el estado actual.
+> **~~Decisión pendiente~~ → implementado el 2026-10-09.** Aislar Preview con
+> un branch de Neon propio figuraba acá como decisión de negocio sin tomar
+> (cambiaba el modelo de costos y de datos de prueba). Se hizo, y se verificó
+> con el PR `#125` como se describe arriba. El punto 1 queda eliminado.
+>
+> Lo que **no** cubrió ese cambio y sigue abierto:
+>
+> - **§4 (rotación de contraseña) está escrito para un solo branch**: los
+>   pasos 1 y 2 dicen "elegir la branch (la de producción)" y "la misma", lo
+>   que ahora deja a Preview con la contraseña vieja. Hay que reescribirlo
+>   para los dos branches, una vez resuelto el `⟨VERIFICAR⟩` del punto 2
+>   sobre si el reset del rol se propaga entre branches.
+> - **`DIRECT_URL` de Preview** `⟨VERIFICAR⟩`: el health check solo ejercita
+>   `DATABASE_URL` por el pooler (§5.3), así que la verificación del 2026-10-09
+>   **no** prueba que la `DIRECT_URL` de Preview apunte al branch `preview`.
+>   Como en Preview no corre `migrate deploy`, una `DIRECT_URL` mal apuntada
+>   ahí no rompe nada visible — pero es exactamente el tipo de falla
+>   silenciosa que describe §1.
 
 ---
 
