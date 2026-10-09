@@ -1,6 +1,6 @@
 # Pendientes de decisión legal
 
-**Última actualización:** 2026-10-08 (ítem 2 parcialmente resuelto)
+**Última actualización:** 2026-10-08 (ítem 10 nuevo: datos de membrete de Armonía)
 
 Lista única de las preguntas abiertas que **no las resuelve el equipo de
 desarrollo**: dependen de la abogada o del cliente, y cada una bloquea algo
@@ -24,7 +24,7 @@ el índice, no la fuente de verdad de cada tema.
 | 8   | **¿El Auto de Desistimiento y el Informe Conciliador deben citar norma?** Hoy no citan ninguna                                                                                                                               | Nada; es una pregunta de completitud                                                                                                 | Auditoría de conciliación, hallazgo B3                                     |
 | 9   | **¿La caducidad de tres meses debe ser una causal nombrada** de terminación anormal, o sigue cayendo en "OTRA" (texto libre)?                                                                                                | Agregar la opción al selector y el `{{#if}}` a la plantilla (~2 h)                                                                   | Auditoría de conciliación, hallazgo B4                                     |
 | 10  | **¿Qué es obligatorio en cada documento de conciliación?** Hoy las 12 plantillas no tienen ningún requisito declarado                                                                                                        | El PR 4 de la auditoría de conciliación (validación)                                                                                 | Auditoría de conciliación, hallazgo A2                                     |
-| 11  | **¿Qué rótulo va en el membrete de Armonía?** El tucán dice "Asociación para el Fomento…" y el sello dice "Centro de Conciliación Armonía Concertada"                                                                        | El banner de encabezado del plan de branding                                                                                         | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                                |
+| 11  | **Datos de membrete de Armonía**: el rótulo legal (el tucán dice "Asociación para el Fomento…" y el sello dice "Centro de Conciliación Armonía Concertada"), **más la resolución de habilitación, la dirección y el teléfono** | El banner de encabezado del plan de branding **y** el reemplazo del nombre/resolución hardcodeados en las 65 plantillas (ver §5)      | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4 · este documento, §5           |
 | 12  | **¿Quién firma por Armonía?** Llegaron dos firmas y las plantillas tienen un hueco                                                                                                                                           | Si hacen falta uno o dos assets de firma                                                                                             | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                                |
 | 13  | **Apoderado del acreedor en el CYG**: ¿debe imprimirse o se sigue llenando a mano en la audiencia?                                                                                                                           | Si hay que agregar la columna a `Debt` y el campo al formulario                                                                      | Este documento, §1                                                         |
 
@@ -181,3 +181,50 @@ como "informar" en el sentido del Parágrafo. Por eso se deja como estaba.
    `document-requirements.ts` y el catálogo de tipos).
 
 No se puede estimar cuál de las dos hasta que haya respuesta.
+
+---
+
+## 5. Datos de membrete de Armonía (ítem 11)
+
+Anotado el 2026-10-08, al construir la infraestructura de branding por centro
+(PR de `feat/branding-por-centro`). Esa infraestructura resolvió la parte
+**técnica**: los assets de imagen ahora se eligen por `tenantId` desde
+`templates/branding/{centro}/` y un test guardián falla en CI si a un centro le
+falta un archivo. Lo que **no** resolvió, a propósito, es el texto.
+
+**El bloqueante concreto.** El nombre del centro no viaja solo en las
+plantillas. Está pegado a su resolución de habilitación:
+
+> El Centro de Conciliación y Arbitraje **CONSTRUCTORES DE PAZ**, aprobado por
+> Resolución 1459 del 05 de septiembre de 2003 del Ministerio de Justicia y del
+> Derecho, autoriza a…
+> — `templates/conciliation/Informe Conciliador.html:25-26`
+
+Reemplazar **solo** el nombre por un placeholder dejaría los documentos de
+Armonía afirmando que Armonía está habilitada por la resolución del otro centro.
+El sello de Armonía menciona "Resolución 656/2016", que no es la misma. Hoy el
+documento es consistentemente del centro equivocado; con el swap parcial sería
+un documento que afirma algo falso sobre la habilitación de un centro, y se
+radica ante juzgados. Es estrictamente peor, así que no se hizo.
+
+**Lo que hace falta para completar el swap**, todo dato real, nada que el
+equipo de desarrollo pueda derivar:
+
+| Dato                                | Por qué                                                           |
+| ----------------------------------- | ----------------------------------------------------------------- |
+| Nombre legal exacto del centro      | El propio material de Armonía se contradice (tucán vs. sello)      |
+| Número y fecha de la resolución     | Va en la misma oración que el nombre, en ~12 plantillas            |
+| Dirección                           | Aparece en encabezados y en el bloque de notificaciones            |
+| Teléfono                            | Ídem                                                               |
+
+**Alcance cuando los datos lleguen:** ~65 plantillas mencionan al centro por
+nombre (texto impreso y `alt` de imágenes). El trabajo es mecánico una vez que
+los cuatro datos estén confirmados: un sub-mapper nuevo con los textos por
+tenant, el mismo patrón que `branding.ts` ya usa para los assets.
+
+> **Nota aparte, del mismo origen:** `templates/insolvency/Designacion del
+> Conciliador.html` usa `Firma abogado.jpg` (`alt="Firma Director"`), una firma
+> **distinta** de la que usan las otras 54 plantillas. No se unificó con
+> `FIRMA_OPERADOR_SRC` porque cambiaría quién firma ese documento — es el
+> ítem 12 de la tabla ("¿Quién firma por Armonía?"), que vale también para
+> Constructores.

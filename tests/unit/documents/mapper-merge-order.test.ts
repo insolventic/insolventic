@@ -54,6 +54,11 @@ const EXPECTED_MERGE_ORDER = [
   'mapSuspendedServices',
   'mapDependents',
   'mapPaymentProposal',
+  // Branding por centro: emite 3 claves nuevas (LOGO_ENCABEZADO_SRC,
+  // LOGO_FIRMA_SRC, FIRMA_OPERADOR_SRC) que ningún otro sub-mapper produce, así
+  // que no participa en ninguna colisión y su posición en el orden es
+  // indiferente. Ver src/features/document/placeholders/branding.ts.
+  'mapBrandingAssets',
   'mapCheckList',
   'mapIncomeDeclaration',
   'mapExtendedDates',

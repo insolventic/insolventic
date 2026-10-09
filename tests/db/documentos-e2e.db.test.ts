@@ -71,6 +71,7 @@ import {
   PLANTILLAS_CON_PLACEHOLDER_FALTANTE,
   VALORES_QUE_NO_LLEGAN,
 } from './helpers/pendientes-conocidos';
+import { brandingRef } from '@/lib/branding-assets';
 
 const TAG = `e2edocs-${Date.now().toString(36)}`;
 
@@ -374,6 +375,39 @@ describe('la Solicitud de Insolvencia declara las causas que marcó el deudor', 
 
     // Y las no marcadas siguen en NO: la tabla no puede decir SI a todo.
     expect(filas.some(([, marca]) => marca === 'NO')).toBe(true);
+  });
+});
+
+describe('branding por centro: el tenant del row llega al mapper', () => {
+  // El eje de todo el branding por centro: `tenantId` es una columna real de
+  // `Case` pero NO está declarada en `CaseWithRelations` (el schema Zod), así
+  // que `branding.ts` la lee con el cast a `Record<string, unknown>`. Si algún
+  // día `asCaseWithRelations` pasara a hacer `.parse()` —que descarta claves no
+  // declaradas— el branding se caería al fallback sin que nada avise, y los dos
+  // centros volverían a compartir assets en silencio. Esto solo se puede
+  // verificar contra Prisma real: los fixtures unitarios arman el caso a mano.
+  it('el row de Prisma trae tenantId y el mapper resuelve los assets con él', () => {
+    const { stored } = renderizados.get(FIXTURES[0].key)!;
+
+    expect(stored.tenantId).toBe(ctx.tenantId);
+    expect(typeof stored.tenantId).toBe('string');
+
+    const placeholders = mapCaseToPlaceholders(
+      asCaseWithRelations(stored as never),
+    );
+
+    // No se compara contra una ruta literal: se compara contra lo que la
+    // función de resolución da PARA ESE tenant. Así el test prueba el cableado
+    // (el tenant del row es el que decide) sin fijar qué carpeta le toca.
+    expect(placeholders.LOGO_ENCABEZADO_SRC).toBe(
+      brandingRef('logo-encabezado', stored.tenantId as string),
+    );
+    expect(placeholders.LOGO_FIRMA_SRC).toBe(
+      brandingRef('logo-firma', stored.tenantId as string),
+    );
+    expect(placeholders.FIRMA_OPERADOR_SRC).toBe(
+      brandingRef('firma-operador', stored.tenantId as string),
+    );
   });
 });
 
