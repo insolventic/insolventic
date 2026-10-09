@@ -35,7 +35,6 @@ import {
   validateIncomeExpenses,
   validatePaymentProposal,
   validateDocumentsComplete,
-  validateMinimaCuantia,
   SMMLV_2025,
   type ValidationIssue,
 } from '@/features/case/validation-rules';
@@ -104,7 +103,6 @@ const SUPPORT_AGREEMENT_TABS = [
   'apoyo-details',
 ] as const;
 
-type TabId = string;
 
 const TAB_ORDER = INSOLVENCY_TABS; // backward compat for field mapping
 

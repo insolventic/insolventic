@@ -108,7 +108,7 @@ function loginAndGetCookies() {
 // ────────────────────────────────────────────────
 // Main scenario
 // ────────────────────────────────────────────────
-export default function () {
+export default function escenarioPrincipal() {
   const jar = loginAndGetCookies();
 
   // Cases list

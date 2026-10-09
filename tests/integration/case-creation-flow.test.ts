@@ -57,7 +57,6 @@ import {
   createCase,
   getAllCases,
   getCaseById,
-  deleteCase,
 } from '@/features/case/actions';
 
 /**

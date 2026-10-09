@@ -38,7 +38,6 @@ import {
   checkUserPermission,
   forgotPassword,
   resetPassword,
-  changePassword,
 } from '@/features/auth/actions';
 import { createAccessToken, createRefreshToken } from '@/lib/auth';
 import { _resetRateLimitStore } from '@/lib/rate-limit';

@@ -479,7 +479,6 @@ describe('Centro de Conciliación — Escenarios de Integración', () => {
     // Tenant mapping es autoritativo, ignora el campo del caso
     const tenantId = 'armonia';
     const caseCentro = 'Armonía'; // con tilde — sería "Armonía" como display
-    const caseNumber = 'ACU-2025-010';
 
     const centerFolder = resolveCenterFolderName(tenantId, caseCentro);
     expect(centerFolder).toBe('Armonía'); // tenant mapping wins

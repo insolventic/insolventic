@@ -7,7 +7,6 @@ import {
   screen,
   fireEvent,
   waitFor,
-  within,
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -65,9 +64,10 @@ jest.mock('@/components/ui/popover', () => ({
       {children}
     </div>
   ),
+  // `asChild` se mantiene en el tipo (el componente real lo acepta y los
+  // callers lo pasan), pero el mock no lo desestructura porque no lo usa.
   PopoverTrigger: ({
     children,
-    asChild,
   }: {
     children: React.ReactNode;
     asChild?: boolean;
@@ -111,6 +111,7 @@ jest.mock('@/components/ui/command', () => ({
       data-value={value}
       onClick={onSelect}
       role="option"
+      aria-selected={false}
     >
       {children}
     </div>

@@ -437,7 +437,6 @@ export function mapCaseToPlaceholders(
     Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
   const monthlyExpenses =
     Number(caseData.monthlyExpenses) || Number(debtor.monthlyExpenses) || 0;
-  const available = monthlyIncome - monthlyExpenses;
   const genderPrefix = getGenderPrefix(debtor.name);
 
   const basePlaceholders: PlaceholderMap = {

@@ -11,7 +11,13 @@ export function CesacionPagosSection() {
   const { watch, setValue, control } = useFormContext<CreateCaseFormInput>();
 
   // Auto-calculate from debts array
-  const debts = useWatch({ control, name: 'debts' }) || [];
+  // `useWatch` devuelve undefined hasta que el campo existe, y el `|| []`
+  // creaba un ARRAY NUEVO en cada render: los useMemo que dependen de `debts`
+  // veían una identidad distinta siempre y nunca memoizaban nada. Estabilizar
+  // el fallback acá no cambia ningún valor, solo hace que la memoización
+  // funcione de verdad.
+  const debtsRaw = useWatch({ control, name: 'debts' });
+  const debts = useMemo(() => debtsRaw ?? [], [debtsRaw]);
 
   const { numAcreedores, porcentajeMora } = useMemo(() => {
     const total = debts.length;

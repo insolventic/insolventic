@@ -208,6 +208,15 @@ export function PaymentTrackingReport() {
 
   useEffect(() => {
     void fetchReport();
+  // Deliberadamente con deps vacías: `fetchReport` no está memoizado, así que
+  // se recrea en cada render. Agregarlo a las deps haría que el efecto corra en
+  // cada render -> setLoading -> re-render -> efecto otra vez: un bucle infinito
+  // de fetches contra el servidor. Memoizarlo con useCallback([dateFrom, dateTo])
+  // tampoco es neutro: el reporte pasaría a refetchear ante cada cambio de
+  // fecha, y la pantalla tiene un botón "Filtrar" explícito justamente para que
+  // el refetch lo decida el usuario. La carga inicial va una vez al montar; las
+  // siguientes las dispara el botón.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilter = () => {
