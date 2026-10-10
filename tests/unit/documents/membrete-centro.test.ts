@@ -32,6 +32,7 @@ import {
   TENANTS_CON_MEMBRETE,
   camposFaltantes,
   membreteDelCentro,
+  membreteParcialDelCentro,
 } from '@/lib/membrete-centro';
 import {
   esSlugDeCentroConocido,
@@ -122,17 +123,72 @@ describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
   it('Armonía todavía le debe datos, y se sabe cuáles', () => {
     const faltan = camposFaltantes('armonia');
     expect(faltan.length).toBeGreaterThan(0);
+
     // Lo que bloquea hoy, anotado para que el día que llegue se vea en el diff.
-    expect(faltan).toContain('resolucionCentroNumero');
-    expect(faltan).toContain('resolucionInsolvenciaNumero');
-    expect(faltan).toContain('operadorNombre');
-    expect(faltan).toContain('web');
-    expect(faltan).toContain('email');
-    // Lo que SÍ llegó el 2026-10-09 no figura como faltante.
-    expect(faltan).not.toContain('nombre');
-    expect(faltan).not.toContain('entidadPromotora');
-    expect(faltan).not.toContain('direccion');
-    expect(faltan).not.toContain('telefono');
+    // La lista es EXACTA a propósito: si alguien llena uno sin actualizar el
+    // test, falla; y si alguien pone un `null` nuevo, también.
+    expect([...faltan].sort()).toEqual(
+      [
+        'edificio',
+        'email',
+        'operadorCargo',
+        'operadorCargoMayus',
+        'operadorNombre',
+        'operadorNombreTilde',
+        'web',
+      ].sort(),
+    );
+
+    // Lo que llegó el 2026-10-09 y el 2026-10-10 ya no figura como faltante.
+    for (const llego of [
+      'nombre',
+      'nombreMayus',
+      'rotulo',
+      'rotuloCorto',
+      'rotuloMayus',
+      'rotuloErrata',
+      'entidadPromotora',
+      'direccion',
+      'telefono',
+      // Una sola resolución, 0858/2016, cubre los dos roles: por eso los dos
+      // bloques de campos quedaron llenos con el mismo acto administrativo.
+      'resolucionCentroNumero',
+      'resolucionCentroFecha',
+      'resolucionInsolvenciaNumero',
+      'resolucionInsolvenciaAnio',
+    ]) {
+      expect(faltan).not.toContain(llego);
+    }
+  });
+
+  it('la resolución de Armonía es UNA y cubre los dos roles', () => {
+    // Constructores tiene dos habilitaciones distintas; Armonía una sola.
+    // Confirmado el 2026-10-10 contra el sello físico y el membrete oficial.
+    // Si alguien "corrige" esto creyendo que es un copiar-pegar, el test lo
+    // frena.
+    const cp = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
+    expect(cp.CENTRO_RESOLUCION_NUMERO).toBe('1459');
+    expect(cp.CENTRO_RES_INSOLVENCIA_NUMERO).toBe('0001');
+    expect(cp.CENTRO_RESOLUCION_NUMERO).not.toBe(
+      cp.CENTRO_RES_INSOLVENCIA_NUMERO,
+    );
+
+    const membrete = membreteParcialDelCentro('armonia')!;
+    expect(membrete.resolucionCentroNumero).toBe('0858');
+    expect(membrete.resolucionInsolvenciaNumero).toBe('0858');
+  });
+
+  it('el rótulo de Armonía NO lleva "y Arbitraje"', () => {
+    // El motivo por el que rótulo y nombre son campos separados: si el rótulo
+    // fuera prosa fija de plantilla, Armonía imprimiría un rótulo ajeno.
+    const cp = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
+    expect(cp.CENTRO_ROTULO).toBe('Centro de Conciliación y Arbitraje');
+    expect(membreteParcialDelCentro('armonia')!.rotulo).toBe(
+      'Centro de Conciliación',
+    );
+    expect(membreteParcialDelCentro('armonia')!.rotulo).not.toContain(
+      'Arbitraje',
+    );
   });
 
   it('REGRESIÓN: Armonía NO cae a los datos de Constructores', () => {
