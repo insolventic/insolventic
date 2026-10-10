@@ -264,17 +264,27 @@ plantillas. Está pegado a su resolución de habilitación:
 
 Reemplazar **solo** el nombre por un placeholder dejaría los documentos de
 Armonía afirmando que Armonía está habilitada por la resolución del otro centro.
-El sello de Armonía menciona "Resolución 656/2016", que no es la misma. Hoy el
-documento es consistentemente del centro equivocado; con el swap parcial sería
-un documento que afirma algo falso sobre la habilitación de un centro, y se
-radica ante juzgados. Es estrictamente peor, así que no se hizo.
+Hoy el documento es consistentemente del centro equivocado; con el swap parcial
+sería un documento que afirma algo falso sobre la habilitación de un centro, y
+se radica ante juzgados. Es estrictamente peor, así que no se hizo.
+
+> **Corrección del 2026-10-10.** Acá decía: «El sello de Armonía menciona
+> "Resolución 656/2016", que no es la misma». **Era falso, y por un error de
+> transcripción propio**, no por una discrepancia en el material de Armonía: el
+> sello dice **858/2016**, la misma resolución que el membrete oficial. El
+> «656» salió de una lectura equivocada de la imagen anotada en
+> `BRANDING_POR_CENTRO_2026-09-30.md:58`, y de ahí se propagó acá como si
+> fueran dos documentos en conflicto. No hay conflicto: Armonía tiene **una
+> sola** resolución, la 0858 del 01 de noviembre de 2016, y cubre los dos roles
+> (centro de conciliación y operador de insolvencia). El detalle de la medición
+> está en `BRANDING_POR_CENTRO_2026-09-30.md` §2.1.
 
 **Lo que hace falta para completar el swap**, todo dato real, nada que el
 equipo de desarrollo pueda derivar:
 
 | Dato                            | Por qué                                                       |
 | ------------------------------- | ------------------------------------------------------------- |
-| Nombre legal exacto del centro  | El propio material de Armonía se contradice (tucán vs. sello) |
+| Nombre legal exacto del centro  | ~~El propio material de Armonía se contradice (tucán vs. sello)~~ → 🟢 no se contradecía; ver la corrección de arriba. Resuelto: "Armonía Concertada" |
 | Número y fecha de la resolución | Va en la misma oración que el nombre, en ~12 plantillas       |
 | Dirección                       | Aparece en encabezados y en el bloque de notificaciones       |
 | Teléfono                        | Ídem                                                          |

@@ -17,11 +17,15 @@
  * Justicia; emitir las de Constructores en un documento de Armonía sería
  * afirmar algo falso sobre una habilitación.
  *
- * Si al centro le falta un dato, este sub-mapper **no emite ninguna clave**.
- * Las plantillas quedan con sus `{{...}}` sin resolver, y el gate de
- * `generate-documents.ts` corta la generación devolviendo al operador la lista
- * de campos que faltan — en vez de subir a Drive un PDF con el centro
- * equivocado.
+ * Si al centro le falta un dato, este sub-mapper **no emite esa clave**. Las
+ * plantillas que la usan quedan con su `{{...}}` sin resolver, y el gate de
+ * `generate-documents.ts` corta la generación de ESOS documentos devolviendo al
+ * operador la lista de campos que faltan — en vez de subir a Drive un PDF con
+ * el centro equivocado. Las plantillas que no usan el dato ausente se generan
+ * normalmente: el corte es por campo, no por centro (el porqué, en
+ * `membrete-centro.ts`).
+ *
+ * Un tenant **desconocido** sí es todo-o-nada: no hay fila de la que emitir.
  *
  * Los valores son texto plano sin caracteres especiales de HTML, así que el
  * escapado por defecto (`escapeAllUnlessHtml`) los deja intactos: NO hay que
@@ -30,7 +34,10 @@
 
 import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
-import { membreteDelCentro, type MembreteCentro } from '@/lib/membrete-centro';
+import {
+  membreteParcialDelCentro,
+  type MembreteCentro,
+} from '@/lib/membrete-centro';
 
 import { tenantSlugDelCaso } from './tenant-slug';
 
@@ -51,6 +58,8 @@ const CLAVE_POR_CAMPO: Record<keyof MembreteCentro, string> = {
   rotuloMayusTilde: 'CENTRO_ROTULO_MAYUS_TILDE',
   rotuloErrata: 'CENTRO_ROTULO_ERRATA',
   entidadPromotora: 'CENTRO_ENTIDAD_PROMOTORA',
+  entidadPromotoraProsa: 'CENTRO_ENTIDAD_PROMOTORA_PROSA',
+  entidadPromotoraMayus: 'CENTRO_ENTIDAD_PROMOTORA_MAYUS',
   direccion: 'CENTRO_DIRECCION',
   direccionMinus: 'CENTRO_DIRECCION_MINUS',
   ciudad: 'CENTRO_CIUDAD',
@@ -71,9 +80,10 @@ const CLAVE_POR_CAMPO: Record<keyof MembreteCentro, string> = {
   operadorNombreTilde: 'OPERADOR_NOMBRE_TILDE',
   operadorCargo: 'OPERADOR_CARGO',
   operadorCargoMayus: 'OPERADOR_CARGO_MAYUS',
+  cuentaConsignacion: 'CENTRO_CUENTA_CONSIGNACION',
 };
 
-/** Las claves que este sub-mapper emite cuando el centro está completo. */
+/** Todas las claves que este sub-mapper puede emitir, una por campo. */
 export const CLAVES_MEMBRETE = Object.values(CLAVE_POR_CAMPO);
 
 /**
@@ -85,22 +95,28 @@ export const CLAVES_MEMBRETE = Object.values(CLAVE_POR_CAMPO);
  * el 2026-10-09: los `Tenant.id` son cuids (`cmluzsnr…`) y no coinciden con el
  * slug. El recorrido completo está en `tenant-slug.ts`.
  *
- * Acá importa más que en el branding: con un cuid, `membreteDelCentro` no
- * encuentra la fila y, por el fail-closed, **no se generaría ningún documento
- * para ningún centro**. El branding solo caía a un default silencioso; esto
- * sería un apagón.
+ * Acá importa más que en el branding: con un cuid no se encuentra la fila y,
+ * por el fail-closed, **no se generaría ningún documento para ningún centro**.
+ * El branding solo caía a un default silencioso; esto sería un apagón.
  */
 export function mapMembreteCentro(caseData: CaseWithRelations): PlaceholderMap {
-  const membrete = membreteDelCentro(tenantSlugDelCaso(caseData));
+  const membrete = membreteParcialDelCentro(tenantSlugDelCaso(caseData));
 
-  // Centro incompleto o desconocido: no se emite NADA. El gate de placeholders
-  // sin resolver corta la generación y nombra los campos que faltan. Ver el
-  // docblock del módulo: es la diferencia a propósito con los assets.
+  // Centro desconocido: no se emite NADA. Ver el docblock del módulo — es la
+  // diferencia a propósito con los assets de imagen.
   if (!membrete) return {};
 
+  // CAMPO POR CAMPO, no todo-o-nada. Un campo que falta (`null`) no se emite:
+  // la plantilla que lo usa queda con su `{{...}}` sin resolver y el gate corta
+  // ESE documento, no los 65. Un campo intencionalmente vacío (`SIN_DATO`) sí
+  // se emite, como cadena vacía, y las plantillas lo envuelven en `{{#if}}`
+  // para no dejar el separador colgando. El porqué del cambio de radio está en
+  // el docblock de `membrete-centro.ts`.
   const out: PlaceholderMap = {};
   for (const [campo, clave] of Object.entries(CLAVE_POR_CAMPO)) {
-    out[clave] = membrete[campo as keyof MembreteCentro];
+    const valor = membrete[campo as keyof MembreteCentro];
+    if (valor == null) continue;
+    out[clave] = valor;
   }
   return out;
 }
