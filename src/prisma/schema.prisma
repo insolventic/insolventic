@@ -53,6 +53,7 @@ model Tenant {
   suspendedServices   SuspendedService[]
   dependents          Dependent[]
   apoderados          Apoderado[]
+  apoderadosAcreedor  ApoderadoAcreedor[]
   auditLogs           AuditLog[]
   payments            Payment[]
   conciliationCenters ConciliationCenter[]
@@ -638,10 +639,71 @@ model Debt {
   coDebtorPhone   String?
   coDebtorEmail   String?
 
-  case     Case     @relation(fields: [caseId], references: [id])
-  creditor Creditor @relation(fields: [creditorId], references: [id])
-  debtor   Debtor?  @relation(fields: [debtorId], references: [id])
-  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  // Apoderado del acreedor — resolución del conflicto entre las dos fuentes.
+  //
+  // Las fuentes viven en ApoderadoAcreedor (una fila por fuente). Acá solo queda
+  // la decisión del conciliador sobre cuál vale. Ver
+  // docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md §3.
+  //
+  // Se guarda la FUENTE y no el id de la fila a propósito: un FK hacia
+  // ApoderadoAcreedor crearía un ciclo de acciones referenciales (Cascade en un
+  // sentido, SetNull en el otro, sobre las mismas dos tablas). La fila concreta
+  // se busca por (debtId, fuente), que ya es único.
+  /// REGISTRO | ACTA | MANUAL
+  apoderadoConfirmadoFuente String?   @map("apoderado_confirmado_fuente")
+  /// Huella de las identificaciones normalizadas de las dos fuentes AL CONFIRMAR.
+  /// Si alguna cambia después, la huella deja de coincidir y el conflicto vuelve
+  /// a bloquear: la confirmación es sobre dos valores concretos, no sobre el
+  /// acreedor.
+  apoderadoConfirmadoHuella String?   @map("apoderado_confirmado_huella")
+  apoderadoConfirmadoPor    String?   @map("apoderado_confirmado_por")
+  apoderadoConfirmadoAt     DateTime? @map("apoderado_confirmado_at")
+
+  case               Case                @relation(fields: [caseId], references: [id])
+  creditor           Creditor            @relation(fields: [creditorId], references: [id])
+  debtor             Debtor?             @relation(fields: [debtorId], references: [id])
+  tenant             Tenant              @relation(fields: [tenantId], references: [id])
+  apoderadosAcreedor ApoderadoAcreedor[]
+}
+
+/// Apoderado del acreedor, con UNA FILA POR FUENTE.
+///
+/// Existe porque la decisión legal (2026-10-09) es que el sistema no elija entre
+/// el registro de poderes y el acta de la audiencia cuando se contradicen: tiene
+/// que detectar la discrepancia y bloquear la generación. Para comparar dos
+/// fuentes hay que poder guardarlas por separado.
+///
+/// Ligado a `Debt` y no a `Apoderado`: ese modelo es por caso y es del
+/// convocante/deudor, que legalmente es otra cosa.
+///
+/// Plan completo: docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md
+model ApoderadoAcreedor {
+  id                 String  @id @default(cuid())
+  debtId             String  @map("debt_id")
+  tenantId           String  @map("tenant_id")
+  /// REGISTRO (acreditado antes) | ACTA (compareció en la audiencia) | MANUAL
+  /// (lo corrigió el conciliador al resolver el conflicto)
+  fuente             String
+  nombreCompleto     String  @map("nombre_completo")
+  tipoIdentificacion String? @map("tipo_identificacion")
+  /// La clave de comparación entre fuentes. Se normaliza al comparar, no al
+  /// guardar: se conserva tal como lo escribió el operador.
+  identificacion     String?
+  tarjetaProfesional String? @map("tarjeta_profesional")
+  correo             String?
+  telefono           String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  debt   Debt   @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  /// Una fila por fuente, como máximo.
+  @@unique([debtId, fuente])
+  @@index([debtId])
+  @@index([tenantId])
+  @@map("apoderados_acreedor")
 }
 
 model Asset {
