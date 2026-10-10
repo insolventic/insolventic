@@ -1,6 +1,6 @@
 # Plan — apoderado del acreedor en el CYG
 
-**Estado:** aprobado el 2026-10-10. PR 1 en curso.
+**Estado:** aprobado el 2026-10-10. **PR 1 y PR 2 mergeados** (#130, #131); PR 3 **sin abrir a proposito** (requiere aviso explicito del dueno del producto).
 
 Origen: ítem 13 de `docs/PENDIENTES_DECISION_LEGAL.md`, respondido por la abogada
 el 2026-10-09 (§6.6 de ese documento).
@@ -120,12 +120,12 @@ eso rompería el flujo actual sin que nadie lo haya pedido.
 
 ## 5. Los cuatro PRs
 
-| #   | Qué                        | Depende de | Esfuerzo | Toca generación |
-| --- | -------------------------- | ---------- | -------- | --------------- |
-| 1   | Modelo y migración         | —          | ~4 h     | No              |
-| 2   | Captura de las dos fuentes | 1          | ~5 h     | No              |
-| 3   | Detección y gate           | 2          | ~4 h     | **Sí** ⚠️       |
-| 4   | UI de resolución           | 3          | ~5 h     | No              |
+| #   | Qué                                           | Depende de | Esfuerzo | Toca generación |
+| --- | --------------------------------------------- | ---------- | -------- | --------------- |
+| 1   | Modelo y migración 🟢                         | —          | ~4 h     | No              |
+| 2   | Captura (creación) 🟢                         | 1          | ~5 h     | No              |
+| 3   | Detección y gate                              | 2          | ~4 h     | **Sí** ⚠️       |
+| 4   | UI de resolución **+ captura post-audiencia** | 3          | ~7 h     | No              |
 
 Cada uno con su `test:db` contra Postgres real y rojo→verde. Los PRs 1 y 2 son
 **puramente aditivos**: no cambian ningún comportamiento existente.
@@ -144,18 +144,38 @@ A vigilar: `migraciones-desde-cero.db.test.ts` tiene `BRECHA_CONOCIDA.statements
 y es bidireccional. La tabla nueva **sí** la crea la migración, así que el número
 no debería moverse; si se mueve, hay que entender por qué antes de actualizarlo.
 
-### PR 2 — Captura de las dos fuentes
+### PR 2 — Captura de las dos fuentes · 🟢 mergeado (`#131`)
 
-Las dos en la misma superficie, `creditors-detailed-section.tsx`, por fila de
-acreedor y disponible vía el diálogo de edición:
+Las dos en `creditors-detailed-section.tsx`, por fila de acreedor:
 
-- "Apoderado acreditado (registro de poderes)" → fuente `REGISTRO`
-- "Apoderado que compareció (acta de la audiencia)" → fuente `ACTA`
+- "Registro de poderes (acreditado)" → fuente `REGISTRO`
+- "Acta de la audiencia (compareció)" → fuente `ACTA`
+
+Más 12 campos opcionales en `debtSchema`, el helper `apoderado-acreedor.ts` que
+traduce el formulario a las filas, y el nested create en `createCase`.
 
 `test:db`: envía el formulario con las dos fuentes y verifica que **las dos
 quedan guardadas**. El modo de falla que esto atrapa es el campo descartado en
 silencio (`Unknown argument`), que es cómo se rompió la creación de casos sin que
 ningún test unitario lo notara.
+
+Dos decisiones del helper: **el nombre define que la fuente existe** (sin nombre
+no se crea fila, aunque vengan los demás campos), y **la identificación se guarda
+tal como la escribió el operador** — normalizar al guardar perdería el original,
+que es el que el conciliador ve en la pantalla de resolución.
+
+> **Corrección a este plan, encontrada al implementarlo.** Arriba decía capturar
+> el acta en `creditors-detailed-section.tsx` _"vía el diálogo de edición"_. **El
+> diálogo de edición no reusa esa sección:** tiene su propio `debts-tab.tsx` de
+> 570 líneas con `addDebtToCase` / `removeDebtFromCase`, y **no existe ninguna
+> action para actualizar una deuda existente** — solo agregar y quitar.
+>
+> Como el acta se llena **después de la audiencia**, sobre acreedores que ya
+> existen, esa ruta necesita una action nueva. **Se movió al PR 4**, que ya
+> necesita una ruta de escritura por deuda para persistir la fuente elegida: era
+> eso o construir dos rutas de escritura distintas para el mismo dato.
+>
+> Lo que entró en el PR 2, entonces, es la captura **en la creación del caso**.
 
 ### PR 3 — Detección y gate ⚠️
 
