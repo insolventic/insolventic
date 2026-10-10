@@ -26,6 +26,22 @@
  * notara.
  */
 
+// Mismo bloque que el resto de tests/db: Postgres y Prisma son REALES, pero las
+// APIs de Next (cookies, cache, after) no existen fuera de un request, y el job
+// de generación iría a Google Drive y Chromium. Sin el mock de `next/headers`,
+// `authenticateUser()` revienta al leer la cookie de sesión.
+jest.mock('next/headers', () => require('../__mocks__/next-headers'));
+jest.mock('next/cache', () => require('../__mocks__/next-cache'));
+
+const mockAfter = jest.fn();
+jest.mock('next/server', () => ({
+  after: (...args: unknown[]) => mockAfter(...args),
+}));
+
+jest.mock('@/features/document/generation-job', () => ({
+  runInitialGenerationJob: jest.fn(),
+}));
+
 import prisma from '@/lib/prisma';
 import { createCase } from '@/features/case/actions';
 import { createCaseFormSchema } from '@/features/case/schemas';
