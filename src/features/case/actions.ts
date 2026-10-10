@@ -18,6 +18,7 @@ import { logger } from '@/lib/logger';
 // hora de Colombia. `parseDateOnly` las ancla al mediodía UTC.
 import { parseDateOnly } from '@/lib/date-colombia';
 import { parseTasaInteres, parseFechaCredito } from './datos-desconocidos';
+import { filasApoderadoDesdeFormulario } from './apoderado-acreedor';
 import {
   validateCaseBusinessRules,
   formatValidationErrors,
@@ -725,6 +726,13 @@ export async function createCase(
                 coDebtorAddress: debt.coDebtorAddress,
                 coDebtorPhone: debt.coDebtorPhone,
                 coDebtorEmail: debt.coDebtorEmail,
+                // Apoderado del acreedor: una fila por fuente cargada, ninguna
+                // si no cargaron ninguna (que es el caso normal). El helper
+                // solo traduce; comparar las dos fuentes y bloquear la
+                // generación ante discrepancia es el PR 3 del plan.
+                apoderadosAcreedor: {
+                  create: filasApoderadoDesdeFormulario(debt, tenantId),
+                },
               },
             });
           }

@@ -307,3 +307,113 @@ describe('4. la confirmación vive en Debt y acepta null', () => {
     });
   });
 });
+
+describe('5. CAPTURA: las dos fuentes sobreviven el viaje por el wizard', () => {
+  // El modo de falla que esto atrapa es el campo descartado EN SILENCIO: una
+  // clave que el formulario manda, el schema acepta y la action nunca persiste
+  // (o que Prisma rechaza con `Unknown argument`). Es como se rompió la
+  // creación de casos sin que ningún test unitario lo notara, y no se puede
+  // detectar con Prisma mockeado: hay que mirar la fila en la base.
+  let debtsDelCaso: Array<{ id: string; creditorId: string }> = [];
+  let casoId = '';
+
+  beforeAll(async () => {
+    const fixture = FIXTURES.find(
+      // >= 2 porque un caso de prueba compara 'el que tiene apoderado' contra
+      // 'los que no', y con un solo acreedor no habria con que contrastar.
+      (f) => ((f.form as { debts?: unknown[] }).debts?.length ?? 0) >= 2,
+    )!;
+    const form = fixture.form as { debts: Array<Record<string, unknown>> };
+
+    const debtor = await prisma.debtor.create({
+      // idNumber Y email: Debtor tiene unico (email, tenantId) ademas del
+      // documento, y este deudor convive con el del beforeAll de arriba, que
+      // sale del mismo fixture.
+      data: {
+        ...fixture.debtor,
+        idNumber: `cap-${TAG}`,
+        email: `cap-${TAG}@example.com`,
+        tenantId: ctx.tenantId,
+      },
+    });
+
+    // El primer acreedor lleva LAS DOS fuentes, con identificaciones distintas
+    // (el caso que el PR 3 tendrá que detectar); el segundo, si existe, ninguna.
+    const debts = form.debts.map((d, i) =>
+      i === 0
+        ? {
+            ...d,
+            apoderadoRegistroNombre: 'María Gómez Rueda',
+            apoderadoRegistroTipoId: 'CC',
+            apoderadoRegistroId: '52.111.222',
+            apoderadoRegistroTP: '123456',
+            apoderadoRegistroCorreo: 'maria@example.com',
+            apoderadoRegistroTelefono: '3001112222',
+            apoderadoActaNombre: 'Carlos Ruiz Peña',
+            apoderadoActaTipoId: 'CC',
+            apoderadoActaId: '79.333.444',
+            apoderadoActaTP: '654321',
+            apoderadoActaCorreo: 'carlos@example.com',
+            apoderadoActaTelefono: '3004443333',
+          }
+        : d,
+    );
+
+    const parsed = createCaseFormSchema.parse({
+      ...form,
+      debts,
+      debtorId: debtor.id,
+      operatorId: ctx.userId,
+    }) as Record<string, unknown>;
+
+    const result = await createCase(wizardSubmit(parsed) as never);
+    if (!result.success || !result.data) {
+      throw new Error(`createCase falló: ${result.error ?? 'sin error'}`);
+    }
+    casoId = result.data.id;
+    debtsDelCaso = await prisma.debt.findMany({
+      where: { caseId: casoId },
+      select: { id: true, creditorId: true },
+      orderBy: { id: 'asc' },
+    });
+  }, 120_000);
+
+  it('el wizard guardó las dos fuentes del primer acreedor', async () => {
+    const filas = await prisma.apoderadoAcreedor.findMany({
+      where: { debtId: { in: debtsDelCaso.map((d) => d.id) } },
+      orderBy: { fuente: 'asc' },
+    });
+
+    expect(filas).toHaveLength(2);
+
+    const acta = filas.find((f) => f.fuente === 'ACTA')!;
+    const registro = filas.find((f) => f.fuente === 'REGISTRO')!;
+
+    // Ningún campo se perdió en el camino formulario → schema → action → base.
+    expect(registro.nombreCompleto).toBe('María Gómez Rueda');
+    expect(registro.identificacion).toBe('52.111.222');
+    expect(registro.tarjetaProfesional).toBe('123456');
+    expect(registro.correo).toBe('maria@example.com');
+    expect(registro.telefono).toBe('3001112222');
+
+    expect(acta.nombreCompleto).toBe('Carlos Ruiz Peña');
+    expect(acta.identificacion).toBe('79.333.444');
+
+    // Las dos filas cuelgan del MISMO acreedor: es una contradicción sobre un
+    // acreedor, no dos apoderados de acreedores distintos.
+    expect(registro.debtId).toBe(acta.debtId);
+    // Y el tenant viaja, que es lo que mantiene el aislamiento.
+    expect(registro.tenantId).toBe(ctx.tenantId);
+  });
+
+  it('los acreedores sin apoderado no generan filas', async () => {
+    // La ausencia no bloquea ni inventa nada: sin nombre no hay fila.
+    const conApoderado = await prisma.apoderadoAcreedor.findMany({
+      where: { debtId: { in: debtsDelCaso.map((d) => d.id) } },
+      select: { debtId: true },
+      distinct: ['debtId'],
+    });
+    expect(conApoderado).toHaveLength(1);
+    expect(debtsDelCaso.length).toBeGreaterThan(conApoderado.length);
+  });
+});
