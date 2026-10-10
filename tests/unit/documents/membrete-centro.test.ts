@@ -263,34 +263,52 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
    * entra al guardián solo. Lo que queda a mano es lo contrario — una lista de
    * EXCEPCIONES, cada una con su razón, que es un lugar incómodo donde estar.
    */
-  const EXCEPCIONES: Record<string, string> = {
-    rotuloCorto:
-      'Prosa genérica ("ante el Centro de Conciliación", "en este Centro de ' +
-      'Conciliación"): los DOS centros son "Centro de Conciliación", así que ' +
-      'no afirma nada ajeno. Lo que sí distinguía era "y Arbitraje", y eso ya ' +
-      'no queda a mano.',
-    ciudad:
-      'Los dos centros están en Bogotá D.C. El día que se sume uno de otra ' +
-      'ciudad, esta excepción hay que cerrarla: son 15 plantillas.',
-    resolucionInsolvenciaNumeroCorto:
-      '"001" es demasiado corto para buscarlo por substring: coincide con ' +
-      '"Ley 640 del 2001" en 3 plantillas, que no tienen nada que ver. Las ' +
-      'formas largas de la misma resolución sí están cubiertas por este ' +
-      'guardián, y son las que se imprimen como habilitación.',
-    operadorNombre:
-      'Beatriz Helena Malavera es la operadora de insolvencia de los DOS ' +
-      'centros (confirmado 2026-10-10), así que el nombre a mano no afirma ' +
-      'nada falso. Extraerlo o no es decisión del PR de normalización del ' +
-      'cargo, que es el que toca estas 41 plantillas.',
-    operadorNombreTilde:
-      'La misma persona y la misma razón que operadorNombre, en la forma con ' +
-      'tilde: 6 plantillas.',
-    operadorCargo:
-      'Ídem: la normalización del cargo a una sola forma va en su propio PR ' +
-      '(16 plantillas con esta forma, 27 con la de mayúsculas).',
-    operadorCargoMayus:
-      'La misma razón que operadorCargo, en la forma en mayúsculas: es la ' +
-      'forma canónica a la que apunta la normalización, 27 plantillas.',
+  /**
+   * Una excepción es una razón escrita, y opcionalmente **la lista cerrada de
+   * archivos** donde se tolera. Con `soloEn`, el test exige que los culpables
+   * sean EXACTAMENTE ésos: si el literal reaparece en una plantilla más, falla.
+   * Sin `soloEn`, solo exige que siga apareciendo en algún lado.
+   */
+  type Excepcion = { razon: string; soloEn?: string[] };
+
+  const EXCEPCIONES: Record<string, Excepcion> = {
+    rotuloCorto: {
+      razon:
+        'Prosa genérica ("ante el Centro de Conciliación", "en este Centro de ' +
+        'Conciliación"): los DOS centros son "Centro de Conciliación", así que ' +
+        'no afirma nada ajeno. Lo que sí distinguía era "y Arbitraje", y eso ya ' +
+        'no queda a mano.',
+    },
+    ciudad: {
+      razon:
+        'Los dos centros están en Bogotá D.C. El día que se sume uno de otra ' +
+        'ciudad, esta excepción hay que cerrarla: son 15 plantillas.',
+    },
+    resolucionInsolvenciaNumeroCorto: {
+      razon:
+        '"001" es demasiado corto para buscarlo por substring: coincide con ' +
+        '"Ley 640 del 2001" en 3 plantillas, que no tienen nada que ver. Las ' +
+        'formas largas de la misma resolución sí están cubiertas por este ' +
+        'guardián, y son las que se imprimen como habilitación.',
+    },
+    operadorNombre: {
+      razon:
+        'Queda UNA sola, en la plantilla que el dueño del producto decidió no ' +
+        'tocar: `Designacion del Conciliador.html`, la única cuyo bloque de ' +
+        'firma es de otra persona (MAXIMILIANO JARAMILLO RICAURTE, DIRECTOR). ' +
+        'Ahí Beatriz aparece nombrada en la prosa, no firmando. Las otras 82 ' +
+        'ocurrencias están extraídas.',
+      soloEn: ['templates/insolvency/Designacion del Conciliador.html'],
+    },
+    operadorCargo: {
+      razon:
+        'En PROSA, no en el bloque de firma. "la operadora de insolvencia ' +
+        'designada", "aceptó el cargo como operadora de insolvencia": ahí el ' +
+        'cargo es el NOMBRE DEL ROL que define la ley, no un dato del centro — ' +
+        'la operadora de cualquier centro es una operadora de insolvencia. ' +
+        'Poner el placeholder en mayúsculas dentro de una oración sería peor. ' +
+        'Las 28 del bloque de firma SÍ están extraídas.',
+    },
   };
 
   /**
@@ -334,16 +352,20 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
   it.each(CAMPOS_MEMBRETE)(
     'ninguna plantilla escribe a mano el valor de %s',
     (campo) => {
-      const razon = EXCEPCIONES[campo];
+      const exc = EXCEPCIONES[campo];
       const culpables = TODAS.filter((t) => t.texto.includes(CP[campo])).map(
-        (t) => t.rel,
+        (t) => t.rel.split(path.sep).join('/'),
       );
-      if (razon) {
+      if (exc) {
         // Excepción declarada: se exige que SIGA apareciendo. Si alguien la
         // extrae y se olvida de sacarla de acá, el test lo avisa — así la
         // lista de excepciones no se vuelve folklore.
-        expect(culpables.length).toBeGreaterThan(0);
-        expect(razon.length).toBeGreaterThan(40);
+        expect(exc.razon.length).toBeGreaterThan(40);
+        if (exc.soloEn) {
+          expect(culpables.sort()).toEqual([...exc.soloEn].sort());
+        } else {
+          expect(culpables.length).toBeGreaterThan(0);
+        }
         return;
       }
       expect(culpables).toEqual([]);
