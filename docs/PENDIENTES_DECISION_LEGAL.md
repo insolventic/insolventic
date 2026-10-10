@@ -1,6 +1,6 @@
 # Pendientes de decisión legal
 
-**Última actualización:** 2026-10-08 (ítem 10 nuevo: datos de membrete de Armonía)
+**Última actualización:** 2026-10-09 (las 6 preguntas de conciliación, respondidas: ítems 8, 9, 10, 13 y dos que no estaban en la tabla — ver §6)
 
 Lista única de las preguntas abiertas que **no las resuelve el equipo de
 desarrollo**: dependen de la abogada o del cliente, y cada una bloquea algo
@@ -12,21 +12,21 @@ recitando de memoria en cada ronda.
 respuesta, y se actualiza el documento donde vive el detalle. Este archivo es
 el índice, no la fuente de verdad de cada tema.
 
-| #   | Pregunta                                                                                                                                                                                                                     | Bloquea                                                                                                                              | Detalle en                                                                 |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| 1   | **SMMLV 2026 transitorio** (Decreto 0159): ¿hay fallo de fondo o decreto definitivo?                                                                                                                                         | El `TODO(legal)` de `validation-rules.ts`, y con él los umbrales de cuantía                                                          | `docs/CHECKPOINT_2026-09-28.md` §9                                         |
-| 2   | 🟡 **PARCIAL 2026-10-08** — Check List, Parágrafo 3: ¿qué cuenta como "informado" entre "tiene soporte de obligaciones" y "manifiesta que no las posee"?                                                                    | El Check List sigue sin poderse generar (bloqueado por `SI`/`NO_PARAGRAFO_3`); mover `mapCheckList` en la división del mapper        | `docs/CHECKPOINT_2026-09-28.md` §5.3 · `docs/PLAN_DIVISION_MAPPER.md` · este documento, §4 |
-| 3   | **Texto legal de "Fracaso por reforma del acuerdo"** (⓵ⓓ de #40)                                                                                                                                                             | El contenido de esa plantilla reclasificada, no su merge                                                                             | `docs/CHECKPOINT_2026-09-28.md` §9                                         |
-| 4   | **Párrafo legal de comparendos** del vehículo (#11 de la ronda del formulario)                                                                                                                                               | Imprimir el dato que ya se captura                                                                                                   | `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`                          |
-| 5   | **¿La Solicitud lista todos los acreedores o hay tope con anexo?**                                                                                                                                                           | Nada ya: los PR #77/#78/#79 se construyeron sobre la opción (1), **asumida**                                                         | `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md` §2                          |
-| 6   | **Plazo de corrección tras nulidad: ¿días hábiles o corridos?**                                                                                                                                                              | El tamaño del scanner del issue #16 (~4 h en corridos; bastante más en hábiles, porque no hay calendario de festivos en el proyecto) | issue #16                                                                  |
-| 7   | 🟢 **RESUELTO 2026-10-02** (Acta de Disolución) — citaba la Ley 640 de 2001, derogada por la 2220 de 2022; corregida. **Sigue abierto**: la misma cita en dos plantillas de insolvencia y una de support-agreements (ver §3) | Corregir el fundamento normativo de esas 3 plantillas restantes                                                                      | Auditoría del formulario de conciliación, hallazgo B2 · este documento, §3 |
-| 8   | **¿El Auto de Desistimiento y el Informe Conciliador deben citar norma?** Hoy no citan ninguna                                                                                                                               | Nada; es una pregunta de completitud                                                                                                 | Auditoría de conciliación, hallazgo B3                                     |
-| 9   | **¿La caducidad de tres meses debe ser una causal nombrada** de terminación anormal, o sigue cayendo en "OTRA" (texto libre)?                                                                                                | Agregar la opción al selector y el `{{#if}}` a la plantilla (~2 h)                                                                   | Auditoría de conciliación, hallazgo B4                                     |
-| 10  | **¿Qué es obligatorio en cada documento de conciliación?** Hoy las 12 plantillas no tienen ningún requisito declarado                                                                                                        | El PR 4 de la auditoría de conciliación (validación)                                                                                 | Auditoría de conciliación, hallazgo A2                                     |
-| 11  | **Datos de membrete de Armonía**: el rótulo legal (el tucán dice "Asociación para el Fomento…" y el sello dice "Centro de Conciliación Armonía Concertada"), **más la resolución de habilitación, la dirección y el teléfono** | El banner de encabezado del plan de branding **y** el reemplazo del nombre/resolución hardcodeados en las 65 plantillas (ver §5)      | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4 · este documento, §5           |
-| 12  | **¿Quién firma por Armonía?** Llegaron dos firmas y las plantillas tienen un hueco                                                                                                                                           | Si hacen falta uno o dos assets de firma                                                                                             | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                                |
-| 13  | **Apoderado del acreedor en el CYG**: ¿debe imprimirse o se sigue llenando a mano en la audiencia?                                                                                                                           | Si hay que agregar la columna a `Debt` y el campo al formulario                                                                      | Este documento, §1                                                         |
+| #   | Pregunta                                                                                                                                                                                                                       | Bloquea                                                                                                                              | Detalle en                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| 1   | **SMMLV 2026 transitorio** (Decreto 0159): ¿hay fallo de fondo o decreto definitivo?                                                                                                                                           | El `TODO(legal)` de `validation-rules.ts`, y con él los umbrales de cuantía                                                          | `docs/CHECKPOINT_2026-09-28.md` §9                                                         |
+| 2   | 🟡 **PARCIAL 2026-10-08** — Check List, Parágrafo 3: ¿qué cuenta como "informado" entre "tiene soporte de obligaciones" y "manifiesta que no las posee"?                                                                       | El Check List sigue sin poderse generar (bloqueado por `SI`/`NO_PARAGRAFO_3`); mover `mapCheckList` en la división del mapper        | `docs/CHECKPOINT_2026-09-28.md` §5.3 · `docs/PLAN_DIVISION_MAPPER.md` · este documento, §4 |
+| 3   | **Texto legal de "Fracaso por reforma del acuerdo"** (⓵ⓓ de #40)                                                                                                                                                               | El contenido de esa plantilla reclasificada, no su merge                                                                             | `docs/CHECKPOINT_2026-09-28.md` §9                                                         |
+| 4   | **Párrafo legal de comparendos** del vehículo (#11 de la ronda del formulario)                                                                                                                                                 | Imprimir el dato que ya se captura                                                                                                   | `docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md`                                          |
+| 5   | **¿La Solicitud lista todos los acreedores o hay tope con anexo?**                                                                                                                                                             | Nada ya: los PR #77/#78/#79 se construyeron sobre la opción (1), **asumida**                                                         | `docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md` §2                                          |
+| 6   | **Plazo de corrección tras nulidad: ¿días hábiles o corridos?**                                                                                                                                                                | El tamaño del scanner del issue #16 (~4 h en corridos; bastante más en hábiles, porque no hay calendario de festivos en el proyecto) | issue #16                                                                                  |
+| 7   | 🟢 **RESUELTO 2026-10-02** (Acta de Disolución) — citaba la Ley 640 de 2001, derogada por la 2220 de 2022; corregida. **Sigue abierto**: la misma cita en dos plantillas de insolvencia y una de support-agreements (ver §3)   | Corregir el fundamento normativo de esas 3 plantillas restantes                                                                      | Auditoría del formulario de conciliación, hallazgo B2 · este documento, §3                 |
+| 8   | 🟢 **RESUELTO 2026-10-09** — ¿El Auto de Desistimiento y el Informe Conciliador deben citar norma? **Sí: una referencia genérica**, sin artículos ni decretos. Aplicado también a la Aclaración de Acta                        | Nada — implementado                                                                                                                  | Este documento, §6.1                                                                       |
+| 9   | 🟢 **RESUELTO 2026-10-09** — ¿La caducidad de tres meses debe ser una causal nombrada? **No**: sigue cayendo en "OTRA" (texto libre)                                                                                           | Nada — se decidió no implementarlo                                                                                                   | Este documento, §6.2                                                                       |
+| 10  | 🟢 **RESUELTO 2026-10-09** — ¿Qué es obligatorio en cada documento de conciliación? **Nada**: decisión expresa de no exigir campos mínimos                                                                                     | Nada — el PR 4 de validación queda descartado, no pendiente                                                                          | Este documento, §6.3                                                                       |
+| 11  | **Datos de membrete de Armonía**: el rótulo legal (el tucán dice "Asociación para el Fomento…" y el sello dice "Centro de Conciliación Armonía Concertada"), **más la resolución de habilitación, la dirección y el teléfono** | El banner de encabezado del plan de branding **y** el reemplazo del nombre/resolución hardcodeados en las 65 plantillas (ver §5)     | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4 · este documento, §5                           |
+| 12  | **¿Quién firma por Armonía?** Llegaron dos firmas y las plantillas tienen un hueco                                                                                                                                             | Si hacen falta uno o dos assets de firma                                                                                             | `docs/BRANDING_POR_CENTRO_2026-09-30.md` §4                                                |
+| 13  | 🟢 **RESUELTO 2026-10-09** — Apoderado del acreedor en el CYG: **debe detectarse desde el registro de poderes**, y ante discrepancia con el acta **bloquear la generación**, no elegir una fuente por defecto                  | El diseño, que está **pendiente de aprobación** antes de escribir código                                                             | Este documento, §1 y §6.6                                                                  |
 
 ---
 
@@ -56,6 +56,18 @@ ese dato salga impreso, hace falta una columna nueva en `Debt`, su campo en el
 formulario de acreedores y el mapeo — alrededor de 4 h. Si se sigue llenando a
 mano durante la audiencia, no hay nada que hacer y conviene dejarlo dicho para
 que no se vuelva a levantar como bug en la próxima revisión de PDF.
+
+> 🟢 **RESUELTO el 2026-10-09.** La abogada respondió, y la respuesta es más
+> exigente que las dos opciones que estaban planteadas: el dato **sí** debe
+> imprimirse, detectándolo desde el registro de poderes, con edición manual del
+> conciliador — y **cuando el registro de poderes y el acta de la audiencia no
+> coincidan, el sistema no debe elegir una fuente por defecto: debe detectar la
+> discrepancia y bloquear la generación** hasta que el conciliador la resuelva.
+>
+> Eso convierte el ítem en algo más grande que "agregar una columna a `Debt`":
+> hay dos fuentes de verdad que pueden contradecirse y un flujo de resolución
+> que el conciliador tiene que poder operar. **El diseño está pendiente de
+> aprobación y no se escribió código todavía** — ver §6.6.
 
 ---
 
@@ -210,12 +222,12 @@ radica ante juzgados. Es estrictamente peor, así que no se hizo.
 **Lo que hace falta para completar el swap**, todo dato real, nada que el
 equipo de desarrollo pueda derivar:
 
-| Dato                                | Por qué                                                           |
-| ----------------------------------- | ----------------------------------------------------------------- |
-| Nombre legal exacto del centro      | El propio material de Armonía se contradice (tucán vs. sello)      |
-| Número y fecha de la resolución     | Va en la misma oración que el nombre, en ~12 plantillas            |
-| Dirección                           | Aparece en encabezados y en el bloque de notificaciones            |
-| Teléfono                            | Ídem                                                               |
+| Dato                            | Por qué                                                       |
+| ------------------------------- | ------------------------------------------------------------- |
+| Nombre legal exacto del centro  | El propio material de Armonía se contradice (tucán vs. sello) |
+| Número y fecha de la resolución | Va en la misma oración que el nombre, en ~12 plantillas       |
+| Dirección                       | Aparece en encabezados y en el bloque de notificaciones       |
+| Teléfono                        | Ídem                                                          |
 
 **Alcance cuando los datos lleguen:** ~65 plantillas mencionan al centro por
 nombre (texto impreso y `alt` de imágenes). El trabajo es mecánico una vez que
@@ -223,8 +235,112 @@ los cuatro datos estén confirmados: un sub-mapper nuevo con los textos por
 tenant, el mismo patrón que `branding.ts` ya usa para los assets.
 
 > **Nota aparte, del mismo origen:** `templates/insolvency/Designacion del
-> Conciliador.html` usa `Firma abogado.jpg` (`alt="Firma Director"`), una firma
+Conciliador.html` usa `Firma abogado.jpg` (`alt="Firma Director"`), una firma
 > **distinta** de la que usan las otras 54 plantillas. No se unificó con
 > `FIRMA_OPERADOR_SRC` porque cambiaría quién firma ese documento — es el
 > ítem 12 de la tabla ("¿Quién firma por Armonía?"), que vale también para
 > Constructores.
+
+---
+
+## 6. Las 6 preguntas de conciliación — respondidas el 2026-10-09
+
+Llegaron juntas, de la abogada. **Cinco se cierran sin pendientes**; una (§6.6)
+abre trabajo de diseño. Se transcribe la respuesta de cada una porque varias
+cierran discusiones que se venían reabriendo en cada ronda de revisión.
+
+### 6.1 Fundamento normativo de tres plantillas (ítem 8) — ✅ implementado
+
+> **Respuesta:** agregar una referencia genérica al **"Estatuto de Conciliación
+> (Ley 2220 de 2022)"** en las tres, **sin citar artículos ni decretos
+> específicos**.
+
+Alcance mayor que la pregunta original: la pregunta era por el Auto de
+Desistimiento y el Informe Conciliador; la respuesta cubre también la
+**Aclaración de Acta**. Las tres no citaban ninguna norma (verificado: cero
+coincidencias de `ley`, `artículo` o `decreto` en los tres archivos).
+
+Texto agregado, un párrafo por documento, en el lugar donde corresponde el
+fundamento:
+
+| Plantilla                              | Texto                                                                                                |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `Aclaracion Acta de Conciliacion.html` | "La presente aclaración se expide con fundamento en el Estatuto de Conciliación (Ley 2220 de 2022)." |
+| `Auto Desistimiento Conciliacion.html` | "El presente auto se expide con fundamento en el Estatuto de Conciliación (Ley 2220 de 2022)."       |
+| `Informe Conciliador.html`             | "El presente informe se rinde con fundamento en el Estatuto de Conciliación (Ley 2220 de 2022)."     |
+
+La redacción exacta de esas tres frases la escribió el equipo de desarrollo
+sobre la instrucción "referencia genérica"; **si la abogada prefiere otra
+formulación, es un cambio de una línea por plantilla.** Cada inserción lleva un
+comentario HTML que dice de dónde viene la decisión, para que nadie la "mejore"
+agregando artículos.
+
+Verificado con el golden master: cambian **12 claves** (3 plantillas × 4
+escenarios de conciliación) y **ninguna otra**; `u` sin cambios, porque no se
+agregó ningún placeholder.
+
+**No confundir con el ítem 7**, que sigue abierto: ese es la cita a la **Ley 640
+de 2001** —derogada— que todavía está en dos plantillas de insolvencia y una de
+support-agreements (§3). Son plantillas distintas y un problema distinto:
+corregir una cita equivocada, no agregar una que falta.
+
+### 6.2 Causal de caducidad de tres meses (ítem 9) — sin cambio de código
+
+> **Respuesta:** el artículo existe (art. 60, Ley 2220 de 2022) y dice lo que se
+> tenía entendido, **pero no se agrega como opción estructurada**: sigue
+> cayendo en "Otra", en texto libre.
+
+Es un **no** deliberado, no un "todavía no". El hallazgo B4 de la auditoría de
+conciliación queda cerrado: no hay que agregar la opción al selector ni el
+`{{#if}}` a la plantilla.
+
+### 6.3 Documentos obligatorios por trámite (ítem 10) — decisión deliberada
+
+> **Respuesta:** **no exigir campos mínimos.** El sistema sigue permitiendo
+> generar un acta vacía.
+
+Queda escrito como **decisión, no como deuda**. Hoy las 12 plantillas de
+conciliación no declaran ningún requisito, y eso es lo que la abogada quiere: la
+responsabilidad de que un acta esté completa es del conciliador, no del sistema.
+
+El **PR 4 de la auditoría de conciliación** (la capa de validación) queda
+**descartado**, no pendiente. Si en una revisión futura aparece "el sistema
+permite generar un acta vacía" como hallazgo, la respuesta está acá: es
+intencional desde el 2026-10-09.
+
+### 6.4 Tarifa de honorarios — sin cambio de código
+
+> **Respuesta:** el texto fijo actual queda igual **para todos los casos**, sin
+> ajuste por la situación económica del deudor.
+
+Se refiere a la sección 14 ("SOLICITUD SOBRE LA TARIFA") de la Solicitud, que
+hoy tiene texto fijo y pide "fijar una tarifa" sin decir cuál — ver
+`docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md` §14. Cerrado: no hay que
+parametrizar nada.
+
+### 6.5 Ejemplo de actas "más profesionales" — sin acción
+
+> **Respuesta:** no hay una referencia disponible, así que no se hace nada por
+> ahora.
+
+Cerrado por falta de insumo, no por decisión de diseño. Si más adelante aparece
+un modelo de referencia, se reabre.
+
+### 6.6 Apoderado del acreedor en el CYG (ítem 13) — requiere diseño
+
+> **Respuesta:** cuando el **registro de poderes** y lo que dice el **acta de la
+> audiencia** no coincidan, el sistema **no debe elegir una fuente por
+> defecto** — debe **detectar la discrepancia y bloquear la generación** hasta
+> que el conciliador la resuelva manualmente, en vez de generar con una fuente
+> arbitraria.
+
+Es la única de las seis que abre trabajo. Y es más exigente que las dos opciones
+que estaban planteadas en §1 ("imprimirlo" vs. "llenarlo a mano"): hay **dos
+fuentes de verdad que pueden contradecirse**, y hace falta un flujo para que el
+conciliador decida cuál vale.
+
+Es coherente con la decisión que ya se tomó para el membrete por centro
+(`#126`): **antes un error visible que un documento con un dato arbitrario**,
+cuando el documento se radica ante un juzgado.
+
+**Estado: propuesta de diseño pendiente de aprobación.** No se escribió código.
