@@ -75,7 +75,7 @@ describe('1. Constructores de Paz: completo, y con los valores exactos', () => {
     expect(membreteDelCentro('constructores-paz')).not.toBeNull();
   });
 
-  it('el mapper emite las 23 claves', () => {
+  it('el mapper emite una clave por campo, sin faltar ninguna', () => {
     const map = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
     expect(Object.keys(map).sort()).toEqual([...CLAVES_MEMBRETE].sort());
     expect(CLAVES_MEMBRETE).toHaveLength(CAMPOS_MEMBRETE.length);
@@ -240,6 +240,18 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
     'RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003',
     '311 811 7520',
     '3118117520',
+    // EL RÓTULO. Faltaba en esta lista y por eso el swap de #132 se dio por
+    // cerrado con 10 ocurrencias todavía escritas a mano: el chequeo de
+    // residuales que se corrió entonces buscaba el NOMBRE del centro y las
+    // RESOLUCIONES, no el rótulo, que era uno de los cuatro campos nuevos.
+    //
+    // Es el residual con más consecuencia de todos: "y Arbitraje" es lo ÚNICO
+    // que distingue los dos rótulos. Mientras esté como prosa fija, un
+    // documento de Armonía afirma que es un centro de arbitraje, que no lo es.
+    // Las tres formas son las tres capitalizaciones que usa el corpus.
+    'Centro de Conciliación y Arbitraje',
+    'CENTRO DE CONCILIACIÓN Y ARBITRAJE',
+    'Centro de Conciliación y arbitraje',
   ];
 
   function plantillas(dir: string, out: string[] = []): string[] {

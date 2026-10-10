@@ -48,6 +48,7 @@ const CLAVE_POR_CAMPO: Record<keyof MembreteCentro, string> = {
   rotulo: 'CENTRO_ROTULO',
   rotuloCorto: 'CENTRO_ROTULO_CORTO',
   rotuloMayus: 'CENTRO_ROTULO_MAYUS',
+  rotuloMayusTilde: 'CENTRO_ROTULO_MAYUS_TILDE',
   rotuloErrata: 'CENTRO_ROTULO_ERRATA',
   entidadPromotora: 'CENTRO_ENTIDAD_PROMOTORA',
   direccion: 'CENTRO_DIRECCION',

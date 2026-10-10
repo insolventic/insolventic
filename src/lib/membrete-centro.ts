@@ -74,6 +74,18 @@ export interface MembreteCentro {
   rotuloCorto: string;
   /** En mayúsculas y SIN TILDES, como está hoy: "CENTRO DE CONCILIACION Y ARBITRAJE" */
   rotuloMayus: string;
+  /**
+   * En mayúsculas y CON TILDE: "CENTRO DE CONCILIACIÓN Y ARBITRAJE".
+   *
+   * Coexiste con `rotuloMayus` porque el corpus trae las dos: 3 plantillas lo
+   * escriben sin tilde y 4 con tilde. No se unifican por la misma razón que el
+   * resto de las parejas de forma — la extracción es 1:1 y el golden exige que
+   * el HTML de Constructores no cambie ni un byte.
+   *
+   * Esta forma fue la que se le escapó a #132: el chequeo de residuales buscaba
+   * la variante sin tilde, así que las 4 con tilde quedaron como prosa fija.
+   */
+  rotuloMayusTilde: string;
   /** Con "arbitraje" en minúscula — preserva una errata de una plantilla. */
   rotuloErrata: string;
   /** La asociación que promueve el centro. */
@@ -162,6 +174,7 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     rotulo: 'Centro de Conciliación y Arbitraje',
     rotuloCorto: 'Centro de Conciliación',
     rotuloMayus: 'CENTRO DE CONCILIACION Y ARBITRAJE',
+    rotuloMayusTilde: 'CENTRO DE CONCILIACIÓN Y ARBITRAJE',
     rotuloErrata: 'Centro de Conciliación y arbitraje',
     entidadPromotora:
       'Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia',
@@ -200,6 +213,7 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     rotulo: 'Centro de Conciliación',
     rotuloCorto: 'Centro de Conciliación',
     rotuloMayus: 'CENTRO DE CONCILIACION',
+    rotuloMayusTilde: 'CENTRO DE CONCILIACIÓN',
     rotuloErrata: 'Centro de Conciliación',
     entidadPromotora:
       'Asociación para el Fomento de la Cultura la Justicia y la Conciliación',
