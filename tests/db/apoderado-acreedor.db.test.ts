@@ -326,9 +326,13 @@ describe('5. CAPTURA: las dos fuentes sobreviven el viaje por el wizard', () => 
     const form = fixture.form as { debts: Array<Record<string, unknown>> };
 
     const debtor = await prisma.debtor.create({
+      // idNumber Y email: Debtor tiene unico (email, tenantId) ademas del
+      // documento, y este deudor convive con el del beforeAll de arriba, que
+      // sale del mismo fixture.
       data: {
         ...fixture.debtor,
         idNumber: `cap-${TAG}`,
+        email: `cap-${TAG}@example.com`,
         tenantId: ctx.tenantId,
       },
     });
