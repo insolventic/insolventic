@@ -33,6 +33,19 @@ import { inlineAssets } from '@/lib/html-to-pdf';
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { SCENARIOS } from '../../helpers/mapper-scenarios';
 
+/**
+ * Caso de un centro con la forma de **producción**: `tenantId` es el cuid del
+ * `Tenant` y el slug viaja en la relación `tenant`.
+ *
+ * Verificado contra la base real el 2026-10-09: los `Tenant.id` son cuids y
+ * **no** coinciden con el slug. Por eso overridear `tenantId` con un slug —como
+ * hacía este test— no representaba nada que producción produzca, y el branding
+ * por centro podía estar roto con estos tests en verde.
+ */
+function casoDelCentro(slug: string): CaseWithRelations {
+  return caso({ tenantId: 'cmluzsnr0000qwertyuiop123', tenant: { slug } });
+}
+
 /** Caso base del golden, con overrides puntuales. */
 function caso(overrides: Record<string, unknown> = {}): CaseWithRelations {
   const base = SCENARIOS[
@@ -46,7 +59,7 @@ const TEMPLATES_ROOT = path.join(process.cwd(), 'templates');
 
 describe('1. el mapper produce los tres placeholders de branding', () => {
   it('las tres claves existen y apuntan a /branding/', () => {
-    const map = mapCaseToPlaceholders(caso({ tenantId: 'constructores-paz' }));
+    const map = mapCaseToPlaceholders(casoDelCentro('constructores-paz'));
 
     for (const clave of [
       'LOGO_ENCABEZADO_SRC',
@@ -61,7 +74,7 @@ describe('1. el mapper produce los tres placeholders de branding', () => {
   it('el escapado del punto de fusión no toca estas rutas (sin allowlist)', () => {
     // Si el valor saliera escapado (p. ej. `&#39;`), el `src` del <img>
     // apuntaría a una ruta inexistente y la imagen saldría rota.
-    const map = mapCaseToPlaceholders(caso({ tenantId: 'constructores-paz' }));
+    const map = mapCaseToPlaceholders(casoDelCentro('constructores-paz'));
     expect(map.LOGO_ENCABEZADO_SRC).toBe(
       '/branding/constructores-paz/logo-encabezado.png',
     );
@@ -99,7 +112,7 @@ describe('2. la elección pasa por el mapa de tenants, no por el fallback', () =
     '%s: el tenant del expediente es el que elige la carpeta',
     (tenantId) => {
       const brandingDelCaso = mapBrandingAssets(
-        caso({ tenantId }),
+        casoDelCentro(tenantId),
         CARPETAS_DISTINTAS,
       );
 
@@ -119,7 +132,7 @@ describe('2. la elección pasa por el mapa de tenants, no por el fallback', () =
   it.each(TENANTS_CON_BRANDING)(
     '%s resuelve sus tres assets por el mapa real (hoy compartido)',
     (tenantId) => {
-      const map = mapCaseToPlaceholders(caso({ tenantId }));
+      const map = mapCaseToPlaceholders(casoDelCentro(tenantId));
       // Con el mapa real los dos centros comparten carpeta a propósito: esto
       // fija el estado actual, no el cableado (de eso se encarga el caso de
       // arriba, con el mapa inyectado).

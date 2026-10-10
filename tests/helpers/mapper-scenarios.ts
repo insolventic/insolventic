@@ -77,6 +77,11 @@ const STRUCTURAL_KEYS = new Set([
   'type',
   'phase',
   'tenantId',
+  // El slug del centro: gobierna que fila del mapa por tenant se usa (branding y
+  // membrete), no es texto libre del usuario. Sin declararlo, el escenario XSS
+  // le prefijaba la carga, el slug dejaba de ser conocido y el membrete fallaba
+  // cerrado -- 60 renders cambiaban por un detalle del fixture.
+  'slug',
   'id',
   'creditorId',
   'bilateralCreditorId',

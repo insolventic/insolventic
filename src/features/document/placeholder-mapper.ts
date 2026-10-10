@@ -34,6 +34,7 @@ import {
 } from './placeholders/conciliacion';
 import { mapApoyoFields, buildApoyoContext } from './placeholders/apoyo';
 import { mapBrandingAssets } from './placeholders/branding';
+import { mapMembreteCentro } from './placeholders/membrete';
 import {
   mapApplicantScope,
   mapAgreementResult,
@@ -763,6 +764,10 @@ export function mapCaseToPlaceholders(
     // Branding por centro: resuelve los assets por tenantId en vez de tener la
     // ruta de Constructores de Paz escrita a mano en cada plantilla.
     ...mapBrandingAssets(caseData),
+    // Membrete por centro: nombre, entidad promotora, direccion, telefono, web,
+    // correo, las dos resoluciones de habilitacion y la operadora. SIN fallback:
+    // si al centro le faltan datos no emite nada y el gate corta la generacion.
+    ...mapMembreteCentro(caseData),
     // New mappings added from audit
     ...mapCheckList(caseData),
     ...mapIncomeDeclaration(caseData),
