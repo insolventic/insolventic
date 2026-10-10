@@ -1,6 +1,6 @@
 # Pendientes de decisión legal
 
-**Última actualización:** 2026-10-09 (las 6 preguntas de conciliación, respondidas: ítems 8, 9, 10, 13 y dos que no estaban en la tabla — ver §6)
+**Última actualización:** 2026-10-10 (ítem 7: investigado y NO tocado — §3.0 explica por qué no es un cambio de cita, con las dos preguntas ya concretas)
 
 Lista única de las preguntas abiertas que **no las resuelve el equipo de
 desarrollo**: dependen de la abogada o del cliente, y cada una bloquea algo
@@ -102,6 +102,56 @@ Corregida para igualar el texto, ya vigente, de su hermana directa
 `Acta Union Marital.html` (misma cola "y demás normas concordantes y
 pertinentes"): ahora cita _"...Ley 446 de 1998 y Ley 2220 de 2022 y sus
 decretos reglamentarios..."_.
+
+### 3.0 Investigación del 2026-10-10: por qué esto NO es un cambio de cita
+
+Se intentó cerrar el ítem 7 y **no se tocó ninguna de las tres plantillas**. La
+razón, que antes estaba planteada como sospecha ("no se puede asumir que el mismo
+criterio aplique"), ahora está medida: **en los dos casos cambió la sustancia, no
+solo la numeración.** Un reemplazo de cita produciría una cláusula que dice algo
+distinto de lo que dice hoy, en documentos que se radican.
+
+**Verificado primero el inventario** (2026-10-10): las tres citas están
+exactamente en las líneas que indica este documento, y un barrido de
+`templates/` confirma que **no hay una cuarta**.
+
+**Hecho normativo confirmado:** la Ley 640 de 2001 fue derogada por el
+**artículo 146 de la Ley 2220 de 2022**, con efecto desde el **30 de diciembre de
+2022**. Buena parte de su contenido se recogió en el nuevo estatuto, pero **no
+artículo por artículo**.
+
+| Cita de hoy                     | Sucesor en la Ley 2220      | Qué cambió además del número                                                                                                                                                                                                                 |
+| ------------------------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **art. 14** (registro del acta) | **Sin equivalente 1:1**     | El registro pasó de ser **ante el centro, en 2 días**, a estar **en cabeza del conciliador ante el Ministerio de Justicia, en 3 días** (art. 30). Lo relacionado se reparte además en el art. 64 (contenido del acta) y el art. 66 (archivo) |
+| **art. 2°** (constancias)       | **art. 65** ("Constancias") | **Los numerales 1 y 2 están invertidos**: inasistencia era el 2 y ahora es el 1; no acuerdo era el 1 y ahora es el 2. Y para el no acuerdo la constancia pasa a expedirse **de inmediato**                                                   |
+
+**Por eso no alcanza con cambiar el número de ley.** En el caso del art. 14, la
+cláusula de registro describe _un mecanismo_ (quién registra, ante quién, en qué
+plazo) que la norma nueva cambió; actualizar la cita sin reescribir la cláusula
+dejaría un texto que remite a un procedimiento que ya no es el que la cláusula
+describe. En el del art. 2°, conservar un numeral al cambiar de ley apuntaría al
+supuesto equivocado.
+
+> **Advertencia de alcance.** Esto es investigación normativa hecha por el equipo
+> de desarrollo para que la decisión de la abogada sea de una sola pasada. **No
+> es asesoría legal** y no reemplaza su criterio: hay reglas de transición para
+> trámites iniciados antes del 30/12/2022 que no se revisaron, y conviene
+> confirmar el texto en el Diario Oficial (No. 52.081) o el Gestor Normativo.
+
+**Las preguntas, ahora concretas y respondibles:**
+
+1. **Acuerdo de Pago / Acuerdo Bilateral** (cláusula de registro): ¿la cláusula
+   debe **reescribirse** para describir el registro vigente (conciliador ante el
+   Ministerio, 3 días), **borrarse** por remitir a un trámite que ya no existe
+   como tal, o **dejarse** porque el registro en la práctica sigue operando como
+   la cláusula dice?
+2. **Constancia de Incumplimiento Acuerdo de Apoyo**: ¿se cita el **art. 65 de la
+   Ley 2220** —y en ese caso con qué numeral, si corresponde alguno—, o
+   corresponde otra norma? Pregunta previa: un acuerdo de apoyo se rige por la
+   **Ley 1996 de 2019**, no por el estatuto de conciliación. ¿Las reglas de
+   constancias de conciliación aplican a la constancia de incumplimiento de un
+   acuerdo de apoyo, o esa cita estuvo mal desde el principio por remitir a un
+   régimen ajeno?
 
 ### 3.2 Sin resolver — cláusula de registro en dos plantillas de insolvencia
 
