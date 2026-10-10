@@ -99,10 +99,10 @@
 
         <!-- Footer -->
         <div class="footer">
-            <p>Calle 74 No. 15-80 Interior 1 Oficina 308 Edificio Osaka Trade Center<br>
+            <p>{{CENTRO_DIRECCION}}{{#if CENTRO_EDIFICIO}} {{CENTRO_EDIFICIO}}{{/if}}<br>
             Tel. {{CENTRO_TELEFONO_COMPACTO}}<br>
-            {{CENTRO_WEB}}<br>
-            {{CENTRO_EMAIL}}<br>
+            {{#if CENTRO_WEB}}{{CENTRO_WEB}}<br>
+            {{/if}}{{CENTRO_EMAIL}}<br>
             <strong>VIGILADO Ministerio de justicia y del Derecho.</strong></p>
         </div>
     </div>

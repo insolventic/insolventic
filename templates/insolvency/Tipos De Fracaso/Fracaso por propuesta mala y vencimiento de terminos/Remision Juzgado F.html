@@ -76,8 +76,8 @@ Con el fin de dar alcance a lo establecido en el artículo 559 del C.G.P., me pe
     <p>
         {{CENTRO_ENTIDAD_PROMOTORA}}<br>
         {{CENTRO_DIRECCION_MINUS}} Cel. {{CENTRO_TELEFONO_COMPACTO}} Bogotá D.C.<br>
-        {{CENTRO_WEB}}<br>
-        {{CENTRO_EMAIL}}
+        {{#if CENTRO_WEB}}{{CENTRO_WEB}}<br>
+        {{/if}}{{CENTRO_EMAIL}}
     </p>
 
     <p class="vigilado">

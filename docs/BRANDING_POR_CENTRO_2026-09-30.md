@@ -55,14 +55,49 @@ Armonía va a emitir, el logo que traen es el del otro centro.
 
 | Archivo                                | Formato real | Dimensiones | Peso    | Qué es                                                                                                                                                                                             |
 | -------------------------------------- | ------------ | ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sello armonia.jpeg`                   | JPEG         | 277 × 271   | 24 KB   | Sello circular, tinta azul: "CENTRO DE CONCILIACIÓN / ARMONÍA CONCERTADA / NIT 900.903.195-4 / Resolución 656/2016"                                                                                |
+| `sello armonia.jpeg`                   | JPEG         | 277 × 271   | 24 KB   | Sello circular, tinta azul: "CENTRO DE CONCILIACIÓN / ARMONÍA CONCERTADA / NIT 900.993.198-4 / Resolución 858/2016" — **corregido el 2026-10-10**, ver §2.1                                                                                |
 | `firma beatriz.jpeg`                   | JPEG         | 193 × 116   | 6,4 KB  | Firma manuscrita                                                                                                                                                                                   |
 | `firma max.jpeg`                       | JPEG         | 124 × 87    | 3,6 KB  | Firma manuscrita                                                                                                                                                                                   |
-| `En Blanco Armonia.docx`               | DOCX         | —           | 102 KB  | Membrete en blanco. Dentro: `image1.png`, 334 × 334, **PNG sin canal alfa** — el tucán: "ASOCIACIÓN PARA EL FOMENTO DE LA CULTURA, LA JUSTICIA Y LA CONCILIACIÓN"                                  |
+| `En Blanco Armonia.docx`               | DOCX         | —           | 102 KB  | Membrete en blanco. Dentro: `image1.jpeg`, **1477 × 1477, JPEG** (152 KB) — el tucán, con el nombre del centro incrustado en la propia imagen. **Corregido el 2026-10-10**, ver §2.1                                  |
 | `MINUTAS DR. MAXIMILIANO/` (5 `.docx`) | DOCX         | —           | ~1,3 MB | Minutas de conciliación. Dentro: logo **de Constructores de Paz** (386 × 386 PNG con alfa + banner 1280 × 291 JPEG) y una firma 334 × 225 JPEG que **ya está en el repo** como `Firma abogado.jpg` |
 
 Las extensiones coinciden con el contenido real (verificado por magic bytes): no
 hay ningún PNG disfrazado de JPEG ni al revés.
+
+### 2.1 Corrección del 2026-10-10
+
+Dos datos de la tabla de arriba estaban mal transcritos. Se dejan corregidos ahí
+y anotados acá, porque **una de las tres conclusiones de §3 se cae con el dato
+bueno**.
+
+**El sello.** Decía «NIT 900.903.195-4 / Resolución 656/2016». Los datos
+correctos son **NIT 900.993.198-4** y **Resolución 858/2016**, confirmados el
+2026-10-10 contra el membrete oficial del centro, que coincide con el sello. La
+transcripción vieja era un error de lectura de la imagen, no una discrepancia
+entre documentos: el «656» que figuraba acá llegó a usarse como argumento para
+dudar de la resolución 0858 en `PENDIENTES_DECISION_LEGAL.md` §5 — esa duda no
+tenía fundamento.
+
+**El tucán.** Decía «`image1.png`, 334 × 334, PNG sin canal alfa». Medido sobre
+el archivo real dentro de `En Blanco Armonia.docx`: es
+`word/media/image1.jpeg`, **JPEG de 1477 × 1477 px y 152 KB** (magic bytes
+`ffd8ffe0`, SOF0 1477×1477).
+
+**Qué cambia de las conclusiones de §3:**
+
+- El problema 1 («el tucán puesto en 380 px se amplía, ≈84 DPI efectivos») **ya
+  no existe**: 1477 px sobre un hueco de 380 px da ≈3,9× de sobra, bastante por
+  encima del mínimo de 1188 px para 300 DPI. Lo que queda del problema 1 es solo
+  la **forma**: el tucán es cuadrado y el hueco del encabezado es horizontal.
+- El problema 2 sigue en pie, y por una razón distinta de la escrita: el tucán
+  no es «PNG en RGB sin alfa» sino **JPEG**, formato que no puede tener
+  transparencia. El síntoma es el mismo.
+- El problema 3 (firmas chicas) no se toca.
+
+El tucán trae además **el nombre del centro dentro de la imagen**, lo que decidió
+el diseño del encabezado: Armonía usa solo la imagen, sin componer el nombre al
+lado como texto HTML, para no duplicarlo (decisión del dueño del producto,
+2026-10-10).
 
 ## 3. Lo que el CSS exige, y lo que el material da
 
@@ -70,22 +105,24 @@ Las plantillas renderizan a estos anchos (`templates/insolvency/CSS/styles-base.
 
 | Clase                                        | Ancho renderizado | Mínimo para 300 DPI | Constructores (hoy)                   | Armonía (entregado)           |
 | -------------------------------------------- | ----------------- | ------------------- | ------------------------------------- | ----------------------------- |
-| `.logo` / `.logo-institucional` (encabezado) | 380 px            | **1188 px**         | 1536 × 345, PNG **con alfa** ✅       | **no hay banner** ❌          |
-| `.logo-firma` (marca junto a la firma)       | 200 px            | **625 px**          | 1024 × 1024, PNG ✅                   | tucán 334 × 334, sin alfa ⚠️  |
+| `.logo` / `.logo-institucional` (encabezado) | 380 px            | **1188 px**         | 1536 × 345, PNG **con alfa** ✅       | tucán 1477 × 1477, JPEG ⚠️    |
+| `.logo-firma` (marca junto a la firma)       | 200 px            | **625 px**          | 1024 × 1024, PNG ✅                   | tucán 1477 × 1477, JPEG ⚠️    |
 | `.firma-img` (firma manuscrita)              | 150 px            | **469 px**          | 235 × 128, PNG con alfa (≈150 DPI) ⚠️ | 193 × 116 y 124 × 87, JPEG ❌ |
 | sello                                        | —                 | —                   | **no existe hoy**                     | 277 × 271, JPEG ⚠️            |
 
 Tres problemas concretos, medidos:
 
 1. **No hay banner de encabezado para Armonía.** Es el asset que usan **las 63
-   plantillas**, el más visible, y el único que falta por completo. El tucán es
-   cuadrado (334 × 334): puesto en un hueco de 380 px de ancho se **amplía**,
-   o sea sale borroso incluso en pantalla (≈84 DPI efectivos). Constructores
-   tiene para eso una pieza horizontal de 1536 × 345 con el nombre al lado del
-   símbolo; de Armonía no hay equivalente.
+   plantillas**, el más visible. ⚠️ **Parcialmente corregido el 2026-10-10**
+   (§2.1): el tucán tiene 1477 × 1477 px, no 334, así que **resolución no le
+   falta** — en un hueco de 380 px sobra por 3,9×. Lo que no encaja es la
+   forma: Constructores tiene una pieza horizontal de 1536 × 345 con el nombre
+   al lado del símbolo, y el tucán es cuadrado con el nombre **adentro**. Por
+   eso se decidió que Armonía use solo la imagen.
 
 2. **Ningún asset de Armonía tiene transparencia.** Los tres `.jpeg` no pueden
-   tenerla por formato, y el tucán es PNG en modo RGB sin canal alfa. Una firma
+   tenerla por formato, **y el tucán también es JPEG** (§2.1), así que tampoco.
+   Una firma
    o un sello en JPEG pintan **un rectángulo blanco** sobre lo que haya debajo
    — que es exactamente el caso del sello, que por definición va encima del
    texto o de la firma. La firma actual de Constructores (`firma abogada.png`)
@@ -103,7 +140,8 @@ Para que Armonía quede al nivel de lo que ya hay, sin inventar nada nuevo:
 - [ ] **Banner de encabezado**, horizontal, símbolo + nombre del centro. PNG con
       transparencia, **≥ 1200 px de ancho**. Es el que más falta.
 - [ ] **Logo cuadrado** para el bloque de firma. PNG con transparencia,
-      **≥ 640 px**. El tucán de 334 px sirve de referencia visual, no como asset.
+      **≥ 640 px**. El tucán tiene tamaño de sobra (1477 px, §2.1); lo que le
+      falta es el canal alfa, por ser JPEG.
 - [ ] **Firmas con fondo transparente**, **≥ 500 px de ancho**. PNG, no JPEG.
       Escaneadas sobre papel blanco y recortadas, o reexportadas desde el
       original si existe.

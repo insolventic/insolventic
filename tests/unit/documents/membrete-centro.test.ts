@@ -127,38 +127,33 @@ describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
     // Lo que bloquea hoy, anotado para que el día que llegue se vea en el diff.
     // La lista es EXACTA a propósito: si alguien llena uno sin actualizar el
     // test, falla; y si alguien pone un `null` nuevo, también.
-    expect([...faltan].sort()).toEqual(
-      [
-        'edificio',
-        'email',
-        'operadorCargo',
-        'operadorCargoMayus',
-        'operadorNombre',
-        'operadorNombreTilde',
-        'web',
-      ].sort(),
-    );
+    // Un solo campo, y se sabe cuál: la cuenta a la que consigna el deudor.
+    // La lista es EXACTA a propósito: si alguien la llena sin actualizar el
+    // test, falla; y si alguien pone un `null` nuevo, también.
+    expect(faltan).toEqual(['cuentaConsignacion']);
+  });
 
-    // Lo que llegó el 2026-10-09 y el 2026-10-10 ya no figura como faltante.
-    for (const llego of [
-      'nombre',
-      'nombreMayus',
-      'rotulo',
-      'rotuloCorto',
-      'rotuloMayus',
-      'rotuloErrata',
-      'entidadPromotora',
-      'direccion',
-      'telefono',
-      // Una sola resolución, 0858/2016, cubre los dos roles: por eso los dos
-      // bloques de campos quedaron llenos con el mismo acto administrativo.
-      'resolucionCentroNumero',
-      'resolucionCentroFecha',
-      'resolucionInsolvenciaNumero',
-      'resolucionInsolvenciaAnio',
-    ]) {
-      expect(faltan).not.toContain(llego);
-    }
+  it('los dos campos vacíos de Armonía son vacíos A PROPÓSITO, no por descuido', () => {
+    // La distinción `SIN_DATO` ('') vs `null` no la impone el tipo: la impone
+    // este test. Lista exacta de lo que está vacío queriendo; cualquier otro
+    // campo con '' es un descuido y acá se cae.
+    const vacios = (tenantId: string) => {
+      const m = membreteParcialDelCentro(tenantId)!;
+      return CAMPOS_MEMBRETE.filter((c) => m[c] === '').sort();
+    };
+    expect(vacios('armonia')).toEqual(['edificio', 'web']);
+    expect(vacios('constructores-paz')).toEqual([]);
+  });
+
+  it('la operadora de insolvencia de Armonía es la MISMA persona, no un fallback', () => {
+    // Confirmado el 2026-10-10: Beatriz Helena Malavera está habilitada en los
+    // dos centros. Que los valores coincidan NO es el fallback que este módulo
+    // prohíbe —es el mismo dato— y el test lo deja escrito para que nadie lo
+    // "arregle" creyendo que es una fuga de Constructores.
+    const ar = membreteParcialDelCentro('armonia')!;
+    const cp = membreteParcialDelCentro('constructores-paz')!;
+    expect(ar.operadorNombre).toBe(cp.operadorNombre);
+    expect(ar.operadorCargoMayus).toBe('OPERADORA DE INSOLVENCIA');
   });
 
   it('la resolución de Armonía es UNA y cubre los dos roles', () => {
@@ -193,19 +188,34 @@ describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
 
   it('REGRESIÓN: Armonía NO cae a los datos de Constructores', () => {
     const map = mapMembreteCentro(casoComoEnProduccion('armonia'));
-    // Cero claves: el gate de placeholders sin resolver corta la generación.
-    expect(map).toEqual({});
 
-    // Y en el punto de fusión tampoco aparecen con los valores del otro centro.
+    // Emite lo que tiene, y NO emite el único campo que le falta: la plantilla
+    // que lo use queda sin resolver y el gate corta ESE documento.
+    expect(map.CENTRO_CUENTA_CONSIGNACION).toBeUndefined();
+    expect(map.CENTRO_NOMBRE).toBe('Armonía Concertada');
+    expect(map.CENTRO_EMAIL).toBe('contacto@armoniaconcertada.co');
+
+    // Y en el punto de fusión no aparece NINGÚN dato propio de Constructores.
+    // Ojo con qué se chequea: `MALAVERA` y `OPERADORA DE INSOLVENCIA` ya no
+    // sirven de canario, porque la operadora es la misma persona en los dos
+    // centros. Lo que distingue de verdad es esto.
     const completo = mapCaseToPlaceholders(casoComoEnProduccion('armonia'));
-    for (const clave of CLAVES_MEMBRETE) {
-      expect(completo[clave]).toBeUndefined();
-    }
     const serializado = JSON.stringify(completo);
-    expect(serializado).not.toContain('Constructores de Paz');
-    expect(serializado).not.toContain('constructoresdepaz.com.co');
-    expect(serializado).not.toContain('MALAVERA');
-    expect(serializado).not.toContain('1459');
+    for (const ajeno of [
+      'Constructores de Paz',
+      'CONSTRUCTORES DE PAZ',
+      'constructoresdepaz.com.co',
+      'Lonja de Propiedad',
+      'Osaka',
+      '1459',
+      '830.122.178-7',
+      '2061 399 5617',
+      'Arbitraje',
+      'ARBITRAJE',
+      '311 811 7520',
+    ]) {
+      expect(serializado).not.toContain(ajeno);
+    }
   });
 
   it('un tenant desconocido tampoco cae al otro centro', () => {
@@ -220,35 +230,79 @@ describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
   });
 
   it.each(TENANTS_CON_MEMBRETE)(
-    '%s: o está completo, o no emite ninguna clave (nunca a medias)',
+    '%s: emite exactamente una clave por campo que tiene, y ninguna más',
     (tenantId) => {
+      // El invariante que reemplazó al todo-o-nada. Lo que importa no es
+      // "todas o ninguna" sino que no se emita una clave sin dato detrás:
+      // emitir `undefined` o `''` por un campo que falta sería resolver el
+      // placeholder con nada y dejar pasar el documento.
       const map = mapMembreteCentro(casoComoEnProduccion(tenantId));
-      const claves = Object.keys(map).length;
-      expect(claves === 0 || claves === CLAVES_MEMBRETE.length).toBe(true);
+      const faltan = camposFaltantes(tenantId);
+      expect(Object.keys(map)).toHaveLength(
+        CLAVES_MEMBRETE.length - faltan.length,
+      );
+      for (const valor of Object.values(map)) {
+        expect(typeof valor).toBe('string');
+      }
     },
   );
 });
 
 describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
-  /** Los literales extraídos en este PR. Si alguien los vuelve a escribir, falla. */
-  const YA_NO_VAN_A_MANO = [
-    'Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia',
-    'Calle 74 No. 15-80 interior 1 Oficina 308',
-    'Calle 74 No. 15-80 interior 1 oficina 308',
-    'www.constructoresdepaz.com.co',
-    'contacto@constructoresdepaz.com.co',
-    'RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003',
-    '311 811 7520',
-    '3118117520',
-    // EL RÓTULO. Faltaba en esta lista y por eso el swap de #132 se dio por
-    // cerrado con 10 ocurrencias todavía escritas a mano: el chequeo de
-    // residuales que se corrió entonces buscaba el NOMBRE del centro y las
-    // RESOLUCIONES, no el rótulo, que era uno de los cuatro campos nuevos.
-    //
-    // Es el residual con más consecuencia de todos: "y Arbitraje" es lo ÚNICO
-    // que distingue los dos rótulos. Mientras esté como prosa fija, un
-    // documento de Armonía afirma que es un centro de arbitraje, que no lo es.
-    // Las tres formas son las tres capitalizaciones que usa el corpus.
+  /**
+   * ANTES ESTE GUARDIÁN ERA UNA LISTA A MANO, Y POR ESO FALLÓ.
+   *
+   * Listaba 8 literales elegidos de memoria — el nombre, las resoluciones, la
+   * dirección, el teléfono, la web, el correo — y no incluía el rótulo, la
+   * entidad promotora ni el edificio. Resultado: dos PRs de extracción cerraron
+   * en verde dejando 28 ocurrencias todavía escritas a mano, incluidas las 10
+   * del rótulo "y Arbitraje", que es lo único que distingue a los dos centros.
+   *
+   * Ahora recorre **todos** los campos del membrete de Constructores y busca su
+   * valor en las plantillas. No hay nada que recordar agregar: un campo nuevo
+   * entra al guardián solo. Lo que queda a mano es lo contrario — una lista de
+   * EXCEPCIONES, cada una con su razón, que es un lugar incómodo donde estar.
+   */
+  const EXCEPCIONES: Record<string, string> = {
+    rotuloCorto:
+      'Prosa genérica ("ante el Centro de Conciliación", "en este Centro de ' +
+      'Conciliación"): los DOS centros son "Centro de Conciliación", así que ' +
+      'no afirma nada ajeno. Lo que sí distinguía era "y Arbitraje", y eso ya ' +
+      'no queda a mano.',
+    ciudad:
+      'Los dos centros están en Bogotá D.C. El día que se sume uno de otra ' +
+      'ciudad, esta excepción hay que cerrarla: son 15 plantillas.',
+    resolucionInsolvenciaNumeroCorto:
+      '"001" es demasiado corto para buscarlo por substring: coincide con ' +
+      '"Ley 640 del 2001" en 3 plantillas, que no tienen nada que ver. Las ' +
+      'formas largas de la misma resolución sí están cubiertas por este ' +
+      'guardián, y son las que se imprimen como habilitación.',
+    operadorNombre:
+      'Beatriz Helena Malavera es la operadora de insolvencia de los DOS ' +
+      'centros (confirmado 2026-10-10), así que el nombre a mano no afirma ' +
+      'nada falso. Extraerlo o no es decisión del PR de normalización del ' +
+      'cargo, que es el que toca estas 41 plantillas.',
+    operadorNombreTilde:
+      'La misma persona y la misma razón que operadorNombre, en la forma con ' +
+      'tilde: 6 plantillas.',
+    operadorCargo:
+      'Ídem: la normalización del cargo a una sola forma va en su propio PR ' +
+      '(16 plantillas con esta forma, 27 con la de mayúsculas).',
+    operadorCargoMayus:
+      'La misma razón que operadorCargo, en la forma en mayúsculas: es la ' +
+      'forma canónica a la que apunta la normalización, 27 plantillas.',
+  };
+
+  /**
+   * Variantes tipográficas que NO son el valor de ningún campo, y que por eso
+   * el barrido automático no ve. Son las formas que había en las plantillas
+   * antes de normalizarlas; si vuelven, vuelve el problema.
+   */
+  const VARIANTES_QUE_NO_VUELVEN = [
+    'Edificio Osaka Trade center', // con "center" en minúscula, 3 plantillas
+    'calle 74 No. 15-80 Interior 1 Oficina 308', // con "calle" en minúscula
+    'Calle 74 No. 15-80 Interior 1 Oficina 308', // con "Interior" en mayúscula
+    'ASOCIACION LONJA DE PROPIEDAD RAIZ', // sin tildes, la de la cuenta
     'Centro de Conciliación y Arbitraje',
     'CENTRO DE CONCILIACIÓN Y ARBITRAJE',
     'Centro de Conciliación y arbitraje',
@@ -263,17 +317,54 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
     return out;
   }
 
-  const TODAS = plantillas(path.join(process.cwd(), 'templates'));
+  const TODAS = plantillas(path.join(process.cwd(), 'templates')).map((f) => ({
+    rel: path.relative(process.cwd(), f),
+    texto: fs.readFileSync(f, 'utf8'),
+  }));
 
   it('hay plantillas que recorrer (si esto falla, el guardián no prueba nada)', () => {
     expect(TODAS.length).toBeGreaterThan(60);
   });
 
-  it.each(YA_NO_VAN_A_MANO)('ninguna plantilla escribe %s', (literal) => {
-    const culpables = TODAS.filter((f) =>
-      fs.readFileSync(f, 'utf8').includes(literal),
-    ).map((f) => path.relative(process.cwd(), f));
+  const CP = membreteDelCentro('constructores-paz')! as unknown as Record<
+    string,
+    string
+  >;
+
+  it.each(CAMPOS_MEMBRETE)(
+    'ninguna plantilla escribe a mano el valor de %s',
+    (campo) => {
+      const razon = EXCEPCIONES[campo];
+      const culpables = TODAS.filter((t) => t.texto.includes(CP[campo])).map(
+        (t) => t.rel,
+      );
+      if (razon) {
+        // Excepción declarada: se exige que SIGA apareciendo. Si alguien la
+        // extrae y se olvida de sacarla de acá, el test lo avisa — así la
+        // lista de excepciones no se vuelve folklore.
+        expect(culpables.length).toBeGreaterThan(0);
+        expect(razon.length).toBeGreaterThan(40);
+        return;
+      }
+      expect(culpables).toEqual([]);
+    },
+  );
+
+  it.each(VARIANTES_QUE_NO_VUELVEN)('ninguna plantilla escribe %s', (lit) => {
+    const culpables = TODAS.filter((t) => t.texto.includes(lit)).map(
+      (t) => t.rel,
+    );
     expect(culpables).toEqual([]);
+  });
+
+  it('todo campo del membrete es o guardado o excepción explícita', () => {
+    // Cierra la puerta de atrás: un campo nuevo no puede quedar fuera de los
+    // dos lados. Si no está excepcionado, el it.each de arriba lo exige en 0
+    // plantillas; si está excepcionado, tiene que tener razón escrita.
+    const excepcionados = Object.keys(EXCEPCIONES);
+    for (const e of excepcionados) {
+      expect(CAMPOS_MEMBRETE as unknown as string[]).toContain(e);
+    }
   });
 });
 

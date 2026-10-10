@@ -22,8 +22,7 @@
 
     <!-- Párrafo de apertura -->
     <p class="parrafo-minuta">
-        El {{CENTRO_ROTULO}} "{{CENTRO_NOMBRE}}" de la Lonja de Propiedad Raíz
-        y Avaluadores de Colombia, aprobado por Resolución {{CENTRO_RESOLUCION_NUMERO}} del {{CENTRO_RESOLUCION_FECHA_CORTA}} del
+        El {{CENTRO_ROTULO}} "{{CENTRO_NOMBRE}}" de la {{CENTRO_ENTIDAD_PROMOTORA_PROSA}}, aprobado por Resolución {{CENTRO_RESOLUCION_NUMERO}} del {{CENTRO_RESOLUCION_FECHA_CORTA}} del
         Ministerio de Justicia y del Derecho, autoriza a la Dra.
         <strong>{{NOMBRE_CONCILIADORA}}</strong> para que lleve a cabo la audiencia solicitada por
         <strong>{{NOMBRE_CONVOCANTE}}</strong> {{TIPO_ID_CONVOCANTE}}/C.C. {{ID_CONVOCANTE}},
@@ -92,8 +91,8 @@
         <p>{{CENTRO_ENTIDAD_PROMOTORA}}<br>
         {{CENTRO_DIRECCION}} {{CENTRO_CIUDAD}}<br>
         Cel. {{CENTRO_TELEFONO}}<br>
-        {{CENTRO_WEB}}<br>
-        {{CENTRO_EMAIL}}</p>
+        {{#if CENTRO_WEB}}{{CENTRO_WEB}}<br>
+        {{/if}}{{CENTRO_EMAIL}}</p>
         <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
     </div>
 

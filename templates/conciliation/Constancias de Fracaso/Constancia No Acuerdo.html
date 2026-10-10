@@ -45,7 +45,7 @@
         y convocado <strong>{{NOMBRE_CONVOCADO}}</strong> {{TIPO_ID_CONVOCADO}}. {{ID_CONVOCADO}},
         atendiendo citación escrita realizada el {{DIA_CITACION}} de {{MES_CITACION}} de
         {{ANO_CITACION}} por el {{CENTRO_ROTULO}} "{{CENTRO_NOMBRE}}", de la
-        Lonja de Propiedad Raíz y Avaluadores de Colombia, debidamente aprobado por el
+        {{CENTRO_ENTIDAD_PROMOTORA_PROSA}}, debidamente aprobado por el
         MINISTERIO DE JUSTICIA Y DEL DERECHO.
     </p>
 
@@ -91,8 +91,8 @@
         <p>{{CENTRO_ENTIDAD_PROMOTORA}}<br>
         {{CENTRO_DIRECCION}} {{CENTRO_CIUDAD}}<br>
         Cel. {{CENTRO_TELEFONO}}<br>
-        {{CENTRO_WEB}}<br>
-        {{CENTRO_EMAIL}}</p>
+        {{#if CENTRO_WEB}}{{CENTRO_WEB}}<br>
+        {{/if}}{{CENTRO_EMAIL}}</p>
         <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
     </div>
 

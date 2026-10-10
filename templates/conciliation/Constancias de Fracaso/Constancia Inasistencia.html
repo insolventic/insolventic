@@ -28,7 +28,7 @@
     <p class="parrafo-apertura">
         EL ABOGADO CONCILIADOR DEL {{CENTRO_ROTULO_MAYUS_TILDE}}
         <strong>{{CENTRO_NOMBRE_MAYUS}}</strong> de la
-        ASOCIACIÓN LONJA DE PROPIEDAD RAÍZ Y AVALUADORES DE COLOMBIA:
+        {{CENTRO_ENTIDAD_PROMOTORA_MAYUS}}:
     </p>
 
     <p class="titulo-hace-constar" style="font-size:13px; font-weight:bold; text-align:center; margin: 16px 0; letter-spacing:1px;">
@@ -100,8 +100,8 @@
         <p>{{CENTRO_ENTIDAD_PROMOTORA}}<br>
         {{CENTRO_DIRECCION}} {{CENTRO_CIUDAD}}<br>
         Cel. {{CENTRO_TELEFONO}}<br>
-        {{CENTRO_WEB}}<br>
-        {{CENTRO_EMAIL}}</p>
+        {{#if CENTRO_WEB}}{{CENTRO_WEB}}<br>
+        {{/if}}{{CENTRO_EMAIL}}</p>
         <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
     </div>
 

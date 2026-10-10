@@ -19,12 +19,21 @@
  * Resolución 1459/2003 de Constructores afirma algo falso sobre una
  * habilitación.
  *
- * Por eso un centro con datos incompletos **no emite los placeholders**. El
- * gate de placeholders sin resolver (`generate-documents.ts`) corta la
- * generación y devuelve al operador qué campos faltan, en vez de producir un
- * PDF con el centro equivocado y subirlo a Drive. Decisión del dueño del
- * producto, 2026-10-09: "prefiero un error visible a un documento con el centro
+ * Por eso un dato que falta **no se emite**. El gate de placeholders sin
+ * resolver (`generate-documents.ts`) corta la generación de la plantilla que lo
+ * usa y le devuelve al operador qué campos faltan, en vez de producir un PDF
+ * con el centro equivocado y subirlo a Drive. Decisión del dueño del producto,
+ * 2026-10-09: "prefiero un error visible a un documento con el centro
  * equivocado".
+ *
+ * EL CORTE ES POR CAMPO, NO POR CENTRO. Hasta el 2026-10-10 un solo `null`
+ * dejaba al centro sin emitir **ninguna** clave, así que un dato faltante
+ * bloqueaba las 65 plantillas. Era una sobre-aproximación: el gate real ya es
+ * por documento, y no saber la cuenta bancaria de un centro no tiene nada que
+ * ver con poder imprimir su dirección en una notificación. Ahora se emite lo
+ * que hay y se omite lo que falta, así que falla cerrado **solo la plantilla
+ * que usa el dato ausente**. La propiedad de seguridad no cambia —nunca se
+ * emite el valor del otro centro—; cambia el radio.
  *
  * CÓMO COMPLETAR UN CENTRO
  * ========================
@@ -90,6 +99,20 @@ export interface MembreteCentro {
   rotuloErrata: string;
   /** La asociación que promueve el centro. */
   entidadPromotora: string;
+  /**
+   * La entidad **tal como la nombra la prosa**, justo después de "de la".
+   *
+   * No es `entidadPromotora` recortado por capricho: 11 plantillas escriben
+   * «…, de la Lonja de Propiedad Raíz y Avaluadores de Colombia, debidamente…»
+   * — sin la palabra "Asociación", que sí está en el nombre oficial. Si ahí
+   * fuera `entidadPromotora`, Constructores imprimiría "de la Asociación
+   * Asociación Lonja…". Y al revés: el nombre de Armonía no tiene forma corta,
+   * así que para ella este campo es el nombre completo y la frase sale
+   * «…, de la Asociación para el Fomento de la Cultura…».
+   */
+  entidadPromotoraProsa: string;
+  /** La entidad en mayúsculas y con tildes, como la imprime una plantilla. */
+  entidadPromotoraMayus: string;
   /** Dirección sin ciudad: "Calle 74 No. 15-80 interior 1 Oficina 308". */
   direccion: string;
   /** Igual que `direccion` pero con "oficina" en minúscula, como la imprimen algunas plantillas. */
@@ -135,6 +158,20 @@ export interface MembreteCentro {
   operadorCargo: string;
   /** "OPERADORA DE INSOLVENCIA" */
   operadorCargoMayus: string;
+
+  /**
+   * La cuenta a la que el deudor consigna: entidad, NIT y número de cuenta.
+   *
+   * UN SOLO CAMPO Y NO TRES a propósito. Es una instrucción de pago: media
+   * instrucción de pago (la entidad sin el número, o el número sin el NIT para
+   * la factura) es peor que ninguna, porque el dinero se va a algún lado. O
+   * está entera o la plantilla que la usa no se genera.
+   *
+   * De Armonía no se sabe. Son las dos únicas plantillas que hoy la bloquean
+   * (Auto por Incumplimiento y Auto de Reforma del Acuerdo); por eso el
+   * sub-mapper emite campo por campo y no todo-o-nada — ver su docblock.
+   */
+  cuentaConsignacion: string;
 }
 
 /** Un centro cuyos datos todavía no llegaron completos. `null` = falta. */
@@ -150,23 +187,34 @@ type MembreteParcial = {
  * normalizó nada (ni "LOPEZ" sin tilde, ni "interior 1 Oficina 308" con esa
  * capitalización) porque la extracción es 1:1 y el golden master lo verifica.
  *
- * **Armonía** tiene los 4 datos que llegaron confirmados el 2026-10-09 y
- * `null` en el resto. Mientras haya un `null`, sus documentos **no se generan**
- * (ver el docblock de arriba). Lo que falta, y por qué no se puede derivar:
+ * **Armonía** quedó completa el 2026-10-10 salvo un dato: la **cuenta de
+ * consignación** a la que el deudor paga, que nadie sabe. Bloquea 2 plantillas;
+ * las otras 63 generan.
  *
- *  - Las **dos resoluciones**. Llegó una sola ("0858 del 01 de noviembre de
- *    2016") y las plantillas afirman dos habilitaciones distintas: la del
- *    centro de conciliación y la de operador de insolvencia. No se sabe cuál de
- *    las dos es la 0858, ni cuál es la otra. Además `PENDIENTES_DECISION_LEGAL`
- *    §5 registra que el sello de Armonía menciona "656/2016", que no coincide.
- *  - El **operador**: nombre y cargo de quien firma por Armonía. Es el ítem 12
- *    de `PENDIENTES_DECISION_LEGAL.md`, todavía abierto. Hoy las plantillas
- *    nombran a la operadora de Constructores en 86 lugares.
- *  - **Web y correo** propios del centro.
- *  - **Edificio**: la dirección de Armonía es el mismo edificio que la de
- *    Constructores (Calle 74 #15-80, oficina 306 vs. 308), pero no se asume que
- *    el rótulo "Edificio Osaka Trade Center" aplique sin confirmarlo.
+ * Dos de sus campos están vacíos **a propósito** (`SIN_DATO`, no `null`): no
+ * tiene sitio web, y no usa el rótulo del edificio aunque comparta la dirección
+ * con Constructores (oficina 306 vs. 308). Su operadora de insolvencia es la
+ * misma persona que la de Constructores, Beatriz Helena Malavera, habilitada en
+ * los dos centros.
  */
+/**
+ * EL CENTRO NO TIENE ESTE DATO — distinto de `null`, que es "todavía no llegó".
+ *
+ * Es `''`, así que para `camposFaltantes` cuenta como presente y no bloquea la
+ * generación. La diferencia no la impone el tipo (las dos son asignables a
+ * `string | null`): la impone el test, que fija la lista EXACTA de campos
+ * intencionalmente vacíos de cada centro y falla si aparece un `''` en
+ * cualquier otro. Un `''` por descuido no se cuela.
+ *
+ * Las plantillas que imprimen un campo así lo envuelven en `{{#if}}`, para que
+ * no quede el separador colgando («Cel. 313 290 4984 – » con la raya al aire).
+ * Eso solo vale para datos cuya ausencia **no afirma nada falso** —la web, el
+ * rótulo del edificio—; nunca para una resolución, la entidad promotora, el
+ * operador o la cuenta de consignación, que van sin `{{#if}}` justamente para
+ * que falten en voz alta.
+ */
+const SIN_DATO = '';
+
 const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
   'constructores-paz': {
     nombre: 'Constructores de Paz',
@@ -178,6 +226,9 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     rotuloErrata: 'Centro de Conciliación y arbitraje',
     entidadPromotora:
       'Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia',
+    entidadPromotoraProsa: 'Lonja de Propiedad Raíz y Avaluadores de Colombia',
+    entidadPromotoraMayus:
+      'ASOCIACIÓN LONJA DE PROPIEDAD RAÍZ Y AVALUADORES DE COLOMBIA',
     direccion: 'Calle 74 No. 15-80 interior 1 Oficina 308',
     direccionMinus: 'Calle 74 No. 15-80 interior 1 oficina 308',
     ciudad: 'Bogotá D.C.',
@@ -198,6 +249,10 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     operadorNombreTilde: 'BEATRIZ HELENA MALAVERA LÓPEZ',
     operadorCargo: 'Operadora de Insolvencia',
     operadorCargoMayus: 'OPERADORA DE INSOLVENCIA',
+    // Sin tildes y con el NIT y la cuenta, exactamente como está en las dos
+    // plantillas que la imprimen.
+    cuentaConsignacion:
+      'ASOCIACION LONJA DE PROPIEDAD RAIZ Y AVALUADORES DE COLOMBIA, NIT. 830.122.178-7 cuenta corriente BANCOLOMBIA No. 2061 399 5617',
   },
   armonia: {
     // El nombre A SECAS. Hasta el 2026-10-10 este campo tenía la denominación
@@ -217,14 +272,25 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     rotuloErrata: 'Centro de Conciliación',
     entidadPromotora:
       'Asociación para el Fomento de la Cultura la Justicia y la Conciliación',
+    // El nombre de Armonía no tiene forma corta: donde Constructores dice
+    // "de la Lonja…" (sin "Asociación"), Armonía dice "de la Asociación para
+    // el Fomento…". Ver el docblock del campo.
+    entidadPromotoraProsa:
+      'Asociación para el Fomento de la Cultura la Justicia y la Conciliación',
+    entidadPromotoraMayus:
+      'ASOCIACIÓN PARA EL FOMENTO DE LA CULTURA LA JUSTICIA Y LA CONCILIACIÓN',
     direccion: 'Calle 74 #15-80 Interior 1 oficina 306',
     direccionMinus: 'Calle 74 #15-80 Interior 1 oficina 306',
     ciudad: 'Bogotá D.C.',
-    edificio: null,
+    // SIN_DATO, no null: Armonía está en el mismo edificio que Constructores
+    // pero no usa el rótulo del edificio en su membrete. Decisión del dueño del
+    // producto, 2026-10-10.
+    edificio: SIN_DATO,
     telefono: '313 290 4984',
     telefonoCompacto: '3132904984',
-    web: null,
-    email: null,
+    // SIN_DATO, no null: Armonía no tiene sitio web. Confirmado 2026-10-10.
+    web: SIN_DATO,
+    email: 'contacto@armoniaconcertada.co',
     // UNA SOLA RESOLUCIÓN para los dos roles. Constructores tiene dos
     // habilitaciones distintas (centro de conciliación 1459/2003 y operador de
     // insolvencia 0001/2014); Armonía tiene una sola, la 0858 del 01/11/2016,
@@ -239,10 +305,20 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     resolucionInsolvenciaFecha: '01 de noviembre de 2016',
     resolucionInsolvenciaAnio: '2016',
     resolucionInsolvenciaNumeroCorto: '858',
-    operadorNombre: null,
-    operadorNombreTilde: null,
-    operadorCargo: null,
-    operadorCargoMayus: null,
+    // La operadora de insolvencia de Armonía es la MISMA que la de
+    // Constructores: Beatriz Helena Malavera. Confirmado el 2026-10-10. No es
+    // un copiar-pegar del otro centro — es la misma persona, habilitada en los
+    // dos. (Armonía tiene además un operador de conciliación distinto,
+    // Maximiliano, que firma solo `Designacion del Conciliador.html`; esa
+    // plantilla no pasa por estos campos.)
+    operadorNombre: 'BEATRIZ HELENA MALAVERA LOPEZ',
+    operadorNombreTilde: 'BEATRIZ HELENA MALAVERA LÓPEZ',
+    operadorCargo: 'Operadora de Insolvencia',
+    operadorCargoMayus: 'OPERADORA DE INSOLVENCIA',
+    // LO ÚNICO QUE SIGUE FALTANDO. No se sabe a qué cuenta consigna el deudor
+    // en un trámite de Armonía. Bloquea exactamente 2 plantillas (Auto por
+    // Incumplimiento y Auto de Reforma del Acuerdo); las otras 63 generan.
+    cuentaConsignacion: null,
   },
 };
 

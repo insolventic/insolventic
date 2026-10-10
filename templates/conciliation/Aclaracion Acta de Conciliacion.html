@@ -50,8 +50,7 @@
     <p class="titulo-antecedentes">ANTECEDENTES</p>
 
     <p class="parrafo-minuta">
-        En el {{CENTRO_ROTULO}} "{{CENTRO_NOMBRE}}", de la Lonja de Propiedad
-        Raíz y Avaluadores de Colombia, aprobado por Resolución No. {{CENTRO_RESOLUCION_NUMERO}} del {{CENTRO_RESOLUCION_FECHA}} expedida por el Ministerio de Justicia y del Derecho, se autoriza a
+        En el {{CENTRO_ROTULO}} "{{CENTRO_NOMBRE}}", de la {{CENTRO_ENTIDAD_PROMOTORA_PROSA}}, aprobado por Resolución No. {{CENTRO_RESOLUCION_NUMERO}} del {{CENTRO_RESOLUCION_FECHA}} expedida por el Ministerio de Justicia y del Derecho, se autoriza a
         <strong>{{NOMBRE_CONCILIADORA}}</strong> para que lleve a cabo la audiencia de conciliación
         solicitada el día {{DIA_SOLICITUD}} de {{MES_SOLICITUD}} de {{ANO_SOLICITUD}} por los
         señores <strong>{{NOMBRE_CONVOCANTE}}</strong> {{TIPO_ID_CONVOCANTE}}. {{ID_CONVOCANTE}},
@@ -115,8 +114,8 @@
         <p>{{CENTRO_ENTIDAD_PROMOTORA}}<br>
         {{CENTRO_DIRECCION}} {{CENTRO_CIUDAD}}<br>
         Cel. {{CENTRO_TELEFONO}}<br>
-        {{CENTRO_WEB}}<br>
-        {{CENTRO_EMAIL}}</p>
+        {{#if CENTRO_WEB}}{{CENTRO_WEB}}<br>
+        {{/if}}{{CENTRO_EMAIL}}</p>
         <p class="bold">VIGILADO Ministerio de Justicia y del Derecho</p>
     </div>
 
