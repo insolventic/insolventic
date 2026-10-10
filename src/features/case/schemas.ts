@@ -251,6 +251,33 @@ export const debtSchema = z.object({
   coDebtorEmail: z.string().optional(),
   // Dynamic "Otra" debt type detail
   otherDebtTypeDetail: z.string().optional(),
+
+  /**
+   * Apoderado del acreedor, en DOS FUENTES independientes.
+   *
+   * No son dos formas de llenar el mismo dato: son dos hechos distintos que
+   * pueden contradecirse. El registro es el poder acreditado antes del trámite;
+   * el acta es quién compareció de verdad en la audiencia. Cuando las dos
+   * existen y la identificación difiere, el PR 3 bloquea la generación en vez
+   * de elegir una — decisión legal del 2026-10-09.
+   *
+   * Todo opcional: la AUSENCIA no bloquea nada, y la mayoría de los acreedores
+   * no va a tener apoderado. Ver
+   * docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md §4.
+   */
+  apoderadoRegistroNombre: z.string().optional(),
+  apoderadoRegistroTipoId: z.string().optional(),
+  apoderadoRegistroId: z.string().optional(),
+  apoderadoRegistroTP: z.string().optional(),
+  apoderadoRegistroCorreo: z.string().optional(),
+  apoderadoRegistroTelefono: z.string().optional(),
+
+  apoderadoActaNombre: z.string().optional(),
+  apoderadoActaTipoId: z.string().optional(),
+  apoderadoActaId: z.string().optional(),
+  apoderadoActaTP: z.string().optional(),
+  apoderadoActaCorreo: z.string().optional(),
+  apoderadoActaTelefono: z.string().optional(),
 });
 
 export const assetSchema = z.object({

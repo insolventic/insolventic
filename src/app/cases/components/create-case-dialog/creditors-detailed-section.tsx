@@ -60,6 +60,18 @@ export function CreditorsDetailedSection() {
       coDebtorCity: '',
       coDebtorAddress: '',
       coDebtorPhone: '',
+      apoderadoRegistroNombre: '',
+      apoderadoRegistroTipoId: '',
+      apoderadoRegistroId: '',
+      apoderadoRegistroTP: '',
+      apoderadoRegistroCorreo: '',
+      apoderadoRegistroTelefono: '',
+      apoderadoActaNombre: '',
+      apoderadoActaTipoId: '',
+      apoderadoActaId: '',
+      apoderadoActaTP: '',
+      apoderadoActaCorreo: '',
+      apoderadoActaTelefono: '',
       coDebtorEmail: '',
     });
   };
@@ -623,6 +635,136 @@ export function CreditorsDetailedSection() {
                     />
                   </div>
                 )}
+              </div>
+
+              {/*
+                Apoderado del acreedor, en DOS FUENTES independientes.
+
+                No son dos formas de llenar el mismo dato: el registro es el
+                poder acreditado antes del trámite, y el acta es quién
+                compareció de verdad en la audiencia. Pueden contradecirse, y
+                cuando lo hacen el sistema bloquea la generación en vez de
+                elegir una (decisión legal del 2026-10-09). Por eso se capturan
+                por separado y no se "resuelven" acá.
+
+                Los dos son opcionales: la ausencia no bloquea nada y la mayoría
+                de los acreedores no tiene apoderado. Plan:
+                docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md
+              */}
+              <div className="mt-4 border-t pt-4">
+                <h4 className="mb-1 text-sm font-semibold">
+                  Apoderado del acreedor
+                </h4>
+                <p className="text-muted-foreground mb-3 text-xs">
+                  Si las dos fuentes no coinciden, el sistema avisará y no
+                  generará los documentos hasta que alguien confirme cuál vale.
+                </p>
+
+                {(
+                  [
+                    {
+                      fuente: 'Registro' as const,
+                      titulo: 'Registro de poderes (acreditado)',
+                      prefijo: 'apoderadoRegistro',
+                    },
+                    {
+                      fuente: 'Acta' as const,
+                      titulo: 'Acta de la audiencia (compareció)',
+                      prefijo: 'apoderadoActa',
+                    },
+                  ] as const
+                ).map(({ titulo, prefijo }) => (
+                  <div key={prefijo} className="mb-3">
+                    <p className="mb-2 text-xs font-medium">{titulo}</p>
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <FormField
+                        control={form.control}
+                        name={`debts.${index}.${prefijo}Nombre`}
+                        render={({ field: formField }) => (
+                          <FormItem>
+                            <FormLabel>Nombre completo</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...formField}
+                                placeholder="Nombre del apoderado"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`debts.${index}.${prefijo}Id`}
+                        render={({ field: formField }) => (
+                          <FormItem>
+                            {/* La identificación es la clave con la que el
+                                sistema compara las dos fuentes. */}
+                            <FormLabel>Identificación</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...formField}
+                                placeholder="Ej: 52.111.222"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`debts.${index}.${prefijo}TP`}
+                        render={({ field: formField }) => (
+                          <FormItem>
+                            <FormLabel>Tarjeta profesional</FormLabel>
+                            <FormControl>
+                              <Input {...formField} placeholder="Ej: 123456" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`debts.${index}.${prefijo}Correo`}
+                        render={({ field: formField }) => (
+                          <FormItem>
+                            <FormLabel>Correo electrónico</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...formField}
+                                type="email"
+                                placeholder="correo@ejemplo.com"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name={`debts.${index}.${prefijo}Telefono`}
+                        render={({ field: formField }) => (
+                          <FormItem>
+                            <FormLabel>Teléfono</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...formField}
+                                type="tel"
+                                placeholder="Ej: 3101234567"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           );
