@@ -45,10 +45,49 @@ import type { TenantId } from './prisma';
  * un centro hay que decidir sus dos formas igual.
  */
 export interface MembreteCentro {
-  /** "Constructores de Paz" — el nombre tal como va en prosa. */
+  /** El nombre A SECAS: "Constructores de Paz" / "Armonía Concertada". */
   nombre: string;
-  /** "CONSTRUCTORES DE PAZ" — el mismo nombre en mayúsculas. */
+  /** El mismo nombre en mayúsculas. */
   nombreMayus: string;
+
+  /**
+   * EL RÓTULO DEL CENTRO, separado del nombre.
+   *
+   * El nombre no viaja solo: va pegado a un rótulo, y **ese rótulo es distinto
+   * en cada centro**. Constructores es "Centro de Conciliación **y Arbitraje**";
+   * Armonía es solo "Centro de Conciliación". Si el rótulo quedara como prosa
+   * fija en la plantilla y solo se reemplazara el nombre, los documentos de
+   * Armonía dirían "Centro de Conciliación y Arbitraje Armonía Concertada" — un
+   * rótulo que no le corresponde.
+   *
+   * POR QUÉ RÓTULO + NOMBRE Y NO LA DENOMINACIÓN ENTERA. Se probó primero con
+   * campos de denominación completa (incluida una con el nombre entre comillas)
+   * y el golden lo rechazó: ese valor **contiene comillas**, el escapado del
+   * punto de fusión las convierte en `&quot;` y el HTML renderizado dejaba de
+   * ser idéntico — visualmente igual, bytes distintos. Separando rótulo y
+   * nombre, las comillas se quedan en la plantilla, ningún valor las lleva, y
+   * cada forma impresa se compone sin tocar el escapado.
+   */
+  /** "Centro de Conciliación y Arbitraje" / "Centro de Conciliación" */
+  rotulo: string;
+  /** Sin "y Arbitraje". Hoy es igual en los dos centros, pero Constructores usa las dos formas. */
+  rotuloCorto: string;
+  /** En mayúsculas y SIN TILDES, como está hoy: "CENTRO DE CONCILIACION Y ARBITRAJE" */
+  rotuloMayus: string;
+  /**
+   * En mayúsculas y CON TILDE: "CENTRO DE CONCILIACIÓN Y ARBITRAJE".
+   *
+   * Coexiste con `rotuloMayus` porque el corpus trae las dos: 3 plantillas lo
+   * escriben sin tilde y 4 con tilde. No se unifican por la misma razón que el
+   * resto de las parejas de forma — la extracción es 1:1 y el golden exige que
+   * el HTML de Constructores no cambie ni un byte.
+   *
+   * Esta forma fue la que se le escapó a #132: el chequeo de residuales buscaba
+   * la variante sin tilde, así que las 4 con tilde quedaron como prosa fija.
+   */
+  rotuloMayusTilde: string;
+  /** Con "arbitraje" en minúscula — preserva una errata de una plantilla. */
+  rotuloErrata: string;
   /** La asociación que promueve el centro. */
   entidadPromotora: string;
   /** Dirección sin ciudad: "Calle 74 No. 15-80 interior 1 Oficina 308". */
@@ -132,6 +171,11 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
   'constructores-paz': {
     nombre: 'Constructores de Paz',
     nombreMayus: 'CONSTRUCTORES DE PAZ',
+    rotulo: 'Centro de Conciliación y Arbitraje',
+    rotuloCorto: 'Centro de Conciliación',
+    rotuloMayus: 'CENTRO DE CONCILIACION Y ARBITRAJE',
+    rotuloMayusTilde: 'CENTRO DE CONCILIACIÓN Y ARBITRAJE',
+    rotuloErrata: 'Centro de Conciliación y arbitraje',
     entidadPromotora:
       'Asociación Lonja de Propiedad Raíz y Avaluadores de Colombia',
     direccion: 'Calle 74 No. 15-80 interior 1 Oficina 308',
@@ -156,8 +200,21 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     operadorCargoMayus: 'OPERADORA DE INSOLVENCIA',
   },
   armonia: {
-    nombre: 'Centro de Conciliación Armonía Concertada',
-    nombreMayus: 'CENTRO DE CONCILIACIÓN ARMONÍA CONCERTADA',
+    // El nombre A SECAS. Hasta el 2026-10-10 este campo tenía la denominación
+    // completa, porque era el único dato que había llegado; con el nombre corto
+    // confirmado, eso era un error: `CENTRO_NOMBRE` se usa donde va el nombre
+    // solo, y habría impreso "Centro de Conciliación Armonía Concertada" dentro
+    // de frases que ya dicen "Centro de Conciliación".
+    nombre: 'Armonía Concertada',
+    nombreMayus: 'ARMONÍA CONCERTADA',
+    // Armonía NO lleva "y Arbitraje": su rótulo es solo "Centro de
+    // Conciliación". Las cuatro formas colapsan en la misma, incluida la de la
+    // errata: no se replica un error de tipeo de la otra plantilla.
+    rotulo: 'Centro de Conciliación',
+    rotuloCorto: 'Centro de Conciliación',
+    rotuloMayus: 'CENTRO DE CONCILIACION',
+    rotuloMayusTilde: 'CENTRO DE CONCILIACIÓN',
+    rotuloErrata: 'Centro de Conciliación',
     entidadPromotora:
       'Asociación para el Fomento de la Cultura la Justicia y la Conciliación',
     direccion: 'Calle 74 #15-80 Interior 1 oficina 306',
@@ -168,14 +225,20 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     telefonoCompacto: '3132904984',
     web: null,
     email: null,
-    resolucionCentroNumero: null,
-    resolucionCentroFecha: null,
-    resolucionCentroFechaCorta: null,
-    resolucionCentroEncabezado: null,
-    resolucionInsolvenciaNumero: null,
-    resolucionInsolvenciaFecha: null,
-    resolucionInsolvenciaAnio: null,
-    resolucionInsolvenciaNumeroCorto: null,
+    // UNA SOLA RESOLUCIÓN para los dos roles. Constructores tiene dos
+    // habilitaciones distintas (centro de conciliación 1459/2003 y operador de
+    // insolvencia 0001/2014); Armonía tiene una sola, la 0858 del 01/11/2016,
+    // que cubre ambos. Confirmado el 2026-10-10 contra el sello físico y el
+    // membrete oficial, que coinciden. Por eso los dos bloques de campos
+    // apuntan a la misma resolución: no es un copiar-pegar por descuido.
+    resolucionCentroNumero: '0858',
+    resolucionCentroFecha: '01 de noviembre de 2016',
+    resolucionCentroFechaCorta: '1 de noviembre de 2016',
+    resolucionCentroEncabezado: 'RESOLUCIÓN 0858 DEL 1 DE NOVIEMBRE DE 2016',
+    resolucionInsolvenciaNumero: '0858',
+    resolucionInsolvenciaFecha: '01 de noviembre de 2016',
+    resolucionInsolvenciaAnio: '2016',
+    resolucionInsolvenciaNumeroCorto: '858',
     operadorNombre: null,
     operadorNombreTilde: null,
     operadorCargo: null,
@@ -217,6 +280,21 @@ export function camposFaltantes(
  * llame a decidir qué hace, y lo que hace el sub-mapper es no emitir ninguna
  * clave, para que el gate de placeholders sin resolver corte la generación.
  */
+/**
+ * El membrete de un centro **tal como está**, con los `null` que tenga.
+ *
+ * No sirve para generar — para eso está `membreteDelCentro`, que devuelve
+ * `null` si falta algo. Sirve para inspeccionarlo: qué datos ya llegaron y
+ * cuáles no, sin que la respuesta sea todo-o-nada. Lo usan los tests para
+ * afirmar valores de un centro que todavía está incompleto.
+ */
+export function membreteParcialDelCentro(
+  tenantId?: string | null,
+): Readonly<MembreteParcial> | null {
+  if (!tenantId) return null;
+  return MEMBRETE_POR_TENANT[tenantId as TenantId] ?? null;
+}
+
 export function membreteDelCentro(
   tenantId?: string | null,
 ): MembreteCentro | null {

@@ -32,6 +32,7 @@ import {
   TENANTS_CON_MEMBRETE,
   camposFaltantes,
   membreteDelCentro,
+  membreteParcialDelCentro,
 } from '@/lib/membrete-centro';
 import {
   esSlugDeCentroConocido,
@@ -74,7 +75,7 @@ describe('1. Constructores de Paz: completo, y con los valores exactos', () => {
     expect(membreteDelCentro('constructores-paz')).not.toBeNull();
   });
 
-  it('el mapper emite las 23 claves', () => {
+  it('el mapper emite una clave por campo, sin faltar ninguna', () => {
     const map = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
     expect(Object.keys(map).sort()).toEqual([...CLAVES_MEMBRETE].sort());
     expect(CLAVES_MEMBRETE).toHaveLength(CAMPOS_MEMBRETE.length);
@@ -122,17 +123,72 @@ describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
   it('Armonía todavía le debe datos, y se sabe cuáles', () => {
     const faltan = camposFaltantes('armonia');
     expect(faltan.length).toBeGreaterThan(0);
+
     // Lo que bloquea hoy, anotado para que el día que llegue se vea en el diff.
-    expect(faltan).toContain('resolucionCentroNumero');
-    expect(faltan).toContain('resolucionInsolvenciaNumero');
-    expect(faltan).toContain('operadorNombre');
-    expect(faltan).toContain('web');
-    expect(faltan).toContain('email');
-    // Lo que SÍ llegó el 2026-10-09 no figura como faltante.
-    expect(faltan).not.toContain('nombre');
-    expect(faltan).not.toContain('entidadPromotora');
-    expect(faltan).not.toContain('direccion');
-    expect(faltan).not.toContain('telefono');
+    // La lista es EXACTA a propósito: si alguien llena uno sin actualizar el
+    // test, falla; y si alguien pone un `null` nuevo, también.
+    expect([...faltan].sort()).toEqual(
+      [
+        'edificio',
+        'email',
+        'operadorCargo',
+        'operadorCargoMayus',
+        'operadorNombre',
+        'operadorNombreTilde',
+        'web',
+      ].sort(),
+    );
+
+    // Lo que llegó el 2026-10-09 y el 2026-10-10 ya no figura como faltante.
+    for (const llego of [
+      'nombre',
+      'nombreMayus',
+      'rotulo',
+      'rotuloCorto',
+      'rotuloMayus',
+      'rotuloErrata',
+      'entidadPromotora',
+      'direccion',
+      'telefono',
+      // Una sola resolución, 0858/2016, cubre los dos roles: por eso los dos
+      // bloques de campos quedaron llenos con el mismo acto administrativo.
+      'resolucionCentroNumero',
+      'resolucionCentroFecha',
+      'resolucionInsolvenciaNumero',
+      'resolucionInsolvenciaAnio',
+    ]) {
+      expect(faltan).not.toContain(llego);
+    }
+  });
+
+  it('la resolución de Armonía es UNA y cubre los dos roles', () => {
+    // Constructores tiene dos habilitaciones distintas; Armonía una sola.
+    // Confirmado el 2026-10-10 contra el sello físico y el membrete oficial.
+    // Si alguien "corrige" esto creyendo que es un copiar-pegar, el test lo
+    // frena.
+    const cp = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
+    expect(cp.CENTRO_RESOLUCION_NUMERO).toBe('1459');
+    expect(cp.CENTRO_RES_INSOLVENCIA_NUMERO).toBe('0001');
+    expect(cp.CENTRO_RESOLUCION_NUMERO).not.toBe(
+      cp.CENTRO_RES_INSOLVENCIA_NUMERO,
+    );
+
+    const membrete = membreteParcialDelCentro('armonia')!;
+    expect(membrete.resolucionCentroNumero).toBe('0858');
+    expect(membrete.resolucionInsolvenciaNumero).toBe('0858');
+  });
+
+  it('el rótulo de Armonía NO lleva "y Arbitraje"', () => {
+    // El motivo por el que rótulo y nombre son campos separados: si el rótulo
+    // fuera prosa fija de plantilla, Armonía imprimiría un rótulo ajeno.
+    const cp = mapMembreteCentro(casoComoEnProduccion('constructores-paz'));
+    expect(cp.CENTRO_ROTULO).toBe('Centro de Conciliación y Arbitraje');
+    expect(membreteParcialDelCentro('armonia')!.rotulo).toBe(
+      'Centro de Conciliación',
+    );
+    expect(membreteParcialDelCentro('armonia')!.rotulo).not.toContain(
+      'Arbitraje',
+    );
   });
 
   it('REGRESIÓN: Armonía NO cae a los datos de Constructores', () => {
@@ -184,6 +240,18 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
     'RESOLUCIÓN 1459 DEL 5 DE SEPTIEMBRE DE 2003',
     '311 811 7520',
     '3118117520',
+    // EL RÓTULO. Faltaba en esta lista y por eso el swap de #132 se dio por
+    // cerrado con 10 ocurrencias todavía escritas a mano: el chequeo de
+    // residuales que se corrió entonces buscaba el NOMBRE del centro y las
+    // RESOLUCIONES, no el rótulo, que era uno de los cuatro campos nuevos.
+    //
+    // Es el residual con más consecuencia de todos: "y Arbitraje" es lo ÚNICO
+    // que distingue los dos rótulos. Mientras esté como prosa fija, un
+    // documento de Armonía afirma que es un centro de arbitraje, que no lo es.
+    // Las tres formas son las tres capitalizaciones que usa el corpus.
+    'Centro de Conciliación y Arbitraje',
+    'CENTRO DE CONCILIACIÓN Y ARBITRAJE',
+    'Centro de Conciliación y arbitraje',
   ];
 
   function plantillas(dir: string, out: string[] = []): string[] {

@@ -45,6 +45,11 @@ import { tenantSlugDelCaso } from './tenant-slug';
 const CLAVE_POR_CAMPO: Record<keyof MembreteCentro, string> = {
   nombre: 'CENTRO_NOMBRE',
   nombreMayus: 'CENTRO_NOMBRE_MAYUS',
+  rotulo: 'CENTRO_ROTULO',
+  rotuloCorto: 'CENTRO_ROTULO_CORTO',
+  rotuloMayus: 'CENTRO_ROTULO_MAYUS',
+  rotuloMayusTilde: 'CENTRO_ROTULO_MAYUS_TILDE',
+  rotuloErrata: 'CENTRO_ROTULO_ERRATA',
   entidadPromotora: 'CENTRO_ENTIDAD_PROMOTORA',
   direccion: 'CENTRO_DIRECCION',
   direccionMinus: 'CENTRO_DIRECCION_MINUS',
