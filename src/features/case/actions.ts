@@ -692,7 +692,13 @@ export async function createCase(
 
             await tx.debt.create({
               data: {
-                amount: debt.capitalAmount ?? debt.amount ?? '0',
+                // `amount` tambien es Decimal y tambien venia del formulario
+                // como string: el sub-schema de deuda transporta
+                // `capitalAmount`/`amount` como `z.string()`, no como monto.
+                // Sin parsear, Prisma recibe "30.000.000" y lo rechaza
+                // ("invalid digit found in string"). Lo encontro el test de
+                // base, no el de unidad: es el unico que llega hasta Prisma.
+                amount: parsearMonto(debt.capitalAmount ?? debt.amount) ?? 0,
                 interestRate: tasa.interestRate,
                 interestRateUnknown: tasa.interestRateUnknown,
                 type: debt.type || 'CREDIT',
