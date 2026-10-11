@@ -16,7 +16,7 @@
  *
  * ESTADO ACTUAL — cada centro apunta a su propia carpeta. Armonía entregó sus
  * assets el 2026-10-10 y se convirtieron a PNG con canal alfa; el detalle de la
- * conversión está en `docs/BRANDING_POR_CENTRO_2026-09-30.md` §5.
+ * conversión está en `docs/BRANDING_POR_CENTRO_2026-09-30.md` §6.
  * `tests/unit/documents/branding-assets.test.ts` falla en CI si a un centro le
  * falta un archivo — sin ese guardián, cuando una imagen no existe `inlineAssets`
  * solo escribe un `console.warn` y el documento se genera igual, con la imagen

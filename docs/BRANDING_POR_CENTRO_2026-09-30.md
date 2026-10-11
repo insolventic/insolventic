@@ -137,30 +137,41 @@ Tres problemas concretos, medidos:
 
 Para que Armonía quede al nivel de lo que ya hay, sin inventar nada nuevo:
 
-- [ ] **Banner de encabezado**, horizontal, símbolo + nombre del centro. PNG con
-      transparencia, **≥ 1200 px de ancho**. Es el que más falta.
-- [ ] **Logo cuadrado** para el bloque de firma. PNG con transparencia,
-      **≥ 640 px**. El tucán tiene tamaño de sobra (1477 px, §2.1); lo que le
-      falta es el canal alfa, por ser JPEG.
-- [ ] **Firmas con fondo transparente**, **≥ 500 px de ancho**. PNG, no JPEG.
-      Escaneadas sobre papel blanco y recortadas, o reexportadas desde el
-      original si existe.
-- [ ] **Sello con fondo transparente**, **≥ 600 px**. Y, antes que el archivo,
-      **la decisión de dónde va**: hoy ninguna plantilla tiene un hueco para un
-      sello. Agregarlo es tocar el HTML y el CSS de las plantillas que lo lleven,
-      no solo poner el archivo.
+> **Cerrado el 2026-10-10** (`#135`). Se resolvió con el material que ya había,
+> no con assets nuevos: el detalle de cada conversión está en §6.
 
-Dos preguntas que no son técnicas y que no puedo resolver yo:
+- [x] **Banner de encabezado** → `templates/branding/armonia/logo-encabezado.png`.
+      **No es horizontal**: se usa el tucán cuadrado de 1477 px, con el fondo
+      gris 247 convertido a transparente. Decisión del dueño del producto: el
+      tucán ya trae el nombre del centro incrustado, así que componer el nombre
+      al lado lo duplicaría. Renderiza 380 × 380 en vez de 380 × 85 —
+      "diferencia visual, no legal". Si alguna vez molesta, se reemplaza este
+      solo archivo por una pieza horizontal.
+- [x] **Logo cuadrado** → `logo-firma.png`, el mismo tucán a 1024 × 1024 con
+      alfa. Tamaño de sobra para el hueco de 200 px.
+- [x] **Firma** → `firma-operador.png`, 193 px, tinta convertida a alfa.
+      **Sigue por debajo del piso de 469 px** y no se reescaló a propósito:
+      ampliar un escaneo no agrega información. La de Constructores tiene
+      235 px, así que las dos están por debajo.
+- [ ] ~~**Sello con fondo transparente**~~ → **sin acción, decidido el
+      2026-10-10.** No es que falte el archivo: no hay dónde ponerlo. Ninguna
+      plantilla tiene hueco para un sello, y abrirlo es tocar HTML y CSS de
+      cada plantilla que lo lleve. Queda fuera de alcance hasta que alguien
+      decida que hace falta.
 
-- **¿Cuál es el nombre que va en el membrete?** El tucán dice "Asociación para
-  el Fomento de la Cultura, la Justicia y la Conciliación"; el sello dice
-  "Centro de Conciliación Armonía Concertada". No son el mismo rótulo. En
-  Constructores el banner dice "Centro de Conciliación y Arbitraje", o sea el
-  rol, no la asociación.
-- **¿Quién firma?** Llegaron dos firmas (Beatriz y Max) y las plantillas tienen
-  **un** hueco. Esto ya lo tenías anotado como pendiente tuyo; lo dejo acá
-  porque condiciona si hace falta un asset o dos, y si el nombre y el cargo
-  bajo la firma pasan a ser por caso en vez de fijos.
+Dos preguntas que no eran técnicas, **las dos respondidas el 2026-10-10**:
+
+- 🟢 **¿Cuál es el nombre que va en el membrete?** No había contradicción entre
+  el tucán y el sello: son **dos cosas distintas** y las dos van. El **rótulo**
+  es "Centro de Conciliación" (sin "y Arbitraje", que es solo de Constructores),
+  el **nombre** es "Armonía Concertada", y la **entidad promotora** es la
+  "Asociación para el Fomento de la Cultura la Justicia y la Conciliación". Por
+  eso el membrete los tiene como tres campos separados y no como una
+  denominación entera (`src/lib/membrete-centro.ts`).
+- 🟢 **¿Quién firma?** **Beatriz Helena Malavera**, que es operadora de
+  insolvencia de los **dos** centros. No hacen falta dos assets de firma: hace
+  falta uno. Maximiliano firma únicamente `Designacion del Conciliador.html`,
+  que ya lo tenía escrito a mano y se dejó intacta a propósito.
 
 ## 5. El plan de implementación
 
@@ -251,7 +262,7 @@ pido en §4, van a pesar parecido. Eso suma al problema del
 **issue #3** (los lotes de 26 y 77 documentos no entran en `maxDuration=60s`).
 No bloquea nada, pero si se van a optimizar los PNG, es el momento.
 
-## 5. Los assets de Armonía, entregados y convertidos (2026-10-10)
+## 6. Los assets de Armonía, entregados y convertidos (2026-10-10)
 
 Cerrado el hueco que quedaba: hasta hoy `branding-assets.ts` tenía
 `armonia: 'constructores-paz'`, así que **los documentos de Armonía pedían el
