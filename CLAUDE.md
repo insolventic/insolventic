@@ -263,6 +263,21 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 
    **El arreglo de fondo**: sacar el filtro `branches:` de los dos workflows, o agregarle `workflow_dispatch` a `pr.yml`. Lo primero es lo correcto —el costo es correr CI en PRs apilados, que es exactamente lo que se quería— y lo segundo es el parche mínimo.
 
+9. **Los 2 campos de dinero fuera del formulario maestro siguen sin separador de miles** — ~2h
+
+   Quedaron fuera del alcance de `#136`, que normalizó los 27 del formulario maestro (wizard + pestañas de edición). Los dos son montos de pago:
+
+   | Dónde | Etiqueta | Qué hace |
+   | --- | --- | --- |
+   | `case-details-dialog/payment-tracking-section.tsx` | "Monto" | registra un pago del deudor |
+   | `reports/components/payment-tracking-report.tsx` | "Valor pagado" | ídem, desde reportes |
+
+   **Ojo con el conteo: al cerrar `#136` se dijo que eran 5, y no lo son.** Ese número salió de contar `type="number"` fuera del formulario maestro, no campos de dinero. De los otros cuatro: dos son `dependents` (una cuenta de personas, en los diálogos de deudor), uno es `approvalPercentage` (un porcentaje, en `pre-generation-form`) y el cuarto **ni siquiera es un input** — es un `<XAxis type="number">` de Recharts en `dashboard-charts.tsx`. Ninguno lleva separador de miles ni debería.
+
+   **La trampa, para quien lo tome.** No alcanza con cambiar el input a `type="text"`: los dos hacen `parseFloat(monto)` al enviar (`payment-tracking-section.tsx:210`, `payment-tracking-report.tsx:986`) y `parseFloat("1.500.000")` da **1.5**. Es exactamente el bug de `#136`, que vivía en **tres** capas y solo lo cerró del todo un test que llega hasta Prisma. El parseo correcto ya existe: `parsearMonto` en `src/features/case/monto.ts`, y el input formateado es `MoneyInput` en `src/components/ui/money-input.tsx`. Reusar los dos, no reescribirlos.
+
+   **Por qué no urge:** mientras los campos sigan siendo `type="number"` el navegador no deja escribir el punto, así que el bug es inalcanzable desde la UI. Lo que molesta hoy es la inconsistencia visual — un monto se escribe `1.500.000` en el wizard y `1500000` acá.
+
 > Nota: dos items del roadmap original se descartaron por no corresponder al código real: la migración Float→Decimal (los montos ya usan `Decimal`) y el split del schema Prisma (tiene 1.041 líneas, no 2.516 — no urge).
 
 ## Referencias
