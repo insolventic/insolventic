@@ -206,6 +206,10 @@ describe('2. los campos vacíos a propósito no dejan basura', () => {
 
 describe('3. nada de Constructores se cuela en un documento de Armonía', () => {
   const AJENOS = [
+    // La ruta de los assets, que hasta el 2026-10-10 SÍ aparecía: los dos
+    // centros compartían carpeta, así que los documentos de Armonía pedían el
+    // logo y la firma de Constructores. Es el canario del PR de assets.
+    'branding/constructores-paz',
     'Constructores de Paz',
     'CONSTRUCTORES DE PAZ',
     'constructoresdepaz.com.co',

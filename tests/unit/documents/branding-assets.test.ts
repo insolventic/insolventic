@@ -18,6 +18,8 @@
  * nombrado en la carpeta de un centro se descubre en un PDF ya radicado.
  */
 
+import fsSync from 'fs';
+import { join as pathJoin } from 'path';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -130,15 +132,18 @@ describe('2. la elección pasa por el mapa de tenants, no por el fallback', () =
   );
 
   it.each(TENANTS_CON_BRANDING)(
-    '%s resuelve sus tres assets por el mapa real (hoy compartido)',
+    '%s resuelve sus tres assets a SU PROPIA carpeta con el mapa real',
     (tenantId) => {
+      // Hasta el 2026-10-10 los dos centros compartían `constructores-paz` y
+      // este caso solo podía fijar ese estado: con las dos filas iguales, la
+      // aserción pasaba igual aunque el sub-mapper perdiera el `tenantId` y
+      // cayera al fallback. Por eso existe el caso de arriba con el mapa
+      // inyectado. Ahora el mapa real ya distingue, así que esto mide el
+      // cableado de verdad y no hace falta inyectar nada para tener dientes.
       const map = mapCaseToPlaceholders(casoDelCentro(tenantId));
-      // Con el mapa real los dos centros comparten carpeta a propósito: esto
-      // fija el estado actual, no el cableado (de eso se encarga el caso de
-      // arriba, con el mapa inyectado).
       for (const asset of ASSETS_REQUERIDOS) {
         expect(brandingRef(asset, tenantId)).toBe(
-          `${BRANDING_REF_PREFIX}constructores-paz/${asset}.png`,
+          `${BRANDING_REF_PREFIX}${tenantId}/${asset}.png`,
         );
       }
       expect(map.LOGO_ENCABEZADO_SRC).toBe(
@@ -146,6 +151,14 @@ describe('2. la elección pasa por el mapa de tenants, no por el fallback', () =
       );
     },
   );
+
+  it('REGRESIÓN: un documento de Armonía no pide NINGÚN asset de Constructores', () => {
+    const map = mapCaseToPlaceholders(casoDelCentro('armonia'));
+    for (const clave of Object.values(CLAVE_POR_ASSET)) {
+      expect(map[clave]).toContain('/branding/armonia/');
+      expect(map[clave]).not.toContain('constructores-paz');
+    }
+  });
 
   it('un tenant desconocido cae a Constructores en vez de romper la generación', () => {
     // Fixtures sintéticos y expedientes sin la columna: el documento sale con
@@ -210,4 +223,48 @@ describe('4. inlineAssets resuelve /branding/ a cualquier profundidad', () => {
       expect(salida).not.toContain('/branding/');
     },
   );
+});
+
+describe('5. el fallback de assets no puede llegar a un documento real', () => {
+  /**
+   * Desde que cada centro tiene su carpeta, `brandingRef` con un tenant
+   * desconocido significa "logo de Constructores" — ya no es inocuo.
+   *
+   * Lo que impide que eso salga impreso no es `branding-assets.ts` sino el
+   * membrete: para un tenant desconocido no emite ninguna clave, y el gate de
+   * placeholders sin resolver corta la generación de toda plantilla que use
+   * un `{{CENTRO_*}}`.
+   *
+   * Esa protección depende de un supuesto que conviene no dar por sentado:
+   * que TODA plantilla con imagen de branding usa también algún `{{CENTRO_*}}`.
+   * Si alguien agregara una plantilla con logo y sin membrete, el fallback
+   * volvería a ser capaz de imprimir el logo del otro centro. Esto lo verifica
+   * plantilla por plantilla.
+   */
+  const CLAVES_MEMBRETE_RE = /\{\{\s*(CENTRO_[A-Z_]+|OPERADOR_[A-Z_]+)\s*\}\}/;
+  const REF_BRANDING_RE = /\{\{\s*(LOGO_ENCABEZADO_SRC|LOGO_FIRMA_SRC|FIRMA_OPERADOR_SRC)\s*\}\}/;
+
+  function plantillas(dir: string, out: string[] = []): string[] {
+    for (const e of fsSync.readdirSync(dir, { withFileTypes: true })) {
+      const p = pathJoin(dir, e.name);
+      if (e.isDirectory()) plantillas(p, out);
+      else if (e.name.endsWith('.html')) out.push(p);
+    }
+    return out;
+  }
+
+  const CON_BRANDING = plantillas(TEMPLATES_ROOT)
+    .map((f) => ({ rel: f, texto: fsSync.readFileSync(f, 'utf8') }))
+    .filter((t) => REF_BRANDING_RE.test(t.texto));
+
+  it('hay plantillas con imagen de branding que recorrer', () => {
+    expect(CON_BRANDING.length).toBeGreaterThan(30);
+  });
+
+  it('toda plantilla con imagen de branding falla cerrada si no se conoce el centro', () => {
+    const sinRed = CON_BRANDING.filter(
+      (t) => !CLAVES_MEMBRETE_RE.test(t.texto),
+    ).map((t) => t.rel);
+    expect(sinRed).toEqual([]);
+  });
 });

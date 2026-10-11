@@ -250,3 +250,91 @@ va en las 63 plantillas. Si los assets de Armonía se entregan a la resolución 
 pido en §4, van a pesar parecido. Eso suma al problema del
 **issue #3** (los lotes de 26 y 77 documentos no entran en `maxDuration=60s`).
 No bloquea nada, pero si se van a optimizar los PNG, es el momento.
+
+## 5. Los assets de Armonía, entregados y convertidos (2026-10-10)
+
+Cerrado el hueco que quedaba: hasta hoy `branding-assets.ts` tenía
+`armonia: 'constructores-paz'`, así que **los documentos de Armonía pedían el
+logo de encabezado, el logo de firma y la firma manuscrita de Constructores**.
+
+Eso dejó de ser "un problema estético" el mismo día en que el texto pasó a ser
+correcto. Mientras todo el documento era de Constructores, era internamente
+consistente y se leía como lo que era. Con el membrete ya en Armonía, un
+documento con su texto y la firma escaneada de otro centro no se lee como un
+error de branding: se lee como una firma que no corresponde.
+
+### Qué se entregó y qué se hizo con cada pieza
+
+| Origen | Destino | Conversión |
+| --- | --- | --- |
+| `En Blanco Armonia.docx` → `image1.jpeg`, 1477 × 1477 | `templates/branding/armonia/logo-encabezado.png` | Fondo a transparente, tamaño nativo |
+| el mismo | `templates/branding/armonia/logo-firma.png` | Ídem, reescalado a 1024 × 1024 |
+| `firma beatriz.jpeg`, 193 × 116 | `templates/branding/armonia/firma-operador.png` | Tinta a alfa |
+
+### El fondo del tucán no era blanco, y no tiene relleno blanco
+
+Medido: el fondo es **gris 247,247,247**, no blanco. Sobre papel blanco se
+habría impreso como un cuadrado gris visible alrededor del logo. Por eso la
+conversión no es un simple cambio de contenedor.
+
+El primer intento usó **flood fill desde los bordes** —en vez de un umbral
+global— para no comerse lo que parecía el pecho blanco del ave. Al componer el
+resultado sobre magenta, el pecho aparecía transparente y parecía un error.
+**No lo era**: muestreado punto por punto, ese "pecho" es `247,247,247`, el
+mismo gris del fondo. El tucán está dibujado como una media luna negra más el
+pico y el ojo; **no hay ningún relleno blanco en el diseño**, así que no había
+nada que preservar.
+
+Verificación: componer el PNG resultante sobre blanco y comparar contra el JPEG
+original, a tamaño nativo y píxel a píxel —
+
+- **Tucán**: difieren 69,0 % de los píxeles (exactamente el fondo que pasó a
+  transparente), delta máximo 13, y **cero píxeles fuera del fondo cambiaron**.
+- **Firma**: difieren 19,5 %, **delta máximo 7 en toda la imagen** — ruido de
+  color del JPEG que la conversión neutraliza a gris. La tinta no se tocó.
+
+Ojo con comparar después de reescalar: el primer intento de esta verificación
+redimensionaba a 400 px antes de comparar y daba delta 105, porque sharp
+premultiplica el alfa y los bordes se mezclan distinto. El número bueno es el
+de tamaño nativo.
+
+### La firma es tinta sobre blanco, así que el alfa sale de la luminancia
+
+`alpha = 255 − luminancia`, con el color forzado a negro. El gris del antialias
+lo da el canal alfa y no el color, que es lo que evita el halo gris alrededor
+del trazo. El fondo de ese escaneo sí era blanco puro (255 en las cuatro
+esquinas).
+
+### Lo que sigue por debajo del piso, y no se arregló
+
+`firma-operador.png` de Armonía mide **193 px de ancho** y el hueco
+(`.firma-img`) renderiza a 150 px: para 300 DPI harían falta 469 px. **No se
+reescaló**: ampliar un escaneo de 193 px no agrega información, solo tamaño de
+archivo y una falsa sensación de resolución. La de Constructores tiene 235 px,
+así que las dos están por debajo y Armonía queda apenas peor. Si alguna vez se
+re-escanea la firma, el reemplazo es sobrescribir el archivo.
+
+### El encabezado de Armonía va a ser más alto, y eso está aceptado
+
+El CSS es `max-width: 380px; width: 100%; height: auto`, así que la altura la
+decide el aspecto de la imagen:
+
+| Centro | Imagen | Renderiza |
+| --- | --- | --- |
+| Constructores | 1536 × 345, horizontal | 380 × 85 px |
+| Armonía | 1477 × 1477, cuadrada | **380 × 380 px** |
+
+Son **~295 px más de alto** en cada una de las plantillas con encabezado, cerca
+de un tercio de página. Decisión del dueño del producto, 2026-10-10: se acepta,
+"es diferencia visual, no legal", y no se compone el nombre al lado del logo
+porque **el tucán ya trae "CENTRO DE CONCILIACIÓN / ARMONÍA CONCERTADA"
+incrustado en la imagen** y se duplicaría.
+
+Si alguna vez molesta, la salida sin tocar a Constructores es entregar una
+pieza horizontal de Armonía y reemplazar solo `logo-encabezado.png`.
+
+### El sello sigue sin lugar
+
+`sello armonia.jpeg` (277 × 271) no se incorporó: ninguna plantilla tiene un
+hueco para un sello. Sin acción, como estaba documentado.
+
