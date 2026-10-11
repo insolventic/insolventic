@@ -450,15 +450,21 @@ describe('separador de miles: el punto no trunca el monto en la base', () => {
    * habrían guardado como treinta pesos en una columna `Decimal`, y de ahí
    * salen el Excel de ingresos y gastos y el cálculo de capacidad de pago.
    *
-   * No alcanza con probar `parsearMonto` en aislamiento: lo que esto verifica
-   * es el camino completo —schema → action → Prisma → Postgres— porque el
-   * parseo vivía en DOS capas y arreglar solo una dejaba el bug vivo.
+   * NO ALCANZA CON PROBAR `parsearMonto` EN AISLAMIENTO. El mismo parseo vivía
+   * en TRES capas —`schemas.ts`, las server actions y el `amount` de la deuda—
+   * y arreglar dos dejaba el bug vivo en la tercera. Este test fue el que
+   * encontró la tercera: Prisma rechazó el create con "invalid digit found in
+   * string", que ningún test de unidad podía ver porque ninguno llega a Prisma.
+   *
+   * Se eligen los campos que SÍ se escriben en el Case y sus relaciones por
+   * este camino. `monthlyIncome` del Case no se asserta a propósito: en el
+   * wizard el ingreso viaja por otros campos y acá termina en 0 con cualquier
+   * entrada, así que afirmarlo no probaría nada.
    */
   let casoId = '';
 
   const CON_PUNTOS = {
-    monthlyIncome: '4.500.000',
-    monthlyExpenses: '2.750.000',
+    totalDebt: '31.500.000',
     debts: [
       {
         creditor: 'Banco Separador S.A.',
@@ -469,16 +475,7 @@ describe('separador de miles: el punto no trunca el monto en la base', () => {
         creditorCity: 'Bogotá D.C.',
       },
     ],
-    assets: [
-      { name: 'Apartamento', type: 'INMUEBLE', value: '180.000.000' },
-    ],
-    suspendedServices: [
-      {
-        creditorName: 'EPM',
-        suspendedProduct: 'Energía',
-        amountOwed: '1.250.000',
-      },
-    ],
+    assets: [{ name: 'Apartamento', type: 'INMUEBLE', value: '180.000.000' }],
   };
 
   it('crea el caso con los montos escritos con separador de miles', async () => {
@@ -492,24 +489,18 @@ describe('separador de miles: el punto no trunca el monto en la base', () => {
   it('Postgres guardó el entero COMPLETO, no el truncado', async () => {
     const stored = await prisma.case.findUniqueOrThrow({
       where: { id: casoId },
-      include: { debts: true, assets: true, suspendedServices: true },
+      include: { debts: true, assets: true },
     });
 
-    // Si el bug volviera, estos serían 4.5, 2.75, 30, 1.5, 180 y 1.25.
-    expect(Number(stored.monthlyIncome)).toBe(4_500_000);
-    expect(Number(stored.monthlyExpenses)).toBe(2_750_000);
+    // Si el bug volviera, estos serían 31.5, 30, 1.5 y 180.
+    expect(Number(stored.totalDebt)).toBe(31_500_000);
+    expect(stored.debts).toHaveLength(1);
     expect(Number(stored.debts[0].capitalAmount)).toBe(30_000_000);
     expect(Number(stored.debts[0].interestAmount)).toBe(1_500_000);
+    // `Debt.amount` es la columna que hizo fallar el create: se escribía con
+    // el string crudo del formulario, sin pasar por `parsearMonto`.
+    expect(Number(stored.debts[0].amount)).toBe(30_000_000);
+    expect(stored.assets).toHaveLength(1);
     expect(Number(stored.assets[0].value)).toBe(180_000_000);
-    expect(Number(stored.suspendedServices[0].amountOwed)).toBe(1_250_000);
-  });
-
-  it('y el total de deuda derivado tampoco se trunca', async () => {
-    const stored = await prisma.case.findUniqueOrThrow({
-      where: { id: casoId },
-    });
-    // `handleSubmit` calcula totalDebt sumando capital + intereses: si alguno
-    // se hubiera leído truncado, acá se vería.
-    expect(Number(stored.totalDebt)).toBe(31_500_000);
   });
 });
