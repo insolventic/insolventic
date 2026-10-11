@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
 import type { LibranzaData } from '@/features/case/schemas';
+import { MoneyInput } from '@/components/ui/money-input';
 
 export function LibranzasSection() {
   const form = useFormContext();
@@ -106,12 +107,7 @@ export function LibranzasSection() {
               <Label htmlFor={`libranzas.${index}.deductedAmount`}>
                 Suma Descontada
               </Label>
-              <Input
-                id={`libranzas.${index}.deductedAmount`}
-                type="number"
-                step="0.01"
-                {...form.register(`libranzas.${index}.deductedAmount`)}
-              />
+              <MoneyInput name={`libranzas.${index}.deductedAmount`} control={form.control} id={`libranzas.${index}.deductedAmount`} />
             </div>
 
             <div className="space-y-2">

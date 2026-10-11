@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MoneyInputField } from '@/components/ui/money-input';
 import {
   assetNamePlaceholder,
   assetValueLabel,
@@ -161,7 +162,7 @@ const AssetItem = memo(function AssetItem({
                 <span className="text-red-500">*</span>
               </FormLabel>
               <FormControl>
-                <Input {...formField} type="number" placeholder="0" />
+                <MoneyInputField field={formField} placeholder="0" />
               </FormControl>
               <FormMessage />
             </FormItem>

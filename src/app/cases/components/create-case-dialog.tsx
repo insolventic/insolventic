@@ -74,6 +74,7 @@ import { ConciliationDetailsSection } from './create-case-dialog/conciliation-de
 // Support agreement sections
 import { SupportAgreementPartiesSection } from './create-case-dialog/support-agreement-parties-section';
 import { SupportAgreementDetailsSection } from './create-case-dialog/support-agreement-details-section';
+import { parsearMonto } from '@/features/case/monto';
 
 type CaseTypeChoice = 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT';
 
@@ -474,8 +475,7 @@ export function CreateCaseDialog({
 
     // Validate mínima cuantía → abogado obligatorio
     const totalDebt =
-      parseFloat(String(formData.totalDebt || '0').replace(/[^0-9.-]/g, '')) ||
-      0;
+      parsearMonto(formData.totalDebt) || 0;
     const hasAttorney = !!(
       formData.attorney ||
       formData.apoderadoNombreCompleto ||
@@ -530,13 +530,9 @@ export function CreateCaseDialog({
 
         debts.forEach((debt: Record<string, unknown>, index: number) => {
           const capital =
-            parseFloat(
-              String(debt?.capitalAmount || '0').replace(/[^0-9.-]/g, ''),
-            ) || 0;
+            parsearMonto(debt?.capitalAmount) || 0;
           const interest =
-            parseFloat(
-              String(debt?.interestAmount || '0').replace(/[^0-9.-]/g, ''),
-            ) || 0;
+            parsearMonto(debt?.interestAmount) || 0;
           totalCapital += capital;
           totalInterest += interest;
 
@@ -576,13 +572,9 @@ export function CreateCaseDialog({
         const totalDebt = totalCapital + totalInterest;
         debts.forEach((debt: Record<string, unknown>, index: number) => {
           const capital =
-            parseFloat(
-              String(debt?.capitalAmount || '0').replace(/[^0-9.-]/g, ''),
-            ) || 0;
+            parsearMonto(debt?.capitalAmount) || 0;
           const interest =
-            parseFloat(
-              String(debt?.interestAmount || '0').replace(/[^0-9.-]/g, ''),
-            ) || 0;
+            parsearMonto(debt?.interestAmount) || 0;
           const debtTotal = capital + interest;
           const percentage =
             totalDebt > 0 ? ((debtTotal / totalDebt) * 100).toFixed(2) : '0';

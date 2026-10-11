@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   Card,
   CardContent,
@@ -248,13 +249,7 @@ export function LibranzasTab({ caseId }: Readonly<LibranzasTabProps>) {
                 <Label htmlFor="deductedAmount">
                   Suma Descontada <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="deductedAmount"
-                  type="number"
-                  step="0.01"
-                  {...newLibranzaForm.register('deductedAmount')}
-                  placeholder="0.00"
-                />
+                <MoneyInput name="deductedAmount" control={newLibranzaForm.control} id="deductedAmount" placeholder="0.00" />
                 {newLibranzaForm.formState.errors.deductedAmount && (
                   <p className="text-destructive text-sm">
                     {newLibranzaForm.formState.errors.deductedAmount.message}

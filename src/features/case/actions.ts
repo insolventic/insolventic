@@ -41,6 +41,7 @@ import {
   type GenerationKind,
 } from '@/features/document/generation-request';
 import { generatePaymentSchedule } from '@/features/payment/actions';
+import { parsearMonto } from './monto';
 import {
   requiresOtherDetail,
   tipoProcesoLabel,
@@ -540,7 +541,7 @@ export async function createCase(
                     create: assets.map((asset: AssetData) => ({
                       name: asset.name,
                       type: asset.type,
-                      value: parseFloat(asset.value),
+                      value: parsearMonto(asset.value) ?? 0,
                       description: asset.description,
                       tenantId,
                       // Real estate specific
@@ -562,7 +563,7 @@ export async function createCase(
                       transitAuthority: asset.transitAuthority,
                       guaranteeInFavorOf: asset.guaranteeInFavorOf,
                       guaranteeAmount: asset.guaranteeAmount
-                        ? parseFloat(asset.guaranteeAmount)
+                        ? (parsearMonto(asset.guaranteeAmount) ?? null)
                         : null,
                       material: asset.material,
                     })),
@@ -576,7 +577,7 @@ export async function createCase(
                       payerAddress: libranza.payerAddress,
                       payerEmail: libranza.payerEmail,
                       payerPhone: libranza.payerPhone,
-                      deductedAmount: parseFloat(libranza.deductedAmount),
+                      deductedAmount: parsearMonto(libranza.deductedAmount) ?? 0,
                       productAndCreditor: libranza.productAndCreditor,
                       tenantId,
                     })),
@@ -592,7 +593,7 @@ export async function createCase(
                         email: service.email,
                         phone: service.phone,
                         suspendedProduct: service.suspendedProduct,
-                        amountOwed: parseFloat(service.amountOwed),
+                        amountOwed: parsearMonto(service.amountOwed) ?? 0,
                         tenantId,
                       }),
                     ),
@@ -691,7 +692,13 @@ export async function createCase(
 
             await tx.debt.create({
               data: {
-                amount: debt.capitalAmount ?? debt.amount ?? '0',
+                // `amount` tambien es Decimal y tambien venia del formulario
+                // como string: el sub-schema de deuda transporta
+                // `capitalAmount`/`amount` como `z.string()`, no como monto.
+                // Sin parsear, Prisma recibe "30.000.000" y lo rechaza
+                // ("invalid digit found in string"). Lo encontro el test de
+                // base, no el de unidad: es el unico que llega hasta Prisma.
+                amount: parsearMonto(debt.capitalAmount ?? debt.amount) ?? 0,
                 interestRate: tasa.interestRate,
                 interestRateUnknown: tasa.interestRateUnknown,
                 type: debt.type || 'CREDIT',
@@ -703,10 +710,10 @@ export async function createCase(
                 creditorCity: debt.creditorCity,
                 creditorEmail: debt.creditorEmail,
                 capitalAmount: debt.capitalAmount
-                  ? parseFloat(debt.capitalAmount)
+                  ? (parsearMonto(debt.capitalAmount) ?? null)
                   : null,
                 interestAmount: debt.interestAmount
-                  ? parseFloat(debt.interestAmount)
+                  ? (parsearMonto(debt.interestAmount) ?? null)
                   : null,
                 isDeferred: debt.isDeferred ?? false,
                 documentType: debt.documentType,
@@ -1088,7 +1095,7 @@ export async function addDebtToCase(
 
     const debt = await prisma.debt.create({
       data: {
-        amount: parseFloat(amount.replace(/[^0-9.-]/g, '')),
+        amount: parsearMonto(amount) ?? 0,
         interestRate: tasaAgregada.interestRate,
         interestRateUnknown: tasaAgregada.interestRateUnknown,
         type,
@@ -1099,8 +1106,8 @@ export async function addDebtToCase(
         creditorAddress: cleanText(creditorAddress),
         creditorCity: cleanText(creditorCity),
         creditorEmail: cleanText(creditorEmail),
-        capitalAmount: capitalAmount ? parseFloat(capitalAmount) : null,
-        interestAmount: interestAmount ? parseFloat(interestAmount) : null,
+        capitalAmount: capitalAmount ? (parsearMonto(capitalAmount) ?? null) : null,
+        interestAmount: interestAmount ? (parsearMonto(interestAmount) ?? null) : null,
         isDeferred: isDeferred ?? false,
         documentType: cleanText(documentType),
         grantDate: otorgamientoAgregado.value,
@@ -1320,7 +1327,7 @@ export async function addLibranzaToCase(
         payerAddress: payerAddress || null,
         payerEmail: payerEmail || null,
         payerPhone: payerPhone || null,
-        deductedAmount: parseFloat(deductedAmount.replace(/[^0-9.-]/g, '')),
+        deductedAmount: parsearMonto(deductedAmount) ?? 0,
         productAndCreditor: productAndCreditor || null,
         caseId,
         tenantId,
@@ -1473,7 +1480,7 @@ export async function addSuspendedServiceToCase(
         address: address || null,
         email: email || null,
         phone: phone || null,
-        amountOwed: parseFloat(amountOwed.replace(/[^0-9.-]/g, '')),
+        amountOwed: parsearMonto(amountOwed) ?? 0,
         suspendedProduct: serviceType || null,
         caseId,
         tenantId,
@@ -1646,7 +1653,7 @@ export async function addAssetToCase(
       data: {
         name,
         type,
-        value: parseFloat(value.replace(/[^0-9.-]/g, '')),
+        value: parsearMonto(value) ?? 0,
         description: description || null,
         propertyType: propertyType || null,
         address: address || null,
@@ -1665,7 +1672,7 @@ export async function addAssetToCase(
         transitAuthority: transitAuthority || null,
         guaranteeInFavorOf: guaranteeInFavorOf || null,
         guaranteeAmount: guaranteeAmount
-          ? parseFloat(guaranteeAmount.replace(/[^0-9.-]/g, ''))
+          ? (parsearMonto(guaranteeAmount) ?? null)
           : null,
         material: material || null,
         caseId,

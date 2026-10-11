@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   Select,
   SelectContent,
@@ -345,12 +346,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                   {assetValueLabel(assetType)}{' '}
                   <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="value"
-                  type="number"
-                  {...newAssetForm.register('value')}
-                  placeholder="0"
-                />
+                <MoneyInput name="value" control={newAssetForm.control} id="value" placeholder="0" />
                 {newAssetForm.formState.errors.value && (
                   <p className="text-destructive text-sm">
                     {newAssetForm.formState.errors.value.message}
