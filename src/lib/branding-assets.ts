@@ -14,15 +14,13 @@
  * campo es texto libre que escribe el usuario, y por la misma razón que ya está
  * escrita en `centro-conciliacion.ts`, no sirve para elegir rutas de archivo.
  *
- * ESTADO ACTUAL — los dos centros apuntan a los assets de Constructores de Paz.
- * Armonía todavía no entregó los suyos (hace falta un banner horizontal con
- * transparencia ≥1200px, un logo cuadrado ≥640px y una firma ≥500px sin fondo;
- * el detalle está en §4 de ese documento). Esto NO es una regresión: es
- * exactamente el comportamiento que el código ya tenía. La diferencia es que
- * ahora cambiarlo es editar una fila de este mapa, y que
+ * ESTADO ACTUAL — cada centro apunta a su propia carpeta. Armonía entregó sus
+ * assets el 2026-10-10 y se convirtieron a PNG con canal alfa; el detalle de la
+ * conversión está en `docs/BRANDING_POR_CENTRO_2026-09-30.md` §5.
  * `tests/unit/documents/branding-assets.test.ts` falla en CI si a un centro le
- * falta un archivo — hoy, cuando una imagen no existe, `inlineAssets` solo
- * escribe un `console.warn` y el documento se genera igual, con la imagen rota.
+ * falta un archivo — sin ese guardián, cuando una imagen no existe `inlineAssets`
+ * solo escribe un `console.warn` y el documento se genera igual, con la imagen
+ * rota.
  */
 
 import type { TenantId } from './prisma';
@@ -46,14 +44,13 @@ export type BrandingAsset =
 /**
  * Carpeta de assets por tenant, relativa a `templates/branding/`.
  *
- * Armonía apunta a `constructores-paz` a propósito y de forma temporal: es lo
- * que el código ya hacía. Cuando lleguen sus assets, esta fila pasa a
- * `'armonia'` y se crea `templates/branding/armonia/` con los mismos cuatro
- * nombres de archivo. Nada más cambia.
+ * Cada centro con la suya desde el 2026-10-10. Agregar un centro es agregar una
+ * fila acá y una carpeta con los tres nombres de archivo; el guardián del test
+ * exige que los tres existan.
  */
 const CARPETA_POR_TENANT: Record<TenantId, string> = {
   'constructores-paz': 'constructores-paz',
-  armonia: 'constructores-paz',
+  armonia: 'armonia',
 };
 
 /** Carpeta que se usa cuando no se conoce el tenant (ver `brandingRef`). */
@@ -62,13 +59,18 @@ const CARPETA_POR_DEFECTO = 'constructores-paz';
 /**
  * Forma del mapa tenant → carpeta, para poder inyectar uno en los tests.
  *
- * POR QUÉ ES INYECTABLE. Mientras los dos centros compartan la carpeta de
- * Constructores, el mapa real y el fallback devuelven el MISMO string, así que
- * ninguna aserción contra `brandingRef(asset, tenantId)` puede distinguir "el
- * mapper usó el tenant del expediente" de "el mapper perdió el tenant y cayó al
- * fallback". Con el mapa inyectado, los tests apuntan cada tenant a una carpeta
- * distinta y la aserción pasa a tener dientes: si el `tenantId` no llega al
- * sub-mapper, el valor cae al fallback y el test falla.
+ * POR QUÉ ES INYECTABLE. Se agregó cuando los dos centros compartían la carpeta
+ * de Constructores: con las dos filas iguales, el mapa real y el fallback
+ * devolvían el MISMO string, así que ninguna aserción contra
+ * `brandingRef(asset, tenantId)` podía distinguir "el mapper usó el tenant del
+ * expediente" de "el mapper perdió el tenant y cayó al fallback". Verificado
+ * entonces: ignorando `caseData` en `mapBrandingAssets`, los 676 tests de
+ * documentos seguían pasando, golden incluido.
+ *
+ * Desde el 2026-10-10 el mapa real ya distingue, así que los tests tienen
+ * dientes sin inyectar nada. El parámetro se conserva igual: el día que se
+ * agregue un tercer centro vuelve a hacer falta para fijar el cableado sin
+ * depender de que las carpetas difieran.
  *
  * El default es siempre el mapa real; producción nunca pasa este parámetro.
  */
@@ -79,12 +81,20 @@ export type CarpetasPorTenant = Readonly<Record<string, string>>;
  * `/branding/constructores-paz/logo-encabezado.png`.
  *
  * `tenantId` desconocido o ausente cae a Constructores de Paz. Pasa en los
- * fixtures sintéticos de los tests (que construyen el caso a mano, sin la
- * columna `tenantId` de Prisma) y es el mismo valor que hoy producen los dos
- * centros reales, así que no cambia ningún documento. Si algún día los centros
- * dejan de compartir assets, este fallback deja de ser inocuo: por eso
- * `branding-assets.test.ts` inyecta un mapa con una carpeta por tenant y
- * verifica que la elección la decida el tenant del expediente.
+ * fixtures sintéticos de los tests, que construyen el caso a mano sin la
+ * relación `tenant`.
+ *
+ * ESE FALLBACK DEJÓ DE SER INOCUO el 2026-10-10, cuando cada centro pasó a
+ * tener su carpeta: ahora significa "logo de Constructores". Lo que impide que
+ * eso llegue a un documento real no es este módulo sino el membrete, que para
+ * un tenant desconocido **no emite ninguna clave** y hace fallar la generación
+ * (`membrete-centro.ts`). O sea: un documento con el logo del otro centro por
+ * culpa de este fallback no se puede generar, porque antes lo corta el gate de
+ * placeholders sin resolver.
+ *
+ * No es una propiedad que convenga dar por sentada —depende de que toda
+ * plantilla con imagen de branding use también algún `{{CENTRO_*}}`—, así que
+ * `branding-assets.test.ts` la verifica plantilla por plantilla.
  */
 export function brandingRef(
   asset: BrandingAsset,
