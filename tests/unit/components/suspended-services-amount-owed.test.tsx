@@ -25,6 +25,7 @@ import {
   type SuspendedServiceData,
 } from '@/features/case/schemas';
 import { SuspendedServicesSection } from '@/app/cases/components/create-case-dialog/suspended-services-section';
+import { parsearMonto } from '@/features/case/monto';
 
 describe('servicios suspendidos (alta) — amountOwed sin campo en el wizard', () => {
   describe('1. el mecanismo del bug (medido)', () => {
@@ -86,8 +87,33 @@ describe('servicios suspendidos (alta) — amountOwed sin campo en el wizard', (
       fireEvent.change(suma, { target: { value: '150000' } });
 
       await waitFor(() => {
-        expect(form.getValues('suspendedServices.0.amountOwed')).toBe('150000');
+        // Desde que el campo es un `MoneyInput`, lo que se ve y lo que queda en
+        // el formulario llevan separador de miles. Lo que importa no es la
+        // cadena sino que el NÚMERO sobreviva: antes este test fijaba '150000'
+        // a secas, y esa aserción no distinguía "se guardó bien" de "se guardó
+        // truncado" el día que entraran los puntos.
+        expect(form.getValues('suspendedServices.0.amountOwed')).toBe(
+          '150.000',
+        );
       });
+
+      // Lo que se muestra está formateado...
+      expect(suma.value).toBe('150.000');
+      // ...y lo que el schema guarda es el entero completo, no 150,0.
+      expect(parsearMonto(form.getValues('suspendedServices.0.amountOwed'))).toBe(
+        150000,
+      );
+      // El schema transporta el string tal cual (`z.string().min(1)`); quien
+      // convierte a número es la server action, con `parsearMonto`. Por eso lo
+      // que se fija acá es esa conversión y no la del schema: es la que decide
+      // lo que termina en la columna `Decimal` de la base.
+      expect(
+        suspendedServiceSchema.safeParse({
+          creditorName: 'EPM',
+          suspendedProduct: 'Energía',
+          amountOwed: form.getValues('suspendedServices.0.amountOwed'),
+        }).success,
+      ).toBe(true);
     });
   });
 });

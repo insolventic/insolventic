@@ -188,3 +188,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+ * Sin flechas de incremento/decremento en los inputs numéricos.
+ *
+ * Va acá y no campo por campo para que valga también para los que se agreguen
+ * después: son 46 hoy, repartidos en 19 archivos, y la regla campo a campo se
+ * olvida en el primero nuevo.
+ *
+ * El spinner nativo estorba en un formulario de expedientes: el scroll del
+ * mouse sobre un campo enfocado cambia el valor sin que nadie lo note, y en un
+ * monto o en unos días de mora eso es un dato equivocado que nadie escribió.
+ *
+ * Hacen falta las dos reglas: WebKit/Blink lo dibujan con pseudo-elementos y
+ * Firefox con `-moz-appearance`. `appearance: textfield` es el estándar y lo
+ * respetan los dos.
+ */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

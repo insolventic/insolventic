@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   Select,
   SelectContent,
@@ -326,12 +327,7 @@ export function DebtsTab({ caseId, creditors }: Readonly<DebtsTabProps>) {
                 <Label htmlFor="amount">
                   Monto <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  {...newDebtForm.register('amount')}
-                  placeholder="0"
-                />
+                <MoneyInput name="amount" control={newDebtForm.control} id="amount" placeholder="0" />
                 {newDebtForm.formState.errors.amount && (
                   <p className="text-destructive text-sm">
                     {newDebtForm.formState.errors.amount.message}
@@ -341,22 +337,12 @@ export function DebtsTab({ caseId, creditors }: Readonly<DebtsTabProps>) {
 
               <div className="space-y-2">
                 <Label htmlFor="capitalAmount">Cuantía - Capital</Label>
-                <Input
-                  id="capitalAmount"
-                  type="number"
-                  {...newDebtForm.register('capitalAmount')}
-                  placeholder="0"
-                />
+                <MoneyInput name="capitalAmount" control={newDebtForm.control} id="capitalAmount" placeholder="0" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="interestAmount">Cuantía - Intereses</Label>
-                <Input
-                  id="interestAmount"
-                  type="number"
-                  {...newDebtForm.register('interestAmount')}
-                  placeholder="0"
-                />
+                <MoneyInput name="interestAmount" control={newDebtForm.control} id="interestAmount" placeholder="0" />
               </div>
 
               <div className="space-y-2">

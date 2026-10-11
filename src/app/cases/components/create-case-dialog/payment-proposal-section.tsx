@@ -13,6 +13,7 @@ import {
   FormLabel,
 } from '@/components/ui/form';
 import { getDebtClass } from '@/features/case/validation-rules';
+import { MoneyInput } from '@/components/ui/money-input';
 
 /**
  * PaymentProposalSection
@@ -415,11 +416,7 @@ export function PaymentProposalSection() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Cuota Variable (opcional)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  {...form.register('variablePayment')}
-                />
+                <MoneyInput name="variablePayment" control={form.control} />
               </div>
             </div>
             <FormField

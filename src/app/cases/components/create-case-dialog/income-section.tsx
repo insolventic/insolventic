@@ -10,6 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FormField, FormItem, FormControl } from '@/components/ui/form';
+import { MoneyInput } from '@/components/ui/money-input';
+import { formatearMonto } from '@/features/case/monto';
 
 export function IncomeSection() {
   const form = useFormContext();
@@ -43,12 +45,7 @@ export function IncomeSection() {
             <Label htmlFor="monthlyIncome">
               Declaro bajo juramento que mi ingreso es:
             </Label>
-            <Input
-              id="monthlyIncome"
-              type="number"
-              step="0.01"
-              {...form.register('monthlyIncome', { valueAsNumber: true })}
-            />
+            <MoneyInput name="monthlyIncome" control={form.control} id="monthlyIncome" />
           </div>
 
           <div className="space-y-2">
@@ -64,23 +61,18 @@ export function IncomeSection() {
 
           <div className="space-y-2">
             <Label htmlFor="otherIncomeAmount">Valor Otros Ingresos</Label>
-            <Input
-              id="otherIncomeAmount"
-              type="number"
-              step="0.01"
-              {...form.register('otherIncomeAmount', { valueAsNumber: true })}
-            />
+            <MoneyInput name="otherIncomeAmount" control={form.control} id="otherIncomeAmount" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="totalIncome">Total Ingresos</Label>
             <Input
               id="totalIncome"
-              type="number"
+              type="text"
               step="0.01"
               readOnly
               className="bg-muted"
-              value={totalIncome}
+              value={formatearMonto(totalIncome)}
             />
           </div>
         </div>
@@ -142,12 +134,7 @@ export function IncomeSection() {
           <Label htmlFor="monthlyExpenses">
             Valor Total de Gastos Mensuales
           </Label>
-          <Input
-            id="monthlyExpenses"
-            type="number"
-            step="0.01"
-            {...form.register('monthlyExpenses', { valueAsNumber: true })}
-          />
+          <MoneyInput name="monthlyExpenses" control={form.control} id="monthlyExpenses" />
         </div>
       </div>
 
@@ -157,28 +144,28 @@ export function IncomeSection() {
           <div className="space-y-2">
             <Label>Ingresos</Label>
             <Input
-              type="number"
+              type="text"
               readOnly
               className="bg-muted"
-              value={totalIncome}
+              value={formatearMonto(totalIncome)}
             />
           </div>
           <div className="space-y-2">
             <Label>Gasto Mensual</Label>
             <Input
-              type="number"
+              type="text"
               readOnly
               className="bg-muted"
-              value={monthlyExpenses}
+              value={formatearMonto(monthlyExpenses)}
             />
           </div>
           <div className="space-y-2">
             <Label>Disponible</Label>
             <Input
-              type="number"
+              type="text"
               readOnly
               className="bg-muted font-bold"
-              value={availableIncome}
+              value={formatearMonto(availableIncome)}
             />
           </div>
         </div>

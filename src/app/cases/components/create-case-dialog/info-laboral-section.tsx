@@ -18,6 +18,7 @@ import type {
   DependentData,
 } from '@/features/case/schemas';
 import { ServiciosManutencionSection } from './servicios-manutencion-section';
+import { MoneyInput } from '@/components/ui/money-input';
 
 export function InfoLaboralSection() {
   const { register, watch, setValue, control } =
@@ -185,46 +186,22 @@ export function InfoLaboralSection() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <Label>Ingreso principal mensual</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('ingresoPrincipalMensual')}
-            />
+            <MoneyInput name="ingresoPrincipalMensual" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Otros ingresos mensuales</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('otrosIngresosMensuales')}
-            />
+            <MoneyInput name="otrosIngresosMensuales" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Ingresos variables (promedio)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('ingresosVariablesPromedio')}
-            />
+            <MoneyInput name="ingresosVariablesPromedio" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Ingresos no operacionales</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('ingresosNoOperacionales')}
-            />
+            <MoneyInput name="ingresosNoOperacionales" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
@@ -247,79 +224,37 @@ export function InfoLaboralSection() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2">
             <Label>Vivienda</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('gastosVivienda')}
-            />
+            <MoneyInput name="gastosVivienda" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Alimentación</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('gastosAlimentacion')}
-            />
+            <MoneyInput name="gastosAlimentacion" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Servicios públicos</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('gastosServiciosPublicos')}
-            />
+            <MoneyInput name="gastosServiciosPublicos" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Transporte</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('gastosTransporte')}
-            />
+            <MoneyInput name="gastosTransporte" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Educación</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('gastosEducacion')}
-            />
+            <MoneyInput name="gastosEducacion" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Salud</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('gastosSalud')}
-            />
+            <MoneyInput name="gastosSalud" placeholder="$0" />
           </div>
 
           <div className="space-y-2">
             <Label>Otros gastos</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min={0}
-              placeholder="$0"
-              {...register('otrosGastos')}
-            />
+            <MoneyInput name="otrosGastos" placeholder="$0" />
           </div>
 
           <div className="space-y-2">

@@ -435,3 +435,81 @@ describe('wizard de creación de casos contra Postgres real', () => {
     ).toBe(0);
   });
 });
+
+describe('separador de miles: el punto no trunca el monto en la base', () => {
+  /**
+   * EL BUG QUE ESTO FIJA, contra Postgres real.
+   *
+   * Los campos de dinero del formulario pasaron a `type="text"` para poder
+   * mostrar `1.500.000` mientras se escribe. Ese texto es lo que viaja al
+   * schema y a la server action, y hasta el 2026-10-11 las dos lo leían con
+   *
+   *     parseFloat(valor.replace(/[^0-9.-]/g, ''))
+   *
+   * que **conserva el punto**: `"30.000.000"` daba `30`. Treinta millones se
+   * habrían guardado como treinta pesos en una columna `Decimal`, y de ahí
+   * salen el Excel de ingresos y gastos y el cálculo de capacidad de pago.
+   *
+   * No alcanza con probar `parsearMonto` en aislamiento: lo que esto verifica
+   * es el camino completo —schema → action → Prisma → Postgres— porque el
+   * parseo vivía en DOS capas y arreglar solo una dejaba el bug vivo.
+   */
+  let casoId = '';
+
+  const CON_PUNTOS = {
+    monthlyIncome: '4.500.000',
+    monthlyExpenses: '2.750.000',
+    debts: [
+      {
+        creditor: 'Banco Separador S.A.',
+        type: 'TARJETA_CREDITO',
+        interestRate: '2.1',
+        capitalAmount: '30.000.000',
+        interestAmount: '1.500.000',
+        creditorCity: 'Bogotá D.C.',
+      },
+    ],
+    assets: [
+      { name: 'Apartamento', type: 'INMUEBLE', value: '180.000.000' },
+    ],
+    suspendedServices: [
+      {
+        creditorName: 'EPM',
+        suspendedProduct: 'Energía',
+        amountOwed: '1.250.000',
+      },
+    ],
+  };
+
+  it('crea el caso con los montos escritos con separador de miles', async () => {
+    const result = await submitWizard(CON_PUNTOS);
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    casoId = result.data!.id;
+    expectedAuditRows += 1;
+  });
+
+  it('Postgres guardó el entero COMPLETO, no el truncado', async () => {
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: casoId },
+      include: { debts: true, assets: true, suspendedServices: true },
+    });
+
+    // Si el bug volviera, estos serían 4.5, 2.75, 30, 1.5, 180 y 1.25.
+    expect(Number(stored.monthlyIncome)).toBe(4_500_000);
+    expect(Number(stored.monthlyExpenses)).toBe(2_750_000);
+    expect(Number(stored.debts[0].capitalAmount)).toBe(30_000_000);
+    expect(Number(stored.debts[0].interestAmount)).toBe(1_500_000);
+    expect(Number(stored.assets[0].value)).toBe(180_000_000);
+    expect(Number(stored.suspendedServices[0].amountOwed)).toBe(1_250_000);
+  });
+
+  it('y el total de deuda derivado tampoco se trunca', async () => {
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: casoId },
+    });
+    // `handleSubmit` calcula totalDebt sumando capital + intereses: si alguno
+    // se hubiera leído truncado, acá se vería.
+    expect(Number(stored.totalDebt)).toBe(31_500_000);
+  });
+});

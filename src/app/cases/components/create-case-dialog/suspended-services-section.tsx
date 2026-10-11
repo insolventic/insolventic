@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
 import type { SuspendedServiceData } from '@/features/case/schemas';
+import { MoneyInput } from '@/components/ui/money-input';
 
 export function SuspendedServicesSection() {
   const form = useFormContext();
@@ -129,12 +130,7 @@ export function SuspendedServicesSection() {
               <Label htmlFor={`suspendedServices.${index}.amountOwed`}>
                 Suma Adeudada
               </Label>
-              <Input
-                id={`suspendedServices.${index}.amountOwed`}
-                type="number"
-                step="0.01"
-                {...form.register(`suspendedServices.${index}.amountOwed`)}
-              />
+              <MoneyInput name={`suspendedServices.${index}.amountOwed`} control={form.control} id={`suspendedServices.${index}.amountOwed`} />
             </div>
           </div>
         </div>

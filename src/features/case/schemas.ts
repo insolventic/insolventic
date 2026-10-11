@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { CASE_PHASE_VALUES } from '@/lib/case-phases';
 import { requiresOtherDetail } from '@/features/case/proceso-judicial-tipos';
+import { parsearMonto } from './monto';
 
 /**
  * Fase del expediente restringida a las fases conocidas (C-1).
@@ -21,6 +22,47 @@ const decimalToNumber = z.any().transform((val) => {
   }
   return Number(val);
 });
+
+/**
+ * Un monto de dinero escrito en el formulario.
+ *
+ * REEMPLAZA 54 COPIAS de esta unión, que tenía un bug alcanzable desde la UI:
+ *
+ *     z.union([
+ *       z.number().min(0).optional(),
+ *       z.string().transform((v) =>
+ *         v ? parseFloat(v.replace(/[^0-9.-]/g, '')) : undefined).optional(),
+ *     ]).optional()
+ *
+ * Dos problemas, los dos arreglados acá:
+ *
+ *  1. **El strip conservaba el punto**, así que `"1.500.000"` daba `1.5`. Con
+ *     separador de miles en la UI eso dejaba de ser teórico. El parseo vive
+ *     ahora en `parsearMonto` (ver su docblock para la regla punto/coma).
+ *  2. **El `.min(0)` solo valía para la rama numérica.** Como 23 de los 26
+ *     campos de dinero llegan como string, en la práctica no tenían mínimo
+ *     ninguno: un `-500` entraba sin chistar. Y la salida del `.transform()`
+ *     no se re-validaba, así que un `NaN` también pasaba. Acá se valida
+ *     **después** de parsear, con `pipe`, así que el mínimo y el rechazo de
+ *     `NaN` aplican a los 26 por igual.
+ *
+ * `montoOpcional()` para los campos que pueden quedar vacíos; `montoRequerido`
+ * para los que no.
+ */
+const entradaDeMonto = z.union([
+  z.string(),
+  z.number(),
+  z.null(),
+  z.undefined(),
+]);
+
+export const montoOpcional = () =>
+  entradaDeMonto.transform(parsearMonto).pipe(z.number().min(0).optional());
+
+export const montoRequerido = (mensaje: string) =>
+  entradaDeMonto
+    .transform(parsearMonto)
+    .pipe(z.number({ message: mensaje }).min(0, mensaje));
 
 // ---------------------------------------------------------------------------
 // Conciliation repeatable-row sub-schemas (JSON arrays stored in Prisma Json?)
@@ -877,13 +919,7 @@ export const createCaseSchema = z.object({
   type: z.enum(['INSOLVENCY', 'CONCILIATION', 'SUPPORT_AGREEMENT'], {
     message: 'Tipo de caso inválido',
   }),
-  totalDebt: z.union([
-    z.number().min(0, 'La deuda total debe ser mayor a 0'),
-    z
-      .string()
-      .min(1, 'La deuda total es requerida')
-      .transform((val) => parseFloat(val.replace(/[^0-9.-]/g, ''))),
-  ]),
+  totalDebt: montoRequerido('La deuda total es requerida'),
   creditors: z.union([
     z.number().min(0, 'El número de acreedores debe ser mayor o igual a 0'),
     z.string().transform((val) => parseInt(val) || 0),
@@ -900,17 +936,7 @@ export const createCaseSchema = z.object({
   debtorIdNumber: z.string().optional(),
   convened: z.string().optional(),
   attorney: z.string().optional(),
-  owedCapital: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  owedCapital: montoOpcional(),
   designatedOperator: z.string().optional(),
   designationDate: z.string().optional(),
   positionAcceptanceDate: z.string().optional(),
@@ -935,40 +961,10 @@ export const createCaseSchema = z.object({
   applicantScope: z.array(z.string()).default([]),
 
   // Ingresos y Gastos
-  monthlyIncome: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  monthlyExpenses: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  monthlyIncome: montoOpcional(),
+  monthlyExpenses: montoOpcional(),
   otherIncomeDescription: z.string().optional(),
-  otherIncomeAmount: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  otherIncomeAmount: montoOpcional(),
   hasEmployerCertification: z.boolean().default(false),
 
   // Propuesta de Pago
@@ -980,42 +976,12 @@ export const createCaseSchema = z.object({
   assetSaleDescription: z.string().optional(),
   cashFlowPayment: z.boolean().default(false),
   paymentTermMonths: z.number().optional(),
-  monthlyPaymentAmount: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  variablePayment: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  monthlyPaymentAmount: montoOpcional(),
+  variablePayment: montoOpcional(),
   extraordinaryPayment: z.boolean().default(false),
   extraordinaryPaymentDate: z.string().optional(),
   capitalReduction: z.boolean().default(false),
-  capitalReductionPercent: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  capitalReductionPercent: montoOpcional(),
   insuranceOffering: z.string().optional(),
   forgiveAccruedInterest: z.boolean().default(false),
   forgiveFutureInterest: z.boolean().default(false),
@@ -1064,6 +1030,10 @@ export const createCaseSchema = z.object({
   // Post-Acuerdo - Fechas y datos de resultado
   paymentStartDate: z.string().optional(),
   agreementValidityDate: z.string().optional(),
+  // NO usa `montoOpcional`: es un PORCENTAJE, no dinero. Su input sigue siendo
+  // `type="number"` y no lleva separador de miles, así que el punto nunca es
+  // ambiguo acá — "12.5" es doce y medio por ciento y se lee bien. Además
+  // necesita el `.max(100)`, que un monto no tiene.
   approvalPercentage: z
     .union([
       z.number().min(0).max(100).optional(),
@@ -1108,185 +1078,25 @@ export const createCaseSchema = z.object({
   deudorTipoVinculacion: z.string().optional(),
   deudorNombreEmpleador: z.string().optional(),
   deudorNitEmpleador: z.string().optional(),
-  ingresoPrincipalMensual: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  otrosIngresosMensuales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  totalIngresosMensuales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  ingresosVariablesPromedio: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  ingresosNoOperacionales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosVivienda: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosAlimentacion: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  ingresoPrincipalMensual: montoOpcional(),
+  otrosIngresosMensuales: montoOpcional(),
+  totalIngresosMensuales: montoOpcional(),
+  ingresosVariablesPromedio: montoOpcional(),
+  ingresosNoOperacionales: montoOpcional(),
+  gastosVivienda: montoOpcional(),
+  gastosAlimentacion: montoOpcional(),
   // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
   // Solo lo ve el operador: no se lleva a los documentos generados.
   serviciosManutencion: z.array(servicioManutencionSchema).optional(),
-  gastosServiciosPublicos: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosTransporte: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosEducacion: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosSalud: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  otrosGastos: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  totalGastosMensuales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  capacidadPagoEstimada: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  patrimonioTotalEstimado: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  pasivoTotalEstimado: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  gastosServiciosPublicos: montoOpcional(),
+  gastosTransporte: montoOpcional(),
+  gastosEducacion: montoOpcional(),
+  gastosSalud: montoOpcional(),
+  otrosGastos: montoOpcional(),
+  totalGastosMensuales: montoOpcional(),
+  capacidadPagoEstimada: montoOpcional(),
+  patrimonioTotalEstimado: montoOpcional(),
+  pasivoTotalEstimado: montoOpcional(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IV: Declaración de Cesación de Pagos
@@ -1294,17 +1104,7 @@ export const createCaseSchema = z.object({
   cesacionPagos: z.boolean().optional(),
   fechaCesacionPagos: z.string().optional(),
   numeroAcreedoresActual: z.number().optional(),
-  porcentajePasivoEnMora: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  porcentajePasivoEnMora: montoOpcional(),
   obligacionesEnMora90Dias: z.boolean().optional(),
   procesosEjecutivosVigentes: z.boolean().optional(),
 
@@ -1417,28 +1217,8 @@ export const createCaseSchema = z.object({
   // ============================================================
   propuestaPlazoMeses: z.number().optional(),
   propuestaPeriodicidadPago: z.string().optional(),
-  propuestaTasaInteres: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  propuestaQuitaPromedio: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  propuestaTasaInteres: montoOpcional(),
+  propuestaQuitaPromedio: montoOpcional(),
   propuestaFechaInicioPago: z.string().optional(),
   propuestaObservaciones: z.string().optional(),
 
@@ -1536,15 +1316,7 @@ export const updateCaseSchema = z.object({
       message: 'Tipo de caso inválido',
     })
     .optional(),
-  totalDebt: z
-    .union([
-      z.number().min(0, 'La deuda total debe ser mayor a 0'),
-      z
-        .string()
-        .min(1, 'La deuda total es requerida')
-        .transform((val) => parseFloat(val.replace(/[^0-9.-]/g, ''))),
-    ])
-    .optional(),
+  totalDebt: montoOpcional(),
   creditors: z
     .union([
       z.number().min(1, 'Debe haber al menos un acreedor'),
@@ -1566,17 +1338,7 @@ export const updateCaseSchema = z.object({
   debtorIdNumber: z.string().optional(),
   convened: z.string().optional(),
   attorney: z.string().optional(),
-  owedCapital: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  owedCapital: montoOpcional(),
   designatedOperator: z.string().optional(),
   designationDate: z.string().optional(),
   positionAcceptanceDate: z.string().optional(),
@@ -1601,40 +1363,10 @@ export const updateCaseSchema = z.object({
   applicantScope: z.array(z.string()).optional(),
 
   // Ingresos y Gastos
-  monthlyIncome: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  monthlyExpenses: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  monthlyIncome: montoOpcional(),
+  monthlyExpenses: montoOpcional(),
   otherIncomeDescription: z.string().optional(),
-  otherIncomeAmount: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  otherIncomeAmount: montoOpcional(),
   hasEmployerCertification: z.boolean().optional(),
 
   // Propuesta de Pago
@@ -1646,42 +1378,12 @@ export const updateCaseSchema = z.object({
   assetSaleDescription: z.string().optional(),
   cashFlowPayment: z.boolean().optional(),
   paymentTermMonths: z.number().optional(),
-  monthlyPaymentAmount: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  variablePayment: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  monthlyPaymentAmount: montoOpcional(),
+  variablePayment: montoOpcional(),
   extraordinaryPayment: z.boolean().optional(),
   extraordinaryPaymentDate: z.string().optional(),
   capitalReduction: z.boolean().optional(),
-  capitalReductionPercent: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  capitalReductionPercent: montoOpcional(),
   insuranceOffering: z.string().optional(),
   forgiveAccruedInterest: z.boolean().optional(),
   forgiveFutureInterest: z.boolean().optional(),
@@ -1730,6 +1432,10 @@ export const updateCaseSchema = z.object({
   // Post-Acuerdo - Fechas y datos de resultado
   paymentStartDate: z.string().optional(),
   agreementValidityDate: z.string().optional(),
+  // NO usa `montoOpcional`: es un PORCENTAJE, no dinero. Su input sigue siendo
+  // `type="number"` y no lleva separador de miles, así que el punto nunca es
+  // ambiguo acá — "12.5" es doce y medio por ciento y se lee bien. Además
+  // necesita el `.max(100)`, que un monto no tiene.
   approvalPercentage: z
     .union([
       z.number().min(0).max(100).optional(),
@@ -1774,185 +1480,25 @@ export const updateCaseSchema = z.object({
   deudorTipoVinculacion: z.string().optional(),
   deudorNombreEmpleador: z.string().optional(),
   deudorNitEmpleador: z.string().optional(),
-  ingresoPrincipalMensual: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  otrosIngresosMensuales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  totalIngresosMensuales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  ingresosVariablesPromedio: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  ingresosNoOperacionales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosVivienda: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosAlimentacion: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  ingresoPrincipalMensual: montoOpcional(),
+  otrosIngresosMensuales: montoOpcional(),
+  totalIngresosMensuales: montoOpcional(),
+  ingresosVariablesPromedio: montoOpcional(),
+  ingresosNoOperacionales: montoOpcional(),
+  gastosVivienda: montoOpcional(),
+  gastosAlimentacion: montoOpcional(),
   // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
   // Solo lo ve el operador: no se lleva a los documentos generados.
   serviciosManutencion: z.array(servicioManutencionSchema).optional(),
-  gastosServiciosPublicos: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosTransporte: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosEducacion: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  gastosSalud: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  otrosGastos: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  totalGastosMensuales: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  capacidadPagoEstimada: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  patrimonioTotalEstimado: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  pasivoTotalEstimado: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  gastosServiciosPublicos: montoOpcional(),
+  gastosTransporte: montoOpcional(),
+  gastosEducacion: montoOpcional(),
+  gastosSalud: montoOpcional(),
+  otrosGastos: montoOpcional(),
+  totalGastosMensuales: montoOpcional(),
+  capacidadPagoEstimada: montoOpcional(),
+  patrimonioTotalEstimado: montoOpcional(),
+  pasivoTotalEstimado: montoOpcional(),
 
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IV: Declaración de Cesación de Pagos
@@ -1960,17 +1506,7 @@ export const updateCaseSchema = z.object({
   cesacionPagos: z.boolean().optional(),
   fechaCesacionPagos: z.string().optional(),
   numeroAcreedoresActual: z.number().optional(),
-  porcentajePasivoEnMora: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  porcentajePasivoEnMora: montoOpcional(),
   obligacionesEnMora90Dias: z.boolean().optional(),
   procesosEjecutivosVigentes: z.boolean().optional(),
 
@@ -2083,28 +1619,8 @@ export const updateCaseSchema = z.object({
   // ============================================================
   propuestaPlazoMeses: z.number().optional(),
   propuestaPeriodicidadPago: z.string().optional(),
-  propuestaTasaInteres: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
-  propuestaQuitaPromedio: z
-    .union([
-      z.number().min(0).optional(),
-      z
-        .string()
-        .transform((val) =>
-          val ? parseFloat(val.replace(/[^0-9.-]/g, '')) : undefined,
-        )
-        .optional(),
-    ])
-    .optional(),
+  propuestaTasaInteres: montoOpcional(),
+  propuestaQuitaPromedio: montoOpcional(),
   propuestaFechaInicioPago: z.string().optional(),
   propuestaObservaciones: z.string().optional(),
 

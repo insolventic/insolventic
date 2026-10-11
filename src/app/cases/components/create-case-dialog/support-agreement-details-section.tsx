@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { MoneyInput } from '@/components/ui/money-input';
 
 const TIPO_APOYO_OPTIONS = [
   'Apoyo económico mensual',
@@ -122,12 +123,7 @@ export function SupportAgreementDetailsSection() {
           </div>
           <div>
             <Label>Monto mensual (COP)</Label>
-            <Input
-              {...register('apoyoMontoMensual')}
-              placeholder="Ej: 500000"
-              type="number"
-              min="0"
-            />
+            <MoneyInput name="apoyoMontoMensual" placeholder="Ej: 500000" />
           </div>
           <div>
             <Label>Plazo (meses)</Label>

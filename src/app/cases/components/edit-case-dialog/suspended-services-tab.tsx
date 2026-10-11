@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   Card,
   CardContent,
@@ -263,13 +264,7 @@ export function SuspendedServicesTab({
                 <Label htmlFor="amountOwed">
                   Suma Adeudada <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  id="amountOwed"
-                  type="number"
-                  step="0.01"
-                  {...newServiceForm.register('amountOwed')}
-                  placeholder="0.00"
-                />
+                <MoneyInput name="amountOwed" control={newServiceForm.control} id="amountOwed" placeholder="0.00" />
                 {newServiceForm.formState.errors.amountOwed && (
                   <p className="text-destructive text-sm">
                     {newServiceForm.formState.errors.amountOwed.message}
