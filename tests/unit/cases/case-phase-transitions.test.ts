@@ -256,6 +256,10 @@ describe('getPackageForPhase — mapa de paquetes por fase (Fase 2 paso 1)', () 
 describe('updateCasePhase — server action (C-1)', () => {
   beforeEach(() => {
     resetAllMocks();
+    // GC-M2: `createCase`/`updateCase` ahora verifican que el operador asignado
+    // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
+    // pertenece a este centro" y lo que falla es la fixture, no el codigo.
+    mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
     authAsAdmin();
@@ -378,6 +382,10 @@ describe('updateCasePhase — server action (C-1)', () => {
 describe('updateCasePhase — subtipo y fecha obligatorios (Fase 2 paso 3)', () => {
   beforeEach(() => {
     resetAllMocks();
+    // GC-M2: `createCase`/`updateCase` ahora verifican que el operador asignado
+    // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
+    // pertenece a este centro" y lo que falla es la fixture, no el codigo.
+    mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
     authAsAdmin();
@@ -567,6 +575,10 @@ describe('updateCasePhase — subtipo y fecha obligatorios (Fase 2 paso 3)', () 
 describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.3)', () => {
   beforeEach(() => {
     resetAllMocks();
+    // GC-M2: `createCase`/`updateCase` ahora verifican que el operador asignado
+    // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
+    // pertenece a este centro" y lo que falla es la fixture, no el codigo.
+    mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
     authAsAdmin();
@@ -695,6 +707,10 @@ describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.
 describe('updateCase — la puerta trasera de la máquina de estados (C-1)', () => {
   beforeEach(() => {
     resetAllMocks();
+    // GC-M2: `createCase`/`updateCase` ahora verifican que el operador asignado
+    // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
+    // pertenece a este centro" y lo que falla es la fixture, no el codigo.
+    mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
     authAsAdmin();

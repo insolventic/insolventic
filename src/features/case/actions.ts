@@ -26,6 +26,7 @@ import { filasApoderadoDesdeFormulario } from './apoderado-acreedor';
 import {
   assertCaseAccess,
   assertCaseAccessOnRow,
+  assertOperatorInTenant,
   findParentCaseId,
 } from './case-access';
 // GC-M4: el audit log de `updateCase` decia solo "Se ha actualizado el caso X".
@@ -348,6 +349,13 @@ export async function createCase(
     }
 
     const validatedInput = createCaseFormSchema.parse(input);
+
+    // GC-M2 — el operador se escribia con un `connect` a secas, y el `connect`
+    // de Prisma solo exige que el id exista: bastaba mandar el id de un usuario
+    // del OTRO centro para dejarle un expediente asignado. El deudor si se
+    // validaba (mas abajo); el operador no.
+    await assertOperatorInTenant(validatedInput.operatorId, tenantId);
+
     const {
       debtorId,
       hearingDate,
@@ -874,6 +882,12 @@ export async function updateCase(
       user,
       tenantId,
     });
+
+    // GC-M2 — solo cuando el payload lo trae: `operatorId` es opcional en la
+    // edición y `pre-generation-form` manda ediciones sin él.
+    if (validatedInput.operatorId) {
+      await assertOperatorInTenant(validatedInput.operatorId, tenantId);
+    }
 
     const {
       id,

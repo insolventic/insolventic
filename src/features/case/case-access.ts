@@ -235,6 +235,41 @@ export async function assertCaseAccess(params: {
 }
 
 /**
+ * GC-M2 — el operador asignado tiene que ser un usuario de ESTE centro.
+ *
+ * `operatorId` y `debtorId` llegaban del cliente validados solo como
+ * `z.string()`. El deudor sí se comprobaba contra la base
+ * (`prisma.debtor.findUnique({ where: { id, tenantId } })`); el operador **no**:
+ * se escribía con un `operator: { connect: { id: operatorId } }` a secas, y
+ * como el `connect` de Prisma solo exige que el id exista, bastaba mandar el id
+ * de un usuario del OTRO centro para dejarle un expediente asignado.
+ *
+ * Qué califica como operador asignable está definido por
+ * `getAssignableOperators`: cualquier usuario del tenant. Esta función es su
+ * contraparte en el servidor — el `<select>` ofrece solo los del centro, y esto
+ * es lo que lo hace exigible cuando la action se invoca sin pasar por él.
+ *
+ * Lanza un `Error` normal (no `CaseAccessError`): no es un problema de
+ * visibilidad del usuario que llama, es un payload inválido, y el `catch` de
+ * cada action lo convierte en `{ success: false, error }`.
+ */
+export async function assertOperatorInTenant(
+  operatorId: string,
+  tenantId: string,
+): Promise<void> {
+  const operador = await prisma.user.findFirst({
+    where: { id: operatorId, tenantId },
+    select: { id: true },
+  });
+
+  if (!operador) {
+    throw new Error(
+      'El operador asignado no pertenece a este centro de conciliación.',
+    );
+  }
+}
+
+/**
  * Las sub-entidades de un expediente que se borran por su propio id.
  *
  * Las seis `remove*FromCase` reciben el id de la fila hija, no el del
