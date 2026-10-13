@@ -49,6 +49,20 @@ export const RATE_LIMIT_CONFIGS = {
   documentGeneration: { windowMs: 5 * 60 * 1000, maxAttempts: 10 },
   batchDocumentGeneration: { windowMs: 10 * 60 * 1000, maxAttempts: 5 },
   reportExport: { windowMs: 5 * 60 * 1000, maxAttempts: 8 },
+  /**
+   * GC-B2 — `createCase` no tenía límite, y es de las acciones más caras del
+   * sistema: dispara la generación inicial de documentos vía `after()`, que
+   * lanza Chromium. Un doble click, un reintento automático del cliente o un
+   * bucle dejan N×Chromium corriendo contra el mismo presupuesto de ejecución
+   * de la función.
+   *
+   * 10 en 10 minutos POR USUARIO. El número es un juicio, no una medida: la
+   * carga normal de un centro es de unos pocos expedientes al día, y 10 deja
+   * margen para una jornada de carga de atrasos sin estorbar. Es más holgado
+   * que `batchDocumentGeneration` (5) porque crear un caso genera 5 documentos
+   * y un lote manual puede generar 49.
+   */
+  caseCreation: { windowMs: 10 * 60 * 1000, maxAttempts: 10 },
 } as const;
 
 // ===========================================================================

@@ -13,6 +13,13 @@ import {
   isValidDesistimientoSubtype,
 } from '@/lib/case-phases';
 import { logger } from '@/lib/logger';
+// GC-B2: createCase no tenia rate limit, y dispara la generacion de 5 PDFs con
+// Chromium por invocacion via after().
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limit';
 // Las fechas del formulario llegan como "YYYY-MM-DD" (<input type="date">), que
 // `new Date()` ancla a medianoche UTC y por tanto se imprimen un día antes en
 // hora de Colombia. `parseDateOnly` las ancla al mediodía UTC.
@@ -346,6 +353,18 @@ export async function createCase(
     const hasPermission = user.permissions.includes(P.CREAR_CASOS);
     if (!hasPermission) {
       return { success: false, error: 'No tienes permisos para crear casos' };
+    }
+
+    // GC-B2 — por usuario, y DESPUES del check de permiso: no se gasta cupo de
+    // la ventana en alguien que de todos modos no puede crear casos. Mismo
+    // orden que `batchGenerateDocuments`.
+    const rlKey = getRateLimitKey('caseCreation', user.id);
+    const rl = await checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.caseCreation);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        error: `Demasiadas creaciones de casos seguidas. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
+      };
     }
 
     const validatedInput = createCaseFormSchema.parse(input);
