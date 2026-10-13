@@ -269,8 +269,18 @@ describe('Case Actions — src/features/case/actions.ts', () => {
         tenantId: TENANT.id,
       });
 
-      // Mock finding the case first
-      mockPrisma.case.findUnique.mockResolvedValue(CASE_DATA);
+      // Dos lecturas: el guard de acceso (GC-A1) y el snapshot previo al
+      // borrado (GC-M6).
+      mockPrisma.case.findUnique
+        .mockResolvedValueOnce(CASE_DATA)
+        .mockResolvedValueOnce({
+          caseNumber: CASE_DATA.caseNumber,
+          debtorName: CASE_DATA.debtorName,
+          type: CASE_DATA.type,
+          phase: CASE_DATA.phase,
+          driveFolderId: null,
+          _count: { documents: 0, debts: 0, assets: 0, dependents: 0 },
+        });
 
       // Mock transaction
       const deletedCase = { ...CASE_DATA, debtorName: 'Test' };
@@ -287,7 +297,12 @@ describe('Case Actions — src/features/case/actions.ts', () => {
         });
       });
 
-      await deleteCase({ id: 'case-test-id' });
+      // GC-M6: la confirmación escrita es obligatoria y se verifica contra el
+      // número que tiene la base.
+      await deleteCase({
+        id: 'case-test-id',
+        confirmCaseNumber: CASE_DATA.caseNumber,
+      });
 
       // Transaction should be called (cascading delete)
       expect(mockPrisma.$transaction).toHaveBeenCalled();
@@ -304,7 +319,10 @@ describe('Case Actions — src/features/case/actions.ts', () => {
         tenantId: TENANT.id,
       });
 
-      const result = await deleteCase({ id: 'case-test-id' });
+      const result = await deleteCase({
+        id: 'case-test-id',
+        confirmCaseNumber: CASE_DATA.caseNumber,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('permisos');

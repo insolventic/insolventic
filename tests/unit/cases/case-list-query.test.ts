@@ -207,11 +207,22 @@ describe('deleteCase — lectura acotada + visibilidad por fila', () => {
     // `assertCaseAccess`. La intención original de este test —no traer la fila
     // de 265 columnas para comprobar existencia— se conserva intacta: siguen
     // siendo tres columnas y no la fila. Lo que cambió es cuáles.
-    mockPrisma.case.findUnique.mockResolvedValue({
-      id: 'case-1',
-      operatorId: ADMIN_USER.id,
-      debtorId: 'debtor-1',
-    });
+    // Dos lecturas: la del guard (GC-A1) y el snapshot previo al borrado
+    // (GC-M6). El assert de más abajo es sobre la PRIMERA.
+    mockPrisma.case.findUnique
+      .mockResolvedValueOnce({
+        id: 'case-1',
+        operatorId: ADMIN_USER.id,
+        debtorId: 'debtor-1',
+      })
+      .mockResolvedValueOnce({
+        caseNumber: 'CASO-000001',
+        debtorName: 'Test',
+        type: 'INSOLVENCY',
+        phase: 'Inicial',
+        driveFolderId: null,
+        _count: { documents: 0, debts: 0, assets: 0, dependents: 0 },
+      });
     mockPrisma.$transaction.mockImplementation(async (fn: Function) =>
       fn({
         document: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
@@ -231,7 +242,10 @@ describe('deleteCase — lectura acotada + visibilidad por fila', () => {
       }),
     );
 
-    const result = await deleteCase({ id: 'case-1' });
+    const result = await deleteCase({
+      id: 'case-1',
+      confirmCaseNumber: 'CASO-000001',
+    });
 
     expect(result.success).toBe(true);
     expect(mockPrisma.case.findUnique).toHaveBeenCalledWith(
@@ -247,7 +261,10 @@ describe('deleteCase — lectura acotada + visibilidad por fila', () => {
     asAdmin();
     mockPrisma.case.findUnique.mockResolvedValue(null);
 
-    const result = await deleteCase({ id: 'no-existe' });
+    const result = await deleteCase({
+      id: 'no-existe',
+      confirmCaseNumber: 'CASO-000001',
+    });
 
     expect(result.success).toBe(false);
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();

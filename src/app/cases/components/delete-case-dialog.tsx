@@ -1,10 +1,12 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogClose,
@@ -33,14 +35,36 @@ export function DeleteCaseDialog({
 }: Readonly<DeleteCaseDialogProps>) {
   const [isPending, startTransition] = useTransition();
 
+  // GC-M6: confirmación escrita. El borrado es físico, en cascada e
+  // irreversible, así que no alcanza con un botón "Eliminar": hay que teclear
+  // el número del caso. La comprobación de verdad la hace el servidor
+  // (`deleteCaseSchema` + `deleteCase`); esto es la fricción que evita el
+  // click por inercia, y el motivo por el que el botón arranca deshabilitado.
+  const [confirmacion, setConfirmacion] = useState('');
+
+  // Reabrir el diálogo (o abrirlo sobre otro caso) tiene que empezar en
+  // blanco: si el texto sobreviviera, el botón aparecería ya habilitado y la
+  // fricción no existiría.
+  useEffect(() => {
+    if (!open) setConfirmacion('');
+  }, [open]);
+
+  const confirmacionCorrecta = confirmacion.trim() === caseData.caseNumber;
+
   const handleDelete = () => {
+    if (!confirmacionCorrecta) return;
+
     startTransition(async () => {
-      const { success, error } = await deleteCase({ id: caseData.id });
+      const { success, error } = await deleteCase({
+        id: caseData.id,
+        confirmCaseNumber: confirmacion.trim(),
+      });
 
       if (success) {
         toast.success('Caso eliminado exitosamente', {
           description: `El caso ${caseData.caseNumber} ha sido eliminado correctamente`,
         });
+        setConfirmacion('');
         onOpenChange(false);
         onCaseDeleted?.();
       } else {
@@ -110,6 +134,34 @@ export function DeleteCaseDialog({
               permanentemente.
             </p>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmar-numero-caso">
+              Para confirmar, escriba el número del caso:{' '}
+              <span className="font-mono font-semibold">
+                {caseData.caseNumber}
+              </span>
+            </Label>
+            <Input
+              id="confirmar-numero-caso"
+              value={confirmacion}
+              onChange={(e) => setConfirmacion(e.target.value)}
+              placeholder={caseData.caseNumber}
+              autoComplete="off"
+              disabled={isPending}
+              aria-describedby="confirmar-numero-caso-ayuda"
+            />
+            <p
+              id="confirmar-numero-caso-ayuda"
+              className="text-muted-foreground text-xs"
+            >
+              {confirmacion.trim() === ''
+                ? 'El botón de eliminar se habilita cuando el número coincida.'
+                : confirmacionCorrecta
+                  ? 'El número coincide.'
+                  : 'El número no coincide todavía.'}
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
@@ -121,7 +173,7 @@ export function DeleteCaseDialog({
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={isPending}
+            disabled={isPending || !confirmacionCorrecta}
           >
             {isPending ? (
               <>

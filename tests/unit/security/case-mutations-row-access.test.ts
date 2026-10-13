@@ -118,7 +118,13 @@ describe('mutaciones de expediente — visibilidad por fila (GC-A1)', () => {
   it('deleteCase rechaza un expediente ajeno y no borra nada', async () => {
     mockPrisma.case.findUnique.mockResolvedValue(CASE_AJENO);
 
-    const result = await deleteCase({ id: CASE_AJENO.id });
+    // GC-M6: `confirmCaseNumber` ahora es obligatorio. Se manda CORRECTO a
+    // propósito, para que lo que falle sea el control de acceso y no el
+    // schema: si no, este test dejaría de probar GC-A1.
+    const result = await deleteCase({
+      id: CASE_AJENO.id,
+      confirmCaseNumber: CASE_AJENO.caseNumber,
+    });
 
     expect(result.success).toBe(false);
     expect(result.error).toMatch(SIN_PERMISOS);

@@ -2178,12 +2178,96 @@ export async function deleteCase(
     }
 
     const validatedInput = deleteCaseSchema.parse(input);
-    const { id } = validatedInput;
+    const { id, confirmCaseNumber } = validatedInput;
 
     // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí.
     // En un borrado físico e irreversible la visibilidad por fila importa más
     // que en cualquier otra mutación.
     await assertCaseAccess({ caseId: id, user, tenantId });
+
+    // ---------------------------------------------------------------------
+    // GC-M6 — mitigación interina mientras no exista el soft-delete.
+    //
+    // El borrado sigue siendo físico y en cascada (el soft-delete es Fase 3
+    // del roadmap, ~20 h, y toca el schema). Lo que se añade acá son las tres
+    // cosas que se pueden hacer sin tocar el schema:
+    //
+    //   1. La confirmación escrita, verificada CONTRA LA BASE (no contra lo
+    //      que mandó el cliente): el número tiene que ser el del expediente
+    //      que se va a borrar.
+    //   2. El audit log ANTES de borrar, con un snapshot de lo que se pierde.
+    //   3. El conteo de lo que se va en cascada, para que quede registrado
+    //      cuánto se destruyó.
+    // ---------------------------------------------------------------------
+    const snapshot = await prisma.case.findUnique({
+      where: { id, tenantId },
+      select: {
+        caseNumber: true,
+        debtorName: true,
+        type: true,
+        phase: true,
+        driveFolderId: true,
+        _count: {
+          select: {
+            documents: true,
+            debts: true,
+            assets: true,
+            dependents: true,
+          },
+        },
+      },
+    });
+
+    if (!snapshot) {
+      return { success: false, error: 'Caso no encontrado' };
+    }
+
+    // La comparación es contra `snapshot.caseNumber`, el valor de la base.
+    // Comparar contra otro campo del mismo payload del cliente no confirmaría
+    // nada: el cliente controla los dos lados.
+    if (confirmCaseNumber.trim() !== snapshot.caseNumber) {
+      return {
+        success: false,
+        error: `El número del caso no coincide. Escriba exactamente "${snapshot.caseNumber}" para confirmar la eliminación.`,
+      };
+    }
+
+    // El audit log va ANTES del borrado y se ESPERA. Si se escribiera después
+    // y fallara, quedaría un expediente legal destruido sin ningún registro de
+    // quién lo hizo; y si se dispara sin `await` (como estaba), el proceso
+    // serverless puede terminar antes de que la fila llegue a la base.
+    //
+    // El snapshot es deliberadamente NO SENSIBLE: número, fase, tipo y
+    // conteos. Nada de cédula, ingresos, dependientes ni acreedores — el
+    // audit log no es el lugar para conservar los datos personales de un
+    // expediente que se está borrando, justamente bajo la Ley 1581.
+    await createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: id,
+      entityName: `${snapshot.caseNumber} - ${snapshot.debtorName}`,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: {
+        caseNumber: snapshot.caseNumber,
+        type: snapshot.type,
+        phase: snapshot.phase,
+        documentCount: snapshot._count.documents,
+        debtCount: snapshot._count.debts,
+        assetCount: snapshot._count.assets,
+        dependentCount: snapshot._count.dependents,
+        // GC-M6 pendiente: la carpeta NO se borra ni se archiva en Drive. Los
+        // PDFs con datos personales quedan huérfanos allí. Se registra el id
+        // para que una limpieza posterior sepa qué buscar.
+        driveFolderId: snapshot.driveFolderId,
+        driveFolderDeleted: false,
+        confirmedByTypingCaseNumber: true,
+      },
+    });
 
     // Delete the case and all related records in a transaction
     // Models without onDelete:Cascade must be deleted manually first
@@ -2226,18 +2310,9 @@ export async function deleteCase(
       },
     );
 
-    createAuditLog({
-      action: 'deleted',
-      entityType: 'case',
-      entityId: id,
-      entityName: `${deletedCase.caseNumber} - ${deletedCase.debtorName}`,
-      actor: {
-        userId: user.id,
-        userName: user.name,
-        userCedula: user.professionalCard,
-      },
-      tenantId,
-    });
+    // GC-M6: el audit log de este borrado ya quedó escrito ARRIBA, antes de
+    // destruir la fila y con el snapshot de lo que se perdía. No se duplica
+    // acá: un segundo registro del mismo evento ensucia el histórico.
 
     const result = caseSummarySchema.parse(deletedCase);
     return { success: true, data: result };
