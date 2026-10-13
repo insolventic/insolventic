@@ -19,6 +19,15 @@ import { logger } from '@/lib/logger';
 import { parseDateOnly } from '@/lib/date-colombia';
 import { parseTasaInteres, parseFechaCredito } from './datos-desconocidos';
 import { filasApoderadoDesdeFormulario } from './apoderado-acreedor';
+// GC-A1: el permiso (`EDITAR_CASOS`) dice QUÉ puede hacer el rol; esto dice
+// SOBRE CUÁL expediente. Antes solo se filtraba por `tenantId`, así que un rol
+// con `Ver casos propios` podía mutar cualquier expediente del centro pasando
+// el id directo a la action.
+import {
+  assertCaseAccess,
+  assertCaseAccessOnRow,
+  findParentCaseId,
+} from './case-access';
 import {
   validateCaseBusinessRules,
   formatValidationErrors,
@@ -849,6 +858,15 @@ export async function updateCase(
     }
 
     const validatedInput = updateCaseSchema.parse(input);
+
+    // GC-A1 — visibilidad por fila antes de tocar nada. Va aquí y no dentro de
+    // la transacción a propósito: un acceso denegado no debe abrir transacción.
+    await assertCaseAccess({
+      caseId: validatedInput.id,
+      user,
+      tenantId,
+    });
+
     const {
       id,
       debtorId,
@@ -1074,17 +1092,11 @@ export async function addDebtToCase(
       coDebtorEmail,
     } = validatedInput;
 
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { debtorId: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant), añade la
+    // visibilidad por fila y devuelve el `debtorId` que la deuda necesita, así
+    // que son dos comprobaciones en una sola consulta.
+    const caseData = await assertCaseAccess({ caseId, user, tenantId });
 
     // Mismo tratamiento que en la creacion del caso: la UI de edicion todavia
     // no ofrece las casillas "Desconozco", pero la action acepta el literal y
@@ -1212,6 +1224,16 @@ export async function removeDebtFromCase(
     const validatedInput = removeDebtFromCaseSchema.parse(input);
     const { debtId } = validatedInput;
 
+    // GC-A1 — esta action recibe un `debtId`, no un `caseId`, así que primero
+    // hay que subir al expediente padre. Sin esto el único filtro era
+    // `tenantId`: cualquier rol con `EDITAR_CASOS` podía borrar la deuda de un
+    // expediente que no le corresponde.
+    const parentCaseId = await findParentCaseId('debt', debtId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Deuda no encontrada' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedDebt = await prisma.debt.delete({
       where: {
         id: debtId,
@@ -1308,18 +1330,10 @@ export async function addLibranzaToCase(
       productAndCreditor,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const libranza = await prisma.libranza.create({
       data: {
@@ -1389,6 +1403,14 @@ export async function removeLibranzaFromCase(
 
     const validatedInput = removeLibranzaFromCaseSchema.parse(input);
     const { libranzaId } = validatedInput;
+
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('libranza', libranzaId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Libranza no encontrada' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
 
     const deletedLibranza = await prisma.libranza.delete({
       where: {
@@ -1461,18 +1483,10 @@ export async function addSuspendedServiceToCase(
       serviceType,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const suspendedService = await prisma.suspendedService.create({
       data: {
@@ -1545,6 +1559,14 @@ export async function removeSuspendedServiceFromCase(
 
     const validatedInput = removeSuspendedServiceFromCaseSchema.parse(input);
     const { suspendedServiceId } = validatedInput;
+
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('suspendedService', suspendedServiceId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Servicio suspendido no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
 
     const deletedService = await prisma.suspendedService.delete({
       where: {
@@ -1636,18 +1658,10 @@ export async function addAssetToCase(
       material,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const asset = await prisma.asset.create({
       data: {
@@ -1752,6 +1766,14 @@ export async function removeAssetFromCase(
     const validatedInput = removeAssetFromCaseSchema.parse(input);
     const { assetId } = validatedInput;
 
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('asset', assetId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Bien no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedAsset = await prisma.asset.delete({
       where: {
         id: assetId,
@@ -1831,18 +1853,10 @@ export async function addDependentToCase(
     const validatedInput = addDependentToCaseSchema.parse(input);
     const { caseId, name, age, relationship } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const dependent = await prisma.dependent.create({
       data: {
@@ -1906,6 +1920,14 @@ export async function removeDependentFromCase(
 
     const validatedInput = removeDependentFromCaseSchema.parse(input);
     const { dependentId } = validatedInput;
+
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('dependent', dependentId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Dependiente no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
 
     const deletedDependent = await prisma.dependent.delete({
       where: {
@@ -1988,15 +2010,10 @@ export async function addApoderadoToCase(
       existePoderOtorgado,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     // `orden` conserva la posición del formulario (0 = apoderado principal),
     // mismo criterio que `buildApoderadosCreate`. Un hueco si se borró uno de
@@ -2082,6 +2099,14 @@ export async function removeApoderadoFromCase(
     const validatedInput = removeApoderadoFromCaseSchema.parse(input);
     const { apoderadoId } = validatedInput;
 
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('apoderado', apoderadoId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Apoderado no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedApoderado = await prisma.apoderado.delete({
       where: {
         id: apoderadoId,
@@ -2155,19 +2180,10 @@ export async function deleteCase(
     const validatedInput = deleteCaseSchema.parse(input);
     const { id } = validatedInput;
 
-    // Get case info before deleting for the notification
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseToDelete = await prisma.case.findUnique({
-      where: {
-        id,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseToDelete) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí.
+    // En un borrado físico e irreversible la visibilidad por fila importa más
+    // que en cualquier otra mutación.
+    await assertCaseAccess({ caseId: id, user, tenantId });
 
     // Delete the case and all related records in a transaction
     // Models without onDelete:Cascade must be deleted manually first
@@ -2592,12 +2608,26 @@ export async function updateCasePhase(input: {
 
     const existingCase = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
-      select: { id: true, phase: true, caseNumber: true, debtorName: true },
+      select: {
+        id: true,
+        phase: true,
+        caseNumber: true,
+        debtorName: true,
+        // GC-A1: estas dos no las usaba la transición; las pide el guard de
+        // visibilidad por fila. Se añaden al `select` que ya existía en vez de
+        // hacer una segunda consulta.
+        operatorId: true,
+        debtorId: true,
+      },
     });
 
     if (!existingCase) {
       return { success: false, error: 'Caso no encontrado' };
     }
+
+    // GC-A1 — un cambio de fase dispara generación documental y queda en la
+    // auditoría del expediente: es de las mutaciones que más importa acotar.
+    await assertCaseAccessOnRow({ caseRow: existingCase, user, tenantId });
 
     const currentPhase = existingCase.phase ?? INITIAL_CASE_PHASE;
     const check = validatePhaseTransition(currentPhase, newPhase);

@@ -118,6 +118,33 @@ export function caseWhereFromVisibility(
 }
 
 /**
+ * `where` de Prisma sobre `Case` que no coincide con ninguna fila.
+ *
+ * Para los agregados y reportes, que no pueden "cortar antes" como un listado:
+ * su forma de salida se calcula a partir de las consultas, así que lo correcto
+ * es consultar un conjunto vacío y dejar que el código de abajo produzca un
+ * reporte en ceros. No es un parche: es el mismo estado que ya atraviesa un
+ * centro recién creado sin expedientes, y los consumidores ya lo manejan
+ * (`_sum.totalDebt ? Number(...) : 0`).
+ */
+export const CASE_WHERE_MATCHES_NOTHING: { id: { in: string[] } } = {
+  id: { in: [] },
+};
+
+/**
+ * El `where` listo para usar, con el "no ver nada" ya resuelto.
+ *
+ * Azúcar sobre `caseWhereFromVisibility` para los call-sites que no pueden
+ * cortar antes de consultar. Un listado debe usar la versión que devuelve
+ * `null` y cortar; un agregado usa esta.
+ */
+export function caseWhereOrNothing(
+  visibility: CaseVisibility,
+): { operatorId?: string; debtorId?: string } | { id: { in: string[] } } {
+  return caseWhereFromVisibility(visibility) ?? CASE_WHERE_MATCHES_NOTHING;
+}
+
+/**
  * Error de control de acceso a un expediente.
  *
  * Clase propia para que los call-sites puedan distinguirlo de un fallo técnico
@@ -190,7 +217,7 @@ export async function assertCaseAccess(params: {
   caseId: string;
   user: CaseAccessUser;
   tenantId: string;
-}): Promise<{ id: string; operatorId: string | null; debtorId: string | null }> {
+}): Promise<{ id: string; operatorId: string; debtorId: string }> {
   const { caseId, user, tenantId } = params;
 
   const caseRow = await prisma.case.findUnique({
@@ -205,4 +232,68 @@ export async function assertCaseAccess(params: {
   await assertCaseAccessOnRow({ caseRow, user, tenantId });
 
   return caseRow;
+}
+
+/**
+ * Las sub-entidades de un expediente que se borran por su propio id.
+ *
+ * Las seis `remove*FromCase` reciben el id de la fila hija, no el del
+ * expediente, así que antes de decidir el acceso hay que subir al padre. Sin
+ * esto el único filtro era `tenantId`: cualquier rol con `EDITAR_CASOS` podía
+ * borrar la deuda, el bien o el apoderado de un expediente que no le toca.
+ */
+export type CaseSubEntity =
+  | 'debt'
+  | 'libranza'
+  | 'suspendedService'
+  | 'asset'
+  | 'dependent'
+  | 'apoderado';
+
+/**
+ * `caseId` del expediente al que pertenece una sub-entidad, o `null` si no
+ * existe en este tenant.
+ *
+ * El `switch` es explícito y no un mapa indexado por string a propósito: los
+ * delegates de Prisma no comparten un tipo común que acepte `findUnique` con
+ * este `select`, y resolverlo con un índice obligaría a un `as any` que es
+ * justo lo que deja pasar los errores de campo (el patrón de los 18
+ * `as unknown as` del módulo de documentos). Verbosidad a cambio de que `tsc`
+ * valide cada rama.
+ *
+ * Devuelve `null` en vez de lanzar para que cada action dé su propio mensaje
+ * ("Deuda no encontrada", "Bien no encontrado"): un `CaseAccessError` diría
+ * "Caso no encontrado", que sería inexacto.
+ */
+export async function findParentCaseId(
+  model: CaseSubEntity,
+  id: string,
+  tenantId: string,
+): Promise<string | null> {
+  const where = { id, tenantId };
+  const select = { caseId: true } as const;
+
+  switch (model) {
+    case 'debt':
+      return (await prisma.debt.findUnique({ where, select }))?.caseId ?? null;
+    case 'libranza':
+      return (
+        (await prisma.libranza.findUnique({ where, select }))?.caseId ?? null
+      );
+    case 'suspendedService':
+      return (
+        (await prisma.suspendedService.findUnique({ where, select }))?.caseId ??
+        null
+      );
+    case 'asset':
+      return (await prisma.asset.findUnique({ where, select }))?.caseId ?? null;
+    case 'dependent':
+      return (
+        (await prisma.dependent.findUnique({ where, select }))?.caseId ?? null
+      );
+    case 'apoderado':
+      return (
+        (await prisma.apoderado.findUnique({ where, select }))?.caseId ?? null
+      );
+  }
 }

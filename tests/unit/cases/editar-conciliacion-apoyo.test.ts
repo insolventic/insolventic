@@ -241,7 +241,13 @@ describe('updateCase — el payload decide si la columna cambia', () => {
     resetAllMocks();
     jest.clearAllMocks();
     mockAuthenticateUser.mockResolvedValue({
-      user: { id: 'user-1', name: 'Operadora', permissions: [P.EDITAR_CASOS] },
+      // GC-A1: hace falta un permiso de alcance, no solo `EDITAR_CASOS`.
+      // Una Operadora de Insolvencia real tiene `Ver todos los casos`.
+      user: {
+        id: 'user-1',
+        name: 'Operadora',
+        permissions: [P.EDITAR_CASOS, P.VER_TODOS_CASOS],
+      },
       tenantId: 'tenant-1',
     });
     mockPrisma.case.findUnique.mockResolvedValue({

@@ -255,7 +255,16 @@ describe('Case Actions — src/features/case/actions.ts', () => {
           id: ADMIN_USER.id,
           name: ADMIN_USER.name,
           email: ADMIN_USER.email,
-          permissions: [PERMISSIONS.VIEW_CASES, PERMISSIONS.DELETE_CASES],
+          // GC-A1: `VIEW_ALL_CASES` se añade porque `deleteCase` ahora aplica
+          // visibilidad por fila. No es relajar el test: el usuario que tenía
+          // (`VER_CASOS` + `ELIMINAR_CASOS` sin ningún permiso de alcance) no
+          // corresponde a ningún rol del seed — el Administrador real sí tiene
+          // `Ver todos los casos`. La fixture era la irreal.
+          permissions: [
+            PERMISSIONS.VIEW_CASES,
+            PERMISSIONS.VIEW_ALL_CASES,
+            PERMISSIONS.DELETE_CASES,
+          ],
         },
         tenantId: TENANT.id,
       });

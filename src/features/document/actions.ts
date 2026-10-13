@@ -11,6 +11,7 @@ import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { logger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
 import { canGenerateDocument } from '../case/validation-rules';
+import { assertCaseAccessOnRow } from '../case/case-access';
 import {
   claimGenerationRequest,
   markGenerationProcessing,
@@ -787,32 +788,11 @@ export async function batchGenerateDocuments(input: {
       throw new Error('Caso no encontrado');
     }
 
-    // Check user permissions
-    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
-    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
-    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
-
-    let hasAccessToCase = false;
-
-    if (canViewAllCases) {
-      hasAccessToCase = true;
-    } else if (canViewOwnCases) {
-      hasAccessToCase = caseData.operatorId === user.id;
-    } else if (canViewAsClient) {
-      const userDebtor = await prisma.debtor.findFirst({
-        where: { email: user.email, tenantId },
-        select: { id: true },
-      });
-      if (userDebtor) {
-        hasAccessToCase = caseData.debtorId === userDebtor.id;
-      }
-    }
-
-    if (!hasAccessToCase) {
-      throw new Error(
-        'No tienes permisos para generar documentos para este caso',
-      );
-    }
+    // GD-M4 — esta era la quinta copia a mano de la regla de visibilidad por
+    // rol (y la única que vivía en una mutación). Ahora sale del módulo
+    // compartido: mismo comportamiento, una sola definición. El mensaje cambia
+    // de "...para generar documentos para este caso" al genérico del guard.
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
     // C-4: esta era la única ruta de generación sin el lock anti-duplicados
     // (solo tenía rate limit). Dos operadores generando el mismo paquete a la

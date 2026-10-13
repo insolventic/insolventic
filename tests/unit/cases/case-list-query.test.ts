@@ -200,10 +200,18 @@ describe('CASE_LIST_COLUMNS', () => {
   });
 });
 
-describe('deleteCase — solo comprueba existencia', () => {
-  it('lee únicamente el id del caso (no la fila) y sigue borrando en transacción', async () => {
+describe('deleteCase — lectura acotada + visibilidad por fila', () => {
+  it('lee solo las tres columnas del guard (no la fila) y sigue borrando en transacción', async () => {
     asAdmin();
-    mockPrisma.case.findUnique.mockResolvedValue({ id: 'case-1' });
+    // GC-A1: el `select` pasó de `{ id: true }` a las tres columnas que pide
+    // `assertCaseAccess`. La intención original de este test —no traer la fila
+    // de 265 columnas para comprobar existencia— se conserva intacta: siguen
+    // siendo tres columnas y no la fila. Lo que cambió es cuáles.
+    mockPrisma.case.findUnique.mockResolvedValue({
+      id: 'case-1',
+      operatorId: ADMIN_USER.id,
+      debtorId: 'debtor-1',
+    });
     mockPrisma.$transaction.mockImplementation(async (fn: Function) =>
       fn({
         document: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
@@ -229,7 +237,7 @@ describe('deleteCase — solo comprueba existencia', () => {
     expect(mockPrisma.case.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'case-1', tenantId: TENANT.id },
-        select: { id: true },
+        select: { id: true, operatorId: true, debtorId: true },
       }),
     );
     expect(mockPrisma.$transaction).toHaveBeenCalled();

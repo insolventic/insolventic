@@ -76,7 +76,10 @@ beforeEach(() => {
       email: ADMIN_USER.email,
       roleName: 'Administrador',
       professionalCard: 'TP-1',
-      permissions: [PERMISSIONS.EDIT_CASES],
+      // GC-A1: `updateCase` ahora aplica visibilidad por fila, asi que el
+      // usuario necesita un permiso de ALCANCE y no solo `EDITAR_CASOS`. El
+      // rol que dice ser (`Administrador`) lo tiene; la fixture no lo tenia.
+      permissions: [PERMISSIONS.EDIT_CASES, PERMISSIONS.VIEW_ALL_CASES],
     },
     tenantId: TENANT.id,
   });
