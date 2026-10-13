@@ -28,6 +28,14 @@ import {
   assertCaseAccessOnRow,
   findParentCaseId,
 } from './case-access';
+// GC-M4: el audit log de `updateCase` decia solo "Se ha actualizado el caso X".
+// Esto calcula QUE cambio, comparando el payload contra lo que hay en la base.
+import {
+  COLUMNAS_CASE,
+  selectDeCamposEnviados,
+  resumirCambios,
+  valoresAuditables,
+} from './audit-diff';
 import {
   validateCaseBusinessRules,
   formatValidationErrors,
@@ -777,7 +785,7 @@ export async function createCase(
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: newCase.id,
@@ -897,13 +905,49 @@ export async function updateCase(
 
     const safeRestUpdate = sanitizeJsonFields(rest);
 
+    // GC-M4 — las fechas se destructuran fuera de `rest`, así que no están en
+    // `safeRestUpdate`. Para poder diffearlas hay que volverlas a parsear con
+    // el mismo `parseDateOnly` que usa el `update` de abajo: es una función
+    // pura, llamarla dos veces no tiene efecto.
+    const fechasEnviadas: Record<string, Date | undefined> = {
+      hearingDate: parseDateOnly(hearingDate) ?? undefined,
+      filingDate: parseDateOnly(filingDate) ?? undefined,
+      designationDate: parseDateOnly(designationDate) ?? undefined,
+      positionAcceptanceDate: parseDateOnly(positionAcceptanceDate) ?? undefined,
+      inadmissionDate: parseDateOnly(inadmissionDate) ?? undefined,
+      admissionDate: parseDateOnly(admissionDate) ?? undefined,
+      firstHearingDate: parseDateOnly(firstHearingDate) ?? undefined,
+      suspensionDate: parseDateOnly(suspensionDate) ?? undefined,
+      resultDeliveryDate: parseDateOnly(resultDeliveryDate) ?? undefined,
+      resultDate: parseDateOnly(resultDate) ?? undefined,
+      paymentStartDate: parseDateOnly(paymentStartDate) ?? undefined,
+      agreementValidityDate: parseDateOnly(agreementValidityDate) ?? undefined,
+      failureDate: parseDateOnly(failureDate) ?? undefined,
+    };
+
+    /** Exactamente lo que esta edición escribe en `Case`. */
+    const camposEnviados: Record<string, unknown> = {
+      ...safeRestUpdate,
+      ...Object.fromEntries(
+        Object.entries(fechasEnviadas).filter(([, v]) => v !== undefined),
+      ),
+    };
+
+    // Solo las columnas que el payload trae, no las 265 del modelo.
+    const selectDeCambios = selectDeCamposEnviados(
+      camposEnviados,
+      COLUMNAS_CASE,
+    );
+
     // Wrap debtor + case update in a transaction with optimistic locking
-    const updatedCase = await prisma.$transaction(async (tx) => {
+    const { updatedCase, antes } = await prisma.$transaction(async (tx) => {
       // Se lee siempre (no solo cuando llega `version`): la fase persistida es
       // el punto de partida obligatorio del guard de transición (C-1).
+      // Se añaden las columnas del diff de GC-M4 al select que ya existía, en
+      // la misma consulta.
       const current = await tx.case.findUnique({
         where: { id, tenantId },
-        select: { version: true, phase: true },
+        select: { version: true, phase: true, ...selectDeCambios },
       });
       if (!current) {
         throw new Error('Caso no encontrado');
@@ -976,7 +1020,7 @@ export async function updateCase(
         });
       }
 
-      return tx.case.update({
+      const actualizado = await tx.case.update({
         where: { id, tenantId },
         data: {
           ...safeRestUpdate,
@@ -1005,6 +1049,10 @@ export async function updateCase(
           failureDate: parseDateOnly(failureDate) ?? undefined,
         },
       });
+
+      // GC-M4: `current` es el "antes" del diff; se devuelve junto con la fila
+      // actualizada porque el audit log se escribe fuera de la transacción.
+      return { updatedCase: actualizado, antes: current };
     });
 
     revalidateTag('cases');
@@ -1025,7 +1073,15 @@ export async function updateCase(
       },
     );
 
-    createAuditLog({
+    // GC-M4 — el registro deja constancia de QUÉ cambió, no solo de que hubo
+    // una edición. Los NOMBRES de todos los campos cambiados; los VALORES solo
+    // de los que no son datos personales (ver `CAMPOS_CON_VALOR_AUDITABLE`).
+    const cambios = resumirCambios(antes, camposEnviados);
+    const camposCambiados = cambios.changedFields
+      ? cambios.changedFields.split(', ')
+      : [];
+
+    await createAuditLog({
       action: 'updated',
       entityType: 'case',
       entityId: updatedCase.id,
@@ -1036,6 +1092,10 @@ export async function updateCase(
         userCedula: user.professionalCard,
       },
       tenantId,
+      metadata: {
+        ...cambios,
+        ...valoresAuditables(antes, camposEnviados, camposCambiados),
+      },
     });
 
     const result = caseSummarySchema.parse(updatedCase);
@@ -1180,7 +1240,7 @@ export async function addDebtToCase(
       coDebtorEmail: debt.coDebtorEmail,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1278,7 +1338,7 @@ export async function removeDebtFromCase(
       coDebtorEmail: deletedDebt.coDebtorEmail,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedDebt.caseId,
@@ -1360,7 +1420,7 @@ export async function addLibranzaToCase(
       productAndCreditor: libranza.productAndCreditor,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1421,7 +1481,7 @@ export async function removeLibranzaFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedLibranza.caseId,
@@ -1503,7 +1563,7 @@ export async function addSuspendedServiceToCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1577,7 +1637,7 @@ export async function removeSuspendedServiceFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedService.caseId,
@@ -1696,7 +1756,7 @@ export async function addAssetToCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1783,7 +1843,7 @@ export async function removeAssetFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedAsset.caseId,
@@ -1870,7 +1930,7 @@ export async function addDependentToCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1938,7 +1998,7 @@ export async function removeDependentFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedDependent.caseId,
@@ -2053,7 +2113,7 @@ export async function addApoderadoToCase(
       existePoderOtorgado: apoderado.existePoderOtorgado,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -2116,7 +2176,7 @@ export async function removeApoderadoFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedApoderado.caseId,
@@ -2241,7 +2301,7 @@ export async function deleteCase(
     // conteos. Nada de cédula, ingresos, dependientes ni acreedores — el
     // audit log no es el lugar para conservar los datos personales de un
     // expediente que se está borrando, justamente bajo la Ley 1581.
-    await createAuditLog({
+    const registro = await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: id,
@@ -2268,6 +2328,19 @@ export async function deleteCase(
         confirmedByTypingCaseNumber: true,
       },
     });
+
+    // GC-M4 + GC-M6: si la auditoría no quedó escrita, NO se borra. Es la
+    // única mutación donde se toma esta decisión, y es por lo que destruye:
+    // un expediente legal eliminado sin registro de quién lo hizo no se puede
+    // reconstruir ni explicar. En las demás actions un fallo de auditoría se
+    // reporta y la operación sigue (ver el docblock de `createAuditLog`).
+    if (!registro.ok) {
+      return {
+        success: false,
+        error:
+          'No se pudo registrar la eliminación en la auditoría. El caso NO fue eliminado. Intente de nuevo.',
+      };
+    }
 
     // Delete the case and all related records in a transaction
     // Models without onDelete:Cascade must be deleted manually first
@@ -2758,7 +2831,7 @@ export async function updateCasePhase(input: {
     revalidateTag('cases');
 
     // Fire-and-forget audit log
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'case',
       entityId: caseId,

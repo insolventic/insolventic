@@ -31,7 +31,10 @@ jest.mock('@/features/auth/actions', () => ({
   authenticateUser: (...args: unknown[]) => mockAuthenticateUser(...args),
 }));
 
-const mockCreateAuditLog = jest.fn().mockResolvedValue(undefined);
+// GC-M4: `createAuditLog` ya no es fire-and-forget — espera el insert y
+// devuelve `{ ok }` en vez de lanzar (hay 8 modulos que la invocan con `void`
+// y un reject las convertiria en unhandled rejections).
+const mockCreateAuditLog = jest.fn().mockResolvedValue({ ok: true });
 jest.mock('@/features/audit-log/actions', () => ({
   createAuditLog: (...args: unknown[]) => mockCreateAuditLog(...args),
 }));
@@ -126,7 +129,7 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
     resetAllMocks();
     mockAuthenticateUser.mockReset();
     mockCreateAuditLog.mockReset();
-    mockCreateAuditLog.mockResolvedValue(undefined);
+    mockCreateAuditLog.mockResolvedValue({ ok: true });
     jest.clearAllMocks();
     signInAdmin();
   });
@@ -213,6 +216,7 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       const orden: string[] = [];
       mockCreateAuditLog.mockImplementation(async () => {
         orden.push('audit');
+        return { ok: true };
       });
       mockPrisma.$transaction.mockImplementation(async (fn: unknown) => {
         orden.push('delete');
@@ -242,10 +246,10 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       expect(orden).toEqual(['audit', 'delete']);
     });
 
-    it('si el audit log falla, NO se borra el expediente', async () => {
+    it('si el audit log NO queda escrito, NO se borra el expediente', async () => {
       mockLookups();
       mockTransaction();
-      mockCreateAuditLog.mockRejectedValue(new Error('auditoría caída'));
+      mockCreateAuditLog.mockResolvedValue({ ok: false });
 
       const result = await deleteCase({
         id: CASE_ID,
@@ -254,6 +258,20 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
 
       expect(result.success).toBe(false);
       // Un expediente legal no se destruye sin registro.
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('si el audit log LANZA, tampoco se borra', async () => {
+      mockLookups();
+      mockTransaction();
+      mockCreateAuditLog.mockRejectedValue(new Error('auditoria caida'));
+
+      const result = await deleteCase({
+        id: CASE_ID,
+        confirmCaseNumber: CASE_NUMBER,
+      });
+
+      expect(result.success).toBe(false);
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
