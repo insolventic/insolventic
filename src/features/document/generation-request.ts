@@ -225,6 +225,134 @@ export async function failGenerationRequest(
 }
 
 /**
+ * GD-A1 (issue #3) — lotes grandes troceados en tandas.
+ *
+ * Cada tanda es una invocación de servidor independiente (evita el techo de
+ * `maxDuration` del plan Hobby), pero las tres comparten UNA sola fila de
+ * `DocumentGenerationRequest` — el "estado agregado" que pide el diseño: no
+ * se crea una fila nueva por tanda, y el lock (`activeKey`) sigue siendo el
+ * mismo mecanismo anti-duplicados de siempre, solo que se mantiene tomado
+ * ENTRE tandas en vez de liberarse al final de cada una.
+ *
+ * Tres piezas, cada una con su función:
+ *  - `continueOrResumeGenerationRequest`: valida que la tanda puede seguir
+ *    escribiendo en esta solicitud (ya la tiene tomada) o, si una tanda
+ *    anterior falló, la vuelve a tomar para reintentar — sin crear una fila
+ *    nueva ni perder los conteos ya acumulados.
+ *  - `recordBatchTandaProgress`: ACUMULA (no sobrescribe) los conteos de la
+ *    tanda que acaba de terminar. No toca `status` ni `activeKey`: el lock
+ *    sigue tomado hasta la tanda final.
+ *  - `finalizeBatchGenerationRequest`: la tanda final la llama para fijar el
+ *    estado terminal (mismo criterio que `completeGenerationRequest`, pero
+ *    sobre los conteos YA acumulados por todas las tandas) y liberar el lock.
+ *
+ * `completeGenerationRequest`/`claimGenerationRequest`/`failGenerationRequest`
+ * no se tocan: siguen siendo el camino de una sola tanda (INITIAL/ADMISSION/
+ * AGREEMENT/FAILURE, y BATCH cuando cabe en una sola invocación).
+ */
+export async function continueOrResumeGenerationRequest(params: {
+  tenantId: string;
+  caseId: string;
+  kind: GenerationKind;
+  requestId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { tenantId, caseId, kind, requestId } = params;
+
+  const existing = await prisma.documentGenerationRequest.findUnique({
+    where: { id: requestId },
+  });
+
+  if (
+    !existing ||
+    existing.tenantId !== tenantId ||
+    existing.caseId !== caseId ||
+    existing.kind !== kind
+  ) {
+    return { ok: false, error: 'Solicitud de generación no encontrada' };
+  }
+
+  const activeKey = activeKeyFor(caseId, kind);
+
+  // Tanda normal: la anterior dejó el lock tomado, esta sigue sobre la
+  // misma fila sin reclamar nada de nuevo.
+  if (existing.status === 'PROCESSING' && existing.activeKey === activeKey) {
+    return { ok: true };
+  }
+
+  // Reintento de una tanda que falló (o terminó con errores parciales):
+  // se re-toma el lock condicionalmente — si otra operación ya lo tiene
+  // (otra pestaña, otro operador), count=0 y se reporta el conflicto en vez
+  // de pisarla.
+  if (existing.status === 'FAILED' || existing.status === 'COMPLETED_WITH_ERRORS') {
+    const result = await prisma.documentGenerationRequest.updateMany({
+      where: { id: existing.id, activeKey: null },
+      data: { activeKey, status: 'PROCESSING', error: null },
+    });
+    if (result.count === 0) {
+      return {
+        ok: false,
+        error: 'Ya hay otra generación en curso para este caso',
+      };
+    }
+    return { ok: true };
+  }
+
+  return {
+    ok: false,
+    error: `La solicitud ya terminó (estado: ${existing.status})`,
+  };
+}
+
+/**
+ * Acumula los conteos de una tanda en la solicitud compartida. No libera el
+ * lock ni cambia `status` — eso es trabajo de `finalizeBatchGenerationRequest`,
+ * que solo corre en la tanda final.
+ */
+export async function recordBatchTandaProgress(
+  id: string,
+  counts: { total: number; success: number; errors: number },
+): Promise<void> {
+  await prisma.documentGenerationRequest.update({
+    where: { id },
+    data: {
+      totalDocuments: { increment: counts.total },
+      successCount: { increment: counts.success },
+      errorCount: { increment: counts.errors },
+    },
+  });
+}
+
+/**
+ * Cierra la solicitud compartida al terminar la ÚLTIMA tanda, sobre los
+ * conteos ya acumulados por `recordBatchTandaProgress` en todas las tandas
+ * anteriores (no recibe conteos propios — lee los de la fila).
+ * Mismo criterio de "no hubo ni un documento → no es COMPLETED limpio" que
+ * `completeGenerationRequest`.
+ */
+export async function finalizeBatchGenerationRequest(id: string): Promise<void> {
+  const row = await prisma.documentGenerationRequest.findUnique({
+    where: { id },
+  });
+  if (!row) {
+    throw new Error(`Solicitud de generación no encontrada: ${id}`);
+  }
+
+  const producedNothing = row.totalDocuments > 0 && row.successCount === 0;
+
+  await prisma.documentGenerationRequest.update({
+    where: { id },
+    data: {
+      status:
+        row.errorCount > 0 || producedNothing
+          ? 'COMPLETED_WITH_ERRORS'
+          : 'COMPLETED',
+      activeKey: null,
+      finishedAt: new Date(),
+    },
+  });
+}
+
+/**
  * Ejecuta `produce` protegido por el lock anti-duplicados (P3): reclama la
  * solicitud (caseId, kind), la marca PROCESSING, registra los conteos al
  * terminar y libera el lock. Si ya hay una generación activa devuelve la

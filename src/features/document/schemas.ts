@@ -257,6 +257,28 @@ export const batchGenerateDocumentsInputSchema = z.object({
     ])
     .optional(),
   outputFormat: z.enum(['pdf', 'docx', 'both']).default('pdf'),
+  // GD-A1 (issue #3): troceo en tandas de un lote grande. Ausentes los dos =
+  // comportamiento de siempre, una sola invocación. `requestId` continúa una
+  // `DocumentGenerationRequest` ya reclamada por una tanda anterior en vez de
+  // reclamar una nueva; `isFinalTanda` le dice al servidor que cierre esa
+  // solicitud (status final + libera el lock) en vez de dejarla PROCESSING
+  // para la siguiente tanda.
+  requestId: z.string().optional(),
+  isFinalTanda: z.boolean().optional(),
+});
+
+export const planBatchGenerationInputSchema = z.object({
+  caseId: z.string().min(1, 'El ID del caso es requerido'),
+  templateIds: z.array(z.string()).optional(),
+  packageNumber: z
+    .union([
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+      z.literal(4),
+      z.literal(5),
+    ])
+    .optional(),
 });
 
 export const batchGenerateDocumentsOutputSchema = z.object({
