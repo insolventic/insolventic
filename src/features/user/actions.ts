@@ -409,6 +409,65 @@ export async function deleteUser(id: string): Promise<{
   }
 }
 
+/**
+ * A-6 (revocación de sesiones) — un administrador fuerza el cierre de TODAS
+ * las sesiones vigentes de un usuario, sin esperar a que su JWT expire por
+ * su cuenta (hasta 24h el access token, hasta 7 días el refresh token).
+ *
+ * Incrementa `tokenVersion`: `authenticateUser` y `refreshAccessToken`
+ * (features/auth/actions.ts) rechazan cualquier token emitido con la versión
+ * anterior la próxima vez que ese usuario intente usarlo o refrescarlo.
+ *
+ * Mismo permiso que `updateUser` (`P.EDITAR_USUARIOS`) — esto es una
+ * modificación de la cuenta del usuario, no una eliminación.
+ */
+export async function revokeUserSessions(userId: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.EDITAR_USUARIOS)) {
+      throw new Error('No tiene permisos para: Editar usuarios');
+    }
+
+    // El `where` compuesto (id + tenantId) es lo que impide revocar las
+    // sesiones de un usuario de OTRO tenant — mismo patrón que `deleteUser`.
+    const target = await prisma.user.update({
+      where: { id: userId, tenantId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+
+    createAuditLog({
+      action: 'updated',
+      entityType: 'user',
+      entityId: target.id,
+      entityName: target.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { changedFields: 'tokenVersion (revocación de sesiones)' },
+    });
+
+    return { success: true };
+  } catch (error) {
+    logger.error('Error revoking user sessions', error, {
+      action: 'revoke-user-sessions',
+    });
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Error al revocar las sesiones del usuario',
+    };
+  }
+}
+
 export async function getProfile(): Promise<{
   success: boolean;
   data?: {

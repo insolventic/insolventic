@@ -98,6 +98,15 @@ export async function authenticateUser() {
     throw new Error('Usuario no encontrado');
   }
 
+  // A-6 (revocación de sesiones): este access token se emitió con una
+  // versión que ya no es la vigente — cambió la contraseña (o, el día que
+  // exista, se desactivó la cuenta) después de emitirlo. `authenticateUser`
+  // es el entry point de casi toda server action, así que esto cierra el
+  // acceso de inmediato sin esperar a que el token expire por su cuenta.
+  if (payload.tokenVersion !== user.tokenVersion) {
+    throw new Error('Sesión inválida. Inicie sesión nuevamente.');
+  }
+
   return {
     user: {
       id: user.id,
@@ -231,12 +240,14 @@ export async function loginUser(input: unknown): Promise<AuthResult> {
       tenantId: tenantIdValue,
       tenantName: user.tenant.name,
       lastLogin: new Date(),
+      tokenVersion: user.tokenVersion,
     };
 
     const accessToken = await createAccessToken(sessionData);
     const refreshToken = await createRefreshToken({
       userId: user.id,
       tenantId: tenantIdValue,
+      tokenVersion: user.tokenVersion,
     });
 
     await setAuthCookies(accessToken, refreshToken);
@@ -331,6 +342,17 @@ export async function validateSession(): Promise<ValidateSessionResult> {
       };
     }
 
+    // A-6 (revocación de sesiones): mismo chequeo que authenticateUser —
+    // validateSession también lee la fila fresca, así que es otro punto
+    // donde un token con versión vieja debe reportarse inválido en vez de
+    // confirmar una sesión que ya se revocó.
+    if (payload.tokenVersion !== user.tokenVersion) {
+      return {
+        valid: false,
+        error: 'Sesión inválida. Inicie sesión nuevamente.',
+      };
+    }
+
     const validatedResult = validateSessionResultSchema.parse({
       valid: true,
       user: {
@@ -343,6 +365,7 @@ export async function validateSession(): Promise<ValidateSessionResult> {
         tenantId: tenantId,
         tenantName: user.tenant.name,
         lastLogin: user.lastLogin || new Date(),
+        tokenVersion: user.tokenVersion,
       },
     });
 
@@ -455,6 +478,21 @@ export async function refreshAccessToken(): Promise<AuthResult> {
       };
     }
 
+    // A-6 (revocación de sesiones): el refresh token se emitió con una
+    // versión que ya no es la vigente. Sin este chequeo, un refresh token
+    // robado ANTES de un cambio de contraseña podría seguir emitiendo access
+    // tokens nuevos y válidos indefinidamente (cada uno con la versión
+    // ACTUAL, que los volvería a validar en authenticateUser) — este es el
+    // único punto que cierra esa puerta, porque es el único que compara la
+    // versión del REFRESH token contra la base.
+    if (refreshPayload.tokenVersion !== user.tokenVersion) {
+      await clearAuthCookies();
+      return {
+        success: false,
+        message: 'Sesión inválida. Inicie sesión nuevamente.',
+      };
+    }
+
     // Block refresh if user must change password
     if ((user as Record<string, unknown>).mustChangePassword) {
       await clearAuthCookies();
@@ -475,12 +513,14 @@ export async function refreshAccessToken(): Promise<AuthResult> {
       tenantId: tenantIdValue,
       tenantName: user.tenant.name,
       lastLogin: user.lastLogin || new Date(),
+      tokenVersion: user.tokenVersion,
     };
 
     const newAccessToken = await createAccessToken(sessionData);
     const newRefreshToken = await createRefreshToken({
       userId: user.id,
       tenantId: tenantIdValue,
+      tokenVersion: user.tokenVersion,
     });
 
     await setAuthCookies(newAccessToken, newRefreshToken);
@@ -600,11 +640,13 @@ export async function switchTenant(targetTenantSlug: string): Promise<{
       tenantId: targetTenantSlug,
       tenantName: targetTenant.name,
       lastLogin: new Date(),
+      tokenVersion: userInTarget.tokenVersion,
     });
 
     const refreshTokenNew = await createRefreshToken({
       userId: userInTarget.id,
       tenantId: targetTenantSlug,
+      tokenVersion: userInTarget.tokenVersion,
     });
 
     // 6. Set new auth cookies
@@ -952,10 +994,17 @@ export async function resetPassword(
     // Hash new password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Update user password and clear activation flag
+    // Update user password and clear activation flag.
+    // A-6: incrementa tokenVersion — invalida cualquier JWT emitido antes de
+    // este reseteo (quien lo pidió no tenía ninguna sesión vigente que
+    // preservar: llegó por el enlace del correo, no logueado).
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashedPassword, mustChangePassword: false },
+      data: {
+        password: hashedPassword,
+        mustChangePassword: false,
+        tokenVersion: { increment: 1 },
+      },
     });
 
     // Mark token as used
@@ -1076,14 +1125,41 @@ export async function changePassword(input: unknown): Promise<{
     // Hash new password
     const hashedNewPassword = await bcrypt.hash(newPassword, 12);
 
-    // Update password
-    await prisma.user.update({
+    // Update password. A-6: incrementa tokenVersion — invalida cualquier
+    // otra sesión (otro dispositivo, otra pestaña) que tenga un JWT emitido
+    // con la versión anterior.
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         password: hashedNewPassword,
         lastLogin: new Date(), // Update last login to current time
+        tokenVersion: { increment: 1 },
       },
     });
+
+    // A-6: quien acaba de cambiar su propia contraseña con éxito no debería
+    // quedar deslogueado de su propia sesión actual por el incremento de
+    // arriba — se reemiten sus cookies con la versión NUEVA, en el mismo
+    // tenant/rol/permisos que ya traía el token vigente (nada de eso cambió
+    // al cambiar la contraseña).
+    const newAccessToken = await createAccessToken({
+      id: payload.id,
+      name: payload.name,
+      email: payload.email,
+      roleId: payload.roleId,
+      roleName: payload.roleName,
+      permissions: payload.permissions,
+      tenantId: payload.tenantId,
+      tenantName: payload.tenantName,
+      lastLogin: updatedUser.lastLogin ?? new Date(),
+      tokenVersion: updatedUser.tokenVersion,
+    });
+    const newRefreshToken = await createRefreshToken({
+      userId: payload.id,
+      tenantId: payload.tenantId,
+      tokenVersion: updatedUser.tokenVersion,
+    });
+    await setAuthCookies(newAccessToken, newRefreshToken);
 
     revalidateTag('auth');
 

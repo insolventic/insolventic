@@ -875,6 +875,10 @@ model User {
   roleId             String
   password           String?
   mustChangePassword Boolean        @default(false) @map("must_change_password")
+  // A-6: se incrementa al cambiar/resetear la contraseña. El JWT lleva la
+  // versión vigente al emitirse; authenticateUser/refreshAccessToken
+  // rechazan un token cuya versión no coincide con esta columna.
+  tokenVersion       Int            @default(0) @map("token_version")
   tenantId           String
   assignedCases      Case[]
   role               Role           @relation(fields: [roleId], references: [id])

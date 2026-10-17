@@ -243,6 +243,7 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
         tenantId: 'tenant-id',
         tenantName: 'Test Tenant',
         lastLogin: new Date(),
+        tokenVersion: 0,
         iat: Math.floor(Date.now() / 1000),
         exp: Math.floor(Date.now() / 1000) + 86400,
       });
