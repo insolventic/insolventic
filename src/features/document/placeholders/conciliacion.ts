@@ -29,13 +29,7 @@
  */
 
 import { escapePlaceholder } from './escape';
-import {
-  formatCurrency,
-  formatDate,
-  getDayNumber,
-  getMonthName,
-  getYear,
-} from './format';
+import { formatCurrency, getDayNumber, getMonthName, getYear } from './format';
 import { nowColombia } from '@/lib/date-colombia';
 import type { CaseWithRelations } from '../../case/schemas';
 import type { PlaceholderMap } from '../placeholder-mapper';
@@ -395,17 +389,26 @@ export function mapConciliationFields(
     DESCRIPCION_ERROR: descripcionError,
     VALOR_INCORRECTO: valorIncorrecto,
     VALOR_CORRECTO: valorCorrecto,
-    FECHA_SOLICITUD: formatDate(now),
+    // C-1a (interino, auditoría 2026-10-12): esta es una fecha HISTÓRICA — la
+    // fecha en que se presentó la solicitud — no la de hoy. Sin columna propia
+    // (no hay `concFechaSolicitud`), antes caía a `formatDate(now)` SIN
+    // fallback alguno: cada Aclaración de Acta salía afirmando que la
+    // solicitud se presentó hoy, sin que nada en el PDF lo advirtiera. Mismo
+    // patrón que `DIA_/MES_/ANO_INICIO_UNION`: blanco visible para llenar a
+    // mano, hasta que exista el campo.
+    FECHA_SOLICITUD: '____ de ____________ de ______',
 
-    // Citation dates
-    DIA_CITACION: (raw.concDiaCitacion as string) || getDayNumber(now),
-    MES_CITACION: (raw.concMesCitacion as string) || getMonthName(now),
-    ANO_CITACION: (raw.concAnoCitacion as string) || getYear(now),
+    // Citation dates — fecha HISTÓRICA (la de la citación a audiencia), no la
+    // de hoy. Mismo arreglo interino que arriba.
+    DIA_CITACION: (raw.concDiaCitacion as string) || '____',
+    MES_CITACION: (raw.concMesCitacion as string) || '____________',
+    ANO_CITACION: (raw.concAnoCitacion as string) || '______',
 
-    // Solicitud dates
-    DIA_SOLICITUD: (raw.concDiaSolicitud as string) || getDayNumber(now),
-    MES_SOLICITUD: (raw.concMesSolicitud as string) || getMonthName(now),
-    ANO_SOLICITUD: (raw.concAnoSolicitud as string) || getYear(now),
+    // Solicitud dates — idem: fecha HISTÓRICA de cuando se presentó la
+    // solicitud, no la de hoy.
+    DIA_SOLICITUD: (raw.concDiaSolicitud as string) || '____',
+    MES_SOLICITUD: (raw.concMesSolicitud as string) || '____________',
+    ANO_SOLICITUD: (raw.concAnoSolicitud as string) || '______',
 
     // Constancia/document issuance dates
     DIA_CONSTANCIA: getDayNumber(now),
@@ -420,12 +423,10 @@ export function mapConciliationFields(
     HORA_PROGRAMADA: horaProgramada,
     DESCRIPCION_CAUSA_ANORMAL: descripcionCausaAnormal,
 
-    // Desistimiento
-    DIA_DESISTIMIENTO:
-      (raw.concDiaDesistimiento as string) || getDayNumber(now),
-    MES_DESISTIMIENTO:
-      (raw.concMesDesistimiento as string) || getMonthName(now),
-    ANO_DESISTIMIENTO: (raw.concAnoDesistimiento as string) || getYear(now),
+    // Desistimiento — fecha HISTÓRICA (la del desistimiento), no la de hoy.
+    DIA_DESISTIMIENTO: (raw.concDiaDesistimiento as string) || '____',
+    MES_DESISTIMIENTO: (raw.concMesDesistimiento as string) || '____________',
+    ANO_DESISTIMIENTO: (raw.concAnoDesistimiento as string) || '______',
     TIPO_SOLICITANTE_DESISTIMIENTO: tipoSolicitanteDesistimiento,
     NOMBRE_APODERADO_DESISTIMIENTO: apoderadoDesistimiento,
   };
