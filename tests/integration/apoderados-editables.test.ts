@@ -228,6 +228,16 @@ describe('apoderados del deudor — alta y baja post-creación', () => {
   });
 
   describe('removeApoderadoFromCase', () => {
+    // GC-A1: igual que removeDebtFromCase, ahora sube al expediente padre.
+    beforeEach(() => {
+      mockPrisma.apoderado.findUnique.mockResolvedValue({ caseId: CASE_ID });
+      mockPrisma.case.findUnique.mockResolvedValue({
+        id: CASE_ID,
+        operatorId: ADMIN_USER.id,
+        debtorId: 'debtor-1',
+      });
+    });
+
     it('sin el permiso EDITAR_CASOS, rechaza sin borrar nada', async () => {
       mockAuthenticateUser.mockResolvedValue({
         user: { ...ADMIN_USER, permissions: [] },

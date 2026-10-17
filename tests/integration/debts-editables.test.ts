@@ -287,6 +287,18 @@ describe('acreedores detallados (Debt) — alta y baja post-creación', () => {
   });
 
   describe('removeDebtFromCase', () => {
+    // GC-A1: la action recibe un `debtId`, asi que ahora sube al expediente
+    // padre antes de decidir el acceso. Sin estos dos mocks el guard corta con
+    // "Deuda no encontrada" y lo que fallaria es la fixture, no el codigo.
+    beforeEach(() => {
+      mockPrisma.debt.findUnique.mockResolvedValue({ caseId: CASE_ID });
+      mockPrisma.case.findUnique.mockResolvedValue({
+        id: CASE_ID,
+        operatorId: ADMIN_USER.id,
+        debtorId: DEBTOR_ID,
+      });
+    });
+
     it('sin el permiso EDITAR_CASOS, rechaza sin borrar nada', async () => {
       mockAuthenticateUser.mockResolvedValue({
         user: { ...ADMIN_USER, permissions: [] },

@@ -239,9 +239,19 @@ describe('updateCase — el payload decide si la columna cambia', () => {
 
   beforeEach(() => {
     resetAllMocks();
+    // GC-M2: `createCase`/`updateCase` ahora verifican que el operador asignado
+    // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
+    // pertenece a este centro" y lo que falla es la fixture, no el codigo.
+    mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
     jest.clearAllMocks();
     mockAuthenticateUser.mockResolvedValue({
-      user: { id: 'user-1', name: 'Operadora', permissions: [P.EDITAR_CASOS] },
+      // GC-A1: hace falta un permiso de alcance, no solo `EDITAR_CASOS`.
+      // Una Operadora de Insolvencia real tiene `Ver todos los casos`.
+      user: {
+        id: 'user-1',
+        name: 'Operadora',
+        permissions: [P.EDITAR_CASOS, P.VER_TODOS_CASOS],
+      },
       tenantId: 'tenant-1',
     });
     mockPrisma.case.findUnique.mockResolvedValue({

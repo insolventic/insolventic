@@ -255,13 +255,32 @@ describe('Case Actions — src/features/case/actions.ts', () => {
           id: ADMIN_USER.id,
           name: ADMIN_USER.name,
           email: ADMIN_USER.email,
-          permissions: [PERMISSIONS.VIEW_CASES, PERMISSIONS.DELETE_CASES],
+          // GC-A1: `VIEW_ALL_CASES` se añade porque `deleteCase` ahora aplica
+          // visibilidad por fila. No es relajar el test: el usuario que tenía
+          // (`VER_CASOS` + `ELIMINAR_CASOS` sin ningún permiso de alcance) no
+          // corresponde a ningún rol del seed — el Administrador real sí tiene
+          // `Ver todos los casos`. La fixture era la irreal.
+          permissions: [
+            PERMISSIONS.VIEW_CASES,
+            PERMISSIONS.VIEW_ALL_CASES,
+            PERMISSIONS.DELETE_CASES,
+          ],
         },
         tenantId: TENANT.id,
       });
 
-      // Mock finding the case first
-      mockPrisma.case.findUnique.mockResolvedValue(CASE_DATA);
+      // Dos lecturas: el guard de acceso (GC-A1) y el snapshot previo al
+      // borrado (GC-M6).
+      mockPrisma.case.findUnique
+        .mockResolvedValueOnce(CASE_DATA)
+        .mockResolvedValueOnce({
+          caseNumber: CASE_DATA.caseNumber,
+          debtorName: CASE_DATA.debtorName,
+          type: CASE_DATA.type,
+          phase: CASE_DATA.phase,
+          driveFolderId: null,
+          _count: { documents: 0, debts: 0, assets: 0, dependents: 0 },
+        });
 
       // Mock transaction
       const deletedCase = { ...CASE_DATA, debtorName: 'Test' };
@@ -278,7 +297,12 @@ describe('Case Actions — src/features/case/actions.ts', () => {
         });
       });
 
-      await deleteCase({ id: 'case-test-id' });
+      // GC-M6: la confirmación escrita es obligatoria y se verifica contra el
+      // número que tiene la base.
+      await deleteCase({
+        id: 'case-test-id',
+        confirmCaseNumber: CASE_DATA.caseNumber,
+      });
 
       // Transaction should be called (cascading delete)
       expect(mockPrisma.$transaction).toHaveBeenCalled();
@@ -295,7 +319,10 @@ describe('Case Actions — src/features/case/actions.ts', () => {
         tenantId: TENANT.id,
       });
 
-      const result = await deleteCase({ id: 'case-test-id' });
+      const result = await deleteCase({
+        id: 'case-test-id',
+        confirmCaseNumber: CASE_DATA.caseNumber,
+      });
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('permisos');

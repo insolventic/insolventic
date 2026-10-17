@@ -4,6 +4,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
+import { logger } from '@/lib/logger';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -31,8 +32,26 @@ export interface AuditActorInfo {
 // ---------------------------------------------------------------------------
 
 /**
- * Creates an immutable audit log entry. Call this from any server action
- * that mutates data. Designed to be non-blocking (fire-and-forget).
+ * Crea una entrada inmutable de auditoría. Se llama desde cualquier server
+ * action que mute datos.
+ *
+ * GC-M4 — POR QUÉ ESTO CAMBIÓ. La función hacía
+ * `void prisma.auditLog.create(...)`: programaba el insert y volvía de
+ * inmediato. Consecuencia que no es evidente: **un `await createAuditLog(...)`
+ * en el call-site no esperaba nada**. Poner `await` en las 16 llamadas de
+ * `case/actions.ts` sin tocar esto habría sido puramente cosmético.
+ *
+ * En Vercel serverless eso no es teórico: la función puede terminar al
+ * devolver la respuesta y matar el insert en vuelo. Un expediente legal
+ * modificado o borrado quedaba sin registro, de forma intermitente y
+ * silenciosa — el peor modo de falla posible para una tabla de auditoría.
+ *
+ * Ahora SE ESPERA el insert. Lo que NO cambia es que nunca lanza: devuelve
+ * `{ ok: false }`. El motivo es concreto: hay 8 módulos más que la invocan
+ * como `void createAuditLog(...)`, y si empezara a rechazar, cada uno de esos
+ * `void` se convertiría en una unhandled rejection. Devolver un resultado deja
+ * que cada llamador decida — `deleteCase` aborta el borrado si la auditoría no
+ * quedó; una alta de deuda sigue adelante y deja constancia en el log.
  */
 export async function createAuditLog(params: {
   action: AuditAction;
@@ -77,9 +96,8 @@ export async function createAuditLog(params: {
 
   const description = `Se ha ${actionLabel} ${article} ${label} '${entityName}' por el usuario ${actor.userName} con cédula ${actor.userCedula}`;
 
-  // Fire-and-forget — no await, don't block the caller
-  void prisma.auditLog
-    .create({
+  try {
+    await prisma.auditLog.create({
       data: {
         action,
         entityType,
@@ -92,10 +110,20 @@ export async function createAuditLog(params: {
         metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : undefined,
         tenantId,
       },
-    })
-    .catch((error) => {
-      console.error('Error creating audit log:', error);
     });
+    return { ok: true as const };
+  } catch (error) {
+    // No se relanza: ver el docblock. Pero sí se reporta — una auditoría que
+    // no se escribe es un incidente, no un evento esperado, así que va a
+    // Sentry vía `logger.error`.
+    logger.error('No se pudo escribir el registro de auditoría', error, {
+      action: 'createAuditLog',
+      entityType,
+      entityId,
+      auditedAction: action,
+    });
+    return { ok: false as const };
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -66,6 +66,10 @@ function datosDelUpdate(): Record<string, unknown> {
 
 beforeEach(() => {
   resetAllMocks();
+  // GC-M2: `createCase`/`updateCase` ahora verifican que el operador asignado
+  // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
+  // pertenece a este centro" y lo que falla es la fixture, no el codigo.
+  mockPrisma.user.findFirst.mockResolvedValue({ id: 'operador-1' });
   mockAuthenticateUser.mockReset();
   jest.clearAllMocks();
 
@@ -76,7 +80,10 @@ beforeEach(() => {
       email: ADMIN_USER.email,
       roleName: 'Administrador',
       professionalCard: 'TP-1',
-      permissions: [PERMISSIONS.EDIT_CASES],
+      // GC-A1: `updateCase` ahora aplica visibilidad por fila, asi que el
+      // usuario necesita un permiso de ALCANCE y no solo `EDITAR_CASOS`. El
+      // rol que dice ser (`Administrador`) lo tiene; la fixture no lo tenia.
+      permissions: [PERMISSIONS.EDIT_CASES, PERMISSIONS.VIEW_ALL_CASES],
     },
     tenantId: TENANT.id,
   });

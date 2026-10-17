@@ -13,12 +13,37 @@ import {
   isValidDesistimientoSubtype,
 } from '@/lib/case-phases';
 import { logger } from '@/lib/logger';
+// GC-B2: createCase no tenia rate limit, y dispara la generacion de 5 PDFs con
+// Chromium por invocacion via after().
+import {
+  checkRateLimit,
+  getRateLimitKey,
+  RATE_LIMIT_CONFIGS,
+} from '@/lib/rate-limit';
 // Las fechas del formulario llegan como "YYYY-MM-DD" (<input type="date">), que
 // `new Date()` ancla a medianoche UTC y por tanto se imprimen un día antes en
 // hora de Colombia. `parseDateOnly` las ancla al mediodía UTC.
 import { parseDateOnly } from '@/lib/date-colombia';
 import { parseTasaInteres, parseFechaCredito } from './datos-desconocidos';
 import { filasApoderadoDesdeFormulario } from './apoderado-acreedor';
+// GC-A1: el permiso (`EDITAR_CASOS`) dice QUÉ puede hacer el rol; esto dice
+// SOBRE CUÁL expediente. Antes solo se filtraba por `tenantId`, así que un rol
+// con `Ver casos propios` podía mutar cualquier expediente del centro pasando
+// el id directo a la action.
+import {
+  assertCaseAccess,
+  assertCaseAccessOnRow,
+  assertOperatorInTenant,
+  findParentCaseId,
+} from './case-access';
+// GC-M4: el audit log de `updateCase` decia solo "Se ha actualizado el caso X".
+// Esto calcula QUE cambio, comparando el payload contra lo que hay en la base.
+import {
+  COLUMNAS_CASE,
+  selectDeCamposEnviados,
+  resumirCambios,
+  valoresAuditables,
+} from './audit-diff';
 import {
   validateCaseBusinessRules,
   formatValidationErrors,
@@ -330,7 +355,26 @@ export async function createCase(
       return { success: false, error: 'No tienes permisos para crear casos' };
     }
 
+    // GC-B2 — por usuario, y DESPUES del check de permiso: no se gasta cupo de
+    // la ventana en alguien que de todos modos no puede crear casos. Mismo
+    // orden que `batchGenerateDocuments`.
+    const rlKey = getRateLimitKey('caseCreation', user.id);
+    const rl = await checkRateLimit(rlKey, RATE_LIMIT_CONFIGS.caseCreation);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        error: `Demasiadas creaciones de casos seguidas. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
+      };
+    }
+
     const validatedInput = createCaseFormSchema.parse(input);
+
+    // GC-M2 — el operador se escribia con un `connect` a secas, y el `connect`
+    // de Prisma solo exige que el id exista: bastaba mandar el id de un usuario
+    // del OTRO centro para dejarle un expediente asignado. El deudor si se
+    // validaba (mas abajo); el operador no.
+    await assertOperatorInTenant(validatedInput.operatorId, tenantId);
+
     const {
       debtorId,
       hearingDate,
@@ -768,7 +812,7 @@ export async function createCase(
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: newCase.id,
@@ -849,6 +893,21 @@ export async function updateCase(
     }
 
     const validatedInput = updateCaseSchema.parse(input);
+
+    // GC-A1 — visibilidad por fila antes de tocar nada. Va aquí y no dentro de
+    // la transacción a propósito: un acceso denegado no debe abrir transacción.
+    await assertCaseAccess({
+      caseId: validatedInput.id,
+      user,
+      tenantId,
+    });
+
+    // GC-M2 — solo cuando el payload lo trae: `operatorId` es opcional en la
+    // edición y `pre-generation-form` manda ediciones sin él.
+    if (validatedInput.operatorId) {
+      await assertOperatorInTenant(validatedInput.operatorId, tenantId);
+    }
+
     const {
       id,
       debtorId,
@@ -879,13 +938,49 @@ export async function updateCase(
 
     const safeRestUpdate = sanitizeJsonFields(rest);
 
+    // GC-M4 — las fechas se destructuran fuera de `rest`, así que no están en
+    // `safeRestUpdate`. Para poder diffearlas hay que volverlas a parsear con
+    // el mismo `parseDateOnly` que usa el `update` de abajo: es una función
+    // pura, llamarla dos veces no tiene efecto.
+    const fechasEnviadas: Record<string, Date | undefined> = {
+      hearingDate: parseDateOnly(hearingDate) ?? undefined,
+      filingDate: parseDateOnly(filingDate) ?? undefined,
+      designationDate: parseDateOnly(designationDate) ?? undefined,
+      positionAcceptanceDate: parseDateOnly(positionAcceptanceDate) ?? undefined,
+      inadmissionDate: parseDateOnly(inadmissionDate) ?? undefined,
+      admissionDate: parseDateOnly(admissionDate) ?? undefined,
+      firstHearingDate: parseDateOnly(firstHearingDate) ?? undefined,
+      suspensionDate: parseDateOnly(suspensionDate) ?? undefined,
+      resultDeliveryDate: parseDateOnly(resultDeliveryDate) ?? undefined,
+      resultDate: parseDateOnly(resultDate) ?? undefined,
+      paymentStartDate: parseDateOnly(paymentStartDate) ?? undefined,
+      agreementValidityDate: parseDateOnly(agreementValidityDate) ?? undefined,
+      failureDate: parseDateOnly(failureDate) ?? undefined,
+    };
+
+    /** Exactamente lo que esta edición escribe en `Case`. */
+    const camposEnviados: Record<string, unknown> = {
+      ...safeRestUpdate,
+      ...Object.fromEntries(
+        Object.entries(fechasEnviadas).filter(([, v]) => v !== undefined),
+      ),
+    };
+
+    // Solo las columnas que el payload trae, no las 265 del modelo.
+    const selectDeCambios = selectDeCamposEnviados(
+      camposEnviados,
+      COLUMNAS_CASE,
+    );
+
     // Wrap debtor + case update in a transaction with optimistic locking
-    const updatedCase = await prisma.$transaction(async (tx) => {
+    const { updatedCase, antes } = await prisma.$transaction(async (tx) => {
       // Se lee siempre (no solo cuando llega `version`): la fase persistida es
       // el punto de partida obligatorio del guard de transición (C-1).
+      // Se añaden las columnas del diff de GC-M4 al select que ya existía, en
+      // la misma consulta.
       const current = await tx.case.findUnique({
         where: { id, tenantId },
-        select: { version: true, phase: true },
+        select: { version: true, phase: true, ...selectDeCambios },
       });
       if (!current) {
         throw new Error('Caso no encontrado');
@@ -958,7 +1053,7 @@ export async function updateCase(
         });
       }
 
-      return tx.case.update({
+      const actualizado = await tx.case.update({
         where: { id, tenantId },
         data: {
           ...safeRestUpdate,
@@ -987,6 +1082,10 @@ export async function updateCase(
           failureDate: parseDateOnly(failureDate) ?? undefined,
         },
       });
+
+      // GC-M4: `current` es el "antes" del diff; se devuelve junto con la fila
+      // actualizada porque el audit log se escribe fuera de la transacción.
+      return { updatedCase: actualizado, antes: current };
     });
 
     revalidateTag('cases');
@@ -1007,7 +1106,15 @@ export async function updateCase(
       },
     );
 
-    createAuditLog({
+    // GC-M4 — el registro deja constancia de QUÉ cambió, no solo de que hubo
+    // una edición. Los NOMBRES de todos los campos cambiados; los VALORES solo
+    // de los que no son datos personales (ver `CAMPOS_CON_VALOR_AUDITABLE`).
+    const cambios = resumirCambios(antes, camposEnviados);
+    const camposCambiados = cambios.changedFields
+      ? cambios.changedFields.split(', ')
+      : [];
+
+    await createAuditLog({
       action: 'updated',
       entityType: 'case',
       entityId: updatedCase.id,
@@ -1018,6 +1125,10 @@ export async function updateCase(
         userCedula: user.professionalCard,
       },
       tenantId,
+      metadata: {
+        ...cambios,
+        ...valoresAuditables(antes, camposEnviados, camposCambiados),
+      },
     });
 
     const result = caseSummarySchema.parse(updatedCase);
@@ -1074,17 +1185,11 @@ export async function addDebtToCase(
       coDebtorEmail,
     } = validatedInput;
 
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { debtorId: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant), añade la
+    // visibilidad por fila y devuelve el `debtorId` que la deuda necesita, así
+    // que son dos comprobaciones en una sola consulta.
+    const caseData = await assertCaseAccess({ caseId, user, tenantId });
 
     // Mismo tratamiento que en la creacion del caso: la UI de edicion todavia
     // no ofrece las casillas "Desconozco", pero la action acepta el literal y
@@ -1168,7 +1273,7 @@ export async function addDebtToCase(
       coDebtorEmail: debt.coDebtorEmail,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1211,6 +1316,16 @@ export async function removeDebtFromCase(
 
     const validatedInput = removeDebtFromCaseSchema.parse(input);
     const { debtId } = validatedInput;
+
+    // GC-A1 — esta action recibe un `debtId`, no un `caseId`, así que primero
+    // hay que subir al expediente padre. Sin esto el único filtro era
+    // `tenantId`: cualquier rol con `EDITAR_CASOS` podía borrar la deuda de un
+    // expediente que no le corresponde.
+    const parentCaseId = await findParentCaseId('debt', debtId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Deuda no encontrada' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
 
     const deletedDebt = await prisma.debt.delete({
       where: {
@@ -1256,7 +1371,7 @@ export async function removeDebtFromCase(
       coDebtorEmail: deletedDebt.coDebtorEmail,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedDebt.caseId,
@@ -1308,18 +1423,10 @@ export async function addLibranzaToCase(
       productAndCreditor,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const libranza = await prisma.libranza.create({
       data: {
@@ -1346,7 +1453,7 @@ export async function addLibranzaToCase(
       productAndCreditor: libranza.productAndCreditor,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1390,6 +1497,14 @@ export async function removeLibranzaFromCase(
     const validatedInput = removeLibranzaFromCaseSchema.parse(input);
     const { libranzaId } = validatedInput;
 
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('libranza', libranzaId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Libranza no encontrada' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedLibranza = await prisma.libranza.delete({
       where: {
         id: libranzaId,
@@ -1399,7 +1514,7 @@ export async function removeLibranzaFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedLibranza.caseId,
@@ -1461,18 +1576,10 @@ export async function addSuspendedServiceToCase(
       serviceType,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const suspendedService = await prisma.suspendedService.create({
       data: {
@@ -1489,7 +1596,7 @@ export async function addSuspendedServiceToCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1546,6 +1653,14 @@ export async function removeSuspendedServiceFromCase(
     const validatedInput = removeSuspendedServiceFromCaseSchema.parse(input);
     const { suspendedServiceId } = validatedInput;
 
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('suspendedService', suspendedServiceId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Servicio suspendido no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedService = await prisma.suspendedService.delete({
       where: {
         id: suspendedServiceId,
@@ -1555,7 +1670,7 @@ export async function removeSuspendedServiceFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedService.caseId,
@@ -1636,18 +1751,10 @@ export async function addAssetToCase(
       material,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const asset = await prisma.asset.create({
       data: {
@@ -1682,7 +1789,7 @@ export async function addAssetToCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1752,6 +1859,14 @@ export async function removeAssetFromCase(
     const validatedInput = removeAssetFromCaseSchema.parse(input);
     const { assetId } = validatedInput;
 
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('asset', assetId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Bien no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedAsset = await prisma.asset.delete({
       where: {
         id: assetId,
@@ -1761,7 +1876,7 @@ export async function removeAssetFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedAsset.caseId,
@@ -1831,18 +1946,10 @@ export async function addDependentToCase(
     const validatedInput = addDependentToCaseSchema.parse(input);
     const { caseId, name, age, relationship } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: {
-        id: caseId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const dependent = await prisma.dependent.create({
       data: {
@@ -1856,7 +1963,7 @@ export async function addDependentToCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -1907,6 +2014,14 @@ export async function removeDependentFromCase(
     const validatedInput = removeDependentFromCaseSchema.parse(input);
     const { dependentId } = validatedInput;
 
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('dependent', dependentId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Dependiente no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedDependent = await prisma.dependent.delete({
       where: {
         id: dependentId,
@@ -1916,7 +2031,7 @@ export async function removeDependentFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedDependent.caseId,
@@ -1988,15 +2103,10 @@ export async function addApoderadoToCase(
       existePoderOtorgado,
     } = validatedInput;
 
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseData = await prisma.case.findUnique({
-      where: { id: caseId, tenantId },
-      select: { id: true },
-    });
-
-    if (!caseData) {
-      return { success: false, error: 'Caso no encontrado' };
-    }
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
+    // comprueba lo mismo (que el caso exista en el tenant) y añade la
+    // visibilidad por fila, en la misma consulta.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     // `orden` conserva la posición del formulario (0 = apoderado principal),
     // mismo criterio que `buildApoderadosCreate`. Un hueco si se borró uno de
@@ -2036,7 +2146,7 @@ export async function addApoderadoToCase(
       existePoderOtorgado: apoderado.existePoderOtorgado,
     });
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -2082,6 +2192,14 @@ export async function removeApoderadoFromCase(
     const validatedInput = removeApoderadoFromCaseSchema.parse(input);
     const { apoderadoId } = validatedInput;
 
+    // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
+    // hay que subir al padre antes de decidir el acceso.
+    const parentCaseId = await findParentCaseId('apoderado', apoderadoId, tenantId);
+    if (!parentCaseId) {
+      return { success: false, error: 'Apoderado no encontrado' };
+    }
+    await assertCaseAccess({ caseId: parentCaseId, user, tenantId });
+
     const deletedApoderado = await prisma.apoderado.delete({
       where: {
         id: apoderadoId,
@@ -2091,7 +2209,7 @@ export async function removeApoderadoFromCase(
 
     revalidateTag('cases');
 
-    void createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'case',
       entityId: deletedApoderado.caseId,
@@ -2153,20 +2271,108 @@ export async function deleteCase(
     }
 
     const validatedInput = deleteCaseSchema.parse(input);
-    const { id } = validatedInput;
+    const { id, confirmCaseNumber } = validatedInput;
 
-    // Get case info before deleting for the notification
-    // Solo se comprueba que el caso exista y sea del tenant: no hace falta la fila.
-    const caseToDelete = await prisma.case.findUnique({
-      where: {
-        id,
-        tenantId,
+    // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí.
+    // En un borrado físico e irreversible la visibilidad por fila importa más
+    // que en cualquier otra mutación.
+    await assertCaseAccess({ caseId: id, user, tenantId });
+
+    // ---------------------------------------------------------------------
+    // GC-M6 — mitigación interina mientras no exista el soft-delete.
+    //
+    // El borrado sigue siendo físico y en cascada (el soft-delete es Fase 3
+    // del roadmap, ~20 h, y toca el schema). Lo que se añade acá son las tres
+    // cosas que se pueden hacer sin tocar el schema:
+    //
+    //   1. La confirmación escrita, verificada CONTRA LA BASE (no contra lo
+    //      que mandó el cliente): el número tiene que ser el del expediente
+    //      que se va a borrar.
+    //   2. El audit log ANTES de borrar, con un snapshot de lo que se pierde.
+    //   3. El conteo de lo que se va en cascada, para que quede registrado
+    //      cuánto se destruyó.
+    // ---------------------------------------------------------------------
+    const snapshot = await prisma.case.findUnique({
+      where: { id, tenantId },
+      select: {
+        caseNumber: true,
+        debtorName: true,
+        type: true,
+        phase: true,
+        driveFolderId: true,
+        _count: {
+          select: {
+            documents: true,
+            debts: true,
+            assets: true,
+            dependents: true,
+          },
+        },
       },
-      select: { id: true },
     });
 
-    if (!caseToDelete) {
+    if (!snapshot) {
       return { success: false, error: 'Caso no encontrado' };
+    }
+
+    // La comparación es contra `snapshot.caseNumber`, el valor de la base.
+    // Comparar contra otro campo del mismo payload del cliente no confirmaría
+    // nada: el cliente controla los dos lados.
+    if (confirmCaseNumber.trim() !== snapshot.caseNumber) {
+      return {
+        success: false,
+        error: `El número del caso no coincide. Escriba exactamente "${snapshot.caseNumber}" para confirmar la eliminación.`,
+      };
+    }
+
+    // El audit log va ANTES del borrado y se ESPERA. Si se escribiera después
+    // y fallara, quedaría un expediente legal destruido sin ningún registro de
+    // quién lo hizo; y si se dispara sin `await` (como estaba), el proceso
+    // serverless puede terminar antes de que la fila llegue a la base.
+    //
+    // El snapshot es deliberadamente NO SENSIBLE: número, fase, tipo y
+    // conteos. Nada de cédula, ingresos, dependientes ni acreedores — el
+    // audit log no es el lugar para conservar los datos personales de un
+    // expediente que se está borrando, justamente bajo la Ley 1581.
+    const registro = await createAuditLog({
+      action: 'deleted',
+      entityType: 'case',
+      entityId: id,
+      entityName: `${snapshot.caseNumber} - ${snapshot.debtorName}`,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: {
+        caseNumber: snapshot.caseNumber,
+        type: snapshot.type,
+        phase: snapshot.phase,
+        documentCount: snapshot._count.documents,
+        debtCount: snapshot._count.debts,
+        assetCount: snapshot._count.assets,
+        dependentCount: snapshot._count.dependents,
+        // GC-M6 pendiente: la carpeta NO se borra ni se archiva en Drive. Los
+        // PDFs con datos personales quedan huérfanos allí. Se registra el id
+        // para que una limpieza posterior sepa qué buscar.
+        driveFolderId: snapshot.driveFolderId,
+        driveFolderDeleted: false,
+        confirmedByTypingCaseNumber: true,
+      },
+    });
+
+    // GC-M4 + GC-M6: si la auditoría no quedó escrita, NO se borra. Es la
+    // única mutación donde se toma esta decisión, y es por lo que destruye:
+    // un expediente legal eliminado sin registro de quién lo hizo no se puede
+    // reconstruir ni explicar. En las demás actions un fallo de auditoría se
+    // reporta y la operación sigue (ver el docblock de `createAuditLog`).
+    if (!registro.ok) {
+      return {
+        success: false,
+        error:
+          'No se pudo registrar la eliminación en la auditoría. El caso NO fue eliminado. Intente de nuevo.',
+      };
     }
 
     // Delete the case and all related records in a transaction
@@ -2210,18 +2416,9 @@ export async function deleteCase(
       },
     );
 
-    createAuditLog({
-      action: 'deleted',
-      entityType: 'case',
-      entityId: id,
-      entityName: `${deletedCase.caseNumber} - ${deletedCase.debtorName}`,
-      actor: {
-        userId: user.id,
-        userName: user.name,
-        userCedula: user.professionalCard,
-      },
-      tenantId,
-    });
+    // GC-M6: el audit log de este borrado ya quedó escrito ARRIBA, antes de
+    // destruir la fila y con el snapshot de lo que se perdía. No se duplica
+    // acá: un segundo registro del mismo evento ensucia el histórico.
 
     const result = caseSummarySchema.parse(deletedCase);
     return { success: true, data: result };
@@ -2592,12 +2789,26 @@ export async function updateCasePhase(input: {
 
     const existingCase = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
-      select: { id: true, phase: true, caseNumber: true, debtorName: true },
+      select: {
+        id: true,
+        phase: true,
+        caseNumber: true,
+        debtorName: true,
+        // GC-A1: estas dos no las usaba la transición; las pide el guard de
+        // visibilidad por fila. Se añaden al `select` que ya existía en vez de
+        // hacer una segunda consulta.
+        operatorId: true,
+        debtorId: true,
+      },
     });
 
     if (!existingCase) {
       return { success: false, error: 'Caso no encontrado' };
     }
+
+    // GC-A1 — un cambio de fase dispara generación documental y queda en la
+    // auditoría del expediente: es de las mutaciones que más importa acotar.
+    await assertCaseAccessOnRow({ caseRow: existingCase, user, tenantId });
 
     const currentPhase = existingCase.phase ?? INITIAL_CASE_PHASE;
     const check = validatePhaseTransition(currentPhase, newPhase);
@@ -2653,7 +2864,7 @@ export async function updateCasePhase(input: {
     revalidateTag('cases');
 
     // Fire-and-forget audit log
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'case',
       entityId: caseId,

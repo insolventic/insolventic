@@ -93,6 +93,10 @@ function createdAssets(): Array<Record<string, unknown>> {
 describe('vehículo — comparendos o impuestos pendientes', () => {
   beforeEach(() => {
     resetAllMocks();
+    // GC-M2: `createCase`/`updateCase` ahora verifican que el operador asignado
+    // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
+    // pertenece a este centro" y lo que falla es la fixture, no el codigo.
+    mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
 

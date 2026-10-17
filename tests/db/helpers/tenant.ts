@@ -87,7 +87,18 @@ export interface TenantDePrueba {
  */
 export async function crearTenantDePrueba(
   tag: string,
-  permisos: string[] = [P.CREAR_CASOS, P.VER_CASOS, P.EDITAR_CASOS],
+  // GC-A1: hace falta un permiso de ALCANCE, no solo los de CRUD. Las
+  // mutaciones de expediente aplican visibilidad por fila, y una sesion sin
+  // alcance se resuelve a "no ve ningun caso" -> no puede mutar ninguno.
+  // `VER_TODOS_CASOS` es lo que tienen Administrador, Operadora y Secretaria
+  // en el seed; una sesion con CRUD y sin alcance no corresponde a ningun rol
+  // real, era la fixture la que estaba mal formada.
+  permisos: string[] = [
+    P.CREAR_CASOS,
+    P.VER_CASOS,
+    P.EDITAR_CASOS,
+    P.VER_TODOS_CASOS,
+  ],
 ): Promise<TenantDePrueba> {
   const tenant = await prisma.tenant.create({
     data: { name: `Prueba ${tag}`, slug: tag },

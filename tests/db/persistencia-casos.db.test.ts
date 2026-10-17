@@ -26,6 +26,7 @@ jest.mock('@/features/document/generation-job', () => ({
 import prisma from '@/lib/prisma';
 import { createCase, updateCase } from '@/features/case/actions';
 import { createCaseFormSchema } from '@/features/case/schemas';
+import { _resetRateLimitStore } from '@/lib/rate-limit';
 import { mockCookies } from '../__mocks__/next-headers';
 
 import {
@@ -79,6 +80,16 @@ const contarCasos = () =>
   prisma.case.count({ where: { tenantId: ctx.tenantId } });
 const contarDeudas = () =>
   prisma.debt.count({ where: { tenantId: ctx.tenantId } });
+
+// GC-B2: `createCase` ahora tiene rate limit (10 por usuario cada 10 minutos)
+// y el limitador in-memory guarda estado por PROCESO. `test:db` corre
+// --runInBand, asi que todas las suites comparten proceso, y esta crea mas de
+// 10 expedientes entre sus bloques: sin reiniciar la ventana, los ultimos
+// fallaban con "Demasiadas creaciones" y el error no tenia nada que ver con lo
+// que se estaba probando.
+beforeEach(() => {
+  _resetRateLimitStore();
+});
 
 beforeAll(async () => {
   const tenant = await crearTenantDePrueba(TAG);

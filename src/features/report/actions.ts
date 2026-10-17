@@ -9,6 +9,15 @@ import {
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
+// GC-M5: `report/actions.ts` no contenia NI UNA referencia a VER_CASOS_PROPIOS
+// ni a operatorId. Scopeaba por tenantId y nada mas, asi que un rol limitado a
+// sus propios expedientes obtenia por via de los reportes los agregados y el
+// detalle de TODOS los casos del centro. Es el mismo vector que GC-A1 por una
+// puerta distinta. Pagos y Calendario si lo aplicaban: Reportes era la anomalia.
+import {
+  resolveCaseVisibility,
+  caseWhereOrNothing,
+} from '@/features/case/case-access';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -85,7 +94,11 @@ export async function getCaseStatusReport(
     }
 
     const validated = caseStatusFilterSchema.parse(filters);
-    const where: Record<string, unknown> = { tenantId };
+    const visibility = await resolveCaseVisibility(user, tenantId);
+    const where: Record<string, unknown> = {
+      tenantId,
+      ...caseWhereOrNothing(visibility),
+    };
 
     if (validated.dateFrom || validated.dateTo) {
       const createdDate: Record<string, Date> = {};
@@ -176,9 +189,12 @@ export async function getFinancialReport() {
       return { success: false, error: 'No tienes permisos para ver reportes' };
     }
 
+    const visibility = await resolveCaseVisibility(user, tenantId);
+    const caseScope = caseWhereOrNothing(visibility);
+
     // Get cases with their debts, grouped by type
     const cases = await prisma.case.findMany({
-      where: { tenantId },
+      where: { tenantId, ...caseScope },
       select: {
         id: true,
         type: true,
@@ -190,8 +206,9 @@ export async function getFinancialReport() {
     });
 
     // Get individual debts with creditor info
+    // El scope va dentro de `case`: una deuda es visible si su expediente lo es.
     const debts = await prisma.debt.findMany({
-      where: { case: { tenantId } },
+      where: { case: { tenantId, ...caseScope } },
       include: {
         creditor: { select: { name: true, nit: true, type: true } },
         case: { select: { type: true } },
@@ -322,7 +339,11 @@ export async function exportCasesToExcel(
       };
     }
 
-    const where: Record<string, unknown> = { tenantId };
+    const visibility = await resolveCaseVisibility(user, tenantId);
+    const where: Record<string, unknown> = {
+      tenantId,
+      ...caseWhereOrNothing(visibility),
+    };
     if (filters.dateFrom || filters.dateTo) {
       const createdDate: Record<string, Date> = {};
       if (filters.dateFrom) createdDate.gte = new Date(filters.dateFrom);

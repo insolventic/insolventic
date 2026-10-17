@@ -3,6 +3,14 @@
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
+// GD-M4: estas actions comprobaban el permiso (GENERAR_DOCUMENTOS /
+// VER_DOCUMENTOS) y el `tenantId`, pero no sobre QUE expediente. Un rol con
+// `Ver casos propios` podia generar y leer los documentos de cualquier
+// expediente del centro pasando el caseId directo.
+import {
+  assertCaseAccess,
+  assertCaseAccessOnRow,
+} from '@/features/case/case-access';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import {
   generateDocumentsForNewCase,
@@ -121,6 +129,10 @@ export async function regenerateCaseDocument(input: {
       return { success: false, error: 'Caso no encontrado' };
     }
 
+    // GD-M4 — visibilidad por fila. Sobre la fila ya cargada: no hace falta
+    // una segunda consulta.
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
+
     if (!caseData.driveFolderId) {
       return {
         success: false,
@@ -220,6 +232,10 @@ export async function generateInitialDocuments(caseId: string): Promise<{
       return { success: false, error: 'Caso no encontrado' };
     }
 
+    // GD-M4 — visibilidad por fila. Sobre la fila ya cargada: no hace falta
+    // una segunda consulta.
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
+
     const centerFolderName = resolveCenterFolderName(
       tenantId,
       caseData.centroConciliacionNombre,
@@ -301,6 +317,10 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
       return { success: false, error: 'Caso no encontrado' };
     }
 
+    // GD-M4 — visibilidad por fila. Sobre la fila ya cargada: no hace falta
+    // una segunda consulta.
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
+
     if (!caseData.driveFolderId) {
       return {
         success: false,
@@ -366,6 +386,10 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
     }
+
+    // GD-M4 — visibilidad por fila. Sobre la fila ya cargada: no hace falta
+    // una segunda consulta.
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
     if (!caseData.driveFolderId) {
       return {
@@ -435,6 +459,10 @@ export async function generateFailureDocuments(
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
     }
+
+    // GD-M4 — visibilidad por fila. Sobre la fila ya cargada: no hace falta
+    // una segunda consulta.
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
     if (!caseData.driveFolderId) {
       return {
@@ -532,6 +560,9 @@ export async function getCaseDocumentStatus(caseId: string): Promise<{
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
       select: {
+        // GD-M4: las dos que pide el guard de visibilidad por fila.
+        operatorId: true,
+        debtorId: true,
         driveFolderId: true,
         documents: {
           where: { isGenerated: true },
@@ -551,6 +582,8 @@ export async function getCaseDocumentStatus(caseId: string): Promise<{
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
     }
+
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
     const { googleDriveService } = await import('@/lib/google-drive');
 
@@ -595,6 +628,10 @@ export async function getGenerationRequestStatus(caseId: string): Promise<{
         error: 'No tienes permisos para ver documentos',
       };
     }
+
+    // GD-M4 — el estado de generacion de un expediente es informacion del
+    // expediente: mismo alcance que verlo.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const requests = await getGenerationRequests(tenantId, caseId);
     return { success: true, data: requests };

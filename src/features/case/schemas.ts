@@ -2101,7 +2101,23 @@ export const CaseType = {
 export type CaseTypeEnum = (typeof CaseType)[keyof typeof CaseType];
 export const getAllCasesSchema = z.array(caseListItemSchema);
 export const getCaseByIdSchema = z.string();
-export const deleteCaseSchema = z.object({ id: z.string() });
+/**
+ * GC-M6 — `deleteCase` es un borrado FÍSICO en cascada e irreversible de un
+ * expediente legal. `confirmCaseNumber` es la confirmación escrita a mano: el
+ * operador tiene que teclear el número del caso.
+ *
+ * Es OBLIGATORIO en el schema, no solo en el diálogo. Una server action es un
+ * endpoint: si la confirmación viviera únicamente en el componente, bastaría
+ * invocar la action sin pasar por la UI para saltársela. El diálogo aporta la
+ * fricción; el schema la hace exigible.
+ */
+export const deleteCaseSchema = z.object({
+  id: z.string(),
+  confirmCaseNumber: z
+    .string()
+    .trim()
+    .min(1, 'Escriba el número del caso para confirmar la eliminación'),
+});
 
 // Apoderado (attorney) form schema for dynamic array
 const apoderadoFormSchema = z.object({
