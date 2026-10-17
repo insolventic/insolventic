@@ -185,7 +185,14 @@ beforeAll(async () => {
   });
   ctx.tenantId = tenant.id;
 
-  const permissionNames = [P.CREAR_CASOS, P.VER_CASOS, P.EDITAR_CASOS];
+  // GC-A1: + el permiso de alcance. Sin uno, `updateCase` rechaza por
+  // visibilidad por fila (ninguna fila es visible). Ver tenant.ts.
+  const permissionNames = [
+    P.CREAR_CASOS,
+    P.VER_CASOS,
+    P.EDITAR_CASOS,
+    P.VER_TODOS_CASOS,
+  ];
   const role = await prisma.role.create({
     data: { name: 'Administrador', description: 'smoke', tenantId: tenant.id },
   });
