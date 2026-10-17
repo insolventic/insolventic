@@ -31,6 +31,10 @@ export const sessionSchema = z.object({
   tenantId: z.string(),
   tenantName: z.string(),
   lastLogin: z.date(),
+  // A-6 (revocación de sesiones): versión vigente al emitir el token.
+  // `verifyToken` (src/lib/auth.ts) la trata como 0 si el token es de antes
+  // de este campo — nunca queda `undefined` en un `SessionData` ya resuelto.
+  tokenVersion: z.number(),
   iat: z.number(),
   exp: z.number(),
 });
@@ -38,6 +42,10 @@ export const sessionSchema = z.object({
 export const refreshTokenSchema = z.object({
   userId: z.string(),
   tenantId: z.string(),
+  // A-6: mismo motivo que en `sessionSchema` — sin esto, un refresh token
+  // robado antes de un cambio de contraseña podría seguir emitiendo access
+  // tokens válidos (con la versión ACTUAL) indefinidamente.
+  tokenVersion: z.number(),
   iat: z.number(),
   exp: z.number(),
 });

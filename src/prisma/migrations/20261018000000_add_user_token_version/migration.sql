@@ -1,0 +1,31 @@
+-- A-6 (revocación de sesiones): una columna en `User` para invalidar los JWT
+-- vigentes de una cuenta sin esperar a que expiren (hasta 24h el access
+-- token, hasta 7 días el refresh token).
+--
+-- QUÉ RESUELVE
+--   Hoy un cambio de contraseña (o, cuando exista, una desactivación de
+--   cuenta) no invalida los tokens que ya se emitieron: siguen siendo
+--   válidos hasta que expiran por su cuenta. `tokenVersion` se incrementa en
+--   esos eventos; el JWT lleva la versión vigente al momento de emitirse, y
+--   `authenticateUser`/`refreshAccessToken` (los dos puntos que ya leen la
+--   fila del usuario en cada llamada) rechazan un token cuya versión no
+--   coincide con la de la base.
+--
+-- POR QUÉ NOT NULL DEFAULT 0, Y NO NULLABLE
+--   A diferencia de las columnas de conciliación (nullable, "sin dato" es un
+--   estado válido), acá "sin dato" no tiene sentido: todo usuario tiene una
+--   versión de token, empezando en 0. `DEFAULT 0` en una columna NOT NULL
+--   que se agrega sobre una tabla con filas existentes no reescribe la tabla
+--   fila por fila en Postgres 11+ (el default se guarda en el catálogo), así
+--   que es segura igual que las aditivas nullable de siempre.
+--
+-- COMPATIBILIDAD CON TOKENS YA EMITIDOS
+--   Los JWT emitidos ANTES de este despliegue no llevan `tokenVersion` en su
+--   payload. `verifyToken` (src/lib/auth.ts) los trata como versión 0 —la
+--   misma que trae cada usuario existente por el DEFAULT de arriba— para no
+--   cerrarle la sesión a nadie de golpe el día del deploy.
+--
+-- `IF NOT EXISTS`: mismo patrón que toda migración aditiva de este proyecto
+-- (`20260910000000_add_apoyo_columns_to_case` y las de conciliación) — si
+-- algún entorno ya la tuviera, la sentencia se omite en vez de abortar.
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "token_version" INTEGER NOT NULL DEFAULT 0;

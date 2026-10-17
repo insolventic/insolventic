@@ -41,6 +41,12 @@ jest.mock('@/hooks/use-auth', () => ({
 // Mock server actions
 const mockGetAllCases = jest.fn();
 const mockBatchGenerateDocuments = jest.fn();
+// GD-A1 (issue #3): el componente ahora pide el plan de tandas antes de
+// generar. El mock por defecto (ver beforeEach) devuelve UNA sola tanda con
+// un id fijo ('tpl-1'), así que el resto de los tests —que no les importa el
+// troceo— no tiene que cambiar: siguen viendo una sola llamada a
+// `batchGenerateDocuments`, ahora con `templateIds` en vez de `packageNumber`.
+const mockPlanBatchGeneration = jest.fn();
 
 jest.mock('@/features/case/actions', () => ({
   getAllCases: (...args: unknown[]) => mockGetAllCases(...args),
@@ -49,6 +55,8 @@ jest.mock('@/features/case/actions', () => ({
 jest.mock('@/features/document/actions', () => ({
   batchGenerateDocuments: (...args: unknown[]) =>
     mockBatchGenerateDocuments(...args),
+  planBatchGeneration: (...args: unknown[]) =>
+    mockPlanBatchGeneration(...args),
 }));
 
 // Mock Radix Popover (simplify for testing)
@@ -451,6 +459,11 @@ describe('DocumentGeneration', () => {
       data: MOCK_CASES,
     });
     mockBatchGenerateDocuments.mockResolvedValue(MOCK_SUCCESS_RESULT);
+    mockPlanBatchGeneration.mockResolvedValue({
+      success: true,
+      message: 'Plan generado',
+      data: { tandas: [['tpl-1']] },
+    });
   });
 
   // ─── Rendering ──────────────────────────────────────────────────────────
@@ -748,16 +761,22 @@ describe('DocumentGeneration', () => {
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+        expect(mockPlanBatchGeneration).toHaveBeenCalledWith(
           expect.objectContaining({
             caseId: 'case-1',
             packageNumber: undefined, // 'all' => undefined
           }),
         );
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+          expect.objectContaining({
+            caseId: 'case-1',
+            templateIds: ['tpl-1'],
+          }),
+        );
       });
     });
 
-    it('calls batchGenerateDocuments with specific packageNumber when selected', async () => {
+    it('calls planBatchGeneration with specific packageNumber when selected', async () => {
       render(
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
@@ -781,7 +800,7 @@ describe('DocumentGeneration', () => {
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+        expect(mockPlanBatchGeneration).toHaveBeenCalledWith(
           expect.objectContaining({
             caseId: 'case-1',
             packageNumber: 3,
@@ -1080,6 +1099,40 @@ describe('DocumentGeneration', () => {
   // ─── Package Selection ──────────────────────────────────────────────────
 
   describe('Package Selection', () => {
+    it('las etiquetas de paquete muestran el conteo real de templates-config.ts, no un número escrito a mano (PR #140)', async () => {
+      // Fuente real, SIN mockear — es exactamente lo que `planBatchGeneration`
+      // usa para resolver y trocear. Si alguien vuelve a hardcodear los
+      // conteos en document-generation.tsx (como eran antes: 49 y 27, que ya
+      // habían quedado desactualizados contra 65 y 29 reales), este test
+      // falla porque deja de coincidir con esta fuente.
+      const {
+        ALL_TEMPLATES,
+        getPackageInfo,
+      } = require('@/features/document/templates-config');
+      const paquetesReales = getPackageInfo();
+
+      render(
+        <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
+      );
+
+      const opciones = screen.getAllByTestId('select-item');
+      const porValor = new Map(
+        opciones.map((o) => [
+          o.getAttribute('value'),
+          o.textContent?.trim() ?? '',
+        ]),
+      );
+
+      expect(porValor.get('all')).toBe(
+        `Todos los paquetes (${ALL_TEMPLATES.length} doc.)`,
+      );
+      for (const pkg of paquetesReales) {
+        expect(porValor.get(String(pkg.packageNumber))).toBe(
+          `Paquete ${pkg.packageNumber} - ${pkg.name} (${pkg.templateCount} doc.)`,
+        );
+      }
+    });
+
     it('defaults to "all" package', async () => {
       render(
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
@@ -1107,7 +1160,7 @@ describe('DocumentGeneration', () => {
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+        expect(mockPlanBatchGeneration).toHaveBeenCalledWith(
           expect.objectContaining({
             caseId: 'case-1',
             packageNumber: undefined,
@@ -1138,12 +1191,137 @@ describe('DocumentGeneration', () => {
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        expect(mockBatchGenerateDocuments).toHaveBeenCalledWith(
+        expect(mockPlanBatchGeneration).toHaveBeenCalledWith(
           expect.objectContaining({
             caseId: 'case-1',
             packageNumber: 5,
           }),
         );
+      });
+    });
+  });
+
+  // ─── GD-A1: troceo en tandas (issue #3) ──────────────────────────────────
+
+  describe('GD-A1: troceo en tandas', () => {
+    it('lote de 2 tandas: dos llamadas en orden, la primera sin requestId, la segunda con el de la primera', async () => {
+      mockPlanBatchGeneration.mockResolvedValue({
+        success: true,
+        message: 'Plan generado',
+        data: { tandas: [['tpl-a'], ['tpl-b']] },
+      });
+      mockBatchGenerateDocuments
+        .mockResolvedValueOnce({
+          ...MOCK_SUCCESS_RESULT,
+          data: { ...MOCK_SUCCESS_RESULT.data, requestId: 'req-1' },
+        })
+        .mockResolvedValueOnce({
+          ...MOCK_SUCCESS_RESULT,
+          data: { ...MOCK_SUCCESS_RESULT.data, requestId: 'req-1' },
+        });
+
+      render(
+        <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('INS-2025-001')).toBeInTheDocument();
+      });
+
+      const caseItems = screen.getAllByTestId('command-item');
+      fireEvent.click(caseItems[0]);
+
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
+      fireEvent.click(generateBtn);
+
+      await waitFor(() => {
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledTimes(2);
+      });
+
+      expect(mockBatchGenerateDocuments).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          templateIds: ['tpl-a'],
+          requestId: undefined,
+          isFinalTanda: false,
+        }),
+      );
+      expect(mockBatchGenerateDocuments).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          templateIds: ['tpl-b'],
+          requestId: 'req-1',
+          isFinalTanda: true,
+        }),
+      );
+      expect(mockOnDocumentsGenerated).toHaveBeenCalled();
+    });
+
+    it('tanda 2 falla: no sigue con más tandas y ofrece reintentar solo esa, sin perder lo de la tanda 1', async () => {
+      mockPlanBatchGeneration.mockResolvedValue({
+        success: true,
+        message: 'Plan generado',
+        data: { tandas: [['tpl-a'], ['tpl-b']] },
+      });
+      mockBatchGenerateDocuments
+        .mockResolvedValueOnce({
+          ...MOCK_SUCCESS_RESULT,
+          data: { ...MOCK_SUCCESS_RESULT.data, requestId: 'req-1' },
+        })
+        .mockResolvedValueOnce({
+          success: false,
+          message: 'Chromium caído',
+          data: null,
+        });
+
+      render(
+        <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('INS-2025-001')).toBeInTheDocument();
+      });
+
+      const caseItems = screen.getAllByTestId('command-item');
+      fireEvent.click(caseItems[0]);
+
+      const generateBtn = screen
+        .getByText('Generar Documentos')
+        .closest('button')!;
+      fireEvent.click(generateBtn);
+
+      await waitFor(() => {
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledTimes(2);
+      });
+
+      // No se completó: no se llama onDocumentsGenerated todavía.
+      expect(mockOnDocumentsGenerated).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(screen.getByText('Reintentar')).toBeInTheDocument();
+      });
+
+      // Reintentar: solo la tanda 2, mismo requestId, ahora exitosa.
+      mockBatchGenerateDocuments.mockResolvedValueOnce({
+        ...MOCK_SUCCESS_RESULT,
+        data: { ...MOCK_SUCCESS_RESULT.data, requestId: 'req-1' },
+      });
+      fireEvent.click(screen.getByText('Reintentar'));
+
+      await waitFor(() => {
+        expect(mockBatchGenerateDocuments).toHaveBeenCalledTimes(3);
+      });
+      expect(mockBatchGenerateDocuments).toHaveBeenNthCalledWith(
+        3,
+        expect.objectContaining({
+          templateIds: ['tpl-b'],
+          requestId: 'req-1',
+          isFinalTanda: true,
+        }),
+      );
+      await waitFor(() => {
+        expect(mockOnDocumentsGenerated).toHaveBeenCalled();
       });
     });
   });
@@ -1199,7 +1377,7 @@ describe('DocumentGeneration', () => {
       fireEvent.click(generateBtn);
 
       await waitFor(() => {
-        const args = mockBatchGenerateDocuments.mock.calls[0][0];
+        const args = mockPlanBatchGeneration.mock.calls[0][0];
         expect(args.packageNumber).toBe(2);
         expect(typeof args.packageNumber).toBe('number');
       });

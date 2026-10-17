@@ -17,7 +17,11 @@ import {
   markGenerationProcessing,
   completeGenerationRequest,
   failGenerationRequest,
+  continueOrResumeGenerationRequest,
+  recordBatchTandaProgress,
+  finalizeBatchGenerationRequest,
 } from './generation-request';
+import { chunkIntoTandas, TANDA_TEMPLATE_COUNT } from './batch-tandas';
 import {
   checkRateLimit,
   getRateLimitKey,
@@ -29,6 +33,7 @@ import {
   getTemplatesFromDatabaseOutputSchema,
   syncTemplatesWithGoogleDriveOutputSchema,
   batchGenerateDocumentsInputSchema,
+  planBatchGenerationInputSchema,
   getDocumentsFromDriveOutputSchema,
   syncDocumentsWithGoogleDriveOutputSchema,
   uploadCaseDocumentsInputSchema,
@@ -739,11 +744,71 @@ function collectMissingData(
   );
 }
 
+/**
+ * GD-A1 (issue #3) — el plan de tandas para un lote.
+ *
+ * Solo resuelve qué plantillas corresponden a la selección (ids explícitos,
+ * paquete, o todas) y las parte en tandas de `TANDA_TEMPLATE_COUNT` — no toca
+ * Prisma más allá del permiso, no genera nada. El cliente (`/documents`) la
+ * llama una vez antes de arrancar, y después invoca `batchGenerateDocuments`
+ * una vez por tanda, en orden, encadenando el `requestId` que devuelve la
+ * primera.
+ */
+export async function planBatchGeneration(input: {
+  caseId: string;
+  templateIds?: string[];
+  packageNumber?: 1 | 2 | 3 | 4 | 5;
+}): Promise<{
+  success: boolean;
+  message: string;
+  data: { tandas: string[][] } | null;
+}> {
+  try {
+    const { user } = await authenticateUser();
+
+    if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
+      return {
+        success: false,
+        message: 'No tienes permisos para generar documentos',
+        data: null,
+      };
+    }
+
+    const { templateIds, packageNumber } =
+      planBatchGenerationInputSchema.parse(input);
+
+    const { resolveTemplatesToProcess } = await import('./templates-config');
+    const templatesToProcess = resolveTemplatesToProcess({
+      templateIds,
+      packageNumber,
+    });
+
+    const tandas = chunkIntoTandas(
+      templatesToProcess.map((t) => t.id),
+      TANDA_TEMPLATE_COUNT,
+    );
+
+    return { success: true, message: 'Plan generado', data: { tandas } };
+  } catch (error) {
+    logger.error('Error planificando la generación por lotes', error, {
+      action: 'plan-batch-generation',
+    });
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : 'Error planificando el lote',
+      data: null,
+    };
+  }
+}
+
 export async function batchGenerateDocuments(input: {
   caseId: string;
   templateIds?: string[];
   packageNumber?: 1 | 2 | 3 | 4 | 5;
   outputFormat?: 'pdf' | 'docx' | 'both';
+  requestId?: string;
+  isFinalTanda?: boolean;
 }) {
   // Fuera del try: el catch necesita poder liberar el lock (C-4).
   let generationRequestId: string | null = null;
@@ -759,23 +824,31 @@ export async function batchGenerateDocuments(input: {
       };
     }
 
-    // Rate limit batch generation per user (expensive operation)
-    const rlKey = getRateLimitKey('batchDocumentGeneration', user.id);
-    const rl = await checkRateLimit(
-      rlKey,
-      RATE_LIMIT_CONFIGS.batchDocumentGeneration,
-    );
-    if (!rl.allowed) {
-      return {
-        success: false,
-        message: `Demasiadas solicitudes de generación masiva. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
-        data: null,
-      };
-    }
-
     const validatedInput = batchGenerateDocumentsInputSchema.parse(input);
-    const { caseId, templateIds, packageNumber } = validatedInput;
+    const { caseId, templateIds, packageNumber, requestId, isFinalTanda } =
+      validatedInput;
     const outputFormat = validatedInput.outputFormat || 'pdf';
+
+    // Rate limit batch generation per user (expensive operation). GD-A1
+    // (issue #3): con un lote troceado en tandas, cada tanda es su propia
+    // invocación — contarlas todas chocaría con el límite (5 cada 10 min) a
+    // mitad de un lote grande. Solo la PRIMERA tanda (sin `requestId`) paga
+    // el costo del límite; continuar una solicitud ya reclamada no es una
+    // solicitud nueva.
+    if (!requestId) {
+      const rlKey = getRateLimitKey('batchDocumentGeneration', user.id);
+      const rl = await checkRateLimit(
+        rlKey,
+        RATE_LIMIT_CONFIGS.batchDocumentGeneration,
+      );
+      if (!rl.allowed) {
+        return {
+          success: false,
+          message: `Demasiadas solicitudes de generación masiva. Intente en ${Math.ceil(rl.resetInMs / 60000)} minutos.`,
+          data: null,
+        };
+      }
+    }
 
     // Load case with ALL relations needed for placeholder mapping. Misma
     // fuente que actions-generation.ts y case/actions.ts: antes esta función
@@ -799,44 +872,51 @@ export async function batchGenerateDocuments(input: {
     // vez —o un doble click— duplicaban archivos en Drive y filas en BD.
     // Se reclama DESPUÉS del control de acceso para no crear filas de lock a
     // nombre de quien no puede generar.
-    const claim = await claimGenerationRequest({
-      tenantId,
-      caseId,
-      kind: 'BATCH',
-      requestedById: user.id,
-    });
+    //
+    // GD-A1: `requestId` presente = esta tanda CONTINÚA una solicitud que una
+    // tanda anterior ya reclamó (o la RETOMA si esa tanda falló) — nunca
+    // reclama una fila nueva, que es lo que mantiene el estado agregado en
+    // una sola `DocumentGenerationRequest` en vez de una por tanda.
+    if (requestId) {
+      const resumed = await continueOrResumeGenerationRequest({
+        tenantId,
+        caseId,
+        kind: 'BATCH',
+        requestId,
+      });
+      if (!resumed.ok) {
+        return { success: false, message: resumed.error, data: null };
+      }
+      generationRequestId = requestId;
+    } else {
+      const claim = await claimGenerationRequest({
+        tenantId,
+        caseId,
+        kind: 'BATCH',
+        requestedById: user.id,
+      });
 
-    if (!claim.claimed) {
-      return {
-        success: false,
-        message: `Ya hay una generación en curso para este caso (estado: ${claim.request.status}). Espere a que termine antes de volver a generar.`,
-        data: null,
-        requestId: claim.request.id,
-      };
+      if (!claim.claimed) {
+        return {
+          success: false,
+          message: `Ya hay una generación en curso para este caso (estado: ${claim.request.status}). Espere a que termine antes de volver a generar.`,
+          data: null,
+          requestId: claim.request.id,
+        };
+      }
+
+      generationRequestId = claim.request.id;
+      await markGenerationProcessing(generationRequestId);
     }
-
-    generationRequestId = claim.request.id;
-    await markGenerationProcessing(generationRequestId);
 
     // Get HTML templates to process
-    const {
-      ALL_TEMPLATES,
-      getTemplatesByPackage,
-      getTemplatePath,
-      getTemplateAssetsBaseDir,
-    } = await import('./templates-config');
+    const { getTemplatePath, getTemplateAssetsBaseDir, resolveTemplatesToProcess } =
+      await import('./templates-config');
 
-    let templatesToProcess: DocumentTemplate[];
-
-    if (templateIds && templateIds.length > 0) {
-      templatesToProcess = ALL_TEMPLATES.filter((t) =>
-        templateIds.includes(t.id),
-      );
-    } else if (packageNumber) {
-      templatesToProcess = getTemplatesByPackage(packageNumber);
-    } else {
-      templatesToProcess = ALL_TEMPLATES;
-    }
+    const templatesToProcess: DocumentTemplate[] = resolveTemplatesToProcess({
+      templateIds,
+      packageNumber,
+    });
 
     if (templatesToProcess.length === 0) {
       throw new Error('No se encontraron plantillas para procesar');
@@ -1334,12 +1414,30 @@ export async function batchGenerateDocuments(input: {
       });
     }
 
-    // C-4: libera el lock y deja el resultado consultable por el polling.
-    await completeGenerationRequest(generationRequestId, {
-      total: documents.length,
-      success: successfulDocuments,
-      errors: failedDocuments,
-    });
+    // GD-A1: el discriminador es `isFinalTanda`, NO `requestId` — la PRIMERA
+    // tanda de un lote troceado tampoco trae `requestId` (nada que
+    // continuar todavía), pero sigue siendo una tanda intermedia si hay más
+    // después. Un llamador que nunca manda `isFinalTanda` (todos los que
+    // existían antes de GD-A1) cae siempre en la rama de siempre:
+    // `completeGenerationRequest`, sin cambio de comportamiento.
+    const thisRequestId = generationRequestId;
+    if (isFinalTanda === undefined) {
+      // C-4: libera el lock y deja el resultado consultable por el polling.
+      await completeGenerationRequest(thisRequestId, {
+        total: documents.length,
+        success: successfulDocuments,
+        errors: failedDocuments,
+      });
+    } else {
+      await recordBatchTandaProgress(thisRequestId, {
+        total: documents.length,
+        success: successfulDocuments,
+        errors: failedDocuments,
+      });
+      if (isFinalTanda) {
+        await finalizeBatchGenerationRequest(thisRequestId);
+      }
+    }
     generationRequestId = null;
 
     return {
@@ -1356,6 +1454,9 @@ export async function batchGenerateDocuments(input: {
         successfulDocuments,
         failedDocuments,
         skippedDocuments,
+        // GD-A1: el cliente necesita este id para encadenar la siguiente
+        // tanda (o para reintentar esta si falla más adelante).
+        requestId: thisRequestId,
       },
     };
   } catch (error) {

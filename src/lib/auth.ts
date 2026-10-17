@@ -67,6 +67,12 @@ export async function verifyToken(token: string): Promise<SessionData | null> {
       tenantId: payload.tenantId as string,
       tenantName: payload.tenantName as string,
       lastLogin: new Date(payload.lastLogin as string),
+      // A-6: tokens emitidos antes de este campo no lo traen — se tratan
+      // como versión 0, la misma que trae todo usuario existente por el
+      // DEFAULT de la migración, para no cerrarle la sesión a nadie de
+      // golpe el día del deploy.
+      tokenVersion:
+        typeof payload.tokenVersion === 'number' ? payload.tokenVersion : 0,
       iat: payload.iat as number,
       exp: payload.exp as number,
     };
@@ -90,6 +96,9 @@ export async function verifyRefreshToken(
     return {
       userId: payload.userId as string,
       tenantId: payload.tenantId as string,
+      // A-6: mismo default que en verifyToken — ver esa nota.
+      tokenVersion:
+        typeof payload.tokenVersion === 'number' ? payload.tokenVersion : 0,
       iat: payload.iat as number,
       exp: payload.exp as number,
     };

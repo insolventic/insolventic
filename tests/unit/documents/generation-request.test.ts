@@ -18,6 +18,9 @@ import {
   claimGenerationRequest,
   completeGenerationRequest,
   failGenerationRequest,
+  continueOrResumeGenerationRequest,
+  recordBatchTandaProgress,
+  finalizeBatchGenerationRequest,
   STALE_GENERATION_TIMEOUT_MS,
 } from '@/features/document/generation-request';
 
@@ -207,5 +210,214 @@ describe('complete / fail — liberación del lock', () => {
     expect(call.data.status).toBe('FAILED');
     expect(call.data.activeKey).toBeNull();
     expect((call.data.error as string).length).toBeLessThanOrEqual(500);
+  });
+});
+
+describe('continueOrResumeGenerationRequest — GD-A1, tandas sobre una sola solicitud', () => {
+  it('continúa una tanda normal: la solicitud ya está PROCESSING con el lock de este caso', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({
+        id: 'req-1',
+        kind: 'BATCH',
+        status: 'PROCESSING',
+        activeKey: 'case-1:BATCH',
+      }),
+    );
+
+    const result = await continueOrResumeGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'BATCH',
+      requestId: 'req-1',
+    });
+
+    expect(result.ok).toBe(true);
+    // No reclama nada de nuevo — solo valida.
+    expect(mockPrisma.documentGenerationRequest.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('retoma una tanda que FAILED: re-activa el lock sobre la misma fila, sin crear una nueva', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({
+        id: 'req-1',
+        kind: 'BATCH',
+        status: 'FAILED',
+        activeKey: null,
+        totalDocuments: 10,
+        successCount: 10,
+        errorCount: 0,
+      }),
+    );
+    mockPrisma.documentGenerationRequest.updateMany.mockResolvedValueOnce({
+      count: 1,
+    });
+
+    const result = await continueOrResumeGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'BATCH',
+      requestId: 'req-1',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(
+      mockPrisma.documentGenerationRequest.updateMany,
+    ).toHaveBeenCalledWith({
+      where: { id: 'req-1', activeKey: null },
+      data: expect.objectContaining({
+        activeKey: 'case-1:BATCH',
+        status: 'PROCESSING',
+        error: null,
+      }),
+    });
+    expect(mockPrisma.documentGenerationRequest.create).not.toHaveBeenCalled();
+  });
+
+  it('retoma una tanda COMPLETED_WITH_ERRORS (reintento parcial)', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({
+        id: 'req-1',
+        kind: 'BATCH',
+        status: 'COMPLETED_WITH_ERRORS',
+        activeKey: null,
+      }),
+    );
+    mockPrisma.documentGenerationRequest.updateMany.mockResolvedValueOnce({
+      count: 1,
+    });
+
+    const result = await continueOrResumeGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'BATCH',
+      requestId: 'req-1',
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it('conflicto: otra operación ya tomó el lock de este caso/kind mientras se reintentaba', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({ id: 'req-1', kind: 'BATCH', status: 'FAILED', activeKey: null }),
+    );
+    mockPrisma.documentGenerationRequest.updateMany.mockResolvedValueOnce({
+      count: 0,
+    });
+
+    const result = await continueOrResumeGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'BATCH',
+      requestId: 'req-1',
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it('rechaza una solicitud ya COMPLETED: no se puede continuar lo que ya terminó', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({ id: 'req-1', kind: 'BATCH', status: 'COMPLETED', activeKey: null }),
+    );
+
+    const result = await continueOrResumeGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'BATCH',
+      requestId: 'req-1',
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it('rechaza un requestId de otro tenant/caso/kind (aislamiento)', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({ id: 'req-1', tenantId: 'tenant-ajeno', kind: 'BATCH' }),
+    );
+
+    const result = await continueOrResumeGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'BATCH',
+      requestId: 'req-1',
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it('rechaza un requestId inexistente', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(null);
+
+    const result = await continueOrResumeGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'BATCH',
+      requestId: 'req-fantasma',
+    });
+
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe('recordBatchTandaProgress — GD-A1, acumula sin sobrescribir', () => {
+  it('incrementa los 3 conteos, no los reemplaza', async () => {
+    await recordBatchTandaProgress('req-1', { total: 5, success: 4, errors: 1 });
+
+    expect(mockPrisma.documentGenerationRequest.update).toHaveBeenCalledWith({
+      where: { id: 'req-1' },
+      data: {
+        totalDocuments: { increment: 5 },
+        successCount: { increment: 4 },
+        errorCount: { increment: 1 },
+      },
+    });
+  });
+
+  it('no toca status ni activeKey — el lock sigue tomado entre tandas', async () => {
+    await recordBatchTandaProgress('req-1', { total: 1, success: 1, errors: 0 });
+
+    const call = mockPrisma.documentGenerationRequest.update.mock.calls[0][0];
+    expect(call.data.status).toBeUndefined();
+    expect(call.data.activeKey).toBeUndefined();
+  });
+});
+
+describe('finalizeBatchGenerationRequest — GD-A1, cierre sobre el total acumulado', () => {
+  it('COMPLETED cuando el total acumulado no tuvo errores', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({ totalDocuments: 20, successCount: 20, errorCount: 0 }),
+    );
+
+    await finalizeBatchGenerationRequest('req-1');
+
+    expect(mockPrisma.documentGenerationRequest.update).toHaveBeenCalledWith({
+      where: { id: 'req-1' },
+      data: expect.objectContaining({ status: 'COMPLETED', activeKey: null }),
+    });
+  });
+
+  it('COMPLETED_WITH_ERRORS cuando alguna tanda tuvo errores', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({ totalDocuments: 20, successCount: 18, errorCount: 2 }),
+    );
+
+    await finalizeBatchGenerationRequest('req-1');
+
+    expect(mockPrisma.documentGenerationRequest.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'COMPLETED_WITH_ERRORS' }),
+      }),
+    );
+  });
+
+  it('libera el lock y marca finishedAt', async () => {
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
+      baseRow({ totalDocuments: 1, successCount: 1, errorCount: 0 }),
+    );
+
+    await finalizeBatchGenerationRequest('req-1');
+
+    const call = mockPrisma.documentGenerationRequest.update.mock.calls[0][0];
+    expect(call.data.activeKey).toBeNull();
+    expect(call.data.finishedAt).toBeInstanceOf(Date);
   });
 });

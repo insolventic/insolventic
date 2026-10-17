@@ -1201,6 +1201,27 @@ export function getTemplatesByPackage(
 }
 
 /**
+ * La misma regla de selección que usa `batchGenerateDocuments` y, desde
+ * GD-A1 (issue #3, troceo en tandas), `planBatchGeneration` — ids explícitos
+ * primero, si no un paquete, si no todas. Extraída para que las dos no
+ * puedan quedar en desacuerdo sobre qué plantillas corresponden a una
+ * selección dada.
+ */
+export function resolveTemplatesToProcess(params: {
+  templateIds?: string[];
+  packageNumber?: PackageNumber;
+}): DocumentTemplate[] {
+  const { templateIds, packageNumber } = params;
+  if (templateIds && templateIds.length > 0) {
+    return ALL_TEMPLATES.filter((t) => templateIds.includes(t.id));
+  }
+  if (packageNumber) {
+    return getTemplatesByPackage(packageNumber);
+  }
+  return ALL_TEMPLATES;
+}
+
+/**
  * Get templates grouped by package
  */
 export function getTemplatesGroupedByPackage(): Record<

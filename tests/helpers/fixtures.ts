@@ -81,6 +81,11 @@ export const ADMIN_USER = {
   roleId: ADMIN_ROLE.id,
   tenantId: TENANT.id,
   lastLogin: new Date('2025-01-15'),
+  // A-6 (revocación de sesiones): authenticateUser compara
+  // `payload.tokenVersion` (0 para un token sin ese claim, ver
+  // src/lib/auth.ts) contra esta columna — sin ella, `undefined !== 0`
+  // rechaza cualquier llamada autenticada en los tests.
+  tokenVersion: 0,
   role: ADMIN_ROLE,
   tenant: TENANT,
 };
@@ -96,6 +101,7 @@ export const LAWYER_USER = {
   roleId: LAWYER_ROLE.id,
   tenantId: TENANT.id,
   lastLogin: new Date('2025-01-10'),
+  tokenVersion: 0,
   role: LAWYER_ROLE,
   tenant: TENANT,
 };
