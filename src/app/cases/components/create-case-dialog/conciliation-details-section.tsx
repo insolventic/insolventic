@@ -180,6 +180,51 @@ export function ConciliationDetailsSection() {
         </div>
       </fieldset>
 
+      {/* Audiencia virtual — C-3 (auditoría 2026-10-12). Las tres columnas ya
+          existían en el schema y en Zod desde antes de esta auditoría
+          (`zoomLink`/`zoomMeetingId`/`zoomPassword`); lo que faltaba era el
+          input. Sin ellas, `Notificacion de Convocatoria.html` — la citación
+          que se envía al convocado — salía con el bloque "DATOS INGRESO
+          REUNIÓN ZOOM" sin ID, sin clave y sin enlace: la parte citada no
+          podía entrar a la audiencia virtual. */}
+      <fieldset className="rounded-lg border p-4">
+        <legend className="px-2 text-sm font-semibold">
+          Audiencia virtual (Zoom)
+        </legend>
+        <p className="text-muted-foreground mb-4 text-sm">
+          Si la audiencia se va a realizar por Zoom, complete estos datos para
+          que la Notificación de Convocatoria los incluya. Déjelos en blanco
+          si la audiencia es presencial.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <Label htmlFor="zoomMeetingId">ID de la reunión</Label>
+            <Input
+              id="zoomMeetingId"
+              {...register('zoomMeetingId')}
+              placeholder="Ej: 123 4567 8901"
+            />
+          </div>
+          <div>
+            <Label htmlFor="zoomPassword">Código de acceso</Label>
+            <Input
+              id="zoomPassword"
+              {...register('zoomPassword')}
+              placeholder="Ej: ABC123"
+            />
+          </div>
+          <div>
+            <Label htmlFor="zoomLink">Enlace de la reunión</Label>
+            <Input
+              id="zoomLink"
+              type="url"
+              {...register('zoomLink')}
+              placeholder="https://zoom.us/j/..."
+            />
+          </div>
+        </div>
+      </fieldset>
+
       {/* Hechos */}
       <fieldset className="rounded-lg border p-4">
         <legend className="px-2 text-sm font-semibold">
