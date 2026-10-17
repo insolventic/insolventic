@@ -397,7 +397,11 @@ describe('conciliación: mapConciliationFields va el último', () => {
 
   it('desistimiento y constancia con fechas escritas: salen esas fechas', () => {
     const p = run('conciliacion-con-fechas');
-    expect(p.DIA_DESISTIMIENTO).toBe('15');
+    // C-1a (auditoría 2026-10-12): el día es 20, no 15 — desde que
+    // `concFechaDesistimiento` es una columna DateTime real, el fixture le da
+    // un día distinto al de `concFechaCitacion`/`concFechaSolicitud` (10/15/20)
+    // para que un test que mezcle las tres lo note.
+    expect(p.DIA_DESISTIMIENTO).toBe('20');
     expect(p.MES_DESISTIMIENTO).toBe('febrero');
     expect(p.ANO_DESISTIMIENTO).toBe('2025');
     expect(p.ANO_CONSTANCIA).toBe('2026');

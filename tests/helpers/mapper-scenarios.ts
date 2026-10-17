@@ -148,9 +148,14 @@ const concJson = (): Row => ({
 
 /**
  * Campos que el mapper de conciliación LEE (`raw.concXxx`) pero que el modelo Case
- * NO tiene como columna (medido contra Prisma.dmmf: 29 de las 128 lecturas
- * `raw.conc*`). En producción siempre llegan `undefined` y el mapper cae al valor
- * por defecto (la fecha de hoy, o vacío).
+ * NO tiene como columna (medido contra Prisma.dmmf: 12 de las 128 lecturas
+ * `raw.conc*`, tras la migración de C-1a/C-1c del 2026-10-17 — eran 21 antes
+ * de esa migración). En producción siempre llegan `undefined` y el mapper cae
+ * al valor por defecto (la fecha de hoy, o vacío). Las 9 de
+ * citación/solicitud/desistimiento que SÍ tenían columna propia salieron de
+ * esta lista con esa migración: el mapper ya no lee
+ * `concDia/Mes/AnoCitacion/Solicitud/Desistimiento` sueltos, lee
+ * `concFechaCitacion/Solicitud/Desistimiento` (DateTime) — ver `concDates()`.
  *
  * Los escenarios de conciliación los inyectan como propiedades extra para fijar
  * también la rama "hay valor" del código (un refactor que mueva esas líneas no
@@ -170,18 +175,15 @@ const NON_COLUMN_CONC_DATE_READS = [
   'concDiaActaOriginal',
   'concMesActaOriginal',
   'concAnoActaOriginal',
-  'concDiaCitacion',
-  'concMesCitacion',
-  'concAnoCitacion',
-  'concDiaSolicitud',
-  'concMesSolicitud',
-  'concAnoSolicitud',
-  'concDiaDesistimiento',
-  'concMesDesistimiento',
-  'concAnoDesistimiento',
 ];
 
-const NON_COLUMN_CONC_TEXT_READS: Row = {
+/**
+ * Campos de Aclaración de Acta/desistimiento que SÍ son columnas reales desde
+ * la migración de C-1c (2026-10-17) — el nombre ya no es "NON_COLUMN", pero el
+ * valor realista se mantiene igual para no perder cobertura de la rama "hay
+ * valor".
+ */
+const CONC_ACLARACION_Y_DESISTIMIENTO_TEXT: Row = {
   concApoderadoDesistimientoName: 'Dr. Mauricio Vélez Arango',
   concTipoSolicitanteDesistimiento: 'convocante',
   concCampoConError: 'Nombre del convocado',
@@ -192,16 +194,36 @@ const NON_COLUMN_CONC_TEXT_READS: Row = {
   concNumeroTramiteUnionRef: 'CON-2025-003',
 };
 
-/** Fechas de conciliación en texto: realistas (con-fechas) o vacías (sin-fechas: cae a "hoy"). */
+/**
+ * Fechas de conciliación: realistas (con-fechas) o vacías (sin-fechas: cae al
+ * blanco visible, o a "hoy" para las que todavía no tienen columna — ver
+ * `NON_COLUMN_CONC_DATE_READS`).
+ *
+ * `concFechaCitacion/Solicitud/Desistimiento` SON columnas DateTime reales
+ * (C-1a, 2026-10-17): 'sin-fechas' las fija en `null` a propósito, para
+ * forzar la rama "sin dato" del mapper — sin este `null` explícito,
+ * `makeCase(..., fill: 'full')` (el default) las rellenaría solo con un valor
+ * derivado de un hash, y el escenario dejaría de probar el blanco.
+ */
 function concDates(mode: 'con-fechas' | 'sin-fechas'): Row {
   const out: Row = {};
   for (const k of NON_COLUMN_CONC_DATE_READS) {
     if (mode === 'sin-fechas') out[k] = '';
     else out[k] = /Dia/.test(k) ? '15' : /Mes/.test(k) ? 'febrero' : '2025';
   }
-  return mode === 'con-fechas'
-    ? { ...out, ...NON_COLUMN_CONC_TEXT_READS }
-    : out;
+  if (mode === 'sin-fechas') {
+    out.concFechaCitacion = null;
+    out.concFechaSolicitud = null;
+    out.concFechaDesistimiento = null;
+    return out;
+  }
+  return {
+    ...out,
+    ...CONC_ACLARACION_Y_DESISTIMIENTO_TEXT,
+    concFechaCitacion: new Date('2025-02-10T12:00:00.000Z'),
+    concFechaSolicitud: new Date('2025-02-15T12:00:00.000Z'),
+    concFechaDesistimiento: new Date('2025-02-20T12:00:00.000Z'),
+  };
 }
 
 const conciliacion = (extra: Row = {}) =>
