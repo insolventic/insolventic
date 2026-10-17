@@ -1099,6 +1099,40 @@ describe('DocumentGeneration', () => {
   // ─── Package Selection ──────────────────────────────────────────────────
 
   describe('Package Selection', () => {
+    it('las etiquetas de paquete muestran el conteo real de templates-config.ts, no un número escrito a mano (PR #140)', async () => {
+      // Fuente real, SIN mockear — es exactamente lo que `planBatchGeneration`
+      // usa para resolver y trocear. Si alguien vuelve a hardcodear los
+      // conteos en document-generation.tsx (como eran antes: 49 y 27, que ya
+      // habían quedado desactualizados contra 65 y 29 reales), este test
+      // falla porque deja de coincidir con esta fuente.
+      const {
+        ALL_TEMPLATES,
+        getPackageInfo,
+      } = require('@/features/document/templates-config');
+      const paquetesReales = getPackageInfo();
+
+      render(
+        <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
+      );
+
+      const opciones = screen.getAllByTestId('select-item');
+      const porValor = new Map(
+        opciones.map((o) => [
+          o.getAttribute('value'),
+          o.textContent?.trim() ?? '',
+        ]),
+      );
+
+      expect(porValor.get('all')).toBe(
+        `Todos los paquetes (${ALL_TEMPLATES.length} doc.)`,
+      );
+      for (const pkg of paquetesReales) {
+        expect(porValor.get(String(pkg.packageNumber))).toBe(
+          `Paquete ${pkg.packageNumber} - ${pkg.name} (${pkg.templateCount} doc.)`,
+        );
+      }
+    });
+
     it('defaults to "all" package', async () => {
       render(
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,

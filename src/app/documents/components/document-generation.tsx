@@ -56,14 +56,27 @@ import {
   batchGenerateDocuments,
   planBatchGeneration,
 } from '@/features/document/actions';
+import {
+  ALL_TEMPLATES,
+  getPackageInfo,
+} from '@/features/document/templates-config';
 
+/**
+ * Revisión de PR #140: los conteos eran literales escritos a mano (49, 27...)
+ * y habían quedado desactualizados contra `templates-config.ts` (65 y 29
+ * reales — ver docs/IMPLEMENTACION_SEMANA_7.md §2.1). Ahora se calculan de la
+ * misma fuente que resuelve `planBatchGeneration` (`getPackageInfo`/
+ * `ALL_TEMPLATES`), así que no pueden volver a divergir — el test de guardia
+ * (`document-generation.test.tsx`, "las etiquetas de paquete muestran el
+ * conteo real") falla si alguna vez vuelven a hardcodearse.
+ */
 const PACKAGES = [
-  { value: 'all', label: 'Todos los paquetes', count: 49 },
-  { value: '1', label: 'Paquete 1 - Solicitud', count: 6 },
-  { value: '2', label: 'Paquete 2 - Admisión y Apertura', count: 7 },
-  { value: '3', label: 'Paquete 3 - Negociación y Acuerdo', count: 6 },
-  { value: '4', label: 'Paquete 4 - Terminación Normal', count: 3 },
-  { value: '5', label: 'Paquete 5 - Fracaso', count: 27 },
+  { value: 'all', label: 'Todos los paquetes', count: ALL_TEMPLATES.length },
+  ...getPackageInfo().map((pkg) => ({
+    value: String(pkg.packageNumber),
+    label: `Paquete ${pkg.packageNumber} - ${pkg.name}`,
+    count: pkg.templateCount,
+  })),
 ];
 
 const TYPE_COLORS: Record<string, string> = {
