@@ -28,6 +28,12 @@ next-env.d.ts
 # vercel
 .vercel
 
+# Playwright (npm run test:e2e) escribe estos dos directorios en el repo;
+# ninguno de los dos estaba ignorado, así que cualquiera que corriera la
+# suite en local quedaba con un directorio sin trackear ensuciando `git status`.
+/test-results/
+/playwright-report/
+
 # OS artifacts
 nul
 .DS_Store
