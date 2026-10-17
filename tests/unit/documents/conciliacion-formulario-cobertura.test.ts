@@ -171,34 +171,24 @@ const CAMPOS_EN_FORMULARIO = new Set(
  * formulario).
  */
 const PENDIENTES_POR_CAMPO: Readonly<Record<string, string>> = {
-  // --- Aclaración de Acta: 4 campos, sin columna --------------------------
-  // (auditoría 2026-10-12, hallazgo C-1c). La Aclaración se genera pero no
-  // dice QUÉ se está aclarando: ni el campo con error, ni la descripción, ni
-  // el valor incorrecto ni el correcto.
-  concCampoConError: 'C-1c — sin columna; la Aclaración no dice qué corrige',
-  concDescripcionError: 'C-1c — sin columna',
-  concValorIncorrecto: 'C-1c — sin columna',
-  concValorCorrecto: 'C-1c — sin columna',
+  // concCampoConError/concDescripcionError/concValorIncorrecto/concValorCorrecto
+  // (Aclaración de Acta, C-1c), concDia/Mes/AnoSolicitud/Citacion/Desistimiento
+  // (C-1a; ahora concFechaSolicitud/Citacion/Desistimiento, DateTime) y
+  // concNumeroActaUnionRef/concNumeroTramiteUnionRef/
+  // concTipoSolicitanteDesistimiento/concApoderadoDesistimientoName (C-1c) —
+  // 🟢 Resueltos el 2026-10-17: migración de 11 columnas +
+  // ConciliationDetailsSection + conciliacion.ts rewiring. Quedan solo los
+  // acta-original/unión/disolución de abajo, pendientes de la abogada (C-1b).
 
-  // --- Fechas históricas sin columna, en blanco desde C-1a ----------------
-  // (este MISMO commit las puso en `____`/`____________`/`______` en vez de
-  // "hoy" — el hallazgo crítico de la auditoría. Siguen pendientes porque no
-  // existe `concDiaSolicitud` etc. como columna: NO TOUCH schema.prisma.)
-  concDiaSolicitud: 'C-1a — sin columna; queda en ____ hasta que exista',
-  concMesSolicitud: 'C-1a — sin columna',
-  concAnoSolicitud: 'C-1a — sin columna',
-  concDiaCitacion: 'C-1a — sin columna',
-  concMesCitacion: 'C-1a — sin columna',
-  concAnoCitacion: 'C-1a — sin columna',
-  concDiaDesistimiento: 'C-1a — sin columna',
-  concMesDesistimiento: 'C-1a — sin columna',
-  concAnoDesistimiento: 'C-1a — sin columna',
+  // --- Aclaración de Acta: fecha del acta original, sin columna ----------
+  // (C-1c; distinta de las 4 de arriba, que SÍ se cerraron en esta rama).
   concDiaActaOriginal: 'C-1c — sin columna (fecha del acta que se aclara)',
   concMesActaOriginal: 'C-1c — sin columna',
   concAnoActaOriginal: 'C-1c — sin columna',
 
   // --- Unión marital / disolución: sin columna, en blanco por diseño ------
-  // (preexistente a esta rama — no son C-1a, nunca cayeron a "hoy").
+  // (preexistente a esta rama — no son C-1a, nunca cayeron a "hoy". C-1b,
+  // pendiente de decisión con la abogada — NO TOUCH schema.prisma.)
   concDiaInicioUnion: 'sin columna; blanco visible por diseño',
   concMesInicioUnion: 'sin columna',
   concAnoInicioUnion: 'sin columna',
@@ -208,12 +198,6 @@ const PENDIENTES_POR_CAMPO: Readonly<Record<string, string>> = {
   concDiaDisolucion: 'sin columna',
   concMesDisolucion: 'sin columna',
   concAnoDisolucion: 'sin columna',
-  concNumeroActaUnionRef: 'sin columna',
-  concNumeroTramiteUnionRef: 'sin columna',
-
-  // --- Desistimiento: 2 campos sin columna --------------------------------
-  concTipoSolicitanteDesistimiento: 'sin columna',
-  concApoderadoDesistimientoName: 'sin columna',
 
   // --- Convocante/Solicitante: CON columna, SIN input — por DISEÑO -------
   // El convocante/solicitante ES el deudor; `mapConciliationFields` los
@@ -256,11 +240,11 @@ const PENDIENTES_POR_CAMPO: Readonly<Record<string, string>> = {
  * porque no existe ninguno que lo respalde).
  */
 const PENDIENTES_POR_PLACEHOLDER: Readonly<Record<string, string>> = {
-  // C-1a: sin `concFechaSolicitud` como columna, el placeholder es un
-  // literal fijo (`'____ de ____________ de ______'`), no una lectura de
-  // `raw.*` — por eso no aparece en `KEY_A_CAMPO` y hay que nombrarlo por su
-  // propio nombre.
-  FECHA_SOLICITUD: 'C-1a — sin columna; literal en blanco hasta que exista',
+  // 🟢 FECHA_SOLICITUD, el único que hubo acá, se resolvió el 2026-10-17:
+  // ya no es un literal fijo, lee `concFechaSolicitud` (DateTime) como
+  // cualquier otro placeholder con campo — `KEY_A_CAMPO` lo encuentra solo,
+  // sin necesidad de este caso especial. Vacío a propósito, no borrado: es
+  // el inventario para el próximo placeholder que no tenga campo propio.
 };
 
 // ---------------------------------------------------------------------------
@@ -284,14 +268,10 @@ function calcularPendientesReales(): {
 
     if (SIN_CAMPO_POR_DISENO.has(placeholder)) continue;
 
-    if (placeholder === 'FECHA_SOLICITUD') {
-      porPlaceholder.add(placeholder);
-      continue;
-    }
-
-    // Ni mapeado a un campo, ni en SIN_CAMPO_POR_DISENO, ni FECHA_SOLICITUD:
-    // lo produce otro mapper (membrete, base), fuera del alcance de este
-    // archivo — no se evalúa acá.
+    // Ni mapeado a un campo ni en SIN_CAMPO_POR_DISENO: lo produce otro
+    // mapper (membrete, base), fuera del alcance de este archivo — no se
+    // evalúa acá. (Hasta el 2026-10-17 había un caso especial para
+    // `FECHA_SOLICITUD` acá — ya no hace falta, ver `PENDIENTES_POR_PLACEHOLDER`.)
   }
 
   return { porCampo, porPlaceholder };
