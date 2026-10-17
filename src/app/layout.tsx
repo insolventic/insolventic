@@ -8,6 +8,7 @@ import { TenantProvider } from '@/components/tenant-provider';
 import { SessionTimeoutProvider } from '@/components/auth/session-timeout-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/ui/version-badge';
+import { AppFooter } from '@/components/ui/app-footer';
 
 import type { Metadata } from 'next';
 import type React from 'react';
@@ -52,6 +53,7 @@ export default function RootLayout({
           </SessionTimeoutProvider>
           <Toaster closeButton richColors />
           <VersionBadge />
+          <AppFooter />
         </ThemeProvider>
         {/*
           Vercel Analytics (page views) + Speed Insights (Core Web Vitals).
