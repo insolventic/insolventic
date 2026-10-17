@@ -403,11 +403,16 @@ describe('conciliación: mapConciliationFields va el último', () => {
     expect(p.ANO_CONSTANCIA).toBe('2026');
   });
 
-  it('sin fechas escritas: caen a la fecha de hoy (gana mapConciliationFields, no importa qué calcule mapExtendedDates)', () => {
+  it('sin fechas escritas: quedan en blanco visible, no en la fecha de hoy (C-1a, auditoría 2026-10-12)', () => {
+    // Antes caían a getDayNumber/getMonthName/getYear(now) — gana
+    // mapConciliationFields sobre mapExtendedDates igual que antes, pero lo
+    // que gana ahora es el blanco interino, no "hoy". DIA/MES/ANO_DESISTIMIENTO
+    // es una fecha HISTÓRICA: sin dato, el documento no debe afirmar que el
+    // desistimiento ocurrió hoy.
     const p = run('conciliacion-sin-fechas');
-    expect(p.DIA_DESISTIMIENTO).toBe('15');
-    expect(p.MES_DESISTIMIENTO).toBe('marzo');
-    expect(p.ANO_DESISTIMIENTO).toBe('2026');
+    expect(p.DIA_DESISTIMIENTO).toBe('____');
+    expect(p.MES_DESISTIMIENTO).toBe('____________');
+    expect(p.ANO_DESISTIMIENTO).toBe('______');
   });
 
   // PR #40: mapExtendedDates ahora deriva DIA/MES/ANO_DESISTIMIENTO de
