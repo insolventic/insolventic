@@ -1,13 +1,16 @@
 # Auditoría del formulario maestro de conciliación contra sus plantillas
 
-**Fecha de la auditoría:** 2026-10-12. **Actualizado:** 2026-10-17, con lo que
-cierra la rama `fix/conciliacion-formulario` (PR hacia `dev`, ver §5).
+**Fecha de la auditoría:** 2026-10-12. **Actualizado:** 2026-10-17 (dos veces
+el mismo día, dos ramas distintas): primero con lo que cierra
+`fix/conciliacion-formulario` (Zoom + C-2, interino de C-1a), y después con lo
+que cierra `fix/conciliacion-columnas-fechas` (PR hacia `dev`) — las 11
+columnas nuevas de C-1a (de fondo, no interino) y C-1c completo. Ver §2 y §5.1.
 **Alcance:** las 12 plantillas de `templates/conciliation/` contra el
 formulario maestro (`conciliation-parties-section.tsx`,
 `conciliation-details-section.tsx`), los schemas Zod, `schema.prisma` y
 `src/features/document/placeholders/conciliacion.ts`.
-**Modo:** solo lectura en la auditoría original; la actualización de 2026-10-17
-refleja cambios ya hechos y verificados, no propuestas.
+**Modo:** solo lectura en la auditoría original; las dos actualizaciones de
+2026-10-17 reflejan cambios ya hechos y verificados, no propuestas.
 
 **Por qué existe este documento.** `docs/PENDIENTES_DECISION_LEGAL.md` (fila 7)
 citaba una *"Auditoría del formulario de conciliación, hallazgo B2"* que **no
@@ -33,21 +36,22 @@ escenario los placeholders sin resolver (campo `u`); las entradas
 rama) lo confirma con un test que lee el código en cada corrida.
 
 El hueco estaba en la dirección contraria: **el mapper producía la clave y
-detrás no había campo que la llenara, o había campo y no había input.** Esta
-rama cerró 3 de los 6 grupos de hallazgos de la auditoría original.
+detrás no había campo que la llenara, o había campo y no había input.** Entre
+las dos ramas de 2026-10-17 se cerraron 4 de los 6 grupos de hallazgos de la
+auditoría original.
 
 | ID | Sev | Hallazgo | Estado hoy |
 | ---- | --- | ---------------------------------------------- | --- |
-| C-1a | 🔴 | Fechas históricas que imprimían **hoy** | 🟢 **Cerrado (interino)** — ahora en blanco visible |
+| C-1a | 🔴 | Fechas históricas que imprimían **hoy** | 🟢 **Cerrado de fondo** — 3 columnas `DateTime` reales, no interino |
+| C-1c | 🟡 | Caen a vacío y dejan hueco en la frase | 🟢 **Cerrado** — 8 columnas reales (Aclaración + referencias + desistimiento) |
 | C-3 | 🟠 | Zoom sin capturar; Convocatoria sin enlace | 🟢 **Cerrado** |
 | C-2 | 🟠 | Columna + Zod listos, faltaba el input | 🟢 **Cerrado** (5 de 5) |
-| C-1c | 🟡 | Caen a vacío y dejan hueco en la frase | 🔴 **Abierto** — Aclaración de Acta, 4 campos |
 | C-1b | 🟡 | Caen a `____` visible (unión/disolución) | ⚪ **Sin cambios** — es una decisión de diseño, no un bug |
 | C-4 | 🔵 | Columnas muertas | 🔴 **Abierto** — identificadas, no borradas |
 
 ---
 
-## 2. C-1a — Fechas históricas que imprimían "hoy" — 🟢 CERRADO (interino)
+## 2. C-1a — Fechas históricas que imprimían "hoy" — 🟢 CERRADO DE FONDO
 
 **El hallazgo más grave de la auditoría original.** Diez placeholders de fecha
 **histórica** (algo que ya ocurrió) caían a
@@ -57,42 +61,61 @@ Acuerdo, Auto Desistimiento, Informe Conciliador y Terminación Anormal salía
 afirmando que la solicitud, la citación o el desistimiento ocurrieron **hoy**,
 sin que nada en el PDF lo advirtiera.
 
-**Cerrado en esta rama** (`src/features/document/placeholders/conciliacion.ts`,
-commit `658686e`): los 10 pasan a un blanco visible, mismo patrón que
-`DIA_/MES_/ANO_INICIO_UNION`:
+**Paso 1 — interino** (rama `fix/conciliacion-formulario`, commit `658686e`):
+los 10 placeholders pasaron a un blanco visible (`____`/`____________`/
+`______`/`____ de ____________ de ______`), mismo patrón que
+`DIA_/MES_/ANO_INICIO_UNION`, mientras no hubiera columna propia. Dejó de
+imprimirse una fecha falsa; seguía sin poderse capturar la fecha real.
+
+**Paso 2 — de fondo** (rama `fix/conciliacion-columnas-fechas`, 2026-10-17):
+tres columnas `DateTime?` nuevas en `Case` —
+`concFechaSolicitud`/`concFechaCitacion`/`concFechaDesistimiento`,
+migración `20261017000000_add_conciliacion_fechas_reales_y_aclaracion`,
+aditiva e idempotente (`ADD COLUMN IF NOT EXISTS`, nullable, sin default) —
+con su input (`<input type="date">`, fieldset "Fechas reales del trámite" en
+`ConciliationDetailsSection`), su Zod
+(`fechaHistoricaOpcional`: fecha de calendario real, no futura) y su lectura
+en el mapper:
 
 ```
-DIA_/MES_/ANO_SOLICITUD
-DIA_/MES_/ANO_CITACION
-DIA_/MES_/ANO_DESISTIMIENTO
-FECHA_SOLICITUD
+DIA_/MES_/ANO_SOLICITUD, FECHA_SOLICITUD   <- concFechaSolicitud
+DIA_/MES_/ANO_CITACION                     <- concFechaCitacion
+DIA_/MES_/ANO_DESISTIMIENTO                <- concFechaDesistimiento
 ```
 
-`FECHA_SOLICITUD` no tenía **ningún** fallback — era `formatDate(now)` a
-secas, sin `||`. Como es una fecha compuesta (no día/mes/año separados), el
-blanco quedó en `____ de ____________ de ______`: mismo largo que los otros
-tres juntos y mismo formato que produce `formatDate` cuando sí hay dato.
+Mismos helpers de zona horaria que ya usan `DIA_AUDIENCIA`/`DIA_FRACASO`
+(`getDayNumber`/`getMonthName`/`getYear`/`formatDateComplete`, todos sobre
+`America/Bogota` vía `displayTimeZone`, independientes del `TZ` del proceso —
+fijado con un test que corre bajo `TZ=UTC` y `TZ=America/Bogota` y da el mismo
+resultado en los dos). Con dato, imprime la fecha real; sin dato, sigue en el
+mismo blanco visible del paso 1 — nunca la fecha de hoy.
 
-**`DIA_/MES_/ANO_CONSTANCIA` no se tocó**, a propósito: ahí "hoy" es correcto
-— es la fecha de **expedición** del documento, no la de un hecho pasado. Es el
-contraste que el propio archivo ya tenía, usando el mismo default para dos
-cosas distintas.
+Persistencia: `createCase`/`updateCase` (`actions.ts`) extraen las 3 de `rest`
+ANTES del spread genérico de `conc*`/`apoyo*` (PR #89) y las pasan por
+`parseDateOnly` — igual que `filingDate` y las demás fechas procesales. Sin
+esto, el string `"YYYY-MM-DD"` del input viajaría sin convertir y Postgres lo
+rechazaría para una columna `DateTime` ("premature end of input"). Agregadas
+también a `CAMPOS_CON_VALOR_AUDITABLE` (son fechas procesales, no datos de la
+persona) y a la conversión `Date → YYYY-MM-DD` de `pickTypeSpecificFields`
+(sin ella, editar un caso con la fecha ya guardada la mostraba en blanco).
 
-**Por qué "interino" y no "resuelto".** Los 10 placeholders siguen sin columna
-propia (`concDiaSolicitud`, `concFechaSolicitud`, etc. no existen en
-`schema.prisma`) — agregarla está fuera de alcance de esta rama (NO TOUCH
-schema/migraciones). El cierre fue cambiar el *default* de "hoy" (dato falso)
-a blanco (dato ausente visible); la solución de fondo —la columna y su input—
-sigue en el inventario de pendientes (§4).
+**`DIA_/MES_/ANO_CONSTANCIA` sigue sin tocar**, a propósito: ahí "hoy" es
+correcto — es la fecha de **expedición** del documento, no la de un hecho
+pasado.
 
-**Golden master:** 19 claves cambiaron, las 19 dentro de `CONCILIATION/` — 0
-cambios fuera de conciliación, verificado con diff de claves (no solo `git
-diff`). El detalle completo está en el commit; el resumen por escenario:
+**Verificado contra Postgres real**
+(`tests/db/conciliacion-fechas-reales.db.test.ts`): ciclo crear → editar →
+leer para las 3 fechas (junto con los 8 campos de C-1c, §5.1) — 3 tests, 3
+pasan.
 
-| Escenario | Qué cambia |
-| --- | --- |
-| `conciliacion-basica`, `conciliacion-sin-fechas`, `conciliacion-varios-menores`, `conciliacion-xss` | Los 10 campos pasan de la fecha simulada del test a los blancos `____`/`____________`/`______` / `____ de ____________ de ______` |
-| `conciliacion-con-fechas` | Solo `MES_DESISTIMIENTO` (el resto de ese escenario ya mandaba las fechas explícitas, que no pasan por el default) |
+**Golden master:** cambios confinados a `CONCILIATION/` en los dos pasos —
+19 claves en el paso 1, 9 claves de placeholders (3-4 escenarios) + 22 hashes
+de render (6 plantillas) en el paso 2. 0 cambios fuera de conciliación en
+ninguno de los dos, verificado con diff de claves. `basica`/`varios-menores`/
+`xss` pasan del blanco interino a una fecha real porque el fixture
+(`fill: 'full'`) ahora puebla las 3 columnas nuevas como cualquier otra
+columna real; `con-fechas`/`sin-fechas` prueban explícitamente la rama "hay
+valor" y "sin valor".
 
 ---
 
@@ -183,17 +206,35 @@ con un valor y leer, (2) editar a otro valor y leer (confirma que `updateCase`
 
 ---
 
-## 5. Lo que NO se resolvió en esta rama, y por qué
+## 5. Lo que se resolvió después, y lo que sigue sin resolverse
 
-### 5.1 🟡 C-1c — Los 4 campos de la Aclaración de Acta
+### 5.1 🟢 C-1c — Los 8 campos de Aclaración de Acta, referencias y desistimiento — CERRADO
 
 `CAMPO_CON_ERROR`, `DESCRIPCION_ERROR`, `VALOR_INCORRECTO`, `VALOR_CORRECTO`
-caen a cadena vacía: la Aclaración de Acta se genera pero **no dice qué se
-está aclarando**. A diferencia de C-1a/C-2/C-3, esto no es un input
-faltante nada más — son 4 columnas que **no existen** en `schema.prisma`, y
-agregarlas está fuera de alcance de esta rama (NO TOUCH schema/migraciones).
-Queda en el inventario de pendientes (`PENDIENTES_POR_CAMPO` en
-`conciliacion-formulario-cobertura.test.ts`), con su razón documentada ahí.
+caían a cadena vacía: la Aclaración de Acta se generaba pero **no decía qué se
+estaba aclarando**. `NUMERO_ACTA_UNION_REF`/`NUMERO_TRAMITE_UNION_REF` (qué
+acta/trámite de unión se disuelve o aclara) y
+`TIPO_SOLICITANTE_DESISTIMIENTO`/`NOMBRE_APODERADO_DESISTIMIENTO` (quién
+desiste) tenían el mismo problema. A diferencia de lo que decía la versión
+original de esta sección, esto no quedó fuera de alcance para siempre: era
+"no son 4 columnas, son 8, y agregarlas es cambio de schema" — y el cambio de
+schema es exactamente lo que hizo la rama `fix/conciliacion-columnas-fechas`
+(2026-10-17), junto con las 3 de C-1a (§2, misma migración
+`20261017000000_add_conciliacion_fechas_reales_y_aclaracion`).
+
+**Cerrado:** 8 columnas `String?` reales, con su input (fieldsets "Aclaración
+de Acta", "Referencias del Acta de Unión" y "Desistimiento" en
+`ConciliationDetailsSection`) y su lectura directa en el mapper
+(`raw.concCampoConError` y hermanas — sin helpers de fecha, son texto plano).
+Persisten en crear y editar por el mismo mecanismo genérico `conc*`/`apoyo*`
+que C-2 (§4) — no necesitaron tocar `actions.ts` como las 3 fechas de C-1a.
+
+**Lo que esta migración NO incluye, a propósito:** las fechas de unión,
+declaración de unión y disolución (C-1b, §5.2) — es una decisión de diseño
+previa, pendiente de la abogada, no parte de este cierre — ni las 5 columnas
+muertas de C-4 (§5.3).
+
+**Verificado contra Postgres real**, junto con las 3 fechas de C-1a — ver §2.
 
 ### 5.2 ⚪ C-1b — Fechas de unión marital / disolución
 
@@ -231,7 +272,7 @@ los 3 modelos del Quick Win 5) es trabajo de una rama que sí toque el schema.
 necesidad de repetir esta auditoría a mano: lee las 12 plantillas, el mapper y
 el formulario del disco en cada corrida, y exige que el inventario de
 pendientes coincida exactamente con lo que el código de ese momento diga. Si
-alguien cierra uno de los pendientes de §5.1/§5.3 y no lo borra de la lista,
+alguien cierra uno de los pendientes de §5.2/§5.3 y no lo borra de la lista,
 el test falla por "ya no está roto"; si aparece un hueco nuevo, falla por
 "apareció algo".
 

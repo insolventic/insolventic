@@ -44,6 +44,10 @@ export function isTypeSpecificField(key: string): boolean {
  * Normaliza los `null` de la base: a `[]` en las columnas Json —para que
  * `useFieldArray` tenga de dónde agarrarse— y a `''` en el resto, porque un
  * `null` en un `<Input>` lo vuelve no controlado y React avisa por consola.
+ * Un `Date` (las 3 columnas `concFecha*`, C-1a) se convierte a `YYYY-MM-DD`
+ * — igual que `pickGeneralFields` — porque es lo único que un
+ * `<input type="date">` acepta como value; sin esto, el campo se vería en
+ * blanco al editar un caso que ya tiene la fecha guardada.
  */
 export function pickTypeSpecificFields(
   source: Record<string, unknown> | null | undefined,
@@ -56,6 +60,8 @@ export function pickTypeSpecificFields(
 
     if (TYPE_SPECIFIC_JSON_FIELDS.has(key)) {
       out[key] = Array.isArray(value) ? value : [];
+    } else if (value instanceof Date) {
+      out[key] = value.toISOString().split('T')[0];
     } else {
       out[key] = value ?? '';
     }

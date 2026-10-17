@@ -400,6 +400,14 @@ export async function createCase(
       paymentStartDate,
       agreementValidityDate,
       failureDate,
+      // C-1a (auditoría del formulario de conciliación, 2026-10-12): mismo
+      // motivo que las de arriba — son `conc*`, así que sin extraerlas acá
+      // viajarían en `rest` como el string "YYYY-MM-DD" del input y Prisma
+      // fallaría igual ("premature end of input. Expected ISO-8601
+      // DateTime").
+      concFechaSolicitud,
+      concFechaCitacion,
+      concFechaDesistimiento,
       monthlyPaymentAmount,
       variablePayment,
       capitalReductionPercent,
@@ -571,6 +579,9 @@ export async function createCase(
             paymentStartDate: parseDateOnly(paymentStartDate),
             agreementValidityDate: parseDateOnly(agreementValidityDate),
             failureDate: parseDateOnly(failureDate),
+            concFechaSolicitud: parseDateOnly(concFechaSolicitud),
+            concFechaCitacion: parseDateOnly(concFechaCitacion),
+            concFechaDesistimiento: parseDateOnly(concFechaDesistimiento),
             monthlyPaymentAmount: monthlyPaymentAmount ?? null,
             variablePayment: variablePayment ?? null,
             capitalReductionPercent: capitalReductionPercent ?? null,
@@ -927,6 +938,10 @@ export async function updateCase(
       paymentStartDate,
       agreementValidityDate,
       failureDate,
+      // Mismas tres de createCase (C-1a, auditoría 2026-10-12).
+      concFechaSolicitud,
+      concFechaCitacion,
+      concFechaDesistimiento,
       // Debtor fields (not Case fields)
       monthlyIncome,
       monthlyExpenses,
@@ -956,6 +971,10 @@ export async function updateCase(
       paymentStartDate: parseDateOnly(paymentStartDate) ?? undefined,
       agreementValidityDate: parseDateOnly(agreementValidityDate) ?? undefined,
       failureDate: parseDateOnly(failureDate) ?? undefined,
+      concFechaSolicitud: parseDateOnly(concFechaSolicitud) ?? undefined,
+      concFechaCitacion: parseDateOnly(concFechaCitacion) ?? undefined,
+      concFechaDesistimiento:
+        parseDateOnly(concFechaDesistimiento) ?? undefined,
     };
 
     /** Exactamente lo que esta edición escribe en `Case`. */
@@ -1080,6 +1099,10 @@ export async function updateCase(
           agreementValidityDate:
             parseDateOnly(agreementValidityDate) ?? undefined,
           failureDate: parseDateOnly(failureDate) ?? undefined,
+          concFechaSolicitud: parseDateOnly(concFechaSolicitud) ?? undefined,
+          concFechaCitacion: parseDateOnly(concFechaCitacion) ?? undefined,
+          concFechaDesistimiento:
+            parseDateOnly(concFechaDesistimiento) ?? undefined,
         },
       });
 

@@ -179,6 +179,23 @@ export const CASE_DATA = {
   monthlyIncome: 3000000,
   monthlyExpenses: 2500000,
   monthlyPaymentAmount: 500000,
+  // C-1a/C-1c (auditoría del formulario de conciliación, 2026-10-12): las 11
+  // columnas nuevas de Case. `caseSchema` las valida con `z.coerce.date()`
+  // (las 3 fechas) o `z.string()` (las 8 de texto); ninguna de las dos acepta
+  // `undefined` bajo `.nullable()` — sin esta entrada, cualquier mock que
+  // haga spread de `CASE_DATA` y no las sobreescriba rompía con
+  // "expected date, received Date" / "Invalid Date".
+  concFechaSolicitud: null,
+  concFechaCitacion: null,
+  concFechaDesistimiento: null,
+  concCampoConError: null,
+  concDescripcionError: null,
+  concValorIncorrecto: null,
+  concValorCorrecto: null,
+  concNumeroActaUnionRef: null,
+  concNumeroTramiteUnionRef: null,
+  concTipoSolicitanteDesistimiento: null,
+  concApoderadoDesistimientoName: null,
 };
 
 export const DEBT = {

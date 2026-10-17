@@ -345,6 +345,33 @@ model Case {
   // Causa de terminación / resultado (enum-like: mutual-exclusive flags)
   concCausaTerminacion               String? @map("conc_causa_terminacion")
   concResultadoInforme               String? @map("conc_resultado_informe")
+  // Fechas reales de solicitud/citación/desistimiento (auditoría 2026-10-12,
+  // C-1a). Antes de esta columna estos tres hechos caían a la fecha de hoy
+  // (`getYear(now)` etc.) cuando no se informaban — ahora quedan en blanco
+  // visible (`____`) hasta que se llenen, nunca en un dato falso. Una sola
+  // columna DateTime por fecha, no tres strings por componente (día/mes/año):
+  // así Zod valida que exista y que no sea futura, y el mapper deriva
+  // DIA_/MES_/ANO_ con los mismos helpers de zona horaria que ya usan
+  // `DIA_AUDIENCIA`/`DIA_CONSTANCIA` — sin esto, tres strings sueltos
+  // aceptarían un "31 de febrero" y el documento lo imprimiría tal cual.
+  concFechaSolicitud                 DateTime? @map("conc_fecha_solicitud")
+  concFechaCitacion                  DateTime? @map("conc_fecha_citacion")
+  concFechaDesistimiento             DateTime? @map("conc_fecha_desistimiento")
+  // Aclaración de Acta — qué se corrige (C-1c). Sin estas cuatro, la
+  // Aclaración se generaba pero no decía qué estaba aclarando.
+  concCampoConError                  String?   @map("conc_campo_con_error")
+  concDescripcionError               String?   @map("conc_descripcion_error") @db.Text
+  concValorIncorrecto                String?   @map("conc_valor_incorrecto")
+  concValorCorrecto                  String?   @map("conc_valor_correcto")
+  // Referencias del acta/trámite de unión que se disuelve o aclara, y dos
+  // campos de desistimiento sin fecha (C-1c). Las fechas de unión,
+  // declaración de unión y disolución en sí NO entran en esta migración:
+  // siguen en blanco por decisión pendiente con la abogada (C-1b), no son
+  // parte de este cierre.
+  concNumeroActaUnionRef             String?   @map("conc_numero_acta_union_ref")
+  concNumeroTramiteUnionRef          String?   @map("conc_numero_tramite_union_ref")
+  concTipoSolicitanteDesistimiento   String?   @map("conc_tipo_solicitante_desistimiento")
+  concApoderadoDesistimientoName     String?   @map("conc_apoderado_desistimiento_name")
   // JSON arrays for repeatable sections (handlebars-lite {{#each}})
   concMenoresAlimentos               Json?   @map("conc_menores_alimentos")
   concMenoresUnion                   Json?   @map("conc_menores_union")

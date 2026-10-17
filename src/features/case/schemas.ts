@@ -65,6 +65,71 @@ export const montoRequerido = (mensaje: string) =>
     .pipe(z.number({ message: mensaje }).min(0, mensaje));
 
 // ---------------------------------------------------------------------------
+// Fechas HISTÓRICAS del formulario de conciliación (C-1a, auditoría 2026-10-12)
+// ---------------------------------------------------------------------------
+
+const FECHA_SOLO_DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** true si año/mes/día forman una fecha de calendario real (rechaza "31 de febrero"). */
+function esFechaDeCalendarioValida(year: number, month: number, day: number): boolean {
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return (
+    d.getUTCFullYear() === year &&
+    d.getUTCMonth() === month - 1 &&
+    d.getUTCDate() === day
+  );
+}
+
+/**
+ * `"YYYY-MM-DD"` de "hoy" en hora de **Colombia**, sin importar en qué zona
+ * corra el servidor — comparar instantes crudos haría que un servidor en UTC
+ * rechazara, entre las 19:00 y las 23:59 hora de Colombia, una fecha de hoy
+ * mismo por "ser del futuro". `en-CA` produce directamente el formato
+ * `YYYY-MM-DD`, que compara bien como texto porque el orden de los campos ya
+ * es de mayor a menor.
+ */
+function hoyEnColombia(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/**
+ * Una fecha HISTÓRICA del formulario (`"YYYY-MM-DD"` de un `<input
+ * type="date">`): la solicitud, la citación o el desistimiento ya ocurrieron,
+ * así que además de ser una fecha real no puede ser del futuro.
+ *
+ * Por qué no basta con `z.string().optional()` + `parseDateOnly` en el
+ * servidor: `parseDateOnly` (`src/lib/date-colombia.ts`) NO valida el
+ * calendario — su regex acepta cualquier `\d{4}-\d{2}-\d{2}` y deja que
+ * `Date.UTC` resuelva un "2026-02-31" corriéndolo al 3 de marzo, en silencio.
+ * Es el comportamiento correcto para *leer* una fecha ya guardada; acá hace
+ * falta *rechazar* una fecha imposible en la entrada, antes de guardarla.
+ */
+export const fechaHistoricaOpcional = (
+  mensajeFutura = 'La fecha no puede ser futura',
+) =>
+  z
+    .string()
+    .optional()
+    .nullable()
+    .refine((valor) => {
+      if (!valor || !valor.trim()) return true;
+      const m = FECHA_SOLO_DIA.exec(valor.trim());
+      if (!m) return false;
+      const [, y, mo, d] = m;
+      return esFechaDeCalendarioValida(Number(y), Number(mo), Number(d));
+    }, 'Fecha inválida')
+    .refine((valor) => {
+      if (!valor || !valor.trim()) return true;
+      // Ya se validó el formato arriba; acá solo se compara.
+      return valor.trim() <= hoyEnColombia();
+    }, mensajeFutura);
+
+// ---------------------------------------------------------------------------
 // Conciliation repeatable-row sub-schemas (JSON arrays stored in Prisma Json?)
 // ---------------------------------------------------------------------------
 const concMenorSchema = z.object({
@@ -710,6 +775,20 @@ export const caseSchema = z.object({
   // Causa / resultado (mutual-exclusive enum-like)
   concCausaTerminacion: z.string().optional().nullable(),
   concResultadoInforme: z.string().optional().nullable(),
+  // Fechas reales de solicitud/citación/desistimiento (C-1a) — mismo patrón
+  // que `filingDate`: coerción directa, la columna ya es `DateTime?`.
+  concFechaSolicitud: z.coerce.date().nullable(),
+  concFechaCitacion: z.coerce.date().nullable(),
+  concFechaDesistimiento: z.coerce.date().nullable(),
+  // Aclaración de Acta y referencias (C-1c)
+  concCampoConError: z.string().optional().nullable(),
+  concDescripcionError: z.string().optional().nullable(),
+  concValorIncorrecto: z.string().optional().nullable(),
+  concValorCorrecto: z.string().optional().nullable(),
+  concNumeroActaUnionRef: z.string().optional().nullable(),
+  concNumeroTramiteUnionRef: z.string().optional().nullable(),
+  concTipoSolicitanteDesistimiento: z.string().optional().nullable(),
+  concApoderadoDesistimientoName: z.string().optional().nullable(),
   // Repeatable arrays (stored as Json in Prisma).
   //
   // `.nullable()` NO es cosmético: estas 6 columnas son `Json?` en Prisma, que
@@ -1198,6 +1277,21 @@ export const createCaseSchema = z.object({
   // Causa / resultado (mutual-exclusive enum-like)
   concCausaTerminacion: z.string().optional().nullable(),
   concResultadoInforme: z.string().optional().nullable(),
+  // Fechas reales de solicitud/citación/desistimiento (C-1a): texto del
+  // <input type="date">, validado por fechaHistoricaOpcional() -- fecha
+  // real y no futura. El parseo a Date (parseDateOnly) lo hace la action.
+  concFechaSolicitud: fechaHistoricaOpcional(),
+  concFechaCitacion: fechaHistoricaOpcional(),
+  concFechaDesistimiento: fechaHistoricaOpcional(),
+  // Aclaración de Acta y referencias (C-1c)
+  concCampoConError: z.string().optional().nullable(),
+  concDescripcionError: z.string().optional().nullable(),
+  concValorIncorrecto: z.string().optional().nullable(),
+  concValorCorrecto: z.string().optional().nullable(),
+  concNumeroActaUnionRef: z.string().optional().nullable(),
+  concNumeroTramiteUnionRef: z.string().optional().nullable(),
+  concTipoSolicitanteDesistimiento: z.string().optional().nullable(),
+  concApoderadoDesistimientoName: z.string().optional().nullable(),
   // Repeatable arrays (stored as Json in Prisma)
   concMenoresAlimentos: z.array(concMenorSchema).optional(),
   concMenoresUnion: z.array(concMenorUnionSchema).optional(),
@@ -1600,6 +1694,21 @@ export const updateCaseSchema = z.object({
   // Causa / resultado (mutual-exclusive enum-like)
   concCausaTerminacion: z.string().optional().nullable(),
   concResultadoInforme: z.string().optional().nullable(),
+  // Fechas reales de solicitud/citación/desistimiento (C-1a): texto del
+  // <input type="date">, validado por fechaHistoricaOpcional() -- fecha
+  // real y no futura. El parseo a Date (parseDateOnly) lo hace la action.
+  concFechaSolicitud: fechaHistoricaOpcional(),
+  concFechaCitacion: fechaHistoricaOpcional(),
+  concFechaDesistimiento: fechaHistoricaOpcional(),
+  // Aclaración de Acta y referencias (C-1c)
+  concCampoConError: z.string().optional().nullable(),
+  concDescripcionError: z.string().optional().nullable(),
+  concValorIncorrecto: z.string().optional().nullable(),
+  concValorCorrecto: z.string().optional().nullable(),
+  concNumeroActaUnionRef: z.string().optional().nullable(),
+  concNumeroTramiteUnionRef: z.string().optional().nullable(),
+  concTipoSolicitanteDesistimiento: z.string().optional().nullable(),
+  concApoderadoDesistimientoName: z.string().optional().nullable(),
   // Repeatable arrays (stored as Json in Prisma)
   concMenoresAlimentos: z.array(concMenorSchema).optional(),
   concMenoresUnion: z.array(concMenorUnionSchema).optional(),
