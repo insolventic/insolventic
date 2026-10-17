@@ -52,7 +52,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getAllCases } from '@/features/case/actions';
-import { batchGenerateDocuments } from '@/features/document/actions';
+import {
+  batchGenerateDocuments,
+  planBatchGeneration,
+} from '@/features/document/actions';
 
 const PACKAGES = [
   { value: 'all', label: 'Todos los paquetes', count: 49 },
@@ -103,6 +106,10 @@ interface GenerationResultData {
   successfulDocuments: number;
   failedDocuments: number;
   skippedDocuments?: number;
+  /** GD-A1 (issue #3): id de la `DocumentGenerationRequest` compartida por
+   * todas las tandas de este lote — se necesita para encadenar la siguiente
+   * tanda o para reintentar esta si falla. */
+  requestId?: string;
 }
 
 interface DocumentGenerationProps {
@@ -123,6 +130,21 @@ export function DocumentGeneration({
   const [generationResult, setGenerationResult] =
     useState<GenerationResultData | null>(null);
   const [showErrors, setShowErrors] = useState(false);
+
+  // GD-A1 (issue #3): progreso de la generación por tandas, y lo necesario
+  // para reintentar SOLO la tanda que falló (no todo el lote desde cero).
+  const [tandaProgress, setTandaProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
+  const [pendingRetry, setPendingRetry] = useState<{
+    caseId: string;
+    tandas: string[][];
+    nextIndex: number;
+    requestId: string;
+    outputFormat: 'pdf' | 'docx' | 'both';
+    accumulated: GenerationResultData;
+  } | null>(null);
 
   const [cases, setCases] = useState<CaseOption[]>([]);
   const [isPending, startTransition] = useTransition();
@@ -145,11 +167,108 @@ export function DocumentGeneration({
     setOpen(false);
   };
 
+  /**
+   * Suma el resultado de una tanda al acumulado de las anteriores.
+   * `caseId`/`caseNumber`/`folderId`/`folderUrl` son los mismos en todas las
+   * tandas de un mismo caso — se toman de la más reciente. `documents` se
+   * concatena y los 4 conteos se suman.
+   */
+  function mergeTandaResult(
+    acumulado: GenerationResultData | null,
+    tanda: GenerationResultData,
+  ): GenerationResultData {
+    if (!acumulado) return tanda;
+    return {
+      ...tanda,
+      documents: [...acumulado.documents, ...tanda.documents],
+      totalDocuments: acumulado.totalDocuments + tanda.totalDocuments,
+      successfulDocuments:
+        acumulado.successfulDocuments + tanda.successfulDocuments,
+      failedDocuments: acumulado.failedDocuments + tanda.failedDocuments,
+      skippedDocuments:
+        (acumulado.skippedDocuments ?? 0) + (tanda.skippedDocuments ?? 0),
+    };
+  }
+
+  /**
+   * GD-A1 (issue #3): corre las tandas desde `startIndex` en adelante, en
+   * orden, encadenando `requestId` para que todas escriban sobre la MISMA
+   * `DocumentGenerationRequest` (ver generation-request.ts). Si una tanda
+   * falla, no sigue con las siguientes: guarda el punto exacto donde se
+   * puede reintentar (`pendingRetry`) y no toca lo que las tandas
+   * anteriores ya generaron.
+   */
+  async function runTandas(params: {
+    caseId: string;
+    tandas: string[][];
+    startIndex: number;
+    requestId: string | undefined;
+    outputFormat: 'pdf' | 'docx' | 'both';
+    accumulated: GenerationResultData | null;
+  }): Promise<void> {
+    const { caseId, tandas, outputFormat } = params;
+    let requestId = params.requestId;
+    let accumulated = params.accumulated;
+
+    for (let i = params.startIndex; i < tandas.length; i++) {
+      setTandaProgress({ current: i + 1, total: tandas.length });
+
+      const { success, data, message } = await batchGenerateDocuments({
+        caseId,
+        templateIds: tandas[i],
+        outputFormat,
+        requestId,
+        isFinalTanda: i === tandas.length - 1,
+      });
+
+      if (!success || !data) {
+        setPendingRetry({
+          caseId,
+          tandas,
+          nextIndex: i,
+          requestId: requestId ?? '',
+          outputFormat,
+          accumulated: accumulated ?? {
+            caseId,
+            caseNumber: '',
+            folderId: '',
+            folderUrl: '',
+            documents: [],
+            generatedAt: new Date(),
+            totalDocuments: 0,
+            successfulDocuments: 0,
+            failedDocuments: 0,
+            skippedDocuments: 0,
+          },
+        });
+        setTandaProgress(null);
+        toast.error(
+          `Tanda ${i + 1} de ${tandas.length} falló: ${message || 'Error desconocido'}. Las tandas anteriores ya generadas no se pierden — puede reintentar solo esta.`,
+        );
+        return;
+      }
+
+      requestId = data.requestId ?? requestId;
+      accumulated = mergeTandaResult(accumulated, data);
+      setGenerationResult(accumulated);
+    }
+
+    setTandaProgress(null);
+    setPendingRetry(null);
+    onDocumentsGenerated();
+    if (accumulated) {
+      toast.success(
+        `${accumulated.successfulDocuments} documentos generados exitosamente`,
+      );
+    }
+  }
+
   const handleBatchGeneration = () => {
     if (!selectedCaseId) return;
 
     setGenerationResult(null);
     setShowErrors(false);
+    setPendingRetry(null);
 
     startTransition(async () => {
       const packageNumber =
@@ -157,23 +276,48 @@ export function DocumentGeneration({
           ? (Number(selectedPackage) as 1 | 2 | 3 | 4 | 5)
           : undefined;
 
-      const { success, data, message } = await batchGenerateDocuments({
+      const plan = await planBatchGeneration({
         caseId: selectedCaseId,
         packageNumber,
-        outputFormat: selectedFormat,
       });
 
-      if (success && data) {
-        setGenerationResult(data);
-        onDocumentsGenerated();
-        toast.success(
-          `${data.successfulDocuments} documentos generados exitosamente`,
-        );
-      } else {
+      if (!plan.success || !plan.data) {
         toast.error(
-          'Error al generar documentos: ' + (message || 'Error desconocido'),
+          'Error al planificar la generación: ' +
+            (plan.message || 'Error desconocido'),
         );
+        return;
       }
+      if (plan.data.tandas.length === 0) {
+        toast.error('No se encontraron plantillas para procesar.');
+        return;
+      }
+
+      await runTandas({
+        caseId: selectedCaseId,
+        tandas: plan.data.tandas,
+        startIndex: 0,
+        requestId: undefined,
+        outputFormat: selectedFormat,
+        accumulated: null,
+      });
+    });
+  };
+
+  const handleRetryTanda = () => {
+    if (!pendingRetry) return;
+    const retry = pendingRetry;
+    setPendingRetry(null);
+
+    startTransition(async () => {
+      await runTandas({
+        caseId: retry.caseId,
+        tandas: retry.tandas,
+        startIndex: retry.nextIndex,
+        requestId: retry.requestId || undefined,
+        outputFormat: retry.outputFormat,
+        accumulated: retry.accumulated,
+      });
     });
   };
 
@@ -348,7 +492,9 @@ export function DocumentGeneration({
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generando...
+                {tandaProgress
+                  ? `Generando tanda ${tandaProgress.current} de ${tandaProgress.total}...`
+                  : 'Generando...'}
               </>
             ) : (
               <>
@@ -358,6 +504,25 @@ export function DocumentGeneration({
             )}
           </Button>
         </div>
+
+        {/* GD-A1 (issue #3): una tanda falló — las anteriores ya generaron
+            sus documentos, no se pierden. El reintento retoma SOLO la que
+            falló, sobre la misma DocumentGenerationRequest. */}
+        {pendingRetry && !isPending && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-900/20">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" />
+              <span>
+                La tanda {pendingRetry.nextIndex + 1} de{' '}
+                {pendingRetry.tandas.length} no se completó. Los documentos de
+                las tandas anteriores ya están generados.
+              </span>
+            </div>
+            <Button size="sm" variant="outline" onClick={handleRetryTanda}>
+              Reintentar
+            </Button>
+          </div>
+        )}
 
         {/* Selected case info panel */}
         {selectedCase && !generationResult && (
