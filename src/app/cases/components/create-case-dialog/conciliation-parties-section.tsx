@@ -24,6 +24,35 @@ export function ConciliationPartiesSection() {
 
   return (
     <div className="space-y-6">
+      {/* Solicitante — datos adicionales. C-2 (auditoría 2026-10-12):
+          FECHA_NACIMIENTO_SOLICITANTE ya existía en schema.prisma y en Zod
+          (concFechaNacimiento), y Solicitud de Audiencia de
+          Conciliacion.html ya la imprime; faltaba el input. El resto de los
+          datos del solicitante (nombre, id, dirección, correo, celular) no
+          tiene fieldset propio a propósito: el convocante/solicitante ES el
+          deudor por diseño y el mapper los deriva de ahí
+          (`conciliacion.ts:163-171`) — agregar inputs duplicaría captura con
+          el formulario del deudor. La fecha de nacimiento es la única
+          excepción porque no hay una columna equivalente en Debtor. */}
+      <fieldset className="rounded-lg border p-4">
+        <legend className="px-2 text-sm font-semibold">
+          Solicitante — Datos Adicionales
+        </legend>
+        <div className="max-w-xs">
+          <Label htmlFor="concFechaNacimiento">Fecha de nacimiento</Label>
+          {/* `type="text"`, no "date": la columna es `String?` y el mapper la
+              imprime TAL CUAL (`conciliacion.ts`, sin `formatDate` ni
+              parseo) — un `<input type="date">` guardaría "1990-03-15" y el
+              documento saldría con esa fecha sin formato español. Mismo
+              criterio que el resto de los campos `conc*` de texto libre. */}
+          <Input
+            id="concFechaNacimiento"
+            {...register('concFechaNacimiento')}
+            placeholder="Ej: 15 de marzo de 1990"
+          />
+        </div>
+      </fieldset>
+
       {/* Convocado (contraparte) */}
       <fieldset className="rounded-lg border p-4">
         <legend className="px-2 text-sm font-semibold">
@@ -177,21 +206,24 @@ export function ConciliationPartiesSection() {
           </legend>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
-              <Label>Nombre completo</Label>
+              <Label htmlFor="concApoderadoConvocanteName">
+                Nombre completo
+              </Label>
               <Input
+                id="concApoderadoConvocanteName"
                 {...register('concApoderadoConvocanteName')}
                 placeholder="Dr(a). Nombre Completo"
               />
             </div>
             <div>
-              <Label>Tipo ID</Label>
+              <Label htmlFor="concApoderadoConvocanteTipoId">Tipo ID</Label>
               <Select
                 value={watch('concApoderadoConvocanteTipoId') || 'CC'}
                 onValueChange={(v) =>
                   setValue('concApoderadoConvocanteTipoId', v)
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger id="concApoderadoConvocanteTipoId">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -204,26 +236,65 @@ export function ConciliationPartiesSection() {
               </Select>
             </div>
             <div>
-              <Label>Número ID</Label>
-              <Input {...register('concApoderadoConvocanteId')} />
+              <Label htmlFor="concApoderadoConvocanteId">Número ID</Label>
+              <Input
+                id="concApoderadoConvocanteId"
+                {...register('concApoderadoConvocanteId')}
+              />
             </div>
             <div>
-              <Label>Tarjeta Profesional</Label>
+              <Label htmlFor="concApoderadoConvocanteTP">
+                Tarjeta Profesional
+              </Label>
               <Input
+                id="concApoderadoConvocanteTP"
                 {...register('concApoderadoConvocanteTP')}
                 placeholder="TP-XXXXXX"
               />
             </div>
+            {/* C-2 (auditoría 2026-10-12): Dirección y Ciudad ya existían en
+                schema.prisma y en Zod (createCaseFormSchema,
+                updateCaseFormSchema), y Solicitud de Audiencia de
+                Conciliacion.html ya las imprime
+                (DIRECCION_APODERADO_CONVOCANTE, CIUDAD_APODERADO_CONVOCANTE).
+                Faltaba el input, igual que los tres de Zoom. De paso se le
+                agrega htmlFor/id al resto del fieldset: el sibling
+                "Apoderado del Convocado" ya los tenía (`ConciliationPartiesSection`
+                más abajo) y este se había quedado sin ellos — inconsistencia
+                preexistente que tocaba arreglar para que los dos campos
+                nuevos no fueran los únicos accesibles por su etiqueta. */}
             <div>
-              <Label>Correo</Label>
+              <Label htmlFor="concApoderadoConvocanteDireccion">
+                Dirección
+              </Label>
               <Input
+                id="concApoderadoConvocanteDireccion"
+                {...register('concApoderadoConvocanteDireccion')}
+                placeholder="Dirección del apoderado"
+              />
+            </div>
+            <div>
+              <Label htmlFor="concApoderadoConvocanteCiudad">Ciudad</Label>
+              <Input
+                id="concApoderadoConvocanteCiudad"
+                {...register('concApoderadoConvocanteCiudad')}
+                placeholder="Ciudad"
+              />
+            </div>
+            <div>
+              <Label htmlFor="concApoderadoConvocanteCorreo">Correo</Label>
+              <Input
+                id="concApoderadoConvocanteCorreo"
                 type="email"
                 {...register('concApoderadoConvocanteCorreo')}
               />
             </div>
             <div>
-              <Label>Celular</Label>
-              <Input {...register('concApoderadoConvocanteCel')} />
+              <Label htmlFor="concApoderadoConvocanteCel">Celular</Label>
+              <Input
+                id="concApoderadoConvocanteCel"
+                {...register('concApoderadoConvocanteCel')}
+              />
             </div>
           </div>
         </fieldset>

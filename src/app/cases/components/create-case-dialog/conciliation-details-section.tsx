@@ -425,6 +425,23 @@ export function ConciliationDetailsSection() {
         <legend className="px-2 text-sm font-semibold">
           Causa de Terminación (anormal)
         </legend>
+        {/* C-2 (auditoría 2026-10-12): la hora programada de la audiencia ya
+            existía en schema.prisma y en Zod (concHoraProgramada), y
+            Terminacion Anormal.html ya la imprime ("...a las
+            {{HORA_PROGRAMADA}}, para convocar a..."); faltaba el input. No es
+            exclusiva de la causa seleccionada —el párrafo que la usa describe
+            la audiencia tal como se citó, independientemente de por qué
+            terminó anormalmente—, por eso va antes del selector de causa. */}
+        <div className="mb-4 max-w-xs">
+          <Label htmlFor="concHoraProgramada">
+            Hora programada de la audiencia
+          </Label>
+          <Input
+            id="concHoraProgramada"
+            type="time"
+            {...register('concHoraProgramada')}
+          />
+        </div>
         <p className="text-muted-foreground mb-3 text-xs">
           Seleccione la causa si la audiencia terminó de forma anormal. Déjelo
           vacío si hubo acuerdo.
@@ -471,6 +488,23 @@ export function ConciliationDetailsSection() {
         <legend className="px-2 text-sm font-semibold">
           Resultado del Informe
         </legend>
+        {/* C-2 (auditoría 2026-10-12): ya existía en schema.prisma y en Zod
+            (concTipoConstanciaSolicitada), y el Informe Conciliador ya la
+            imprime ("...se solicita expedir {{TIPO_CONSTANCIA_SOLICITADA}}");
+            faltaba el input. Texto libre, no un Select: el documento la
+            inserta tal cual en la frase ("se solicita expedir [esto]"), así
+            que tiene que quedar gramaticalmente correcta ("constancia de no
+            acuerdo", "constancia de inasistencia"...), no un código. */}
+        <div className="mb-4">
+          <Label htmlFor="concTipoConstanciaSolicitada">
+            Tipo de constancia solicitada
+          </Label>
+          <Input
+            id="concTipoConstanciaSolicitada"
+            {...register('concTipoConstanciaSolicitada')}
+            placeholder="Ej: constancia de no acuerdo"
+          />
+        </div>
         <p className="text-muted-foreground mb-3 text-xs">
           Resultado consignado en el informe del conciliador.
         </p>
