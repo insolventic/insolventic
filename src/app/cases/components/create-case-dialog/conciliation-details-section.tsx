@@ -180,6 +180,54 @@ export function ConciliationDetailsSection() {
         </div>
       </fieldset>
 
+      {/* Fechas reales del trámite — C-1a (auditoría 2026-10-12). Antes de
+          estas tres columnas, DIA_/MES_/ANO_SOLICITUD, _CITACION y
+          _DESISTIMIENTO caían silenciosamente en la fecha de HOY cuando no
+          se informaban (`getDayNumber/getMonthName/getYear(now)`); un
+          commit anterior ya cambió ese default a un blanco visible (____) y
+          esta sección es donde se llena el dato real para que deje de
+          aparecer en blanco. `register` simple, como `suspensionDate`
+          (suspended-services-section.tsx) — no Controller/`field.value`:
+          ese patrón es de case-details-section.tsx, que usa `<FormField>`,
+          no `useFormContext` + `register` como este archivo. */}
+      <fieldset className="rounded-lg border p-4">
+        <legend className="px-2 text-sm font-semibold">
+          Fechas reales del trámite
+        </legend>
+        <p className="text-muted-foreground mb-3 text-xs">
+          Fechas en que efectivamente ocurrieron estos hechos. Déjelas en
+          blanco si aún no han ocurrido o no aplican.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div>
+            <Label htmlFor="concFechaSolicitud">Fecha de solicitud</Label>
+            <Input
+              id="concFechaSolicitud"
+              type="date"
+              {...register('concFechaSolicitud')}
+            />
+          </div>
+          <div>
+            <Label htmlFor="concFechaCitacion">Fecha de citación</Label>
+            <Input
+              id="concFechaCitacion"
+              type="date"
+              {...register('concFechaCitacion')}
+            />
+          </div>
+          <div>
+            <Label htmlFor="concFechaDesistimiento">
+              Fecha de desistimiento
+            </Label>
+            <Input
+              id="concFechaDesistimiento"
+              type="date"
+              {...register('concFechaDesistimiento')}
+            />
+          </div>
+        </div>
+      </fieldset>
+
       {/* Audiencia virtual — C-3 (auditoría 2026-10-12). Las tres columnas ya
           existían en el schema y en Zod desde antes de esta auditoría
           (`zoomLink`/`zoomMeetingId`/`zoomPassword`); lo que faltaba era el
@@ -307,6 +355,45 @@ export function ConciliationDetailsSection() {
           label="Nombres de menores"
           placeholder="Nombre completo del menor"
         />
+      </fieldset>
+
+      {/* Referencias del acta de unión — C-1c (auditoría 2026-10-12). El
+          Acta de Disolución de Unión Marital identifica el acta/trámite de
+          unión que se disuelve ("...mediante Acta No. {{NUMERO_ACTA_UNION_REF}}
+          y Trámite No. {{NUMERO_TRAMITE_UNION_REF}}"); sin estos dos datos,
+          el acta de disolución no decía A QUÉ unión se refería. NO son las
+          fechas de la unión en sí (C-1b, pendiente con la abogada). */}
+      <fieldset className="rounded-lg border p-4">
+        <legend className="px-2 text-sm font-semibold">
+          Referencias del Acta de Unión
+        </legend>
+        <p className="text-muted-foreground mb-3 text-xs">
+          Número del acta y trámite de la unión marital que se disuelve o
+          aclara. Solo aplica si el trámite involucra disolución de unión
+          marital.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="concNumeroActaUnionRef">
+              Número de Acta de la unión
+            </Label>
+            <Input
+              id="concNumeroActaUnionRef"
+              {...register('concNumeroActaUnionRef')}
+              placeholder="Ej: 045-2024"
+            />
+          </div>
+          <div>
+            <Label htmlFor="concNumeroTramiteUnionRef">
+              Número de Trámite de la unión
+            </Label>
+            <Input
+              id="concNumeroTramiteUnionRef"
+              {...register('concNumeroTramiteUnionRef')}
+              placeholder="Ej: T-2024-045"
+            />
+          </div>
+        </div>
       </fieldset>
 
       {/* ================================================================= */}
@@ -541,6 +628,100 @@ export function ConciliationDetailsSection() {
             />
           </div>
         )}
+      </fieldset>
+
+      {/* ================================================================= */}
+      {/* Aclaración de Acta — C-1c (auditoría 2026-10-12)                   */}
+      {/* ================================================================= */}
+      {/* Auto Aclaracion de Acta.html la genera sin decir QUÉ se corrige;
+          estos cuatro campos son esa descripción. */}
+      <fieldset className="rounded-lg border p-4">
+        <legend className="px-2 text-sm font-semibold">
+          Aclaración de Acta
+        </legend>
+        <p className="text-muted-foreground mb-3 text-xs">
+          Solo aplica si el trámite es una aclaración de un acta de
+          conciliación ya expedida.
+        </p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="concCampoConError">Campo con error</Label>
+              <Input
+                id="concCampoConError"
+                {...register('concCampoConError')}
+                placeholder="Ej: Nombre del convocado"
+              />
+            </div>
+            <div>
+              <Label htmlFor="concDescripcionError">
+                Descripción del error
+              </Label>
+              <Input
+                id="concDescripcionError"
+                {...register('concDescripcionError')}
+                placeholder="Ej: Error de digitación en el nombre"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <Label htmlFor="concValorIncorrecto">Valor incorrecto</Label>
+              <Input
+                id="concValorIncorrecto"
+                {...register('concValorIncorrecto')}
+                placeholder="Lo que decía el acta"
+              />
+            </div>
+            <div>
+              <Label htmlFor="concValorCorrecto">Valor correcto</Label>
+              <Input
+                id="concValorCorrecto"
+                {...register('concValorCorrecto')}
+                placeholder="Lo que debe decir"
+              />
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      {/* ================================================================= */}
+      {/* Desistimiento — C-1c (auditoría 2026-10-12)                       */}
+      {/* ================================================================= */}
+      {/* Auto Desistimiento Conciliacion.html: "...por parte de
+          {{TIPO_SOLICITANTE_DESISTIMIENTO}} {{#if HAS_APODERADO_DESISTIMIENTO}}
+          de la parte convocante, la apoderada {{NOMBRE_APODERADO_DESISTIMIENTO}},
+          {{/if}}...". `concApoderadoDesistimientoName` es solo el nombre —no
+          un bloque completo de apoderado como los de
+          `conciliation-parties-section.tsx`— porque el documento no necesita
+          más que eso para esta frase. */}
+      <fieldset className="rounded-lg border p-4">
+        <legend className="px-2 text-sm font-semibold">Desistimiento</legend>
+        <p className="text-muted-foreground mb-3 text-xs">
+          Solo aplica si el trámite es un desistimiento de la conciliación.
+        </p>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <Label htmlFor="concTipoSolicitanteDesistimiento">
+              Quién desiste
+            </Label>
+            <Input
+              id="concTipoSolicitanteDesistimiento"
+              {...register('concTipoSolicitanteDesistimiento')}
+              placeholder="Ej: la parte convocante"
+            />
+          </div>
+          <div>
+            <Label htmlFor="concApoderadoDesistimientoName">
+              Nombre del apoderado (si desiste a través de apoderado)
+            </Label>
+            <Input
+              id="concApoderadoDesistimientoName"
+              {...register('concApoderadoDesistimientoName')}
+              placeholder="Nombre completo del apoderado"
+            />
+          </div>
+        </div>
       </fieldset>
 
       {/* Bienes / alimentos situación */}

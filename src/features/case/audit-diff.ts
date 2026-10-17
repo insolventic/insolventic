@@ -93,6 +93,12 @@ export const CAMPOS_CON_VALOR_AUDITABLE: ReadonlySet<string> = new Set([
   'agreementValidityDate',
   'hasLegalProcesses',
   'riskCenterCommunication',
+  // C-1a (auditoría del formulario de conciliación, 2026-10-12): mismo
+  // criterio que las demás fechas procesales — hechos del expediente, no
+  // datos de la persona.
+  'concFechaSolicitud',
+  'concFechaCitacion',
+  'concFechaDesistimiento',
 ]);
 
 /** Lo que se guarda en `metadata`. Valores primitivos: `metadata` es Json. */
