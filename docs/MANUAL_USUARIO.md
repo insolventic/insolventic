@@ -17,12 +17,15 @@
 
 ## 2. Roles y permisos
 
-| Rol               | Alcance                                                                |
-| ----------------- | ---------------------------------------------------------------------- |
-| **Administrador** | Acceso total: casos, usuarios, roles, reportes, auditoría              |
-| **Operador**      | Crear y gestionar casos asignados, generar documentos, registrar pagos |
-| **Asistente**     | Consulta + captura básica; sin eliminación ni cambios de fase          |
-| **Auditor**       | Solo lectura + acceso a reportes y bitácora                            |
+Los 5 roles con los que arranca cada centro (`src/prisma/seed.ts`):
+
+| Rol                      | Alcance                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| **Administrador**        | Acceso total: casos, usuarios, roles, reportes, auditoría, eliminar casos/deudores/acreedores |
+| **Operadora de Insolvencia** | Crear y editar casos, acreedores y deudores; generar documentos. No elimina casos ni administra usuarios/roles |
+| **Abogado**              | Crear y editar casos (ve también los casos propios); genera documentos. No elimina nada  |
+| **Asistente Legal**      | Solo consulta de casos (propios y en general) y de acreedores/deudores; genera documentos |
+| **Secretaria**           | Solo consulta de casos y documentos — sin crear, editar ni generar                        |
 
 Los permisos son configurables por rol desde **Configuración → Roles**.
 
@@ -56,7 +59,20 @@ Al ingresar verás:
 8. **Declaraciones** — veracidad, buena fe, no ocultamiento, autorizaciones.
 9. **Propuesta de pago** — plazo, cuota mensual, período de gracia, etc.
 
+**Para un caso de Conciliación**, el formulario cambia: asunto y cuantía,
+audiencia virtual (Zoom: ID, código de acceso, enlace), convocante/convocado
+y sus apoderados, fechas reales del trámite (solicitud, citación,
+desistimiento), menores de edad (alimentos/unión marital), cláusulas del
+acuerdo, causa de terminación anormal, resultado del informe del
+conciliador, y — si aplica el trámite — los datos de la Aclaración de Acta
+(qué campo tenía el error, valor incorrecto/correcto) y de las referencias
+del acta de unión marital que se disuelve o aclara.
+
 El sistema guarda como **borrador** al avanzar entre secciones.
+
+**Montos en pesos:** todo campo de dinero (ingresos, gastos, deudas,
+cuantía) muestra el separador de miles mientras se escribe —`1.500.000`, no
+`1500000`— para que sea más fácil verificar que el monto es el correcto.
 
 ### 4.2 Filtrar y buscar casos
 
@@ -75,14 +91,40 @@ Abrir el caso → **Editar**. El sistema protege contra ediciones concurrentes:
 
 ### 4.4 Transiciones de fase
 
-En el detalle del caso verás los botones contextuales:
+El expediente tiene 13 fases (`Inicial` → `Terminado`). En el detalle del
+caso solo aparecen los botones de las transiciones **válidas desde la fase
+actual** — el sistema no deja saltar fases.
 
-- **Admitir** (desde Solicitud) → exige fecha de admisión, operador designado, fecha de aceptación.
+**Las 5 fases que distinguen el desenlace de la negociación**, en vez de
+caer todas a `Fracaso` con el mismo paquete de documentos:
+
+| Fase | Cuándo se usa |
+| --- | --- |
+| **Rechazo** | La solicitud se rechaza de entrada, antes de admitir — no es un fracaso de negociación |
+| **Retiro** | El solicitante se retira **antes** de que el caso sea admitido |
+| **Desistimiento** | El deudor abandona el trámite **después** de admitido. Pide un subtipo: *No pago de tarifas* o *Abandono total* |
+| **Acuerdo impugnado** | Hay una impugnación pendiente ante el juez sobre un acuerdo ya aprobado |
+| **Acuerdo reformado** | El juez ordena corregir el acuerdo y se corrige dentro del plazo |
+
+**Fracaso** (la fase que ya existía) pide un subtipo de entre 13 — por
+ejemplo *Inasistencia del deudor*, *Incumplimiento*, *Impugnación del
+acuerdo*, *Muerte del deudor* — porque cada uno genera un paquete de
+documentos distinto.
+
+Otros botones contextuales que verás:
+
+- **Admitir** (desde Inicial) → exige fecha de admisión, operador designado, fecha de aceptación.
 - **Programar primera audiencia** (desde Admisión).
-- **Registrar resultado** (desde Negociación) → Acuerdo o Fracaso.
-- **Cerrar caso** → marca `resultDate` y bloquea edición.
+- **Registrar resultado** (desde En negociación / Audiencia programada) → Acuerdo aprobado, Desistimiento o Fracaso.
+- **Cerrar caso** (Terminado) → marca `resultDate` y bloquea edición.
 
 Cada transición queda registrada en el **Audit Log**.
+
+> `Rechazo`, `Retiro`, `Acuerdo impugnado` y `Acuerdo reformado` todavía no
+> tienen su propio paquete de documentos (pendiente del abogado, ver
+> `docs/DISENO_FASES_NUEVAS_2026-09-11.md` §3) — hoy, al generar documentos
+> para un caso en una de esas 4 fases, el sistema usa el Paquete 1 por
+> defecto.
 
 ---
 
@@ -99,26 +141,40 @@ Módulos independientes con CRUD. Al crear un caso puedes vincular un deudor exi
 `Documentos → Generar documentos`
 
 1. **Seleccionar caso.**
-2. **Seleccionar paquete:**
-   - Todos (49 docs)
-   - Paquete 1 — Solicitud (6 docs)
-   - Paquete 2 — Admisión (7 docs)
-   - Paquete 3 — Negociación (6 docs)
-   - Paquete 4 — Terminación (3 docs)
-   - Paquete 5 — Fracaso (27 docs)
+2. **Seleccionar paquete** — el número de documentos de cada opción se
+   calcula en vivo contra las plantillas reales, así que puede variar si se
+   agrega o quita una plantilla:
+   - Todos los paquetes
+   - Paquete 1 — Solicitud
+   - Paquete 2 — Admisión y Apertura
+   - Paquete 3 — Negociación y Acuerdo
+   - Paquete 4 — Terminación Normal
+   - Paquete 5 — Fracaso
 3. **Seleccionar formato:** Solo PDF / Solo Word / Ambos.
 4. **Generar documentos.**
+
+**Lotes grandes (Todos los paquetes, o Paquete 5) se generan por tandas.**
+El botón muestra *"Generando tanda X de Y..."* mientras corre — es normal
+que un lote grande tarde más que uno chico, y no se puede volver a hacer
+clic hasta que termine. Si una tanda falla a mitad de camino (por ejemplo,
+un corte de red), las tandas que ya terminaron **no se pierden**: aparece
+un botón **"Reintentar"** que retoma solo la tanda que faltó, no el lote
+completo desde el principio.
 
 El sistema:
 
 - Valida que el caso tenga los campos requeridos (muestra faltantes).
 - Sube automáticamente los archivos a la carpeta del caso en **Google Drive**.
 - Guarda un registro en la pestaña _Documentos_ del caso con link directo.
+- Usa el membrete y la firma propios del centro de conciliación del caso
+  (logo, nombre del centro, firma de la conciliadora) — cada centro ve sus
+  documentos con su propia identidad, no una genérica.
 
 **Alertas que puedes ver:**
 
 - ⚠️ _Este caso ya tiene N documentos generados. Al generar nuevamente se crearán adicionales sin reemplazar los existentes._
 - ❌ _Error leyendo plantilla:_ significa que la plantilla base tiene un problema — contacta a soporte.
+- ⚠️ _No se generó por datos incompletos:_ el documento se salta (no cuenta como error) porque al caso le falta un dato obligatorio para esa plantilla — complétalo y vuelve a generar.
 
 ---
 
