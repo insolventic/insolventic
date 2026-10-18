@@ -697,14 +697,27 @@ export function casePoderOtorgado(
 ): boolean {
   const raw = caseData as Record<string, unknown>;
 
+  // El poder otorgado solo cuenta si pertenece a un apoderado REAL (con
+  // nombre) — mismo criterio que `hasNamedApoderado` en `caseHasAttorney`.
+  // Sin esto, una fila en blanco con el switch marcado por error contaría
+  // como "hay poder" sin que exista ningún apoderado.
   const apoderados = Array.isArray(raw.apoderados) ? raw.apoderados : [];
   const anyInList = apoderados.some((a) => {
-    const value = (a as { existePoderOtorgado?: unknown } | null)
-      ?.existePoderOtorgado;
-    return value === true;
+    const entry = a as {
+      nombreCompleto?: unknown;
+      existePoderOtorgado?: unknown;
+    } | null;
+    const tieneNombre =
+      typeof entry?.nombreCompleto === 'string' &&
+      entry.nombreCompleto.trim().length > 0;
+    return tieneNombre && entry?.existePoderOtorgado === true;
   });
 
-  const legacyFlag = raw.existePoderOtorgado === true;
+  const legacyPrincipalTieneNombre =
+    typeof raw.apoderadoNombreCompleto === 'string' &&
+    raw.apoderadoNombreCompleto.trim().length > 0;
+  const legacyFlag =
+    legacyPrincipalTieneNombre && raw.existePoderOtorgado === true;
 
   return anyInList || legacyFlag;
 }

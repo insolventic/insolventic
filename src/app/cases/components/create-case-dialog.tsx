@@ -35,6 +35,7 @@ import {
   validateIncomeExpenses,
   validatePaymentProposal,
   validateDocumentsComplete,
+  caseHasAttorney,
   SMMLV_2025,
   type ValidationIssue,
 } from '@/features/case/validation-rules';
@@ -473,14 +474,13 @@ export function CreateCaseDialog({
     const proposalWarnings = validatePaymentProposal(formData);
     warnings.push(...proposalWarnings.filter((w) => w.type === 'warning'));
 
-    // Validate mínima cuantía → abogado obligatorio
+    // Validate mínima cuantía → abogado obligatorio. Misma función que usa
+    // el servidor (validateCaseBusinessRules), para que cliente y servidor
+    // digan lo mismo — antes esta lógica estaba reimplementada acá, sin el
+    // flag explícito que DocumentsSection inyecta.
     const totalDebt =
       parsearMonto(formData.totalDebt) || 0;
-    const hasAttorney = !!(
-      formData.attorney ||
-      formData.apoderadoNombreCompleto ||
-      formData.apoderados?.some((a) => a?.nombreCompleto?.trim())
-    );
+    const hasAttorney = caseHasAttorney(formData);
     if (totalDebt > 40 * SMMLV_2025 && !hasAttorney) {
       warnings.push({
         field: 'attorney',
@@ -1280,6 +1280,7 @@ export function CreateCaseDialog({
                   <DocumentsSection
                     applicantScope={form.watch('applicantScope') ?? []}
                     assets={form.watch('assets') ?? []}
+                    apoderados={form.watch('apoderados') ?? []}
                     hasAttorney={
                       !!form.watch('apoderadoNombreCompleto') ||
                       !!form

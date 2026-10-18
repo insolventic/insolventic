@@ -46,7 +46,6 @@ const AVAILABLE_PLACEHOLDERS = [
     label: 'Fecha de Radicación',
     placeholder: '{{fechaRadicacion}}',
   },
-  { key: 'case.attorney', label: 'Abogado', placeholder: '{{abogado}}' },
   {
     key: 'case.owedCapital',
     label: 'Capital Adeudado',
