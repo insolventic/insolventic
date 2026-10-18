@@ -211,6 +211,15 @@ export function LoginForm() {
               <p className="text-muted-foreground text-sm">
                 ¿No tienes cuenta? Solicítala al administrador de tu centro.
               </p>
+              <p className="text-muted-foreground text-xs">
+                <Link href="/privacidad" className="hover:underline">
+                  Política de privacidad
+                </Link>
+                {' · '}
+                <Link href="/terminos" className="hover:underline">
+                  Términos de uso
+                </Link>
+              </p>
             </div>
           </form>
         </CardContent>

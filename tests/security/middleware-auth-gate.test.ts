@@ -50,12 +50,16 @@ function redirectLocation(response: Response): URL | null {
 }
 
 describe('isPublicRoute — route matching', () => {
-  it.each(['/', '/login', '/forgot-password', '/reset-password'])(
-    'treats %s as public',
-    (path) => {
-      expect(isPublicRoute(path)).toBe(true);
-    },
-  );
+  it.each([
+    '/',
+    '/login',
+    '/forgot-password',
+    '/reset-password',
+    '/privacidad',
+    '/terminos',
+  ])('treats %s as public', (path) => {
+    expect(isPublicRoute(path)).toBe(true);
+  });
 
   // C-2: el registro autoservicio está cerrado — /register ya no es pública.
   it('treats /register as protected (registro público cerrado)', () => {
@@ -125,6 +129,18 @@ describe('middleware — auth gate', () => {
     // Toda respuesta del middleware propaga el requestId de correlación.
     expect(response.headers.get('x-request-id')).toBeTruthy();
   });
+
+  // Cumplimiento (Ley 1581): estas dos páginas tienen que poder leerse sin
+  // sesión — exigir login para ver la política de datos sería absurdo.
+  it.each(['/privacidad', '/terminos'])(
+    'does NOT redirect %s without cookie (cumplimiento, debe leerse sin sesión)',
+    async (path) => {
+      const response = await middleware(makeRequest(path));
+
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.get('x-request-id')).toBeTruthy();
+    },
+  );
 
   it('redirects to /login with error when the user has no permissions', async () => {
     const token = await makeToken([]);
