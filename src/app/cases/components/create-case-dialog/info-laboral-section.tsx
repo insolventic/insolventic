@@ -19,6 +19,7 @@ import type {
 } from '@/features/case/schemas';
 import { ServiciosManutencionSection } from './servicios-manutencion-section';
 import { MoneyInput } from '@/components/ui/money-input';
+import { parsearMonto } from '@/features/case/monto';
 
 export function InfoLaboralSection() {
   const { register, watch, setValue, control } =
@@ -45,25 +46,29 @@ export function InfoLaboralSection() {
   const gastosSalud = useWatch({ control, name: 'gastosSalud' }) || 0;
   const otrosGastos = useWatch({ control, name: 'otrosGastos' }) || 0;
 
-  // Auto-calculated totals
+  // Auto-calculated totals. Los campos vienen de MoneyInput como texto con
+  // separador de miles y/o coma decimal ("1.234,56"): `Number()` directo los
+  // rompe (NaN con coma, o silenciosamente mal con 2+ puntos de miles).
+  // `parsearMonto` es el único parseo correcto para este formato; `|| 0` cubre
+  // además vacío/parcial/inválido, que nunca debe filtrarse como NaN a la UI.
   const totalIngresos = useMemo(
     () =>
-      Number(ingresoPrincipal) +
-      Number(otrosIngresos) +
-      Number(ingresosVariables) +
-      Number(ingresosNoOp),
+      (parsearMonto(ingresoPrincipal) || 0) +
+      (parsearMonto(otrosIngresos) || 0) +
+      (parsearMonto(ingresosVariables) || 0) +
+      (parsearMonto(ingresosNoOp) || 0),
     [ingresoPrincipal, otrosIngresos, ingresosVariables, ingresosNoOp],
   );
 
   const totalGastos = useMemo(
     () =>
-      Number(gastosVivienda) +
-      Number(gastosAlimentacion) +
-      Number(gastosServicios) +
-      Number(gastosTransporte) +
-      Number(gastosEducacion) +
-      Number(gastosSalud) +
-      Number(otrosGastos),
+      (parsearMonto(gastosVivienda) || 0) +
+      (parsearMonto(gastosAlimentacion) || 0) +
+      (parsearMonto(gastosServicios) || 0) +
+      (parsearMonto(gastosTransporte) || 0) +
+      (parsearMonto(gastosEducacion) || 0) +
+      (parsearMonto(gastosSalud) || 0) +
+      (parsearMonto(otrosGastos) || 0),
     [
       gastosVivienda,
       gastosAlimentacion,

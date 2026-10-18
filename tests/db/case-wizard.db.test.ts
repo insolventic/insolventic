@@ -511,3 +511,55 @@ describe('separador de miles: el punto no trunca el monto en la base', () => {
     expect(Number(stored.assets[0].value)).toBe(180_000_000);
   });
 });
+
+describe('coma decimal: el monto se guarda exacto, sin NaN', () => {
+  /**
+   * El gemelo del bloque de arriba para la OTRA mitad de la regla de
+   * `parsearMonto`: con coma, la coma es el decimal y los puntos son miles
+   * ("1.234.567,89" → 1234567.89). Esta rama pasa por las mismas tres capas
+   * (schema, server action, `Debt.amount`), así que se verifica contra
+   * Postgres igual que el caso de solo puntos — un bug en cualquiera de las
+   * tres habría hecho fallar el `create` o guardado `NaN`/truncado.
+   */
+  let casoId = '';
+
+  const CON_COMA = {
+    totalDebt: '31.500.000,75',
+    debts: [
+      {
+        creditor: 'Banco Coma S.A.',
+        type: 'TARJETA_CREDITO',
+        interestRate: '2.1',
+        capitalAmount: '1.234,56',
+        interestAmount: '1.500.000,25',
+        creditorCity: 'Bogotá D.C.',
+      },
+    ],
+    assets: [{ name: 'Lote', type: 'INMUEBLE', value: '180.000.000,50' }],
+  };
+
+  it('crea el caso con montos en coma decimal', async () => {
+    const result = await submitWizard(CON_COMA);
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+    casoId = result.data!.id;
+    expectedAuditRows += 1;
+  });
+
+  it('Postgres guardó el valor exacto, ni NaN ni truncado', async () => {
+    const stored = await prisma.case.findUniqueOrThrow({
+      where: { id: casoId },
+      include: { debts: true, assets: true },
+    });
+
+    // Si la coma rompiera el parseo, estos serían NaN (create habría
+    // fallado) o el resultado del bug viejo: 1.23456, 1.5000025, etc.
+    expect(Number(stored.totalDebt)).toBe(31_500_000.75);
+    expect(stored.debts).toHaveLength(1);
+    expect(Number(stored.debts[0].capitalAmount)).toBe(1_234.56);
+    expect(Number(stored.debts[0].interestAmount)).toBe(1_500_000.25);
+    expect(Number(stored.debts[0].amount)).toBe(1_234.56);
+    expect(stored.assets).toHaveLength(1);
+    expect(Number(stored.assets[0].value)).toBe(180_000_000.5);
+  });
+});
