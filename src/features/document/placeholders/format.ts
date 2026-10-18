@@ -23,7 +23,15 @@ export function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return '$0';
   // Ensure Prisma Decimal objects are converted to number
   const num = Number(value);
-  if (isNaN(num)) return '$0';
+  // Un valor AUSENTE (null/undefined, arriba) y un valor PRESENTE pero no
+  // numérico no son lo mismo: el primero es "no se cargó", el segundo es un
+  // dato roto (p. ej. un parseo de monto que falló). Antes los dos caían en
+  // "$0" — un documento legal podía salir con un monto en cero pesos sin
+  // ningún aviso. Acá se deja el marcador "____" que ya usa el resto del
+  // mapper para dato faltante, así el gate fail-closed de
+  // `generate-documents.ts` (`canGenerateDocument`, que busca "____" en las
+  // `criticalVariables`) lo detiene si el placeholder está marcado crítico.
+  if (isNaN(num)) return '____';
   return new Intl.NumberFormat('es-CO', {
     style: 'currency',
     currency: 'COP',
