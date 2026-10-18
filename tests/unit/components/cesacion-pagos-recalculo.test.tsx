@@ -62,6 +62,12 @@ function porcentajeMoraEnPantalla(): string {
   return (campo as HTMLInputElement).value;
 }
 
+function totalDeudaEnPantalla(): string {
+  const label = screen.getByText('Total deuda registrada');
+  const campo = label.parentElement!.querySelector('input')!;
+  return (campo as HTMLInputElement).value;
+}
+
 describe('Sección IV — cifras derivadas de los acreedores', () => {
   it('calcula el número de acreedores y el % en mora del estado inicial', () => {
     montarSeccion([
@@ -112,5 +118,17 @@ describe('Sección IV — cifras derivadas de los acreedores', () => {
     montarSeccion([]);
     expect(numAcreedoresEnPantalla()).toBe('0');
     expect(porcentajeMoraEnPantalla()).toBe('0%');
+  });
+
+  it('REGRESIÓN: capitalAmount con coma decimal no da NaN en Total deuda registrada', () => {
+    // `capitalAmount`/`amount` llegan como texto de MoneyInput ("1.234,56"),
+    // no como número: `Number()` directo da NaN con la coma decimal.
+    montarSeccion([
+      { capitalAmount: '1.234,56', daysOverdue: 0 },
+      { capitalAmount: '1.500.000', daysOverdue: 0 },
+    ]);
+
+    expect(totalDeudaEnPantalla()).not.toContain('NaN');
+    expect(totalDeudaEnPantalla()).toContain('1.501.235');
   });
 });
