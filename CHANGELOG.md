@@ -32,6 +32,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`generateFromTemplates` (generación automática de documentos) corre en 3 fases** — preparar (validar + rellenar HTML), renderizar en lote (`batchHtmlToPdf`, un solo Chromium), subir a Drive — en vez de lanzar y cerrar un navegador por documento (P1 de `docs/AUDITORIA_MODULO_GENERACION_2026-07.md`). Medido con Chromium real (sin Drive): creación de caso (3 documentos) 1455ms → 945ms; admisión (6 documentos) 3426ms → 2133ms (~35-38% más rápido). Los dos lotes grandes que hoy exceden `maxDuration=60s` (Fracaso sin filtrar, paquete completo) siguen rotos en esta entrada — resuelto después, ver Issue #3 y los PR posteriores.
 
+### Seguridad
+
+- **Búsqueda global**: era la única función del sistema sin control de permisos — cualquier usuario con sesión podía escribir dos letras y ver nombre, cédula y correo de todos los deudores del centro. Ahora exige el mismo permiso que cada listado (casos, deudores, acreedores) y, para el rol de cliente, limita el resultado a sus propios expedientes. (#137)
+- **Verificación de acceso por expediente** añadida en las operaciones que cambian datos, generan documentos o producen reportes — antes esa verificación existía en unos lugares y en otros no. (#137)
+- **Eliminar un expediente** ahora exige escribir su número para confirmar, y la acción queda en el registro de auditoría antes de ejecutarse, no después. (#137)
+- **El registro de auditoría de una edición de caso** ahora detalla qué campos cambiaron, no solo que "se editó el caso". (#137)
+- Se valida que el operador que se asigna a un caso pertenezca al mismo centro de conciliación. (#137)
+- Límite de intentos al crear casos, para frenar un uso abusivo de la función. (#137)
+- **Revocación de sesiones**: cambiar la contraseña, o que un administrador fuerce el cierre de sesión de un usuario, ahora invalida de verdad las sesiones abiertas en otros dispositivos — antes seguían activas hasta por 24 horas más, sin importar el cambio de contraseña. (#140)
+
+### Documentos y conciliación
+
+- **Membrete y firma propios por centro de conciliación**: cada centro genera sus documentos con su propio logo, nombre y firma de la conciliadora — antes todos los documentos salían con el membrete de un solo centro, incluso los del otro. (#126, #132, #133, #134, #135)
+- Se corrige un error de fondo que hacía que ese membrete por centro **nunca** funcionara en la práctica: el sistema comparaba un identificador interno que no era el que correspondía, así que siempre caía al membrete por defecto. (#128)
+- **Registro de apoderados de un acreedor**: se puede capturar quién representa a cada acreedor al crear el caso. (#130, #131)
+- Se agrega una referencia legal genérica (Ley 2220 de 2022) en 3 plantillas de conciliación que no citaban ninguna norma: Aclaración de Acta, Auto de Desistimiento e Informe Conciliador. (#129)
+- **Separador de miles en los 27 campos de dinero del formulario** (se escribe "1.500.000" en vez de "1500000"), y se corrige un error de cálculo relacionado que ese mismo cambio habría hecho más visible. (#136)
+- **Formulario de conciliación ampliado**: datos de la audiencia virtual por Zoom, las fechas reales de solicitud, citación y desistimiento (antes el sistema asumía, por error, que esos hechos habían ocurrido "hoy" si no se informaban), y los datos de la Aclaración de Acta (qué se corrige y los valores correcto/incorrecto). (#138, #139)
+
+### Operación
+
+- **Generación de documentos por lotes grandes troceada en tandas**, con progreso visible y la opción de reintentar solo la tanda que falló — antes un lote grande (por ejemplo, generar todos los documentos de un caso de una vez) podía no completarse sin ninguna forma de reintentar solo la parte que faltaba. (#140)
+- Las pruebas automáticas de extremo a extremo dejan de depender de un servicio externo (Docker Hub) que fallaba por un límite ajeno al proyecto y dejaba pruebas importantes sin correr sin que se notara con claridad. (#127)
+- Ajuste en la integración continua para que un cambio que depende de otro cambio todavía no incorporado también dispare las pruebas automáticas correspondientes — antes se quedaba sin verificar en silencio. (#142)
+
+### Documentación
+
+- **Páginas públicas de política de privacidad y términos de uso** (borrador, pendiente de revisión legal), accesibles sin necesidad de iniciar sesión. (#141)
+- **Procedimiento interno** para atender una solicitud de una persona sobre sus propios datos (conocerlos, corregirlos o pedir que se eliminen). (#141)
+- Manual de usuario actualizado a lo que el sistema hace hoy. (#141)
+
 ## [0.3.0] - 2026-04-15
 
 ### Added
