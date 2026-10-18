@@ -23,6 +23,7 @@ import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { formatCurrency } from './format';
 import { escapePlaceholder } from './escape';
+import { parsearMonto } from '../../case/monto';
 
 /**
  * Escapa los strings de un item de un array que va a `{{#each}}` — mismo
@@ -155,8 +156,15 @@ export function mapApoyoFields(caseData: CaseWithRelations): PlaceholderMap {
     ASUNTO_APOYO: asunto,
     HECHOS_APOYO: hechos,
     PRETENSIONES_APOYO: pretensiones,
+    // `apoyoMontoMensual` lo escribe un MoneyInput ("1.234,56" / "1.500.000");
+    // `parseFloat(...replace(/[^0-9.]/g,''))` es el parseo viejo de 54 copias
+    // que #136 reemplazó en el resto del sistema — acá seguía vivo: conserva
+    // el punto de miles ("1.500.000" → 1.5) y descarta la coma decimal
+    // ("1.234,56" → "1.234.56" → parseFloat corta en el segundo punto →
+    // 1.234). `parsearMonto` es el único parseo que entiende los dos formatos
+    // (ver su docblock).
     MONTO_MENSUAL_APOYO: montoMensualRaw
-      ? formatCurrency(parseFloat(montoMensualRaw.replace(/[^0-9.]/g, '')) || 0)
+      ? formatCurrency(parsearMonto(montoMensualRaw) || 0)
       : 'N/A',
     MONTO_MENSUAL_APOYO_RAW: montoMensualRaw,
     // 'N/A', no vacío: la plantilla imprime "{{PLAZO_MESES_APOYO}} meses" sin
