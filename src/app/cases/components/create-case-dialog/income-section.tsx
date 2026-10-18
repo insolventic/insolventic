@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FormField, FormItem, FormControl } from '@/components/ui/form';
 import { MoneyInput } from '@/components/ui/money-input';
-import { formatearMonto } from '@/features/case/monto';
+import { formatearMonto, parsearMonto } from '@/features/case/monto';
 
 export function IncomeSection() {
   const form = useFormContext();
@@ -25,13 +25,16 @@ export function IncomeSection() {
   const monthlyExpenses =
     useWatch({ control: form.control, name: 'monthlyExpenses' }) || 0;
 
-  // Valores calculados con useMemo - NO usar setValue para valores derivados
+  // Valores calculados con useMemo - NO usar setValue para valores derivados.
+  // Los 3 campos vienen de MoneyInput como texto con separador de miles y/o
+  // coma decimal: `parsearMonto` es el parseo correcto; `|| 0` cubre
+  // vacío/parcial/inválido, que nunca debe filtrarse como NaN a la UI.
   const totalIncome = useMemo(
-    () => Number(monthlyIncome) + Number(otherIncomeAmount),
+    () => (parsearMonto(monthlyIncome) || 0) + (parsearMonto(otherIncomeAmount) || 0),
     [monthlyIncome, otherIncomeAmount],
   );
   const availableIncome = useMemo(
-    () => totalIncome - Number(monthlyExpenses),
+    () => totalIncome - (parsearMonto(monthlyExpenses) || 0),
     [totalIncome, monthlyExpenses],
   );
 

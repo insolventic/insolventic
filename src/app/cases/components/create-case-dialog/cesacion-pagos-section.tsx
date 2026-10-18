@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
+import { parsearMonto } from '@/features/case/monto';
 
 export function CesacionPagosSection() {
   const { watch, setValue, control } = useFormContext<CreateCaseFormInput>();
@@ -23,14 +24,14 @@ export function CesacionPagosSection() {
     const total = debts.length;
     const totalDebt = debts.reduce(
       (sum: number, d: Record<string, unknown>) =>
-        sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+        sum + (parsearMonto(d.capitalAmount) || parsearMonto(d.amount) || 0),
       0,
     );
     const overdueDebt = debts
       .filter((d: Record<string, unknown>) => Number(d.daysOverdue) > 0)
       .reduce(
         (sum: number, d: Record<string, unknown>) =>
-          sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+          sum + (parsearMonto(d.capitalAmount) || parsearMonto(d.amount) || 0),
         0,
       );
     const pct = totalDebt > 0 ? (overdueDebt / totalDebt) * 100 : 0;
@@ -52,7 +53,7 @@ export function CesacionPagosSection() {
     () =>
       debts.reduce(
         (sum: number, d: Record<string, unknown>) =>
-          sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
+          sum + (parsearMonto(d.capitalAmount) || parsearMonto(d.amount) || 0),
         0,
       ),
     [debts],

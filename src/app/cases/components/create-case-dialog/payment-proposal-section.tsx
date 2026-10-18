@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form';
 import { getDebtClass } from '@/features/case/validation-rules';
 import { MoneyInput } from '@/components/ui/money-input';
+import { parsearMonto } from '@/features/case/monto';
 
 /**
  * PaymentProposalSection
@@ -89,24 +90,27 @@ export function PaymentProposalSection() {
   const otrosGastos =
     useWatch({ control: form.control, name: 'otrosGastos' }) || 0;
 
+  // Los 4 campos de ingresos y 7 de gastos vienen de MoneyInput como texto
+  // con separador de miles y/o coma decimal: `parsearMonto` es el único
+  // parseo correcto (ver monto.ts). `|| 0` cubre vacío/parcial/inválido.
   const totalIngresos = useMemo(
     () =>
-      Number(ingresoPrincipal) +
-      Number(otrosIngresos) +
-      Number(ingresosVariables) +
-      Number(ingresosNoOp),
+      (parsearMonto(ingresoPrincipal) || 0) +
+      (parsearMonto(otrosIngresos) || 0) +
+      (parsearMonto(ingresosVariables) || 0) +
+      (parsearMonto(ingresosNoOp) || 0),
     [ingresoPrincipal, otrosIngresos, ingresosVariables, ingresosNoOp],
   );
 
   const totalGastos = useMemo(
     () =>
-      Number(gastosVivienda) +
-      Number(gastosAlimentacion) +
-      Number(gastosServicios) +
-      Number(gastosTransporte) +
-      Number(gastosEducacion) +
-      Number(gastosSalud) +
-      Number(otrosGastos),
+      (parsearMonto(gastosVivienda) || 0) +
+      (parsearMonto(gastosAlimentacion) || 0) +
+      (parsearMonto(gastosServicios) || 0) +
+      (parsearMonto(gastosTransporte) || 0) +
+      (parsearMonto(gastosEducacion) || 0) +
+      (parsearMonto(gastosSalud) || 0) +
+      (parsearMonto(otrosGastos) || 0),
     [
       gastosVivienda,
       gastosAlimentacion,
@@ -134,8 +138,8 @@ export function PaymentProposalSection() {
     };
     for (const debt of debts) {
       if (!debt?.type) continue;
-      const capital = Number(debt.capitalAmount) || 0;
-      const interest = Number(debt.interestAmount) || 0;
+      const capital = parsearMonto(debt.capitalAmount) || 0;
+      const interest = parsearMonto(debt.interestAmount) || 0;
       const total = capital + interest;
       const cls = getDebtClass(debt.type);
       totals[cls] += total;
