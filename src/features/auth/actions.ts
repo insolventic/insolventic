@@ -117,6 +117,11 @@ export async function authenticateUser() {
       permissions: user.role.permissions.map((rp) => rp.permission.name),
     },
     tenantId: tenant.id,
+    // El SLUG del centro (`armonia` | `constructores-paz`), no el cuid de
+    // `tenantId`. Es la clave que usan los mapas por tenant
+    // (CENTRO_BY_TENANT, branding-assets, membrete) — ver
+    // `tenant-slug.ts` para por qué `tenantId` no sirve para eso.
+    tenantSlug: tenantId,
   };
 }
 

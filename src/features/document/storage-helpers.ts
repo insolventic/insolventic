@@ -116,10 +116,18 @@ export async function archiveSupersededDocument(params: {
  *   - Persist layoutVersion=1 and refresh driveFolderId if changed.
  *
  * Returns { migrated: boolean } so callers can react (toast, audit log).
+ *
+ * `tenantId` (cuid de `Tenant.id`, para el `where` de Prisma) y
+ * `tenantSlug` (`'armonia'` | `'constructores-paz'`, para
+ * `resolveCenterFolderName`) son DOS valores distintos — ver
+ * `src/features/document/placeholders/tenant-slug.ts`. No hay un único
+ * llamador del que derivar uno a partir del otro, así que esta función
+ * los recibe por separado en vez de adivinar.
  */
 export async function migrateLegacyCaseToV1(
   caseId: string,
   tenantId: string,
+  tenantSlug: string,
 ): Promise<{ migrated: boolean; reason?: string }> {
   const c = await prisma.case.findUnique({
     where: { id: caseId, tenantId },
@@ -145,7 +153,7 @@ export async function migrateLegacyCaseToV1(
     return { migrated: false, reason: 'GOOGLE_DRIVE_FOLDER_ID no configurado' };
 
   const centerFolderName = resolveCenterFolderName(
-    tenantId,
+    tenantSlug,
     c.centroConciliacionNombre,
   );
   const caseTypeLabel =
@@ -202,9 +210,14 @@ export async function migrateLegacyCaseToV1(
  * Resolve a center folder name from DB; fall back to the hard-coded mapping
  * if no DB record exists. New centers can be added by INSERT into
  * ConciliationCenter without code changes.
+ *
+ * `tenantId` (cuid, FK real de `ConciliationCenter.tenantId`) y
+ * `tenantSlug` (para el fallback hard-coded, indexado por slug) son dos
+ * valores distintos — ver `tenant-slug.ts`.
  */
 export async function resolveCenterFolderNameDB(
   tenantId: string,
+  tenantSlug: string,
   caseCentroConciliacion?: string | null,
 ): Promise<string> {
   try {
@@ -216,5 +229,5 @@ export async function resolveCenterFolderNameDB(
   } catch {
     /* DB fall-through to hard-coded mapping */
   }
-  return resolveCenterFolderName(tenantId, caseCentroConciliacion);
+  return resolveCenterFolderName(tenantSlug, caseCentroConciliacion);
 }

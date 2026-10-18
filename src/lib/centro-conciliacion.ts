@@ -68,14 +68,22 @@ export const VALID_CENTER_FOLDER_NAMES = Object.values(CENTRO_BY_TENANT).map(
  *   and may contain values like "Centro de Conciliación X" that don't
  *   match expected Drive folder names.
  *
+ * `tenantSlug` debe ser el SLUG del centro (`'armonia'` |
+ * `'constructores-paz'`), NO el cuid de `Tenant.id`/`Case.tenantId`.
+ * `CENTRO_BY_TENANT` está indexado por slug — pasarle el cuid nunca
+ * encuentra la fila y cae siempre al fallback (o lanza). Ver
+ * `src/features/document/placeholders/tenant-slug.ts` para la fuente
+ * correcta del slug en un caso ya cargado, y `authenticateUser()` para
+ * la del slug de la sesión actual.
+ *
  * @throws Error if neither source provides a valid center name
  */
 export function resolveCenterFolderName(
-  tenantId: string,
+  tenantSlug: string,
   _caseCentroConciliacion?: string | null,
 ): string {
   // 1. Tenant mapping is authoritative
-  const config = CENTRO_BY_TENANT[tenantId as TenantId];
+  const config = CENTRO_BY_TENANT[tenantSlug as TenantId];
   if (config) {
     return config.driveFolderName;
   }
@@ -98,7 +106,7 @@ export function resolveCenterFolderName(
   }
 
   throw new Error(
-    `No se pudo determinar el centro de conciliación para el tenant "${tenantId}". ` +
+    `No se pudo determinar el centro de conciliación para el tenant "${tenantSlug}". ` +
       'Asegúrese de que el tenant esté configurado en CENTRO_BY_TENANT.',
   );
 }
