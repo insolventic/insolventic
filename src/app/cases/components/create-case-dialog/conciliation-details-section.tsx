@@ -6,6 +6,7 @@ import { useFieldArray, useFormContext } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   Select,
   SelectContent,
@@ -163,11 +164,7 @@ export function ConciliationDetailsSection() {
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <Label>Cuantía (pesos)</Label>
-              <Input
-                {...register('concCuantiaPesos')}
-                placeholder="$0"
-                type="text"
-              />
+              <MoneyInput name="concCuantiaPesos" placeholder="$0" />
             </div>
             <div>
               <Label>Cuantía (en letras)</Label>

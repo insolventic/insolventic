@@ -42,8 +42,16 @@ describe('formatCurrency', () => {
     expect(formatCurrency(undefined)).toBe('$0');
   });
 
-  it('un valor que no es número da $0', () => {
-    expect(formatCurrency('abc' as unknown as number)).toBe('$0');
+  it('REGRESIÓN: un valor PRESENTE pero no numérico (NaN) ya no da $0 en silencio', () => {
+    // Ausente (null/undefined, arriba) y presente-pero-roto no son lo mismo:
+    // el primero es "no se cargó", el segundo es un dato que falló al
+    // parsearse. Antes los dos caían en "$0" -un documento legal podía salir
+    // con un monto en cero pesos sin ningún aviso-. Ahora deja el marcador
+    // de dato faltante que ya usa el resto del mapper ("____"), para que el
+    // gate fail-closed de `canGenerateDocument` lo detenga si el placeholder
+    // es crítico.
+    expect(formatCurrency('abc' as unknown as number)).toBe('____');
+    expect(formatCurrency(NaN)).toBe('____');
   });
 
   it('formatea pesos colombianos sin decimales', () => {

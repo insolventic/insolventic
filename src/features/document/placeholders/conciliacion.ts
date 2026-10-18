@@ -37,6 +37,7 @@ import {
   getYear,
 } from './format';
 import { nowColombia } from '@/lib/date-colombia';
+import { parsearMonto } from '../../case/monto';
 import type { CaseWithRelations } from '../../case/schemas';
 import type { PlaceholderMap } from '../placeholder-mapper';
 
@@ -357,8 +358,13 @@ export function mapConciliationFields(
     // Solicitud content
     DESCRIPCION_HECHOS: hechos,
     PRETENSIONES: pretensiones,
+    // `concCuantiaPesos` es texto libre (MoneyInput escribe "1.234,56" o
+    // "1.500.000"; datos viejos pueden traer "1234.56" con punto decimal) —
+    // `parsearMonto` es el único parseo que entiende los tres formatos (ver
+    // su docblock). `Number()` directo rompía con coma decimal o 2+ grupos
+    // de miles: silenciaba a "$ 0" en el documento, sin aviso.
     CUANTIA_PESOS: cuantiaPesos
-      ? formatCurrency(Number(cuantiaPesos) || 0)
+      ? formatCurrency(parsearMonto(cuantiaPesos) || 0)
       : '',
     CUANTIA_LETRAS: cuantiaLetras,
     RELACION_PRUEBAS: pruebas,
