@@ -681,6 +681,34 @@ export function caseHasAttorney(
   );
 }
 
+/**
+ * ¿Hay poder otorgado? A diferencia de `caseHasAttorney` (¿hay apoderado?),
+ * esto responde una pregunta más estrecha: de los apoderados declarados,
+ * ¿alguno tiene `existePoderOtorgado === true`? Es lo que decide si el
+ * documento "poder" (CONDITIONAL_DOCUMENTS) es obligatorio — un apoderado
+ * puede estar identificado sin que el poder ya esté otorgado.
+ *
+ * Mismas dos fuentes que `caseHasAttorney` para el flag (la lista nueva y el
+ * espejo legado de un único apoderado): el texto libre `attorney` de la
+ * Página 1 nunca tuvo un campo de poder propio, así que no aplica acá.
+ */
+export function casePoderOtorgado(
+  caseData: Partial<CreateCaseFormInput>,
+): boolean {
+  const raw = caseData as Record<string, unknown>;
+
+  const apoderados = Array.isArray(raw.apoderados) ? raw.apoderados : [];
+  const anyInList = apoderados.some((a) => {
+    const value = (a as { existePoderOtorgado?: unknown } | null)
+      ?.existePoderOtorgado;
+    return value === true;
+  });
+
+  const legacyFlag = raw.existePoderOtorgado === true;
+
+  return anyInList || legacyFlag;
+}
+
 export function getRequiredDocuments(
   caseData: Partial<CreateCaseFormInput>,
 ): string[] {
@@ -716,9 +744,15 @@ export function getRequiredDocuments(
     required.push('tradicion_libertad');
   }
 
-  // Attorney → poder + cédula + tarjeta profesional
+  // Hay apoderado → cédula + tarjeta profesional (identifican a la persona).
+  // El "poder" es un documento aparte: se exige solo si ese apoderado ya
+  // tiene el poder otorgado (existePoderOtorgado), no por el solo hecho de
+  // estar identificado.
   if (caseHasAttorney(caseData)) {
-    required.push('poder', 'cedula_apoderado', 'tarjeta_profesional_apoderado');
+    required.push('cedula_apoderado', 'tarjeta_profesional_apoderado');
+  }
+  if (casePoderOtorgado(caseData)) {
+    required.push('poder');
   }
 
   // Small merchant → matrícula mercantil
@@ -1111,11 +1145,23 @@ export function validateCaseBusinessRules(
     }
 
     if (totalDebt > 0) {
-      push(validateMinimaCuantia(totalDebt, Boolean(data.attorney), year));
+      push(validateMinimaCuantia(totalDebt, caseHasAttorney(data), year));
     }
 
+    // `validateAttorneyData` sigue comprobando que `attorneyData.attorney` no
+    // esté vacío (no se toca su cuerpo) — se le pasa el nombre que encuentre
+    // CUALQUIERA de las fuentes que ya reconoce `caseHasAttorney` (texto
+    // libre de la Página 1, espejo legado, o el primer apoderado de la
+    // Sección XI), no solo el texto libre. Si `caseHasAttorney` dice que hay
+    // apoderado, una de esas fuentes tiene el nombre por construcción.
     push(
-      validateAttorneyData(Boolean(data.attorney), { attorney: data.attorney }),
+      validateAttorneyData(caseHasAttorney(data), {
+        attorney:
+          data.attorney ||
+          data.apoderadoNombreCompleto ||
+          data.apoderados?.[0]?.nombreCompleto ||
+          undefined,
+      }),
     );
 
     if (isCreate) {
