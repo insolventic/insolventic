@@ -20,8 +20,7 @@ flowchart TB
     end
 
     subgraph Data["🗄️ Persistencia"]
-        DB_A[("PostgreSQL / CockroachDB<br/>tenant: Armonía")]
-        DB_C[("PostgreSQL / CockroachDB<br/>tenant: Constructores de Paz")]
+        DB[("PostgreSQL (DATABASE_URL)<br/>una sola base, los dos tenants<br/>(Armonía + Constructores de Paz)")]
     end
 
     subgraph External["🔌 Servicios externos"]
@@ -34,12 +33,18 @@ flowchart TB
     Pages --> Actions
     UI -- "Server Action RPC" --> Actions
     UI --> API
-    Actions -- "Prisma (tenantId)" --> DB_A
-    Actions -- "Prisma (tenantId)" --> DB_C
+    Actions -- "Prisma, where filtrado por tenantId" --> DB
     Actions --> Drive
     Actions --> SMTP
     API --> Drive
 ```
+
+> La base única con aislamiento lógico por `tenantId` se detalla en §2 — no
+> dos bases separadas por centro, que es lo que este diagrama mostraba
+> hasta el 2026-10-18 (`DB_A`/`DB_C`, un nodo por tenant). Era la misma
+> arquitectura "BD por centro" que §2 ya documentaba como corregida desde
+> el 2026-10-09 (nota al final de esa sección) — este diagrama de §1 se
+> había quedado sin actualizar en esa corrección.
 
 ---
 
@@ -269,7 +274,7 @@ erDiagram
     User ||--o{ Notification : receives
 ```
 
-- **27 modelos** en total (`grep -c '^model ' src/prisma/schema.prisma`), incluyendo entidades específicas (Libranza, SuspendedService, Dependent, ProcesoJudicial, Bien). Ver `docs/DICCIONARIO_DATOS.md` y `docs/MODELO_ENTIDAD_RELACION.md` para el detalle completo.
+- **26 modelos** en total (`grep -c '^model ' src/prisma/schema.prisma`, reverificado 2026-10-18 — eran 27 en julio), incluyendo entidades específicas (Libranza, SuspendedService, Dependent, ProcesoJudicial, Bien). Ver `docs/DICCIONARIO_DATOS.md` y `docs/MODELO_ENTIDAD_RELACION.md` para el detalle completo.
 - **~400 campos** en `Case` cubren los 9 bloques del formulario maestro.
 - Migraciones en `src/prisma/migrations/` gestionadas con `prisma migrate`.
 

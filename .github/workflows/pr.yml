@@ -1,10 +1,13 @@
 name: CI
 
 on:
+  # Quick Win 8 (CLAUDE.md): sin `branches:`, a propósito. Con el filtro
+  # (`[dev, main]`), un PR cuya base es una rama de feature (un PR apilado
+  # sobre otro PR sin mergear todavía) no disparaba este workflow en
+  # absoluto — ni rojo ni skipped, simplemente no se encolaba, que es más
+  # fácil de pasar por alto que un check en rojo. El costo es correr CI
+  # también en PRs apilados; es exactamente lo que se buscaba.
   pull_request:
-    branches:
-      - dev
-      - main
   # Hasta ahora este workflow solo corría en el PR, contra el commit que
   # todavía no está en dev. Un merge (rebase, merge commit o squash) produce
   # un commit NUEVO en dev que nunca se compiló ni testeó como tal — la única
