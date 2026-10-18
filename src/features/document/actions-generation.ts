@@ -12,6 +12,7 @@ import {
   assertCaseAccessOnRow,
 } from '@/features/case/case-access';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
+import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import {
   generateDocumentsForNewCase,
   generateDocumentsForAdmission,
@@ -236,8 +237,12 @@ export async function generateInitialDocuments(caseId: string): Promise<{
     // una segunda consulta.
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
+    const caseWithRelations = asCaseWithRelations(caseData);
+    // Fail-closed: si por lo que sea no hay slug (no debería pasar, ver
+    // tenant-slug.ts), cae al cuid — que resolveCenterFolderName no
+    // reconoce y por eso lanza, en vez de adivinar un centro.
     const centerFolderName = resolveCenterFolderName(
-      tenantId,
+      tenantSlugDelCaso(caseWithRelations) ?? tenantId,
       caseData.centroConciliacionNombre,
     );
 
@@ -246,7 +251,7 @@ export async function generateInitialDocuments(caseId: string): Promise<{
       { tenantId, caseId, kind: 'INITIAL', userId: user.id },
       async () => {
         const result = await generateDocumentsForNewCase(
-          asCaseWithRelations(caseData),
+          caseWithRelations,
           {},
           centerFolderName,
         );

@@ -8,6 +8,7 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
+import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import { logger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
 import { canGenerateDocument } from '../case/validation-rules';
@@ -521,7 +522,7 @@ export async function getDocumentsFromDrive() {
 
 export async function syncDocumentsWithGoogleDrive() {
   try {
-    const { user, tenantId } = await authenticateUser();
+    const { user, tenantId, tenantSlug } = await authenticateUser();
 
     if (!user.permissions.includes(P.VER_DOCUMENTOS)) {
       return {
@@ -533,8 +534,9 @@ export async function syncDocumentsWithGoogleDrive() {
     console.log('Starting Google Drive documents sync process...');
     const { googleDriveService } = await import('@/lib/google-drive');
 
-    // Resolve the center folder for this tenant
-    const centerFolderName = resolveCenterFolderName(tenantId);
+    // Resolve the center folder for this tenant. No hay caso cargado acá
+    // (sincroniza TODO el Drive del tenant) — el slug sale de la sesión.
+    const centerFolderName = resolveCenterFolderName(tenantSlug);
 
     // Find or create the documentos-generados root folder
     let docGenFolderId: string;
@@ -998,9 +1000,12 @@ export async function batchGenerateDocuments(input: {
     const projectRoot = process.cwd();
     const assetsBaseDir = path.join(projectRoot, 'templates/insolvency');
 
-    // Resolve center folder name from case data or tenant
+    // Resolve center folder name from case data or tenant. `caseData`
+    // viene de fetchCaseForGeneration (CASE_GENERATION_INCLUDE trae
+    // tenant.slug) — el cuid solo es fallback si por lo que sea faltara.
     const centerFolderName = resolveCenterFolderName(
-      tenantId,
+      tenantSlugDelCaso(caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0]) ??
+        tenantId,
       caseData.centroConciliacionNombre,
     );
 
@@ -1572,7 +1577,7 @@ export async function uploadCaseDocuments(input: {
   }>;
 }) {
   try {
-    const { user, tenantId } = await authenticateUser();
+    const { user, tenantId, tenantSlug } = await authenticateUser();
 
     if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
       return {
@@ -1609,9 +1614,11 @@ export async function uploadCaseDocuments(input: {
       throw new Error('Caso no encontrado');
     }
 
-    // Resolve center folder name from case data or tenant
+    // Resolve center folder name from case data or tenant. Este `caseData`
+    // es un `select` acotado sin la relación `tenant` — el slug sale de la
+    // sesión, no del caso.
     const centerFolderName = resolveCenterFolderName(
-      tenantId,
+      tenantSlug,
       caseData.centroConciliacionNombre,
     );
 

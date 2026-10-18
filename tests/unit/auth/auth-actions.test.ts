@@ -38,6 +38,7 @@ import {
   checkUserPermission,
   forgotPassword,
   resetPassword,
+  authenticateUser,
 } from '@/features/auth/actions';
 import { createAccessToken, createRefreshToken } from '@/lib/auth';
 import { _resetRateLimitStore } from '@/lib/rate-limit';
@@ -437,6 +438,45 @@ describe('Auth Actions — src/features/auth/actions.ts', () => {
       expect(result.valid).toBe(true);
       expect(result.user).toBeDefined();
       expect(result.user!.email).toBe(ADMIN_USER.email);
+    });
+  });
+
+  describe('authenticateUser — tenantId (cuid) vs tenantSlug', () => {
+    /**
+     * REGRESIÓN: `resolveCenterFolderName` (src/lib/centro-conciliacion.ts) y
+     * los mapas por tenant de `branding-assets.ts`/`membrete-centro.ts` están
+     * indexados por el SLUG (`'armonia'` | `'constructores-paz'`), no por el
+     * cuid de `Tenant.id`. `authenticateUser` ya devolvía `tenantId:
+     * tenant.id` (el cuid) — correcto para las queries de Prisma — pero
+     * nunca expuso el slug, así que cualquier llamador que necesitara el
+     * slug no tenía de dónde sacarlo sin re-consultar. Este test fija que
+     * ambos valores salgan, y que sean DISTINTOS cuando el tenant tiene un
+     * cuid real (TENANT.id !== TENANT.slug en el fixture, como en
+     * producción).
+     */
+    it('expone tenantId (cuid) y tenantSlug (slug) por separado, sin que uno pise al otro', async () => {
+      const payload = {
+        id: ADMIN_USER.id,
+        name: ADMIN_USER.name,
+        email: ADMIN_USER.email,
+        roleId: ADMIN_USER.roleId,
+        roleName: 'Administrador',
+        permissions: ['Ver casos', 'Ver todos los casos'],
+        tenantId: TENANT.slug,
+        tenantName: TENANT.name,
+        lastLogin: new Date(),
+      };
+      const token = await createAccessToken(payload);
+      mockCookies.get.mockReturnValue({ value: token });
+
+      mockPrisma.tenant.findUnique.mockResolvedValue(TENANT);
+      mockPrisma.user.findUnique.mockResolvedValue(ADMIN_USER);
+
+      const result = await authenticateUser();
+
+      expect(result.tenantId).toBe(TENANT.id);
+      expect(result.tenantSlug).toBe(TENANT.slug);
+      expect(result.tenantId).not.toBe(result.tenantSlug);
     });
   });
 
