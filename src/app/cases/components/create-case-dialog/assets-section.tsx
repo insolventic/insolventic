@@ -29,13 +29,7 @@ import {
   assetFieldsToClear,
   blankValueFor,
 } from '@/features/case/asset-type-fields';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { AssetTypeSelector } from '../asset-type-selector';
 
 /**
  * AssetItem - Componente memoizado para cada bien
@@ -62,6 +56,10 @@ const AssetItem = memo(function AssetItem({
   const assetType = useWatch({
     control: form.control,
     name: `assets.${index}.type`,
+  });
+  const propertyType = useWatch({
+    control: form.control,
+    name: `assets.${index}.propertyType`,
   });
 
   // Al cambiar el tipo, los bloques específicos se desmontan pero
@@ -97,42 +95,17 @@ const AssetItem = memo(function AssetItem({
         </Button>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <FormField
-          control={form.control}
-          name={`assets.${index}.type`}
-          render={({ field: formField }) => (
-            <FormItem>
-              <FormLabel>
-                Tipo de Bien <span className="text-red-500">*</span>
-              </FormLabel>
-              <Select
-                onValueChange={formField.onChange}
-                value={formField.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione tipo" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="INMUEBLE">Inmueble</SelectItem>
-                  <SelectItem value="VEHICULO">Vehículo</SelectItem>
-                  <SelectItem value="EQUIPO">
-                    Equipo Eléctrico/Electrónico
-                  </SelectItem>
-                  <SelectItem value="MUEBLE">Mueble</SelectItem>
-                  <SelectItem value="JOYA">Joya</SelectItem>
-                  <SelectItem value="DINERO">Dinero/Efectivo</SelectItem>
-                  <SelectItem value="ACCION">Acciones</SelectItem>
-                  <SelectItem value="CUENTA_COBRAR">
-                    Cuenta por Cobrar
-                  </SelectItem>
-                  <SelectItem value="OTRO">Otro</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+        <AssetTypeSelector
+          type={assetType ?? ''}
+          propertyType={propertyType ?? ''}
+          onTypeChange={(value) =>
+            form.setValue(`assets.${index}.type`, value, {
+              shouldValidate: true,
+            })
+          }
+          onPropertyTypeChange={(value) =>
+            form.setValue(`assets.${index}.propertyType`, value)
+          }
         />
         <FormField
           control={form.control}
@@ -175,21 +148,6 @@ const AssetItem = memo(function AssetItem({
             Información del Inmueble
           </h4>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name={`assets.${index}.propertyType`}
-              render={({ field: formField }) => (
-                <FormItem>
-                  <FormLabel>Tipo de Inmueble</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...formField}
-                      placeholder="Casa, Apartamento, Lote"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name={`assets.${index}.address`}
