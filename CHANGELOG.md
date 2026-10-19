@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Totales de bienes de la "Solicitud de Insolvencia" (`TOTAL_INMUEBLES`, `TOTAL_MUEBLES`, `TOTAL_BIENES` y los `MUEBLE_*_VALOR`)**: `mapAssets` sumaba los `Prisma.Decimal` de los activos con `+`, y `Decimal.valueOf()` devuelve un string, así que concatenaba en vez de sumar (un inmueble de $100M sin muebles salía como $1.000M; con más activos, cifras de 15 dígitos). Afectaba a todo documento generado por la ruta automática (creación de caso, generación inicial), que pasa la fila de Prisma sin convertir. Ahora cada sumando pasa por `Number()`. Test de regresión con `Prisma.Decimal` real y comparación de la salida completa del mapper entre `Decimal` y `number`.
+- Los totales de ingresos y deudas del formulario de creación de casos podían mostrar "NaN" (un error en pantalla, no un número) cuando el monto se escribía con coma decimal en vez de punto. (#144)
+- Se corrige un error que impedía generar los documentos de un caso, en los dos centros. (#146)
 
 ### Changed
 
@@ -50,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Se agrega una referencia legal genérica (Ley 2220 de 2022) en 3 plantillas de conciliación que no citaban ninguna norma: Aclaración de Acta, Auto de Desistimiento e Informe Conciliador. (#129)
 - **Separador de miles en los 27 campos de dinero del formulario** (se escribe "1.500.000" en vez de "1500000"), y se corrige un error de cálculo relacionado que ese mismo cambio habría hecho más visible. (#136)
 - **Formulario de conciliación ampliado**: datos de la audiencia virtual por Zoom, las fechas reales de solicitud, citación y desistimiento (antes el sistema asumía, por error, que esos hechos habían ocurrido "hoy" si no se informaban), y los datos de la Aclaración de Acta (qué se corrige y los valores correcto/incorrecto). (#138, #139)
+- El campo de cuantía de la audiencia de conciliación y el monto mensual del acuerdo de apoyo ahora aceptan el formato colombiano de dinero (1.234,56) como el resto de los campos del sistema; antes un monto no numérico se guardaba en el documento como "$0" sin ningún aviso. (#145)
+- El apoderado (representante legal) del deudor ahora se registra en un solo lugar del formulario; se quita un campo duplicado que ya no hacía falta. (#147)
+- El selector para registrar un bien del deudor ahora se elige en dos pasos (primero la categoría, después el tipo exacto), para evitar confusiones. De paso se corrige que un bien de tipo "Equipo" guardado con la versión anterior del formulario podía desaparecer de la tabla de bienes de la Solicitud de Insolvencia, aunque sí se sumaba al total. (#148)
+- Se corrige que la bandeja de notificaciones podía quedar vacía, con un error, cuando llegaba el aviso de que los documentos de un caso terminaron de generarse (o fallaron). (#149)
 
 ### Operación
 
