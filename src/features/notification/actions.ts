@@ -8,6 +8,7 @@ import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { emailService } from '@/lib/email';
+import { logger } from '@/lib/logger';
 import {
   getNotificationsInputSchema,
   getNotificationsOutputSchema,
@@ -15,6 +16,7 @@ import {
   deleteNotificationOutputSchema,
   getNotificationStatsInputSchema,
   getNotificationStatsOutputSchema,
+  notificationTypeSchema,
   NOTIFICATION_TYPES,
   type NotificationType,
   type CrudNotificationType,
@@ -71,10 +73,20 @@ export async function getNotifications(
       prisma.notification.count({ where }),
     ]);
 
-    const notifications = notificationsRaw.map((notification) => ({
-      ...notification,
-      type: notification.type as NotificationType,
-    }));
+    const notifications = notificationsRaw.map((notification) => {
+      const parsedType = notificationTypeSchema.safeParse(notification.type);
+      if (!parsedType.success) {
+        logger.warn('Notificación con type desconocido — se muestra como genérica', {
+          action: 'get-notifications',
+          notificationId: notification.id,
+          rawType: notification.type,
+        });
+      }
+      return {
+        ...notification,
+        type: parsedType.success ? parsedType.data : ('system' as NotificationType),
+      };
+    });
 
     const result = getNotificationsOutputSchema.parse({
       notifications,

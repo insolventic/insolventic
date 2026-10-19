@@ -10,6 +10,15 @@ import { z } from 'zod';
  * cron-driven scanners in `src/features/notification/alerts.ts` — they are not
  * user-triggered, so they live side-by-side with the CRUD types but go through
  * their own pipeline.
+ *
+ * `document_generation` / `document_generation_failed` are emitted from
+ * `src/features/document/generation-job.ts` al terminar un job de generación
+ * en background — tampoco pasan por `createNotificationForAction`.
+ *
+ * `system` no la emite ningún flujo de negocio: es el valor genérico al que
+ * `getNotifications` degrada una fila cuyo `type` en BD no reconoce (ver
+ * ese archivo), para que una notificación con un type nuevo o corrupto no
+ * tumbe toda la bandeja.
  */
 export const NOTIFICATION_TYPES = [
   'case_created',
@@ -29,6 +38,9 @@ export const NOTIFICATION_TYPES = [
   'role_deleted',
   'hearing_upcoming',
   'payment_overdue',
+  'document_generation',
+  'document_generation_failed',
+  'system',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -36,16 +48,23 @@ export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 export const notificationTypeSchema = z.enum(NOTIFICATION_TYPES);
 
 /**
- * CRUD subset of notification types — emitted from
- * {@link createNotificationForAction}. Proactive alert types
- * (`hearing_upcoming`, `payment_overdue`) are excluded because they flow
- * through `alerts.ts` instead and have no `actionMap` entry.
+ * Non-CRUD notification types — no pasan por {@link createNotificationForAction}
+ * ni tienen entrada en su `actionMap`, cada una fluye por su propio emisor
+ * (alertas proactivas, el job de generación, o el fallback genérico de lectura).
  */
+const NON_CRUD_NOTIFICATION_TYPES = [
+  'hearing_upcoming',
+  'payment_overdue',
+  'document_generation',
+  'document_generation_failed',
+  'system',
+] as const;
+
 export const CRUD_NOTIFICATION_TYPES = NOTIFICATION_TYPES.filter(
-  (t) => t !== 'hearing_upcoming' && t !== 'payment_overdue',
+  (t) => !(NON_CRUD_NOTIFICATION_TYPES as readonly string[]).includes(t),
 ) as readonly Exclude<
   NotificationType,
-  'hearing_upcoming' | 'payment_overdue'
+  (typeof NON_CRUD_NOTIFICATION_TYPES)[number]
 >[];
 
 export type CrudNotificationType = (typeof CRUD_NOTIFICATION_TYPES)[number];
