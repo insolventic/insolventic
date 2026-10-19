@@ -9,6 +9,8 @@ import {
   Shield,
   Calendar,
   AlertTriangle,
+  FileCheck,
+  FileX,
 } from 'lucide-react';
 import { NotificationWithCase } from '@/features/notification/schemas';
 
@@ -44,6 +46,10 @@ const getNotificationTypeIcon = (type: string) => {
     // Proactive alerts
     hearing_upcoming: Calendar,
     payment_overdue: AlertTriangle,
+
+    // Generación de documentos
+    document_generation: FileCheck,
+    document_generation_failed: FileX,
   };
 
   return iconMap[type] || Bell;
@@ -55,10 +61,15 @@ const getNotificationTypeColor = (type: string) => {
       bg: 'bg-amber-100 dark:bg-amber-900/30',
       icon: 'text-amber-600 dark:text-amber-400',
     };
-  } else if (type === 'payment_overdue') {
+  } else if (type === 'payment_overdue' || type === 'document_generation_failed') {
     return {
       bg: 'bg-red-100 dark:bg-red-900/30',
       icon: 'text-red-600 dark:text-red-400',
+    };
+  } else if (type === 'document_generation') {
+    return {
+      bg: 'bg-green-100 dark:bg-green-900/30',
+      icon: 'text-green-600 dark:text-green-400',
     };
   } else if (type.includes('_created')) {
     return {
