@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { normalizeCausas } from '@/features/case/causas-insolvencia';
+import { normalizeAssetType } from '@/features/case/asset-category-types';
 
 import { updateCase, getCaseById } from '@/features/case/actions';
 import { uploadCaseDocuments } from '@/features/document/actions';
@@ -216,7 +217,15 @@ export function EditCaseDialog({
               assets: (fullCase.assets ?? []).map((asset) => ({
                 id: asset.id,
                 name: asset.name,
-                type: asset.type,
+                // Bienes de prueba locales guardados con los valores viejos
+                // del selector de un solo nivel (EQUIPO, MUEBLE, JOYA,
+                // DINERO, ACCION, CUENTA_COBRAR) se normalizan SOLO acá, al
+                // cargar el formulario de edición — para que el selector de
+                // dos niveles muestre la categoría/tipo correctos. Sin
+                // migración de datos: no se escribe nada en la base hasta
+                // que el operador guarde el caso, y en ese momento guarda
+                // ya el valor normalizado.
+                type: normalizeAssetType(asset.type),
                 value: asset.value.toString(),
                 description: '',
                 location: '',
