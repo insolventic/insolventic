@@ -135,6 +135,13 @@ export function mapAssets(assets: CaseWithRelations['assets']): PlaceholderMap {
     'electronico',
     'electronic',
     'electrodomestico',
+    // 'EQUIPO' era el valor del selector de un solo nivel para "Equipo
+    // Eléctrico/Electrónico" (ahora normalizado a 'ELECTRONICO' en el
+    // formulario, ver asset-category-types.ts) — sin esto, un bien ya
+    // guardado con ese valor no calzaba con ninguna sub-cadena de arriba y
+    // desaparecía de esta fila (seguía contando en TOTAL_MUEBLES, pero
+    // nunca se listaba).
+    'equipo',
   ]);
   const allFurniture = filterAssetsByType(['mueble', 'enseres', 'furniture']);
   const allVehicles = filterAssetsByType([

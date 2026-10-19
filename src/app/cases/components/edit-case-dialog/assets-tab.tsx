@@ -25,19 +25,13 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MoneyInput } from '@/components/ui/money-input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { AssetTypeSelector } from '../asset-type-selector';
 
 interface AssetsTabProps {
   caseId: string;
@@ -159,6 +153,7 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
 
   const assets = form.watch('assets') ?? [];
   const assetType = newAssetForm.watch('type');
+  const assetPropertyType = newAssetForm.watch('propertyType');
 
   // Al cambiar el tipo, los bloques específicos se desmontan pero
   // react-hook-form conserva sus valores (`shouldUnregister: false`), así que lo
@@ -289,41 +284,23 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="type">
-                  Tipo de Bien <span className="text-red-500">*</span>
-                </Label>
-                <Select
-                  value={assetType}
-                  onValueChange={(value) =>
-                    newAssetForm.setValue('type', value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccione tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="INMUEBLE">Inmueble</SelectItem>
-                    <SelectItem value="VEHICULO">Vehículo</SelectItem>
-                    <SelectItem value="EQUIPO">
-                      Equipo Eléctrico/Electrónico
-                    </SelectItem>
-                    <SelectItem value="MUEBLE">Mueble</SelectItem>
-                    <SelectItem value="JOYA">Joya</SelectItem>
-                    <SelectItem value="DINERO">Dinero/Efectivo</SelectItem>
-                    <SelectItem value="ACCION">Acción/Título</SelectItem>
-                    <SelectItem value="CUENTA_COBRAR">
-                      Cuenta por Cobrar
-                    </SelectItem>
-                    <SelectItem value="OTRO">Otro</SelectItem>
-                  </SelectContent>
-                </Select>
-                {newAssetForm.formState.errors.type && (
-                  <p className="text-destructive text-sm">
-                    {newAssetForm.formState.errors.type.message}
-                  </p>
-                )}
-              </div>
+              <AssetTypeSelector
+                type={assetType ?? ''}
+                propertyType={assetPropertyType ?? ''}
+                onTypeChange={(value) =>
+                  newAssetForm.setValue('type', value, {
+                    shouldValidate: true,
+                  })
+                }
+                onPropertyTypeChange={(value) =>
+                  newAssetForm.setValue('propertyType', value)
+                }
+              />
+              {newAssetForm.formState.errors.type && (
+                <p className="text-destructive text-sm">
+                  {newAssetForm.formState.errors.type.message}
+                </p>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="name">
@@ -371,15 +348,6 @@ export function AssetsTab({ caseId }: Readonly<AssetsTabProps>) {
                   Información del Inmueble
                 </h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="propertyType">Tipo de Inmueble</Label>
-                    <Input
-                      id="propertyType"
-                      {...newAssetForm.register('propertyType')}
-                      placeholder="Casa, Apartamento, Lote"
-                    />
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="address">Dirección</Label>
                     <Input
