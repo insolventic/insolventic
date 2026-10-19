@@ -1848,7 +1848,7 @@ export async function addAssetToCase(
       licensePlate: asset.licensePlate,
       transitAuthority: asset.transitAuthority,
       guaranteeInFavorOf: asset.guaranteeInFavorOf,
-      guaranteeAmount: asset.guaranteeAmount?.toString(),
+      guaranteeAmount: asset.guaranteeAmount?.toString() ?? null,
       material: asset.material,
     });
 
@@ -1935,7 +1935,7 @@ export async function removeAssetFromCase(
       licensePlate: deletedAsset.licensePlate,
       transitAuthority: deletedAsset.transitAuthority,
       guaranteeInFavorOf: deletedAsset.guaranteeInFavorOf,
-      guaranteeAmount: deletedAsset.guaranteeAmount?.toString(),
+      guaranteeAmount: deletedAsset.guaranteeAmount?.toString() ?? null,
       material: deletedAsset.material,
     });
 
