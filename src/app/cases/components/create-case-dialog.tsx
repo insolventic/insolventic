@@ -1281,6 +1281,8 @@ export function CreateCaseDialog({
                     applicantScope={form.watch('applicantScope') ?? []}
                     assets={form.watch('assets') ?? []}
                     apoderados={form.watch('apoderados') ?? []}
+                    apoderadoNombreCompleto={form.watch('apoderadoNombreCompleto') ?? undefined}
+                    existePoderOtorgado={form.watch('existePoderOtorgado') ?? undefined}
                     hasAttorney={
                       !!form.watch('apoderadoNombreCompleto') ||
                       !!form

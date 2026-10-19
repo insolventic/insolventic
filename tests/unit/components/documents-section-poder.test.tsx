@@ -131,6 +131,57 @@ describe('DocumentsSection — el documento "poder"', () => {
     ).toBeInTheDocument();
   });
 
+  // REGRESIÓN encontrada en la verificación manual (TAREA 6): "Llenar datos
+  // de prueba" rellena el bloque LEGADO "Apoderado Principal" (apoderados[]
+  // vacío, apoderadoNombreCompleto + existePoderOtorgado a nivel de caso),
+  // no la lista nueva. El switch "poder otorgado" se veía marcado en la
+  // Sección XI pero la Página 7 seguía mostrando "el poder solo se exige
+  // cuando se marca..." — el prop `apoderados` (la lista) llegaba vacío al
+  // componente y los dos campos legados nunca se le pasaban.
+  it('bloque legado "Apoderado Principal" (sin apoderados[]) con poder otorgado: exige los tres', () => {
+    render(
+      <DocumentsSection
+        hasAttorney
+        apoderadoNombreCompleto="Dr. María Fernanda Torres Ruiz"
+        existePoderOtorgado
+      />,
+    );
+
+    expect(
+      screen.getByText(/Cédula de ciudadanía del apoderado/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Tarjeta profesional del apoderado/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Poder \(notariado o prueba de envío desde correo del deudor\)/i,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/El caso tiene apoderado con poder otorgado/i),
+    ).toBeInTheDocument();
+  });
+
+  it('bloque legado SIN poder otorgado: cédula y tarjeta, no el poder', () => {
+    render(
+      <DocumentsSection
+        hasAttorney
+        apoderadoNombreCompleto="Dr. María Fernanda Torres Ruiz"
+        existePoderOtorgado={false}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Cédula de ciudadanía del apoderado/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        /^Poder \(notariado o prueba de envío desde correo del deudor\)$/i,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   it('sin apoderado: no exige ninguno de los tres documentos del apoderado', () => {
     render(<DocumentsSection />);
 

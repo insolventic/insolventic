@@ -53,6 +53,14 @@ interface DocumentsSectionProps {
     nombreCompleto?: string;
     existePoderOtorgado?: boolean;
   }>;
+  /**
+   * Espejo legado de UN apoderado (el bloque "Apoderado Principal" que
+   * ApoderadoSection sigue mostrando cuando `apoderados[]` está vacío).
+   * `casePoderOtorgado` también lo reconoce — sin esto, marcar "poder
+   * otorgado" en ese bloque nunca llegaba a esta pantalla.
+   */
+  apoderadoNombreCompleto?: string;
+  existePoderOtorgado?: boolean;
 }
 
 type DocConfig = { key: string; label: string; multiple?: boolean };
@@ -70,6 +78,8 @@ export function DocumentsSection({
   assets = [],
   hasAttorney = false,
   apoderados = [],
+  apoderadoNombreCompleto,
+  existePoderOtorgado,
 }: Readonly<DocumentsSectionProps>) {
   const caseDataPartial: Partial<CreateCaseFormInput> & {
     hasAttorney?: boolean;
@@ -78,6 +88,8 @@ export function DocumentsSection({
     assets: assets as CreateCaseFormInput['assets'],
     hasAttorney,
     apoderados: apoderados as CreateCaseFormInput['apoderados'],
+    apoderadoNombreCompleto,
+    existePoderOtorgado,
   };
 
   const noAssets = assets.length === 0;
@@ -107,7 +119,14 @@ export function DocumentsSection({
   const requiredIds = useMemo(
     () => getRequiredDocuments(caseDataPartial),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [applicantScopeKey, assetTypesKey, hasAttorney, apoderadosKey],
+    [
+      applicantScopeKey,
+      assetTypesKey,
+      hasAttorney,
+      apoderadosKey,
+      apoderadoNombreCompleto,
+      existePoderOtorgado,
+    ],
   );
 
   const mandatoryDocs: DocConfig[] = useMemo(() => {
