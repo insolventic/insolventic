@@ -27,6 +27,7 @@ import {
   CONDITIONAL_DOCUMENTS,
   OPTIONAL_DOCUMENTS,
   getRequiredDocuments,
+  casePoderOtorgado,
 } from '@/features/case/validation-rules';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
 
@@ -42,6 +43,24 @@ interface DocumentsSectionProps {
   applicantScope?: string[];
   assets?: Array<{ type?: string; name?: string }>;
   hasAttorney?: boolean;
+  /**
+   * Lista de la Sección XI. Hace falta además de `hasAttorney`: decide si el
+   * documento "poder" es obligatorio (`casePoderOtorgado`, dentro de
+   * `getRequiredDocuments`) — un apoderado puede estar identificado sin que
+   * el poder ya esté otorgado, así que `hasAttorney` solo no alcanza.
+   */
+  apoderados?: Array<{
+    nombreCompleto?: string;
+    existePoderOtorgado?: boolean;
+  }>;
+  /**
+   * Espejo legado de UN apoderado (el bloque "Apoderado Principal" que
+   * ApoderadoSection sigue mostrando cuando `apoderados[]` está vacío).
+   * `casePoderOtorgado` también lo reconoce — sin esto, marcar "poder
+   * otorgado" en ese bloque nunca llegaba a esta pantalla.
+   */
+  apoderadoNombreCompleto?: string;
+  existePoderOtorgado?: boolean;
 }
 
 type DocConfig = { key: string; label: string; multiple?: boolean };
@@ -58,6 +77,9 @@ export function DocumentsSection({
   applicantScope = [],
   assets = [],
   hasAttorney = false,
+  apoderados = [],
+  apoderadoNombreCompleto,
+  existePoderOtorgado,
 }: Readonly<DocumentsSectionProps>) {
   const caseDataPartial: Partial<CreateCaseFormInput> & {
     hasAttorney?: boolean;
@@ -65,6 +87,9 @@ export function DocumentsSection({
     applicantScope,
     assets: assets as CreateCaseFormInput['assets'],
     hasAttorney,
+    apoderados: apoderados as CreateCaseFormInput['apoderados'],
+    apoderadoNombreCompleto,
+    existePoderOtorgado,
   };
 
   const noAssets = assets.length === 0;
@@ -81,10 +106,27 @@ export function DocumentsSection({
     [assets],
   );
 
+  const applicantScopeKey = JSON.stringify(applicantScope);
+  const assetTypesKey = JSON.stringify(assets.map((a) => a.type));
+  // Lo que decide "poder" en getRequiredDocuments: el nombre (si hay
+  // apoderado) y existePoderOtorgado de cada uno — no el objeto completo,
+  // que cambiaría de referencia en cada watch() sin que nada de esto haya
+  // cambiado de verdad.
+  const apoderadosKey = JSON.stringify(
+    apoderados.map((a) => [a.nombreCompleto, a.existePoderOtorgado]),
+  );
+
   const requiredIds = useMemo(
     () => getRequiredDocuments(caseDataPartial),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(applicantScope), JSON.stringify(assets.map((a) => a.type))],
+    [
+      applicantScopeKey,
+      assetTypesKey,
+      hasAttorney,
+      apoderadosKey,
+      apoderadoNombreCompleto,
+      existePoderOtorgado,
+    ],
   );
 
   const mandatoryDocs: DocConfig[] = useMemo(() => {
@@ -274,8 +316,9 @@ export function DocumentsSection({
           <Alert className="border-indigo-200 bg-indigo-50 dark:border-indigo-800 dark:bg-indigo-950">
             <FileWarning className="h-4 w-4 text-indigo-600" />
             <AlertDescription className="text-sm text-indigo-800 dark:text-indigo-200">
-              El caso tiene apoderado. Se requieren el poder otorgado, la cédula
-              del apoderado y su tarjeta profesional.
+              {casePoderOtorgado(caseDataPartial)
+                ? 'El caso tiene apoderado con poder otorgado. Se requieren el poder, la cédula del apoderado y su tarjeta profesional.'
+                : 'El caso tiene apoderado. Se requieren la cédula del apoderado y su tarjeta profesional. El poder solo se exige cuando se marca "poder otorgado" en la Sección XI.'}
             </AlertDescription>
           </Alert>
         )}

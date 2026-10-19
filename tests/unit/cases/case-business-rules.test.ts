@@ -232,6 +232,46 @@ describe('validateCaseBusinessRules — guard puro (C-2)', () => {
       expect(result.isValid).toBe(true);
     });
 
+    // Apoderado único: el input de texto libre de la Página 1 (`attorney`)
+    // se quita de la UI, pero `caseHasAttorney` sigue reconociendo un
+    // apoderado declarado SOLO en la Sección XI (`apoderados[]`) — el único
+    // lugar donde se puede cargar desde ahora.
+    it('acepta la misma deuda con apoderado SOLO en la Sección XI (sin attorney)', () => {
+      const overMinimaCuantia = String(40 * 1_423_500 + 1_000_000);
+      const result = validateCaseBusinessRules(
+        {
+          ...validInsolvency,
+          attorney: undefined,
+          apoderados: [
+            {
+              nombreCompleto: 'Dra. Pérez',
+              existePoderOtorgado: false,
+            },
+          ],
+          debts: [aDebt(overMinimaCuantia)],
+        },
+        { mode: 'create', year: 2025 },
+      );
+      expect(result.isValid).toBe(true);
+      expect(result.issues).toHaveLength(0);
+    });
+
+    // Casos viejos (anteriores a la Sección XI) que solo tienen el texto
+    // libre `attorney` siguen pasando — no se rompe nada ya guardado.
+    it('un caso viejo con SOLO attorney (sin apoderados[]) sigue pasando', () => {
+      const overMinimaCuantia = String(40 * 1_423_500 + 1_000_000);
+      const result = validateCaseBusinessRules(
+        {
+          ...validInsolvency,
+          attorney: 'Dr. Legado',
+          apoderados: undefined,
+          debts: [aDebt(overMinimaCuantia)],
+        },
+        { mode: 'create', year: 2025 },
+      );
+      expect(result.isValid).toBe(true);
+    });
+
     it('rechaza período de gracia mayor a 24 meses', () => {
       const result = validateCaseBusinessRules(
         {

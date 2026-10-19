@@ -135,24 +135,6 @@ export function CaseDetailsSection({
               )}
             />
           )}
-
-          <FormField
-            control={form.control}
-            name="attorney"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Apoderado</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Nombre del apoderado (si aplica)"
-                    {...field}
-                    value={field.value || ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
       </CardContent>
     </Card>

@@ -150,53 +150,87 @@ describe('Document Requirements — validation-rules.ts', () => {
    * `DocumentsSection`) pero el envío pasaba igual.
    *
    * Por eso estos casos van sobre las claves que el formulario manda de verdad.
+   *
+   * Apoderado único (inventario A): desde ahí, "hay apoderado" (cédula +
+   * tarjeta profesional) y "el poder ya está otorgado" (documento "poder")
+   * son dos hechos distintos — `casePoderOtorgado`, no `caseHasAttorney`,
+   * decide el tercero. El texto libre `attorney` de la Página 1 y el flag
+   * explícito `hasAttorney` nunca tuvieron un campo de poder propio, así que
+   * NUNCA exigen el documento "poder" por sí solos — solo
+   * `apoderados[].existePoderOtorgado` (o su espejo legado) lo hace.
    */
   describe('getRequiredDocuments — apoderado', () => {
-    const APODERADO_DOCS = [
-      'poder',
-      'cedula_apoderado',
-      'tarjeta_profesional_apoderado',
-    ];
+    const APODERADO_ID_DOCS = ['cedula_apoderado', 'tarjeta_profesional_apoderado'];
+    const APODERADO_DOCS = ['poder', ...APODERADO_ID_DOCS];
 
-    it('derives the attorney from apoderados[] (what the wizard actually sends)', () => {
+    it('derives the attorney from apoderados[] — cédula y tarjeta sin poder otorgado', () => {
       const required = getRequiredDocuments({
         applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
         apoderados: [{ nombreCompleto: 'Ana Torres' }],
+      } as Parameters<typeof getRequiredDocuments>[0]);
+
+      for (const id of APODERADO_ID_DOCS) expect(required).toContain(id);
+      expect(required).not.toContain('poder');
+      expect(required).toHaveLength(5);
+    });
+
+    it('apoderados[] con existePoderOtorgado: true exige los tres', () => {
+      const required = getRequiredDocuments({
+        applicantScope: ['PERSONA_NATURAL_NO_COMERCIANTE'],
+        apoderados: [
+          { nombreCompleto: 'Ana Torres', existePoderOtorgado: true },
+        ],
       } as Parameters<typeof getRequiredDocuments>[0]);
 
       for (const id of APODERADO_DOCS) expect(required).toContain(id);
       expect(required).toHaveLength(6);
     });
 
-    it('derives the attorney from the legacy apoderadoNombreCompleto field', () => {
+    it('derives the attorney from the legacy apoderadoNombreCompleto field (sin poder otorgado)', () => {
       const required = getRequiredDocuments({
         apoderadoNombreCompleto: 'Ana Torres',
       } as Parameters<typeof getRequiredDocuments>[0]);
 
+      for (const id of APODERADO_ID_DOCS) expect(required).toContain(id);
+      expect(required).not.toContain('poder');
+    });
+
+    it('espejo legado con existePoderOtorgado: true exige los tres', () => {
+      const required = getRequiredDocuments({
+        apoderadoNombreCompleto: 'Ana Torres',
+        existePoderOtorgado: true,
+      } as Parameters<typeof getRequiredDocuments>[0]);
+
       for (const id of APODERADO_DOCS) expect(required).toContain(id);
     });
 
-    it('derives the attorney from the free-text attorney field of page 1', () => {
+    it('the free-text attorney field of page 1 requires cédula/tarjeta, NUNCA el poder', () => {
       const required = getRequiredDocuments({
         attorney: 'Dr. Juan Pérez',
       } as Parameters<typeof getRequiredDocuments>[0]);
 
-      for (const id of APODERADO_DOCS) expect(required).toContain(id);
+      for (const id of APODERADO_ID_DOCS) expect(required).toContain(id);
+      // El texto libre no tiene un campo de poder propio — nunca lo exige,
+      // sin importar qué tan arreglado esté. A diferencia del resto de las
+      // fuentes, no hay forma de que `attorney` haga que este caso pida
+      // "poder".
+      expect(required).not.toContain('poder');
     });
 
-    it('still honours an explicit hasAttorney flag (how the UI asks)', () => {
+    it('an explicit hasAttorney flag (how the UI asks) requires cédula/tarjeta, NUNCA el poder por sí solo', () => {
       const required = getRequiredDocuments({
         hasAttorney: true,
       } as Parameters<typeof getRequiredDocuments>[0]);
 
-      for (const id of APODERADO_DOCS) expect(required).toContain(id);
+      for (const id of APODERADO_ID_DOCS) expect(required).toContain(id);
+      expect(required).not.toContain('poder');
     });
 
     it('ignores empty or whitespace-only attorney names', () => {
       const required = getRequiredDocuments({
         attorney: '   ',
         apoderadoNombreCompleto: '',
-        apoderados: [{ nombreCompleto: '  ' }],
+        apoderados: [{ nombreCompleto: '  ', existePoderOtorgado: true }],
       } as Parameters<typeof getRequiredDocuments>[0]);
 
       for (const id of APODERADO_DOCS) expect(required).not.toContain(id);
@@ -211,11 +245,13 @@ describe('Document Requirements — validation-rules.ts', () => {
       for (const id of APODERADO_DOCS) expect(required).not.toContain(id);
     });
 
-    it('validateDocumentsComplete names the three as missing', () => {
+    it('validateDocumentsComplete names the three as missing (apoderado con poder otorgado)', () => {
       const result = validateDocumentsComplete(
         ['cedula', 'redam', 'cert_ingresos'],
         {
-          apoderados: [{ nombreCompleto: 'Ana Torres' }],
+          apoderados: [
+            { nombreCompleto: 'Ana Torres', existePoderOtorgado: true },
+          ],
         } as Parameters<typeof validateDocumentsComplete>[1],
       );
 
@@ -229,11 +265,27 @@ describe('Document Requirements — validation-rules.ts', () => {
       }
     });
 
+    it('validateDocumentsComplete sin poder otorgado: solo cédula y tarjeta faltan', () => {
+      const result = validateDocumentsComplete(
+        ['cedula', 'redam', 'cert_ingresos'],
+        {
+          apoderados: [{ nombreCompleto: 'Ana Torres' }],
+        } as Parameters<typeof validateDocumentsComplete>[1],
+      );
+
+      expect(result.isValid).toBe(false);
+      expect(result.missingDocuments.map((d) => d.id).sort()).toEqual(
+        [...APODERADO_ID_DOCS].sort(),
+      );
+    });
+
     it('passes once the three apoderado documents are uploaded', () => {
       const result = validateDocumentsComplete(
         ['cedula', 'redam', 'cert_ingresos', ...APODERADO_DOCS],
         {
-          apoderados: [{ nombreCompleto: 'Ana Torres' }],
+          apoderados: [
+            { nombreCompleto: 'Ana Torres', existePoderOtorgado: true },
+          ],
         } as Parameters<typeof validateDocumentsComplete>[1],
       );
 

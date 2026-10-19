@@ -13,6 +13,12 @@ interface LegalProcessSectionProps {
 export function LegalProcessSection({
   caseData,
 }: Readonly<LegalProcessSectionProps>) {
+  // Apoderado único (Sección XI): el primero de la lista es la fuente;
+  // `attorney` (texto libre de la Página 1, ya sin input en el wizard)
+  // queda como respaldo solo para expedientes anteriores a la Sección XI.
+  const nombreApoderado =
+    caseData?.apoderados?.[0]?.nombreCompleto || caseData?.attorney || 'N/A';
+
   return (
     <>
       <Card>
@@ -55,7 +61,7 @@ export function LegalProcessSection({
               <p className="text-muted-foreground text-sm font-medium">
                 Abogado
               </p>
-              <p className="text-sm">{caseData?.attorney || 'N/A'}</p>
+              <p className="text-sm">{nombreApoderado}</p>
             </div>
           </div>
           <Separator />
