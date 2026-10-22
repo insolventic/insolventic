@@ -1,4 +1,4 @@
 # Los hooks de husky los ejecuta el sh de Git: con CRLF (core.autocrlf=true en
 # Windows) cada comando fallaria con "\r: command not found". Fin de linea LF
 # siempre, en cualquier plataforma.
-.husky/pre-commit text eol=lf
+.husky/* text eol=lf
