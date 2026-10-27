@@ -117,7 +117,13 @@ export function DebtorSection({
                 </SelectTrigger>
                 <SelectContent>{renderSelectContent()}</SelectContent>
               </Select>
+              {/* type="button": esta sección vive dentro del <form> del caso
+                  (alta y edición). Sin él, el botón es submit implícito: abría
+                  el diálogo del deudor y a la vez enviaba el formulario del
+                  caso, que pintaba errores en campos que nadie había tocado
+                  (y en edición, guardaba). */}
               <Button
+                type="button"
                 variant="outline"
                 size="icon"
                 onClick={onCreateDebtorClick}
