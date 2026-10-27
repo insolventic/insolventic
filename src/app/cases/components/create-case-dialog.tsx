@@ -299,7 +299,14 @@ export function CreateCaseDialog({
       form.reset({
         debtorId: '',
         type: initialType,
-        totalDebt: initialType === 'CONCILIATION' ? '0' : '',
+        // Igual que en defaultValues: ni conciliación ni apoyo tienen pestaña
+        // de acreedores, así que la deuda total no se puede calcular. Con ''
+        // el acuerdo de apoyo exigía "La deuda total es requerida" sin campo
+        // donde llenarla.
+        totalDebt:
+          initialType === 'CONCILIATION' || initialType === 'SUPPORT_AGREEMENT'
+            ? '0'
+            : '',
         creditors: 1,
         operatorId: '',
         causes: [],

@@ -15,6 +15,8 @@
  *   - "Siguiente" en la penúltima pestaña enviaba el formulario (React
  *     reutilizaba el <button> y le cambiaba el type a submit en mitad del
  *     clic): toast, ícono rojo y vuelta a la pestaña 1.
+ *   - El acuerdo de apoyo exigía "La deuda total es requerida" sin campo donde
+ *     llenarla (el reset al abrir dejaba totalDebt en '').
  *
  * El botón "Crear nuevo deudor" (submit implícito) tiene su propio test en
  * `debtor-section-crear-deudor.test.tsx`; acá se comprueba además desde el
@@ -250,5 +252,22 @@ describe('CreateCaseDialog — "Siguiente" no envía el formulario', () => {
     const crear = screen.getByRole('button', { name: 'Crear Caso' });
     expect(crear).not.toBe(siguiente);
     expect(siguiente.isConnected).toBe(false);
+  });
+});
+
+describe('CreateCaseDialog — acuerdo de apoyo', () => {
+  it('no exige una deuda total que no tiene dónde llenarse', async () => {
+    renderWizard('SUPPORT_AGREEMENT');
+    await esperarCarga();
+
+    while (screen.queryByRole('button', { name: 'Siguiente' })) {
+      await pulsarSiguiente();
+    }
+    await pulsarCrearCaso();
+
+    await waitFor(() => expect(toastsDeCamposIncompletos()).toHaveLength(1));
+    const [, { description }] = toastsDeCamposIncompletos()[0];
+    expect(description).toContain('Debe seleccionar un deudor');
+    expect(description).not.toContain('La deuda total es requerida');
   });
 });
