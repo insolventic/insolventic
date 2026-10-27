@@ -105,7 +105,6 @@ const SUPPORT_AGREEMENT_TABS = [
   'apoyo-details',
 ] as const;
 
-
 const TAB_ORDER = INSOLVENCY_TABS; // backward compat for field mapping
 
 // Mapping of field prefixes to their corresponding tab
@@ -478,8 +477,7 @@ export function CreateCaseDialog({
     // el servidor (validateCaseBusinessRules), para que cliente y servidor
     // digan lo mismo — antes esta lógica estaba reimplementada acá, sin el
     // flag explícito que DocumentsSection inyecta.
-    const totalDebt =
-      parsearMonto(formData.totalDebt) || 0;
+    const totalDebt = parsearMonto(formData.totalDebt) || 0;
     const hasAttorney = caseHasAttorney(formData);
     if (totalDebt > 40 * SMMLV_2025 && !hasAttorney) {
       warnings.push({
@@ -529,10 +527,8 @@ export function CreateCaseDialog({
         let totalInterest = 0;
 
         debts.forEach((debt: Record<string, unknown>, index: number) => {
-          const capital =
-            parsearMonto(debt?.capitalAmount) || 0;
-          const interest =
-            parsearMonto(debt?.interestAmount) || 0;
+          const capital = parsearMonto(debt?.capitalAmount) || 0;
+          const interest = parsearMonto(debt?.interestAmount) || 0;
           totalCapital += capital;
           totalInterest += interest;
 
@@ -571,10 +567,8 @@ export function CreateCaseDialog({
         // Auto-calculate percentageOfTotal for each debt
         const totalDebt = totalCapital + totalInterest;
         debts.forEach((debt: Record<string, unknown>, index: number) => {
-          const capital =
-            parsearMonto(debt?.capitalAmount) || 0;
-          const interest =
-            parsearMonto(debt?.interestAmount) || 0;
+          const capital = parsearMonto(debt?.capitalAmount) || 0;
+          const interest = parsearMonto(debt?.interestAmount) || 0;
           const debtTotal = capital + interest;
           const percentage =
             totalDebt > 0 ? ((debtTotal / totalDebt) * 100).toFixed(2) : '0';
@@ -1281,8 +1275,12 @@ export function CreateCaseDialog({
                     applicantScope={form.watch('applicantScope') ?? []}
                     assets={form.watch('assets') ?? []}
                     apoderados={form.watch('apoderados') ?? []}
-                    apoderadoNombreCompleto={form.watch('apoderadoNombreCompleto') ?? undefined}
-                    existePoderOtorgado={form.watch('existePoderOtorgado') ?? undefined}
+                    apoderadoNombreCompleto={
+                      form.watch('apoderadoNombreCompleto') ?? undefined
+                    }
+                    existePoderOtorgado={
+                      form.watch('existePoderOtorgado') ?? undefined
+                    }
                     hasAttorney={
                       !!form.watch('apoderadoNombreCompleto') ||
                       !!form
@@ -1350,8 +1348,15 @@ export function CreateCaseDialog({
                   <DialogClose asChild>
                     <Button variant="outline">Cancelar</Button>
                   </DialogClose>
+                  {/* Las `key` distintas no son decorativas. Sin ellas React
+                      reutiliza el mismo <button> y solo le cambia el `type`:
+                      el clic en "Siguiente" de la penúltima pestaña cambia de
+                      pestaña, el re-render convierte ese botón en submit antes
+                      de que el navegador ejecute la acción por defecto, y el
+                      formulario se envía solo (errores, toast y vuelta a la
+                      pestaña 1 sin que el usuario pulsara "Crear Caso"). */}
                   {activeTab === lastTab ? (
-                    <Button type="submit" disabled={isPending}>
+                    <Button key="crear" type="submit" disabled={isPending}>
                       {isPending ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1362,7 +1367,7 @@ export function CreateCaseDialog({
                       )}
                     </Button>
                   ) : (
-                    <Button type="button" onClick={goToNextTab}>
+                    <Button key="siguiente" type="button" onClick={goToNextTab}>
                       Siguiente
                     </Button>
                   )}
