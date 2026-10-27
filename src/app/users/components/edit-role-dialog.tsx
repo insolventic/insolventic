@@ -48,6 +48,9 @@ export function EditRoleDialog({
     control,
   } = useForm({
     resolver: zodResolver(createRoleSchema),
+    // Errores solo tras la acción del usuario: al salir de un campo o al
+    // guardar, nunca al abrir.
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       description: '',
@@ -82,14 +85,18 @@ export function EditRoleDialog({
     });
   };
 
+  // Se resetea en cada apertura, no solo cuando cambia el rol: el diálogo
+  // sigue montado al cerrarse, y reabrir el MISMO rol no cambiaba la
+  // dependencia, así que reaparecían los errores y la edición descartada.
   useEffect(() => {
+    if (!open) return;
     reset({
       name: role.name,
       description: role.description,
       permissions: role.permissions,
       color: role.color,
     });
-  }, [role, reset]);
+  }, [open, role, reset]);
 
   useEffect(() => {
     const fetchPermissions = async () => {

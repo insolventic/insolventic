@@ -48,6 +48,9 @@ export function CreateRoleDialog({
     control,
   } = useForm({
     resolver: zodResolver(createRoleSchema),
+    // Errores solo tras la acción del usuario: al salir de un campo o al
+    // guardar, nunca al abrir.
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       description: '',
@@ -61,6 +64,13 @@ export function CreateRoleDialog({
     Permission[]
   >([]);
   const [loadingPermissions, setLoadingPermissions] = useState(false);
+
+  // El diálogo queda montado aunque se cierre, y antes solo se reseteaba tras
+  // crear con éxito: un intento fallido + cerrar dejaba los errores (y lo
+  // escrito) esperando a la próxima apertura.
+  useEffect(() => {
+    if (open) reset();
+  }, [open, reset]);
 
   const handleCreateRole = async (data: unknown) => {
     startTransition(async () => {

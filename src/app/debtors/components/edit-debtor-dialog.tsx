@@ -55,6 +55,9 @@ export function EditDebtorDialog({
 }: Readonly<EditDebtorDialogProps>) {
   const form = useForm({
     resolver: zodResolver(updateDebtorSchema),
+    // Errores solo tras la acción del usuario: al salir de un campo o al
+    // guardar, nunca al abrir.
+    mode: 'onTouched',
     defaultValues: {
       id: '',
       name: '',
@@ -127,7 +130,11 @@ export function EditDebtorDialog({
     });
   };
 
+  // Se resetea en cada apertura, no solo cuando cambia el deudor: el diálogo
+  // sigue montado al cerrarse, y reabrir el MISMO deudor no cambiaba la
+  // dependencia, así que reaparecían los errores y la edición descartada.
   useEffect(() => {
+    if (!open) return;
     form.reset({
       id: debtor.id,
       name: debtor.name,
@@ -152,7 +159,7 @@ export function EditDebtorDialog({
       accountType: debtor.accountType ?? undefined,
       description: debtor.description ?? undefined,
     });
-  }, [debtor, form]);
+  }, [open, debtor, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

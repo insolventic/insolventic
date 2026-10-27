@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { User, MapPin, CreditCard, Loader2 } from 'lucide-react';
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -51,6 +51,9 @@ export function CreateDebtorDialog({
 }: Readonly<CreateDebtorDialogProps>) {
   const form = useForm({
     resolver: zodResolver(createDebtorSchema),
+    // Errores solo tras la acción del usuario: al salir de un campo o al
+    // guardar, nunca al abrir.
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       idNumber: '',
@@ -76,6 +79,13 @@ export function CreateDebtorDialog({
   });
 
   const [isPending, startTransition] = useTransition();
+
+  // El diálogo queda montado aunque se cierre, y antes solo se reseteaba tras
+  // crear con éxito: un intento fallido + cerrar dejaba los errores (y lo
+  // escrito) esperando a la próxima apertura.
+  useEffect(() => {
+    if (open) form.reset();
+  }, [open, form]);
 
   const handleSubmit = async (data: unknown) => {
     startTransition(async () => {
