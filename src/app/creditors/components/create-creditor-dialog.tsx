@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -66,6 +66,9 @@ export function CreateCreditorDialog({
 }: Readonly<CreateCreditorDialogProps>) {
   const form = useForm({
     resolver: zodResolver(createCreditorSchema),
+    // Errores solo tras la acción del usuario: al salir de un campo o al
+    // guardar, nunca al abrir.
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       nit: '',
@@ -84,6 +87,13 @@ export function CreateCreditorDialog({
   });
 
   const [isPending, startTransition] = useTransition();
+
+  // El diálogo queda montado aunque se cierre, y antes solo se reseteaba tras
+  // crear con éxito: un intento fallido + cerrar dejaba los errores (y lo
+  // escrito) esperando a la próxima apertura.
+  useEffect(() => {
+    if (open) form.reset();
+  }, [open, form]);
 
   const handleSubmit = async (data: unknown) => {
     startTransition(async () => {

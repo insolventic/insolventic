@@ -106,7 +106,12 @@ export function DebtorSection({
                 onValueChange={onDebtorSelect}
                 disabled={loading}
               >
-                <SelectTrigger className="flex-1">
+                {/* Sin FormControl (el deudor se fija con setValue): aria-invalid
+                    a mano, para que "Crear Caso" con errores pueda enfocarlo. */}
+                <SelectTrigger
+                  className="flex-1"
+                  aria-invalid={!!form.formState.errors.debtorId}
+                >
                   <SelectValue
                     placeholder={
                       loading
@@ -117,7 +122,13 @@ export function DebtorSection({
                 </SelectTrigger>
                 <SelectContent>{renderSelectContent()}</SelectContent>
               </Select>
+              {/* type="button": esta sección vive dentro del <form> del caso
+                  (alta y edición). Sin él, el botón es submit implícito: abría
+                  el diálogo del deudor y a la vez enviaba el formulario del
+                  caso, que pintaba errores en campos que nadie había tocado
+                  (y en edición, guardaba). */}
               <Button
+                type="button"
                 variant="outline"
                 size="icon"
                 onClick={onCreateDebtorClick}

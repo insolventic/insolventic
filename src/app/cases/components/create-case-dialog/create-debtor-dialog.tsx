@@ -69,7 +69,9 @@ export function CreateDebtorDialog({
     reset,
   } = useForm<QuickDebtorFormData>({
     resolver: zodResolver(createDebtorQuickSchema),
-    mode: 'onBlur',
+    // 'onTouched' y no 'onBlur': valida al salir del campo y, desde ahí,
+    // en cada cambio, así el error se va mientras el usuario lo corrige.
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       idNumber: '',

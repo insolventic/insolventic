@@ -105,7 +105,6 @@ const SUPPORT_AGREEMENT_TABS = [
   'apoyo-details',
 ] as const;
 
-
 const TAB_ORDER = INSOLVENCY_TABS; // backward compat for field mapping
 
 // Mapping of field prefixes to their corresponding tab
@@ -194,6 +193,11 @@ function getTabForField(fieldName: string): (typeof TAB_ORDER)[number] | null {
   return null;
 }
 
+// Campos de primer nivel del formulario, para validar una pestaña con trigger().
+const CASE_FORM_FIELDS = Object.keys(
+  createCaseFormSchema.shape,
+) as (keyof CreateCaseFormData)[];
+
 // User-friendly error messages for common validation errors
 const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
   debtorId: 'Debe seleccionar un deudor',
@@ -235,6 +239,14 @@ export function CreateCaseDialog({
 
   const form = useForm({
     resolver: zodResolver(createCaseFormSchema),
+    // Regla de producto: los errores se muestran solo después de una acción
+    // del usuario. 'onTouched' valida un campo la primera vez que el usuario
+    // sale de él (y desde ahí en cada cambio); el resto lo destapan
+    // "Siguiente" (goToNextTab) y "Crear Caso" (handleSubmit). Nada valida al
+    // montar.
+    mode: 'onTouched',
+    // El foco del primer error lo maneja el wizard (ver enfocarPrimerError).
+    shouldFocusError: false,
     defaultValues: {
       debtorId: '',
       type: initialType,
@@ -269,19 +281,27 @@ export function CreateCaseDialog({
   }, [watchedType]);
   const lastTab = currentTabs[currentTabs.length - 1];
 
-  // Determine which tabs have validation errors
-  const formErrors = form.formState.errors;
-  const tabsWithErrors = useMemo(() => {
-    const errorTabs = new Set<string>();
-    const errorKeys = Object.keys(formErrors);
-    for (const key of errorKeys) {
-      const tab = getTabForField(key);
-      if (tab) errorTabs.add(tab);
-    }
-    return errorTabs;
-  }, [formErrors]);
+  // Determine which tabs have validation errors. Sin useMemo a propósito:
+  // trigger() y la revalidación por campo mutan formState.errors en el mismo
+  // objeto, así que un memo con [errors] se quedaba con el ícono viejo.
+  const tabsWithErrors = new Set<string>();
+  for (const key of Object.keys(form.formState.errors)) {
+    const tab = getTabForField(key);
+    if (tab) tabsWithErrors.add(tab);
+  }
 
   const goToNextTab = () => {
+    // "Siguiente" cuenta como intento de avanzar: destapa los errores de la
+    // pestaña que se deja (mensajes + ícono), sin bloquear el avance — el
+    // wizard deja moverse libremente entre pestañas y el bloqueo real sigue
+    // siendo "Crear Caso". Sin toast: ese es solo para el envío.
+    const camposDeLaPestana = CASE_FORM_FIELDS.filter(
+      (campo) => getTabForField(campo) === activeTab,
+    );
+    if (camposDeLaPestana.length > 0) {
+      void form.trigger(camposDeLaPestana);
+    }
+
     const currentIndex = currentTabs.indexOf(activeTab);
     if (currentIndex < currentTabs.length - 1) {
       setActiveTab(currentTabs[currentIndex + 1]);
@@ -293,14 +313,54 @@ export function CreateCaseDialog({
     dialogContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
+  // Los documentos obligatorios faltantes se pintan en rojo solo después de
+  // una acción: intentar "Crear Caso" (onInvalid / handleSubmit) o salir de
+  // la pestaña "7. Documentos". Al entrar llevan una etiqueta neutra.
+  const [mostrarDocumentosFaltantes, setMostrarDocumentosFaltantes] =
+    useState(false);
+  const pestanaAnteriorRef = useRef(activeTab);
+  useEffect(() => {
+    if (pestanaAnteriorRef.current === 'documents' && activeTab !== 'documents')
+      setMostrarDocumentosFaltantes(true);
+    pestanaAnteriorRef.current = activeTab;
+  }, [activeTab]);
+
+  // Tras un "Crear Caso" con errores, enfoca el primer campo con error de la
+  // pestaña a la que onInvalid llevó al usuario. No se usa el shouldFocusError
+  // de react-hook-form (apagado en useForm): las pestañas inactivas están
+  // desmontadas al enviar, y varios campos (Select del deudor y del operador)
+  // no registran ref. Se busca en el DOM ya renderizado de la pestaña activa
+  // el primer control focusable marcado aria-invalid (FormControl lo pone).
+  const [enfocarPrimerError, setEnfocarPrimerError] = useState(0);
+  useEffect(() => {
+    if (!enfocarPrimerError) return;
+    const frame = requestAnimationFrame(() => {
+      dialogContentRef.current
+        ?.querySelector<HTMLElement>(
+          '[role="tabpanel"][data-state="active"] :is(input, button, select, textarea)[aria-invalid="true"]:not(:disabled)',
+        )
+        ?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [enfocarPrimerError]);
+
   useEffect(() => {
     if (open) {
       // First tab is always 'debtor' for any case type — keep INSOLVENCY tab key.
       setActiveTab(TAB_ORDER[0]);
+      setMostrarDocumentosFaltantes(false);
+      documentsToUploadRef.current = [];
       form.reset({
         debtorId: '',
         type: initialType,
-        totalDebt: initialType === 'CONCILIATION' ? '0' : '',
+        // Igual que en defaultValues: ni conciliación ni apoyo tienen pestaña
+        // de acreedores, así que la deuda total no se puede calcular. Con ''
+        // el acuerdo de apoyo exigía "La deuda total es requerida" sin campo
+        // donde llenarla.
+        totalDebt:
+          initialType === 'CONCILIATION' || initialType === 'SUPPORT_AGREEMENT'
+            ? '0'
+            : '',
         creditors: 1,
         operatorId: '',
         causes: [],
@@ -478,8 +538,7 @@ export function CreateCaseDialog({
     // el servidor (validateCaseBusinessRules), para que cliente y servidor
     // digan lo mismo — antes esta lógica estaba reimplementada acá, sin el
     // flag explícito que DocumentsSection inyecta.
-    const totalDebt =
-      parsearMonto(formData.totalDebt) || 0;
+    const totalDebt = parsearMonto(formData.totalDebt) || 0;
     const hasAttorney = caseHasAttorney(formData);
     if (totalDebt > 40 * SMMLV_2025 && !hasAttorney) {
       warnings.push({
@@ -501,6 +560,15 @@ export function CreateCaseDialog({
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       validateCoherence();
+
+      // Un campo que ya muestra error se revalida al cambiar, venga el cambio
+      // de donde venga. 'onTouched' solo revalida los campos que el usuario
+      // tocó (blur): el deudor (setValue), el operador (Select, sin blur) y la
+      // deuda total (calculada) se quedaban con el error de "Siguiente"
+      // aunque ya estuvieran bien.
+      if (name && form.getFieldState(name).invalid) {
+        void form.trigger(name);
+      }
 
       // Prefill del pagador de libranza con el empleador de la Sección III.
       // La regla (cuándo actuar y sobre qué filas) vive en libranza-prefill.ts;
@@ -529,10 +597,8 @@ export function CreateCaseDialog({
         let totalInterest = 0;
 
         debts.forEach((debt: Record<string, unknown>, index: number) => {
-          const capital =
-            parsearMonto(debt?.capitalAmount) || 0;
-          const interest =
-            parsearMonto(debt?.interestAmount) || 0;
+          const capital = parsearMonto(debt?.capitalAmount) || 0;
+          const interest = parsearMonto(debt?.interestAmount) || 0;
           totalCapital += capital;
           totalInterest += interest;
 
@@ -571,10 +637,8 @@ export function CreateCaseDialog({
         // Auto-calculate percentageOfTotal for each debt
         const totalDebt = totalCapital + totalInterest;
         debts.forEach((debt: Record<string, unknown>, index: number) => {
-          const capital =
-            parsearMonto(debt?.capitalAmount) || 0;
-          const interest =
-            parsearMonto(debt?.interestAmount) || 0;
+          const capital = parsearMonto(debt?.capitalAmount) || 0;
+          const interest = parsearMonto(debt?.interestAmount) || 0;
           const debtTotal = capital + interest;
           const percentage =
             totalDebt > 0 ? ((debtTotal / totalDebt) * 100).toFixed(2) : '0';
@@ -615,15 +679,16 @@ export function CreateCaseDialog({
       }
     }
 
-    // Navigate to the first tab that has an error
+    // "Crear Caso" bloquea: lleva a la primera pestaña con error del wizard
+    // actual (no de la lista de Insolvencia: conciliación y apoyo tienen
+    // otras pestañas) y enfoca su primer campo con error (efecto de abajo).
     const errorKeys = Object.keys(errors);
-    for (const tabId of TAB_ORDER) {
-      const hasError = errorKeys.some((key) => getTabForField(key) === tabId);
-      if (hasError) {
-        setActiveTab(tabId);
-        break;
-      }
-    }
+    const primeraPestanaConError = currentTabs.find((tabId) =>
+      errorKeys.some((key) => getTabForField(key) === tabId),
+    );
+    if (primeraPestanaConError) setActiveTab(primeraPestanaConError);
+    setEnfocarPrimerError((n) => n + 1);
+    setMostrarDocumentosFaltantes(true);
 
     if (errorMessages.length > 0) {
       toast.error('Campos incompletos', {
@@ -651,6 +716,7 @@ export function CreateCaseDialog({
       });
       // Navigate to documents tab
       setActiveTab('documents');
+      setMostrarDocumentosFaltantes(true);
       return;
     }
 
@@ -1281,14 +1347,20 @@ export function CreateCaseDialog({
                     applicantScope={form.watch('applicantScope') ?? []}
                     assets={form.watch('assets') ?? []}
                     apoderados={form.watch('apoderados') ?? []}
-                    apoderadoNombreCompleto={form.watch('apoderadoNombreCompleto') ?? undefined}
-                    existePoderOtorgado={form.watch('existePoderOtorgado') ?? undefined}
+                    apoderadoNombreCompleto={
+                      form.watch('apoderadoNombreCompleto') ?? undefined
+                    }
+                    existePoderOtorgado={
+                      form.watch('existePoderOtorgado') ?? undefined
+                    }
                     hasAttorney={
                       !!form.watch('apoderadoNombreCompleto') ||
                       !!form
                         .watch('apoderados')
                         ?.some((a) => a?.nombreCompleto?.trim())
                     }
+                    mostrarFaltantes={mostrarDocumentosFaltantes}
+                    seleccionActual={documentsToUploadRef.current}
                     onFilesSelected={(sel) => {
                       documentsToUploadRef.current = sel;
                     }}
@@ -1350,8 +1422,15 @@ export function CreateCaseDialog({
                   <DialogClose asChild>
                     <Button variant="outline">Cancelar</Button>
                   </DialogClose>
+                  {/* Las `key` distintas no son decorativas. Sin ellas React
+                      reutiliza el mismo <button> y solo le cambia el `type`:
+                      el clic en "Siguiente" de la penúltima pestaña cambia de
+                      pestaña, el re-render convierte ese botón en submit antes
+                      de que el navegador ejecute la acción por defecto, y el
+                      formulario se envía solo (errores, toast y vuelta a la
+                      pestaña 1 sin que el usuario pulsara "Crear Caso"). */}
                   {activeTab === lastTab ? (
-                    <Button type="submit" disabled={isPending}>
+                    <Button key="crear" type="submit" disabled={isPending}>
                       {isPending ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1362,7 +1441,7 @@ export function CreateCaseDialog({
                       )}
                     </Button>
                   ) : (
-                    <Button type="button" onClick={goToNextTab}>
+                    <Button key="siguiente" type="button" onClick={goToNextTab}>
                       Siguiente
                     </Button>
                   )}

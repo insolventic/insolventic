@@ -13,7 +13,7 @@ import {
 
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -59,6 +59,9 @@ export function CreateUserDialog({
     clearErrors,
   } = useForm({
     resolver: zodResolver(createUserSchema),
+    // Errores solo tras la acción del usuario: al salir de un campo o al
+    // guardar, nunca al abrir.
+    mode: 'onTouched',
     defaultValues: {
       name: '',
       email: '',
@@ -70,6 +73,14 @@ export function CreateUserDialog({
   });
 
   const [isPending, startTransition] = useTransition();
+
+  const { open } = props;
+  // El diálogo queda montado aunque se cierre, y antes solo se reseteaba tras
+  // crear con éxito: un intento fallido + cerrar dejaba los errores (y lo
+  // escrito) esperando a la próxima apertura.
+  useEffect(() => {
+    if (open) reset();
+  }, [open, reset]);
 
   const handleCreate = async (data: unknown) => {
     startTransition(async () => {
@@ -195,7 +206,11 @@ export function CreateUserDialog({
               <Shield className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
               <Select
                 value={watch('roleId')}
-                onValueChange={(value) => setValue('roleId', value)}
+                onValueChange={(value) =>
+                  // shouldValidate: el Select no tiene blur, y sin esto "El rol
+                  // es requerido" quedaba aunque ya se hubiera elegido uno.
+                  setValue('roleId', value, { shouldValidate: true })
+                }
               >
                 <SelectTrigger
                   className={`pl-10 ${errors.roleId ? 'border-red-500' : ''}`}

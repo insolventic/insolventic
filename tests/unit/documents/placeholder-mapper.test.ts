@@ -361,31 +361,59 @@ describe('Placeholder Mapper — HTML escaping (P2)', () => {
     expect(typeof placeholders.DIRECCION_DEUDOR).toBe('string');
   });
 
-  it('benchmark: mapea un caso con 100 deudas y 50 bienes en <100ms', () => {
-    const bigCase = makeCase({
-      debts: Array.from({ length: 100 }, (_, i) => ({
-        amount: 1000000 + i,
-        capitalAmount: 1000000 + i,
-        interestAmount: 5000,
-        creditorClass: 'Quirografario',
-        creditor: { name: `Acreedor & Cía ${i}` },
-      })),
-      assets: Array.from({ length: 50 }, (_, i) => ({
-        type: 'VEHICULO',
-        name: `Bien <${i}>`,
-        description: `Descripción ${i}`,
-        value: 5000000,
-      })),
-      paymentTermMonths: 60,
-      monthlyPaymentAmount: 2000000,
-    });
+  it('benchmark: el costo de mapear crece linealmente con deudas y bienes', () => {
+    const casoCon = (deudas: number, bienes: number) =>
+      makeCase({
+        debts: Array.from({ length: deudas }, (_, i) => ({
+          amount: 1000000 + i,
+          capitalAmount: 1000000 + i,
+          interestAmount: 5000,
+          creditorClass: 'Quirografario',
+          creditor: { name: `Acreedor & Cía ${i}` },
+        })),
+        assets: Array.from({ length: bienes }, (_, i) => ({
+          type: 'VEHICULO',
+          name: `Bien <${i}>`,
+          description: `Descripción ${i}`,
+          value: 5000000,
+        })),
+        paymentTermMonths: 60,
+        monthlyPaymentAmount: 2000000,
+      });
+    const chico = casoCon(10, 5);
+    const grande = casoCon(100, 50);
 
-    const start = performance.now();
-    const placeholders = mapCaseToPlaceholders(bigCase);
-    const elapsed = performance.now() - start;
+    // Antes era una sola medición en frío contra un límite absoluto de 100 ms,
+    // y fallaba en la corrida completa de jest sin que el mapper cambiara (136
+    // ms; 121 ms aun tomando el mínimo de 5 corridas calientes): el tiempo
+    // absoluto depende de la máquina y de cuántos workers corren a la vez.
+    //
+    // Lo que el test quiere atrapar es una regresión de complejidad (un O(n²)
+    // sobre deudas o bienes), y eso se ve en una RAZÓN, no en milisegundos:
+    // con 10× más deudas y bienes, un costo lineal multiplica el tiempo por
+    // 10 como MÁXIMO (la parte fija solo baja la razón; hoy da ~2,1), así que
+    // pasar de 10 ya es superlineal. Un O(n²) con la parte fija actual daría
+    // ~13, por eso el umbral no puede ser más holgado.
+    // Los dos casos se miden intercalados en el mismo proceso, así que la
+    // carga de la máquina afecta a ambos por igual; de cada uno se toma el
+    // MÍNIMO de 7 corridas tras calentar, porque el ruido solo suma tiempo.
+    const placeholders = mapCaseToPlaceholders(grande); // calentamiento
+    mapCaseToPlaceholders(chico);
+    const medir = (caso: ReturnType<typeof casoCon>) => {
+      const start = performance.now();
+      mapCaseToPlaceholders(caso);
+      return performance.now() - start;
+    };
+    const tiemposChico: number[] = [];
+    const tiemposGrande: number[] = [];
+    for (let i = 0; i < 7; i++) {
+      tiemposChico.push(medir(chico));
+      tiemposGrande.push(medir(grande));
+    }
+    const razon = Math.min(...tiemposGrande) / Math.min(...tiemposChico);
 
     expect(Object.keys(placeholders).length).toBeGreaterThan(300);
-    expect(elapsed).toBeLessThan(100);
+    expect(razon).toBeLessThan(10);
   });
 
   it('escapes string values inside buildConciliationContext each-items', () => {

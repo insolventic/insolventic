@@ -99,6 +99,18 @@ Dos razones distintas, ambas reales:
 - Env vars: validar en el primer uso, **nunca en import** — `next build` recolecta page data sin secrets (`vercel pull` excluye las vars sensitive). Patrón: `email.ts`, `auth.ts`.
 - Módulos compartidos entre actions van en archivos sin `'use server'` (ej. `persistence.ts`, `generation-request.ts`).
 
+### Formularios: los errores de validación se muestran solo después de la acción del usuario
+
+Regla de producto (2026-10-27). Un campo muestra su error solo si el usuario **salió de él** (blur) o **intentó avanzar o guardar**. Nada valida al montar, y cerrar y reabrir un diálogo lo deja limpio (errores, "tocado" y valores). Cómo se cumple:
+
+- **react-hook-form con `mode: 'onTouched'`**: valida al primer blur y desde ahí en cada cambio, así el error se va mientras se corrige. Nunca `mode: 'all'` / `'onChange'`, ni `trigger()` en un efecto de montaje.
+- **Reset en cada apertura**: el `useForm` vive fuera de `DialogContent`, así que el estado sobrevive al cierre. Patrón: `useEffect(() => { if (open) form.reset(...) }, [open, ...])` — en alta a los `defaultValues`, en edición a la entidad. Resetear solo tras guardar con éxito, o con la entidad como única dependencia, deja los errores esperando a la próxima apertura.
+- **`type="button"` en todo botón que no envía dentro de un `<form>`**: sin `type` es submit implícito. Ojo con los componentes de sección que se renderizan dentro de un form ajeno: `DebtorSection` vive en el form del alta **y** de la edición de casos.
+- **`key` distinta en botones que se intercambian en el mismo lugar** (Siguiente ↔ Crear Caso): si React reutiliza el `<button>` y le cambia el `type` a submit en mitad del clic, el navegador envía el formulario. jsdom no lo reproduce; lo cubre el E2E `tests/e2e/case-wizard-errores.e2e.test.ts`.
+- **Wizard de casos**: "Siguiente" valida la pestaña que se deja (mensajes + ícono de la pestaña) sin toast y **sin bloquear** el avance; el toast "Campos incompletos" es solo del envío. Un campo que se llena por código (deudor por `setValue`, operador por Select, deuda total calculada) se revalida si ya mostraba error.
+
+**Hallazgo (2026-10-27, `fix/errores-solo-despues-de-accion`)**: los errores "al abrir" que se veían en producción no venían de validar al montar sino de **envíos involuntarios** (el botón "+" de deudor y el "Siguiente" de la penúltima pestaña) y de **estado no reiniciado** al reabrir. Detalle, tabla del barrido y lo que quedó fuera en la descripción del PR de esa rama. Tests: `create-case-dialog-errores.test.tsx`, `dialogos-errores-tras-accion.test.tsx`, `debtor-section-crear-deudor.test.tsx`, `payment-dialog-errores.test.tsx`.
+
 ## Logger Pattern
 
 Usar `logger` de `src/lib/logger.ts` — **nunca `console.*` directo** en código nuevo.
@@ -267,10 +279,10 @@ logger.debug('useAuth state', { hasUser, isLoading }); // solo desarrollo
 
    Quedaron fuera del alcance de `#136`, que normalizó los 27 del formulario maestro (wizard + pestañas de edición). Los dos son montos de pago:
 
-   | Dónde | Etiqueta | Qué hace |
-   | --- | --- | --- |
-   | `case-details-dialog/payment-tracking-section.tsx` | "Monto" | registra un pago del deudor |
-   | `reports/components/payment-tracking-report.tsx` | "Valor pagado" | ídem, desde reportes |
+   | Dónde                                              | Etiqueta       | Qué hace                    |
+   | -------------------------------------------------- | -------------- | --------------------------- |
+   | `case-details-dialog/payment-tracking-section.tsx` | "Monto"        | registra un pago del deudor |
+   | `reports/components/payment-tracking-report.tsx`   | "Valor pagado" | ídem, desde reportes        |
 
    **Ojo con el conteo: al cerrar `#136` se dijo que eran 5, y no lo son.** Ese número salió de contar `type="number"` fuera del formulario maestro, no campos de dinero. De los otros cuatro: dos son `dependents` (una cuenta de personas, en los diálogos de deudor), uno es `approvalPercentage` (un porcentaje, en `pre-generation-form`) y el cuarto **ni siquiera es un input** — es un `<XAxis type="number">` de Recharts en `dashboard-charts.tsx`. Ninguno lleva separador de miles ni debería.
 

@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Totales de bienes de la "Solicitud de Insolvencia" (`TOTAL_INMUEBLES`, `TOTAL_MUEBLES`, `TOTAL_BIENES` y los `MUEBLE_*_VALOR`)**: `mapAssets` sumaba los `Prisma.Decimal` de los activos con `+`, y `Decimal.valueOf()` devuelve un string, así que concatenaba en vez de sumar (un inmueble de $100M sin muebles salía como $1.000M; con más activos, cifras de 15 dígitos). Afectaba a todo documento generado por la ruta automática (creación de caso, generación inicial), que pasa la fila de Prisma sin convertir. Ahora cada sumando pasa por `Number()`. Test de regresión con `Prisma.Decimal` real y comparación de la salida completa del mapper entre `Decimal` y `number`.
 - Los totales de ingresos y deudas del formulario de creación de casos podían mostrar "NaN" (un error en pantalla, no un número) cuando el monto se escribía con coma decimal en vez de punto. (#144)
 - Se corrige un error que impedía generar los documentos de un caso, en los dos centros. (#146)
+- **Los formularios ya no muestran errores antes de que el usuario haga algo.** Al trabajar en "Crear nuevo caso" podían aparecer avisos en rojo —"La deuda total es requerida", el ícono de error en "1. Solicitante" y el mensaje "Campos incompletos"— sin que nadie hubiera intentado guardar. Ahora un error aparece solo cuando el usuario sale de un campo, pulsa "Siguiente" o pulsa "Crear" / "Guardar". Se corrigen en concreto:
+  - El botón para crear un deudor nuevo desde el formulario del caso, además de abrir su ventana, intentaba guardar el caso a la vez. En la edición de un caso podía llegar a guardarlo.
+  - "Siguiente" en la penúltima pestaña intentaba crear el caso y devolvía al usuario a la primera pestaña con errores. En Conciliación y Acuerdo de apoyo eso impedía llegar a la última pestaña con "Siguiente".
+  - El formulario de Acuerdo de apoyo exigía una "deuda total" que no tenía dónde escribirse, y por eso no dejaba crear el caso.
+  - Las ventanas de nuevo deudor, nuevo acreedor, nuevo usuario, nuevo rol y edición de deudor o de rol volvían a abrirse con los errores —y los cambios descartados— de la vez anterior.
+  - La ventana de registrar un pago podía abrirse con un mensaje de error que no le correspondía.
 
 ### Changed
 
