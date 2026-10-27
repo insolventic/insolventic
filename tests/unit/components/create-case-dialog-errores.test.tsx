@@ -397,3 +397,57 @@ describe('CreateCaseDialog — los errores aparecen tras la acción', () => {
     expect(pestanasConError()).toEqual([]);
   });
 });
+
+describe('CreateCaseDialog — "Siguiente" pasa, "Crear Caso" bloquea (3 wizards)', () => {
+  const ULTIMA: Record<Tipo, RegExp> = {
+    INSOLVENCY: /7\. Documentos/,
+    CONCILIATION: /3\. Solicitud/,
+    SUPPORT_AGREEMENT: /3\. Acuerdo/,
+  };
+  const SEGUNDA: Record<Tipo, string> = {
+    INSOLVENCY: '2. Situación',
+    CONCILIATION: '2. Partes',
+    SUPPORT_AGREEMENT: '2. Partes',
+  };
+
+  it.each<Tipo>(['INSOLVENCY', 'CONCILIATION', 'SUPPORT_AGREEMENT'])(
+    '%s: "Siguiente" con la pestaña vacía avanza y marca la pestaña que deja',
+    async (tipo) => {
+      renderWizard(tipo);
+      await esperarCarga();
+
+      await pulsarSiguiente();
+
+      expect(pestanaActiva()).toBe(SEGUNDA[tipo]);
+      await waitFor(() =>
+        expect(pestanasConError()).toEqual(['1. Solicitante']),
+      );
+      expect(mockToast.error).not.toHaveBeenCalled();
+      expect(mockCreateCase).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each<Tipo>(['INSOLVENCY', 'CONCILIATION', 'SUPPORT_AGREEMENT'])(
+    '%s: "Crear Caso" con errores no crea, marca las pestañas, lleva a la primera con error y enfoca su primer campo',
+    async (tipo) => {
+      renderWizard(tipo);
+      await esperarCarga();
+      await irAPestana(ULTIMA[tipo]);
+
+      await pulsarCrearCaso();
+
+      await waitFor(() => expect(toastsDeCamposIncompletos()).toHaveLength(1));
+      expect(mockCreateCase).not.toHaveBeenCalled();
+      expect(pestanaActiva()).toBe('1. Solicitante');
+      expect(pestanasConError()).toEqual(
+        tipo === 'INSOLVENCY'
+          ? ['1. Solicitante', '3. Acreedores']
+          : ['1. Solicitante'],
+      );
+      // El primer campo con error de "1. Solicitante" es el selector de deudor.
+      const selectorDeudor = screen.getAllByRole('combobox')[0];
+      await waitFor(() => expect(selectorDeudor).toHaveFocus());
+      expect(selectorDeudor).toHaveAttribute('aria-invalid', 'true');
+    },
+  );
+});

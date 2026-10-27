@@ -106,7 +106,12 @@ export function DebtorSection({
                 onValueChange={onDebtorSelect}
                 disabled={loading}
               >
-                <SelectTrigger className="flex-1">
+                {/* Sin FormControl (el deudor se fija con setValue): aria-invalid
+                    a mano, para que "Crear Caso" con errores pueda enfocarlo. */}
+                <SelectTrigger
+                  className="flex-1"
+                  aria-invalid={!!form.formState.errors.debtorId}
+                >
                   <SelectValue
                     placeholder={
                       loading

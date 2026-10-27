@@ -245,6 +245,8 @@ export function CreateCaseDialog({
     // "Siguiente" (goToNextTab) y "Crear Caso" (handleSubmit). Nada valida al
     // montar.
     mode: 'onTouched',
+    // El foco del primer error lo maneja el wizard (ver enfocarPrimerError).
+    shouldFocusError: false,
     defaultValues: {
       debtorId: '',
       type: initialType,
@@ -310,6 +312,25 @@ export function CreateCaseDialog({
   useEffect(() => {
     dialogContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
+
+  // Tras un "Crear Caso" con errores, enfoca el primer campo con error de la
+  // pestaña a la que onInvalid llevó al usuario. No se usa el shouldFocusError
+  // de react-hook-form (apagado en useForm): las pestañas inactivas están
+  // desmontadas al enviar, y varios campos (Select del deudor y del operador)
+  // no registran ref. Se busca en el DOM ya renderizado de la pestaña activa
+  // el primer control focusable marcado aria-invalid (FormControl lo pone).
+  const [enfocarPrimerError, setEnfocarPrimerError] = useState(0);
+  useEffect(() => {
+    if (!enfocarPrimerError) return;
+    const frame = requestAnimationFrame(() => {
+      dialogContentRef.current
+        ?.querySelector<HTMLElement>(
+          '[role="tabpanel"][data-state="active"] :is(input, button, select, textarea)[aria-invalid="true"]:not(:disabled)',
+        )
+        ?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [enfocarPrimerError]);
 
   useEffect(() => {
     if (open) {
@@ -644,15 +665,15 @@ export function CreateCaseDialog({
       }
     }
 
-    // Navigate to the first tab that has an error
+    // "Crear Caso" bloquea: lleva a la primera pestaña con error del wizard
+    // actual (no de la lista de Insolvencia: conciliación y apoyo tienen
+    // otras pestañas) y enfoca su primer campo con error (efecto de abajo).
     const errorKeys = Object.keys(errors);
-    for (const tabId of TAB_ORDER) {
-      const hasError = errorKeys.some((key) => getTabForField(key) === tabId);
-      if (hasError) {
-        setActiveTab(tabId);
-        break;
-      }
-    }
+    const primeraPestanaConError = currentTabs.find((tabId) =>
+      errorKeys.some((key) => getTabForField(key) === tabId),
+    );
+    if (primeraPestanaConError) setActiveTab(primeraPestanaConError);
+    setEnfocarPrimerError((n) => n + 1);
 
     if (errorMessages.length > 0) {
       toast.error('Campos incompletos', {
