@@ -193,6 +193,11 @@ function getTabForField(fieldName: string): (typeof TAB_ORDER)[number] | null {
   return null;
 }
 
+// Campos de primer nivel del formulario, para validar una pestaña con trigger().
+const CASE_FORM_FIELDS = Object.keys(
+  createCaseFormSchema.shape,
+) as (keyof CreateCaseFormData)[];
+
 // User-friendly error messages for common validation errors
 const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
   debtorId: 'Debe seleccionar un deudor',
@@ -234,6 +239,12 @@ export function CreateCaseDialog({
 
   const form = useForm({
     resolver: zodResolver(createCaseFormSchema),
+    // Regla de producto: los errores se muestran solo después de una acción
+    // del usuario. 'onTouched' valida un campo la primera vez que el usuario
+    // sale de él (y desde ahí en cada cambio); el resto lo destapan
+    // "Siguiente" (goToNextTab) y "Crear Caso" (handleSubmit). Nada valida al
+    // montar.
+    mode: 'onTouched',
     defaultValues: {
       debtorId: '',
       type: initialType,
@@ -268,19 +279,27 @@ export function CreateCaseDialog({
   }, [watchedType]);
   const lastTab = currentTabs[currentTabs.length - 1];
 
-  // Determine which tabs have validation errors
-  const formErrors = form.formState.errors;
-  const tabsWithErrors = useMemo(() => {
-    const errorTabs = new Set<string>();
-    const errorKeys = Object.keys(formErrors);
-    for (const key of errorKeys) {
-      const tab = getTabForField(key);
-      if (tab) errorTabs.add(tab);
-    }
-    return errorTabs;
-  }, [formErrors]);
+  // Determine which tabs have validation errors. Sin useMemo a propósito:
+  // trigger() y la revalidación por campo mutan formState.errors en el mismo
+  // objeto, así que un memo con [errors] se quedaba con el ícono viejo.
+  const tabsWithErrors = new Set<string>();
+  for (const key of Object.keys(form.formState.errors)) {
+    const tab = getTabForField(key);
+    if (tab) tabsWithErrors.add(tab);
+  }
 
   const goToNextTab = () => {
+    // "Siguiente" cuenta como intento de avanzar: destapa los errores de la
+    // pestaña que se deja (mensajes + ícono), sin bloquear el avance — el
+    // wizard deja moverse libremente entre pestañas y el bloqueo real sigue
+    // siendo "Crear Caso". Sin toast: ese es solo para el envío.
+    const camposDeLaPestana = CASE_FORM_FIELDS.filter(
+      (campo) => getTabForField(campo) === activeTab,
+    );
+    if (camposDeLaPestana.length > 0) {
+      void form.trigger(camposDeLaPestana);
+    }
+
     const currentIndex = currentTabs.indexOf(activeTab);
     if (currentIndex < currentTabs.length - 1) {
       setActiveTab(currentTabs[currentIndex + 1]);
@@ -506,6 +525,15 @@ export function CreateCaseDialog({
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       validateCoherence();
+
+      // Un campo que ya muestra error se revalida al cambiar, venga el cambio
+      // de donde venga. 'onTouched' solo revalida los campos que el usuario
+      // tocó (blur): el deudor (setValue), el operador (Select, sin blur) y la
+      // deuda total (calculada) se quedaban con el error de "Siguiente"
+      // aunque ya estuvieran bien.
+      if (name && form.getFieldState(name).invalid) {
+        void form.trigger(name);
+      }
 
       // Prefill del pagador de libranza con el empleador de la Sección III.
       // La regla (cuándo actuar y sobre qué filas) vive en libranza-prefill.ts;

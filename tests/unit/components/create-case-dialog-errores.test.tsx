@@ -160,6 +160,13 @@ function pestanaActiva(): string {
   );
 }
 
+/** Radix Tabs activa la pestaña con mousedown, no con click. */
+async function irAPestana(nombre: RegExp) {
+  await act(async () => {
+    fireEvent.mouseDown(screen.getByRole('tab', { name: nombre }));
+  });
+}
+
 async function pulsarSiguiente() {
   await act(async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
@@ -269,5 +276,124 @@ describe('CreateCaseDialog — acuerdo de apoyo', () => {
     const [, { description }] = toastsDeCamposIncompletos()[0];
     expect(description).toContain('Debe seleccionar un deudor');
     expect(description).not.toContain('La deuda total es requerida');
+  });
+});
+
+describe('CreateCaseDialog — los errores aparecen tras la acción', () => {
+  it('"Siguiente" destapa los errores de la pestaña que se deja, sin toast y sin bloquear', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+
+    await pulsarSiguiente();
+
+    await waitFor(() => expect(pestanasConError()).toEqual(['1. Solicitante']));
+    expect(pestanaActiva()).toBe('2. Situación');
+    expect(mockToast.error).not.toHaveBeenCalled();
+
+    // Al volver, el mensaje está en su campo. La deuda total (calculada, de
+    // solo lectura) pertenece a "3. Acreedores": salir de la pestaña 1 no la
+    // pinta en rojo.
+    await irAPestana(/1\. Solicitante/);
+    expect(mensajesDeError()).toContain('El operador es requerido');
+    expect(mensajesDeError()).not.toContain('La deuda total es requerida');
+  });
+
+  it('"Crear Caso" con campos vacíos muestra mensajes, ícono y toast', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+
+    // Directo a la última pestaña: recorrer "3. Acreedores" recalcula la
+    // deuda total a '0', que es válida, y el error no aparecería.
+    await irAPestana(/7\. Documentos/);
+    await pulsarCrearCaso();
+
+    await waitFor(() => expect(toastsDeCamposIncompletos()).toHaveLength(1));
+    // onInvalid lleva a la primera pestaña con error.
+    expect(pestanaActiva()).toBe('1. Solicitante');
+    expect(pestanasConError()).toEqual(
+      expect.arrayContaining(['1. Solicitante', '3. Acreedores']),
+    );
+    expect(mensajesDeError()).toEqual(
+      expect.arrayContaining([
+        'La deuda total es requerida',
+        'El operador es requerido',
+      ]),
+    );
+    expect(mockCreateCase).not.toHaveBeenCalled();
+  });
+
+  it('un campo vacío muestra su error solo después de tocarlo y salir', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+    await pulsarSiguiente(); // → 2. Situación
+    await pulsarSiguiente(); // → 3. Acreedores
+    jest.clearAllMocks();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Agregar Acreedor/ }));
+    });
+    const nombre = screen.getByPlaceholderText(
+      'Nombre de la entidad o persona que prestó el dinero',
+    );
+    // Agregar la fila no destapa nada.
+    expect(mensajesDeError()).not.toContain('El acreedor es requerido');
+
+    await act(async () => {
+      fireEvent.focus(nombre);
+      fireEvent.blur(nombre);
+    });
+
+    await waitFor(() =>
+      expect(mensajesDeError()).toContain('El acreedor es requerido'),
+    );
+    expect(mockToast.error).not.toHaveBeenCalled();
+  });
+
+  it('un error de la deuda total se va cuando la deuda se calcula', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+    // Directo a la última pestaña: recorrer "3. Acreedores" recalcula la
+    // deuda total a '0', que es válida, y el error no aparecería.
+    await irAPestana(/7\. Documentos/);
+    await pulsarCrearCaso();
+    await waitFor(() =>
+      expect(mensajesDeError()).toContain('La deuda total es requerida'),
+    );
+
+    // Cargar un acreedor con capital: la deuda total se calcula sola (setValue).
+    await irAPestana(/3\. Acreedores/);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Agregar Acreedor/ }));
+    });
+    const capital = within(
+      screen.getByText('Cuantía - Capital').closest('div') as HTMLElement,
+    ).getByPlaceholderText('0');
+    await act(async () => {
+      fireEvent.change(capital, { target: { value: '1500000' } });
+    });
+
+    // El mensaje vive en "1. Solicitante": volver y comprobar que se fue.
+    await irAPestana(/1\. Solicitante/);
+    await waitFor(() =>
+      expect(mensajesDeError()).not.toContain('La deuda total es requerida'),
+    );
+  });
+
+  it('cerrar y reabrir deja el diálogo sin errores', async () => {
+    const { reabrir } = renderWizard('INSOLVENCY');
+    await esperarCarga();
+    while (screen.queryByRole('button', { name: 'Siguiente' })) {
+      await pulsarSiguiente();
+    }
+    await pulsarCrearCaso();
+    await waitFor(() => expect(pestanasConError().length).toBeGreaterThan(0));
+
+    reabrir(false);
+    reabrir(true);
+    await esperarCarga();
+
+    expect(pestanaActiva()).toBe('1. Solicitante');
+    expect(mensajesDeError()).toEqual([]);
+    expect(pestanasConError()).toEqual([]);
   });
 });
