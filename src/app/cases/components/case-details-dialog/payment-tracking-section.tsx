@@ -99,6 +99,11 @@ export function PaymentTrackingSection({
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isManualPayment, setIsManualPayment] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  // Error del registro de un pago, solo para el diálogo. Antes el diálogo
+  // mostraba el mismo `error` de la sección: abría con "Error al cargar
+  // pagos" adentro, o con el error del intento anterior tras cerrar y
+  // reabrir.
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Form fields
   const [paymentAmount, setPaymentAmount] = useState('');
@@ -154,10 +159,12 @@ export function PaymentTrackingSection({
     setReceiptFile(null);
     setSelectedPayment(null);
     setIsManualPayment(false);
+    setPaymentError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const openPayDialog = (payment: Payment) => {
+    setPaymentError(null);
     setSelectedPayment(payment);
     setIsManualPayment(false);
     setPaymentAmount(payment.amount.toString());
@@ -187,7 +194,7 @@ export function PaymentTrackingSection({
 
   const handleSubmitPayment = async () => {
     setSubmitting(true);
-    setError(null);
+    setPaymentError(null);
     try {
       let receipt:
         | { fileName: string; mimeType: string; dataBase64: string }
@@ -230,10 +237,10 @@ export function PaymentTrackingSection({
         resetForm();
         await loadPayments();
       } else {
-        setError(result.error || 'Error al registrar pago');
+        setPaymentError(result.error || 'Error al registrar pago');
       }
     } catch {
-      setError('Error al registrar pago');
+      setPaymentError('Error al registrar pago');
     } finally {
       setSubmitting(false);
     }
@@ -324,7 +331,7 @@ export function PaymentTrackingSection({
             setReceiptFile={setReceiptFile}
             fileInputRef={fileInputRef}
             submitting={submitting}
-            error={error}
+            error={paymentError}
             onSubmit={handleSubmitPayment}
           />
         </CardContent>
@@ -494,7 +501,7 @@ export function PaymentTrackingSection({
         setReceiptFile={setReceiptFile}
         fileInputRef={fileInputRef}
         submitting={submitting}
-        error={error}
+        error={paymentError}
         onSubmit={handleSubmitPayment}
       />
     </div>
