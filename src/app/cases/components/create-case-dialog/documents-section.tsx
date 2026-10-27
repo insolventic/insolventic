@@ -61,6 +61,21 @@ interface DocumentsSectionProps {
    */
   apoderadoNombreCompleto?: string;
   existePoderOtorgado?: boolean;
+  /**
+   * Pinta en rojo los obligatorios que faltan. Regla de producto: los errores
+   * se muestran solo después de una acción del usuario, así que al entrar a
+   * la pestaña los obligatorios llevan una etiqueta neutra "Obligatorio" y el
+   * rojo lo prende el wizard tras intentar "Crear Caso" o al salir de la
+   * pestaña con documentos faltantes. En la edición de un caso no se exigen
+   * documentos al guardar, así que ahí nunca se prende.
+   */
+  mostrarFaltantes?: boolean;
+  /**
+   * Archivos ya elegidos que guarda el wizard. La pestaña se desmonta al
+   * salir de ella, así que sin esto la sección volvía vacía (y, con
+   * `mostrarFaltantes`, marcaba como faltante un documento ya cargado).
+   */
+  seleccionActual?: Array<{ docKey: string; files: File[] }>;
 }
 
 type DocConfig = { key: string; label: string; multiple?: boolean };
@@ -80,6 +95,8 @@ export function DocumentsSection({
   apoderados = [],
   apoderadoNombreCompleto,
   existePoderOtorgado,
+  mostrarFaltantes = false,
+  seleccionActual,
 }: Readonly<DocumentsSectionProps>) {
   const caseDataPartial: Partial<CreateCaseFormInput> & {
     hasAttorney?: boolean;
@@ -169,8 +186,14 @@ export function DocumentsSection({
 
   const inputsRef = useRef<Record<string, HTMLInputElement | null>>({});
   // Use ref-backed state to persist files across tab switches
-  const filesMapRef = useRef<Record<string, File[]>>({});
-  const [selectedMap, setSelectedMap] = useState<Record<string, File[]>>({});
+  const [seleccionInicial] = useState<Record<string, File[]>>(() =>
+    Object.fromEntries(
+      (seleccionActual ?? []).map(({ docKey, files }) => [docKey, files]),
+    ),
+  );
+  const filesMapRef = useRef<Record<string, File[]>>(seleccionInicial);
+  const [selectedMap, setSelectedMap] =
+    useState<Record<string, File[]>>(seleccionInicial);
 
   const allDocs = [...mandatoryDocs, ...optionalDocs];
 
@@ -222,17 +245,17 @@ export function DocumentsSection({
 
   const renderDocRow = (doc: DocConfig, isRequired: boolean) => {
     const hasFile = (selectedMap[doc.key]?.length ?? 0) > 0;
-    const borderClass = isRequired
-      ? hasFile
-        ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950'
-        : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-950'
-      : hasFile
-        ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950'
+    const falta = isRequired && !hasFile && mostrarFaltantes;
+    const borderClass = hasFile
+      ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950'
+      : falta
+        ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-950'
         : '';
 
     return (
       <div
         key={doc.key}
+        data-falta={falta || undefined}
         className={`flex items-center justify-between rounded border p-2 ${borderClass}`}
       >
         <input
@@ -246,18 +269,26 @@ export function DocumentsSection({
           onChange={(e) => handleChange(doc.key, e.target.files)}
         />
         <div className="flex items-center gap-2">
-          {isRequired &&
-            (hasFile ? (
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
-            ) : (
-              <AlertCircle className="h-4 w-4 flex-shrink-0 text-red-500" />
-            ))}
+          {isRequired && hasFile && (
+            <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
+          )}
+          {falta && (
+            <AlertCircle
+              aria-label="Falta este documento"
+              className="h-4 w-4 flex-shrink-0 text-red-500"
+            />
+          )}
           <span className="text-sm">
             {doc.label}
             {selectedMap[doc.key]?.length
               ? ` — ${selectedMap[doc.key].length} archivo(s)`
               : ''}
           </span>
+          {isRequired && !hasFile && !falta && (
+            <span className="text-muted-foreground rounded border px-1.5 py-0.5 text-xs">
+              Obligatorio
+            </span>
+          )}
         </div>
         <Button
           type="button"
@@ -325,9 +356,7 @@ export function DocumentsSection({
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label className="font-semibold text-red-700">
-              Documentos Obligatorios
-            </Label>
+            <Label className="font-semibold">Documentos Obligatorios</Label>
             <div className="space-y-2">
               {mandatoryDocs.map((doc) => renderDocRow(doc, true))}
             </div>

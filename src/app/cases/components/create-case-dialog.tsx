@@ -313,6 +313,18 @@ export function CreateCaseDialog({
     dialogContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
+  // Los documentos obligatorios faltantes se pintan en rojo solo después de
+  // una acción: intentar "Crear Caso" (onInvalid / handleSubmit) o salir de
+  // la pestaña "7. Documentos". Al entrar llevan una etiqueta neutra.
+  const [mostrarDocumentosFaltantes, setMostrarDocumentosFaltantes] =
+    useState(false);
+  const pestanaAnteriorRef = useRef(activeTab);
+  useEffect(() => {
+    if (pestanaAnteriorRef.current === 'documents' && activeTab !== 'documents')
+      setMostrarDocumentosFaltantes(true);
+    pestanaAnteriorRef.current = activeTab;
+  }, [activeTab]);
+
   // Tras un "Crear Caso" con errores, enfoca el primer campo con error de la
   // pestaña a la que onInvalid llevó al usuario. No se usa el shouldFocusError
   // de react-hook-form (apagado en useForm): las pestañas inactivas están
@@ -336,6 +348,8 @@ export function CreateCaseDialog({
     if (open) {
       // First tab is always 'debtor' for any case type — keep INSOLVENCY tab key.
       setActiveTab(TAB_ORDER[0]);
+      setMostrarDocumentosFaltantes(false);
+      documentsToUploadRef.current = [];
       form.reset({
         debtorId: '',
         type: initialType,
@@ -674,6 +688,7 @@ export function CreateCaseDialog({
     );
     if (primeraPestanaConError) setActiveTab(primeraPestanaConError);
     setEnfocarPrimerError((n) => n + 1);
+    setMostrarDocumentosFaltantes(true);
 
     if (errorMessages.length > 0) {
       toast.error('Campos incompletos', {
@@ -701,6 +716,7 @@ export function CreateCaseDialog({
       });
       // Navigate to documents tab
       setActiveTab('documents');
+      setMostrarDocumentosFaltantes(true);
       return;
     }
 
@@ -1343,6 +1359,8 @@ export function CreateCaseDialog({
                         .watch('apoderados')
                         ?.some((a) => a?.nombreCompleto?.trim())
                     }
+                    mostrarFaltantes={mostrarDocumentosFaltantes}
+                    seleccionActual={documentsToUploadRef.current}
                     onFilesSelected={(sel) => {
                       documentsToUploadRef.current = sel;
                     }}

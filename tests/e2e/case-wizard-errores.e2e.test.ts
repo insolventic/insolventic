@@ -235,3 +235,28 @@ test.describe('Wizards de casos — "Siguiente" pasa, "Crear Caso" bloquea o cre
     });
   }
 });
+
+test.describe('Wizard de Insolvencia — pestaña "7. Documentos"', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.context().clearCookies();
+    await loginAs(page);
+  });
+
+  test('los obligatorios entran neutros y se pintan en rojo solo al salir de la pestaña sin cargarlos', async ({
+    page,
+  }) => {
+    const dialogo = await abrirWizard(page, 'Insolvencia');
+
+    await dialogo.getByRole('tab', { name: /7\. Documentos/ }).click();
+    await expect(dialogo.getByText('Obligatorio', { exact: true })).toHaveCount(
+      3,
+    );
+    await expect(dialogo.locator('[data-falta]')).toHaveCount(0);
+
+    await dialogo.getByRole('tab', { name: /1\. Solicitante/ }).click();
+    await dialogo.getByRole('tab', { name: /7\. Documentos/ }).click();
+
+    await expect(dialogo.locator('[data-falta]')).toHaveCount(3);
+    await expect(dialogo.getByLabel('Falta este documento')).toHaveCount(3);
+  });
+});

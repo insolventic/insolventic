@@ -451,3 +451,85 @@ describe('CreateCaseDialog — "Siguiente" pasa, "Crear Caso" bloquea (3 wizards
     },
   );
 });
+
+describe('CreateCaseDialog — pestaña "7. Documentos": rojo solo tras la acción', () => {
+  const filasFaltantes = () =>
+    Array.from(document.querySelectorAll('[data-falta]'));
+  const pdf = (nombre: string) =>
+    new File(['%PDF'], nombre, { type: 'application/pdf' });
+
+  it('al entrar los obligatorios son neutros', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+
+    await irAPestana(/7\. Documentos/);
+
+    expect(screen.getAllByText('Obligatorio')).toHaveLength(3);
+    expect(filasFaltantes()).toHaveLength(0);
+  });
+
+  it('al salir de la pestaña con documentos faltantes, al volver están en rojo', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+    await irAPestana(/7\. Documentos/);
+
+    await irAPestana(/1\. Solicitante/);
+    await irAPestana(/7\. Documentos/);
+
+    expect(filasFaltantes()).toHaveLength(3);
+    expect(screen.queryByText('Obligatorio')).toBeNull();
+  });
+
+  it('tras "Crear Caso" con errores, los faltantes están en rojo', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+    await irAPestana(/7\. Documentos/);
+    await pulsarCrearCaso();
+    await waitFor(() => expect(pestanaActiva()).toBe('1. Solicitante'));
+
+    await irAPestana(/7\. Documentos/);
+
+    expect(filasFaltantes()).toHaveLength(3);
+  });
+
+  it('un documento cargado sigue cargado al volver a la pestaña, y no sale como faltante', async () => {
+    renderWizard('INSOLVENCY');
+    await esperarCarga();
+    await irAPestana(/7\. Documentos/);
+    await act(async () => {
+      fireEvent.change(
+        document.querySelectorAll<HTMLInputElement>('input[type="file"]')[0],
+        { target: { files: [pdf('cedula.pdf')] } },
+      );
+    });
+
+    await irAPestana(/1\. Solicitante/);
+    await irAPestana(/7\. Documentos/);
+
+    expect(screen.getByText(/1 archivo\(s\)/)).toBeInTheDocument();
+    expect(filasFaltantes()).toHaveLength(2);
+  });
+
+  it('cerrar y reabrir vuelve a dejar los obligatorios neutros y sin archivos', async () => {
+    const { reabrir } = renderWizard('INSOLVENCY');
+    await esperarCarga();
+    await irAPestana(/7\. Documentos/);
+    await act(async () => {
+      fireEvent.change(
+        document.querySelectorAll<HTMLInputElement>('input[type="file"]')[0],
+        { target: { files: [pdf('cedula.pdf')] } },
+      );
+    });
+    await pulsarCrearCaso();
+    await waitFor(() => expect(pestanaActiva()).toBe('1. Solicitante'));
+
+    reabrir(false);
+    reabrir(true);
+    await esperarCarga();
+    await irAPestana(/7\. Documentos/);
+
+    expect(filasFaltantes()).toHaveLength(0);
+    expect(screen.getAllByText('Obligatorio')).toHaveLength(3);
+    expect(screen.queryByText(/archivo\(s\)/)).toBeNull();
+  });
+});
