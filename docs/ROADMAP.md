@@ -59,9 +59,9 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
 7. ~~**El `test:db` de `e2e.yml` dependía de un pull anónimo a Docker Hub**~~ → 🟢 **Resuelto el 2026-10-09 en `#127`.** El job levantaba `postgres:16-alpine` como service container y falló dos veces seguidas en "Initialize containers" con `toomanyrequests: You have reached your unauthenticated pull rate limit`. El límite es por IP del runner —compartida con muchísimos proyectos—, así que no dependía de nosotros y no se arreglaba reintentando: los tres reintentos del propio runner fallaron, y el rerun completo también. **Lo grave no era el rojo:** cuando ese paso falla, todos los siguientes quedan `skipped`, incluido `test:db`, que es el gate de los PRs que tocan la base — y un `skipped` se lee parecido a un `passed` de un vistazo. Reemplazado por el **PostgreSQL preinstalado del runner** (Ubuntu 24.04 trae 16.15, el mismo major que la imagen que reemplaza; el servicio viene deshabilitado y hay que arrancarlo), sin secretos nuevos ni dependencia de registries externos. Dos detalles que hacían falta: `CREATEDB` en el rol, porque el guardián del replay de migraciones crea y borra una base por corrida, y `OWNER` en la base, porque desde PostgreSQL 15 el schema `public` pertenece a `pg_database_owner` y `prisma db push` no podría crear las tablas. Verificado end-to-end: el PR se verifica a sí mismo (`e2e.yml` corre en `pull_request`) y la prueba de humo del paso imprime `PostgreSQL 16.15 (Ubuntu 16.15-1.pgdg24.04+2)`.
 
-8. **El CI no corre en PRs apilados, y los checks que quedan se leen como verdes** — ~1h
+8. ~~**El CI no corre en PRs apilados, y los checks que quedan se leen como verdes**~~ → 🟢 **Resuelto en `#142` (`7edc0cf`), sacando el filtro `branches:` de los dos workflows.**
 
-   Encontrado el 2026-10-10 con `#133` y `#134`, apilados sobre ramas de feature. `pr.yml` y `e2e.yml` tienen
+   Encontrado el 2026-10-10 con `#133` y `#134`, apilados sobre ramas de feature. `pr.yml` y `e2e.yml` tenían
 
    ```yaml
    on:
@@ -69,17 +69,18 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
        branches: [dev, main]
    ```
 
-   así que **un PR cuya base es una rama de feature no dispara ninguno de los dos**. En `#133` los únicos checks eran `Vercel` (fail por autoría, el de siempre), `Vercel Preview Comments` (pass) y `smoke` (skipping): ni `quality-checks` ni `playwright` aparecían. No fallaron — no existieron.
+   así que **un PR cuya base era una rama de feature no disparaba ninguno de los dos**. En `#133` los únicos checks eran `Vercel` (fail por autoría, el de siempre), `Vercel Preview Comments` (pass) y `smoke` (skipping): ni `quality-checks` ni `playwright` aparecían. No fallaron — no existieron.
 
-   **Es la misma familia que el Quick Win 7:** un check que no corre se lee parecido a uno que pasó. Ahí el `test:db` quedaba en `skipped` por el rate limit de Docker Hub; acá el job entero no se encola. En los dos casos el PR muestra algo verde al lado y la ausencia no salta a la vista. La diferencia es que el `skipped` por lo menos aparece listado; esto **no aparece en absoluto**, que es peor.
+   **Cómo quedó:** los dos workflows tienen `pull_request:` sin `branches:`, con el porqué comentado en cada archivo, así que un PR apilado encola `quality-checks` y `playwright` como cualquier otro. El costo es correr CI también en PRs apilados, que es exactamente lo que se buscaba. `pr.yml` ganó además `push: branches: [dev]`, para que el commit que queda en `dev` tras un merge pase por `quality-checks` — antes esa verificación era local y a mano.
 
-   **El workaround que se usó**, por si hace falta antes de arreglarlo: `e2e.yml` tiene `workflow_dispatch`, así que se corre a mano con `gh workflow run e2e.yml --ref <rama>` y eso da `test:db` + Playwright reales. `pr.yml` **no** lo tiene, así que `quality-checks` no se puede disparar y hay que correr sus pasos en local (`npm run lint`, `npx tsc --noEmit`, `npx jest --ci`, `npm run build`).
+   **Lo que sigue vigente al leer el CI de un PR apilado:**
+   - Confirmar que `quality-checks` y `playwright` **aparecieron, en `success` y sobre el SHA actual** de la rama. Es la misma familia que el Quick Win 7: un check que no corre se lee parecido a uno que pasó, y en `e2e.yml` cualquier paso que falle deja los siguientes en `skipped` — incluido `test:db`, que es el gate de los PRs que tocan la base. **Confirmar que el check corrió, no que no está rojo.**
+   - El rojo puede venir del **PR padre**: el diff y el checkout de un PR apilado incluyen sus commits, así que el primer descarte es si el padre ya fallaba solo.
+   - Si hace falta forzar una corrida, `e2e.yml` tiene `workflow_dispatch`, así que se corre a mano con `gh workflow run e2e.yml --ref <rama>` y eso da `test:db` + Playwright reales. `pr.yml` **no** lo tiene, así que `quality-checks` no se puede disparar y hay que correr sus pasos en local (`npm run lint`, `npx tsc --noEmit`, `npx jest --ci`, `npm run build`).
 
-   **Y ojo con la secuencia de merge de un stack**, que tiene dos trampas más, las dos pisadas el 2026-10-10:
+   **Y ojo con la secuencia de merge de un stack**, que tiene dos trampas más, las dos pisadas el 2026-10-10 y las dos todavía vigentes:
    - Al mergear el PR de abajo con `--delete-branch`, GitHub **no retargetea** al de arriba: lo **cierra**. Y un PR cerrado no se puede reabrir ni cambiar de base si su base ya no existe (`Cannot change the base branch of a closed pull request`). Se recupera recreando la rama borrada, reabriendo y retargeteando — o, mejor, **retargeteando el PR de arriba a `dev` ANTES** de mergear el de abajo.
    - Cambiar la base **no** vuelve a disparar los workflows: eso emite `pull_request: edited`, y el set por defecto es `opened, synchronize, reopened`. Lo que sí dispara es un push a la rama — y después de un squash merge hay que rebasear igual, porque el stack conserva los commits del padre y el diff los muestra de nuevo. Un `git rebase --onto origin/dev <viejo-tip-del-padre>` + `push --force-with-lease` resuelve las dos cosas de una.
-
-   **El arreglo de fondo**: sacar el filtro `branches:` de los dos workflows, o agregarle `workflow_dispatch` a `pr.yml`. Lo primero es lo correcto —el costo es correr CI en PRs apilados, que es exactamente lo que se quería— y lo segundo es el parche mínimo.
 
 9. **Los 2 campos de dinero fuera del formulario maestro siguen sin separador de miles** — ~2h
 
