@@ -6,6 +6,7 @@
  */
 
 import { displayTimeZone, parseDateOnly } from '@/lib/date-colombia';
+import { logger } from '@/lib/logger';
 
 import type { CreateCaseFormInput } from './schemas';
 
@@ -96,11 +97,26 @@ export function isSmmlvYearConfirmed(year: number): boolean {
  * Si el año no está en la tabla (a partir de 2027, mientras no se cargue el
  * decreto correspondiente) cae al último año conocido en vez de lanzar: dejar a
  * los dos centros sin poder radicar un expediente sería peor que calcular el
- * umbral con una base conservadora. `isSmmlvYearConfirmed` permite avisar de la
- * degradación.
+ * umbral con una base conservadora.
+ *
+ * La degradación se REGISTRA. Antes caía en silencio, así que un expediente
+ * radicado en 2027 se juzgaba con el valor transitorio de 2026 sin que quedara
+ * rastro en ningún lado. El aviso solo se emite cuando el año falta, que es
+ * exactamente cuando hay que enterarse; con un año cargado no cuesta nada.
  */
 export function getSmmlv(year: number = new Date().getFullYear()): number {
-  return SMMLV_BY_YEAR[year] ?? SMMLV_BY_YEAR[LATEST_SMMLV_YEAR];
+  const exacto = SMMLV_BY_YEAR[year];
+  if (exacto !== undefined) return exacto;
+
+  logger.warn(
+    'SMMLV del año pedido no está cargado; se usa el último conocido',
+    {
+      action: 'smmlv',
+      anioPedido: year,
+      anioUsado: LATEST_SMMLV_YEAR,
+    },
+  );
+  return SMMLV_BY_YEAR[LATEST_SMMLV_YEAR];
 }
 
 /**
