@@ -36,7 +36,8 @@ import {
   validatePaymentProposal,
   validateDocumentsComplete,
   caseHasAttorney,
-  SMMLV_2025,
+  validateMinimaCuantia,
+  smmlvYearForCase,
   type ValidationIssue,
 } from '@/features/case/validation-rules';
 import {
@@ -534,19 +535,32 @@ export function CreateCaseDialog({
     const proposalWarnings = validatePaymentProposal(formData);
     warnings.push(...proposalWarnings.filter((w) => w.type === 'warning'));
 
-    // Validate mínima cuantía → abogado obligatorio. Misma función que usa
-    // el servidor (validateCaseBusinessRules), para que cliente y servidor
-    // digan lo mismo — antes esta lógica estaba reimplementada acá, sin el
-    // flag explícito que DocumentsSection inyecta.
+    // Validate mínima cuantía → abogado obligatorio. Llama a la MISMA función
+    // que corre en el servidor (`validateMinimaCuantia`, la que usa
+    // `validateCaseBusinessRules`), para que cliente y servidor no puedan
+    // divergir: antes el umbral estaba reimplementado acá sobre `SMMLV_2025`,
+    // así que el wizard avisaba a partir de $56.940.000 y el servidor recién
+    // cortaba en $70.036.200.
+    //
+    // El año sale de `smmlvYearForCase`, la misma regla que aplica el
+    // servidor. Acá se la llama SIN fecha de radicación a propósito: el alta no
+    // la pide —la radica el centro, no el deudor, y su lugar es la pantalla del
+    // operador (ver `tests/unit/cases/filing-date-ownership.test.ts`)—, así que
+    // la regla cae a la fecha de creación del expediente, que para un caso que
+    // se está creando es hoy. Es exactamente lo que resolverá `createCase`.
+    //
+    // Las incidencias se muestran como advertencia aunque la función las emita
+    // como error: en el wizard este panel es informativo y no bloquea, y quien
+    // corta de verdad es el servidor. El texto, el umbral y la condición son
+    // los mismos en los dos lados.
     const totalDebt = parsearMonto(formData.totalDebt) || 0;
     const hasAttorney = caseHasAttorney(formData);
-    if (totalDebt > 40 * SMMLV_2025 && !hasAttorney) {
-      warnings.push({
-        field: 'attorney',
-        message: `La deuda total ($${totalDebt.toLocaleString('es-CO')}) supera la mínima cuantía (40 SMMLV). Es obligatorio contar con apoderado judicial.`,
-        type: 'warning',
-      });
-    }
+    const smmlvYear = smmlvYearForCase({});
+    warnings.push(
+      ...validateMinimaCuantia(totalDebt, hasAttorney, smmlvYear).map(
+        (issue) => ({ ...issue, type: 'warning' as const }),
+      ),
+    );
 
     setValidationWarnings(warnings);
   };
