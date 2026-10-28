@@ -873,6 +873,12 @@ export function validateDocumentsComplete(
 export function validateCaseComplete(
   data: Partial<CreateCaseFormInput>,
   uploadedDocKeys: string[] = [],
+  /**
+   * Año de radicación, para el SMMLV de los umbrales. Se explicita para que
+   * esta función no sea la única que resuelve el año por el reloj; sin él cae
+   * al año en curso, que es lo que hacía antes.
+   */
+  year: number = new Date().getFullYear(),
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
@@ -936,7 +942,7 @@ export function validateCaseComplete(
   });
 
   // Debt limits validation
-  const debtIssues = validateDebtLimits(totalDebt, debts.length);
+  const debtIssues = validateDebtLimits(totalDebt, debts.length, year);
   debtIssues.forEach((issue) => {
     if (issue.type === 'error') issues.push(issue);
     else warnings.push(issue);
