@@ -5,6 +5,9 @@
  * the main Zod schemas in schemas.ts
  */
 
+import { displayTimeZone, parseDateOnly } from '@/lib/date-colombia';
+import { logger } from '@/lib/logger';
+
 import type { CreateCaseFormInput } from './schemas';
 
 // ============================================
@@ -60,6 +63,15 @@ import type { CreateCaseFormInput } from './schemas';
 // │ De este número cuelga la mínima cuantía (40 SMMLV), que decide si el      │
 // │ apoderado judicial es OBLIGATORIO en un expediente real. No se deja       │
 // │ automatizado a propósito: el cambio exige criterio jurídico, no un fetch. │
+// │                                                                           │
+// │ 2026-10-27 — Esta tabla pasó a ser la ÚNICA fuente de SMMLV del sistema.  │
+// │ Antes convivían tres bases distintas para la misma decisión: el servidor  │
+// │ usaba `getSmmlv(año)`, el wizard un `SMMLV_2025` ya marcado deprecado, y  │
+// │ el mapper de documentos un literal `1300000` (el valor de 2024). En la    │
+// │ banda $52.000.000–$70.036.200 el Check List marcaba una casilla y la      │
+// │ validación del formulario decía lo contrario. El valor transitorio NO se  │
+// │ tocó en ese cambio: sigue pendiente de confirmación jurídica, igual que   │
+// │ antes, y las dos condiciones de revisión de arriba siguen vigentes.       │
 // └───────────────────────────────────────────────────────────────────────────┘
 export const SMMLV_BY_YEAR: Readonly<Record<number, number>> = {
   2024: 1_300_000,
@@ -85,18 +97,62 @@ export function isSmmlvYearConfirmed(year: number): boolean {
  * Si el año no está en la tabla (a partir de 2027, mientras no se cargue el
  * decreto correspondiente) cae al último año conocido en vez de lanzar: dejar a
  * los dos centros sin poder radicar un expediente sería peor que calcular el
- * umbral con una base conservadora. `isSmmlvYearConfirmed` permite avisar de la
- * degradación.
+ * umbral con una base conservadora.
+ *
+ * La degradación se REGISTRA. Antes caía en silencio, así que un expediente
+ * radicado en 2027 se juzgaba con el valor transitorio de 2026 sin que quedara
+ * rastro en ningún lado. El aviso solo se emite cuando el año falta, que es
+ * exactamente cuando hay que enterarse; con un año cargado no cuesta nada.
  */
 export function getSmmlv(year: number = new Date().getFullYear()): number {
-  return SMMLV_BY_YEAR[year] ?? SMMLV_BY_YEAR[LATEST_SMMLV_YEAR];
+  const exacto = SMMLV_BY_YEAR[year];
+  if (exacto !== undefined) return exacto;
+
+  logger.warn(
+    'SMMLV del año pedido no está cargado; se usa el último conocido',
+    {
+      action: 'smmlv',
+      anioPedido: year,
+      anioUsado: LATEST_SMMLV_YEAR,
+    },
+  );
+  return SMMLV_BY_YEAR[LATEST_SMMLV_YEAR];
 }
 
 /**
- * @deprecated Nombre histórico conservado para no romper call-sites; su valor
- * era el de 2024. Usar `getSmmlv(year)`.
+ * Año cuyo SMMLV rige para un expediente.
+ *
+ * Es la fecha de RADICACIÓN, no la de hoy. La diferencia importa porque el
+ * umbral de la mínima cuantía decide si el apoderado judicial es obligatorio:
+ * si el año se tomara del reloj, el mismo expediente cambiaría de umbral al
+ * pasar de año, y una edición del 2 de enero lo juzgaría contra un SMMLV
+ * distinto del que regía cuando se radicó.
+ *
+ * Sin fecha de radicación se usa la de creación del expediente, que para un
+ * caso nuevo es hoy y para uno viejo es el año en que entró al sistema. Así el
+ * año queda fijado por el expediente y no se mueve solo. El último fallback —el
+ * año en curso— solo aplica cuando no hay ninguna de las dos, que en la
+ * práctica es la validación de un payload antes de que exista la fila.
+ *
+ * El año se lee en la zona de Colombia (`displayTimeZone`, que respeta las
+ * filas viejas ancladas a medianoche UTC): leer `getFullYear()` crudo sobre una
+ * fecha-sin-hora del 1 de enero devolvería el año anterior.
  */
-export const SMMLV_2025 = SMMLV_BY_YEAR[2025];
+export function smmlvYearForCase(source: {
+  filingDate?: Date | string | null;
+  createdDate?: Date | string | null;
+}): number {
+  const fecha =
+    parseDateOnly(source.filingDate) ?? parseDateOnly(source.createdDate);
+  if (!fecha) return new Date().getFullYear();
+
+  return Number(
+    new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      timeZone: displayTimeZone(fecha),
+    }).format(fecha),
+  );
+}
 
 export const CREDITOR_CLASSES = {
   PRIMERA: '1ª Clase – Tributarias',
@@ -833,6 +889,12 @@ export function validateDocumentsComplete(
 export function validateCaseComplete(
   data: Partial<CreateCaseFormInput>,
   uploadedDocKeys: string[] = [],
+  /**
+   * Año de radicación, para el SMMLV de los umbrales. Se explicita para que
+   * esta función no sea la única que resuelve el año por el reloj; sin él cae
+   * al año en curso, que es lo que hacía antes.
+   */
+  year: number = new Date().getFullYear(),
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
@@ -896,7 +958,7 @@ export function validateCaseComplete(
   });
 
   // Debt limits validation
-  const debtIssues = validateDebtLimits(totalDebt, debts.length);
+  const debtIssues = validateDebtLimits(totalDebt, debts.length, year);
   debtIssues.forEach((issue) => {
     if (issue.type === 'error') issues.push(issue);
     else warnings.push(issue);

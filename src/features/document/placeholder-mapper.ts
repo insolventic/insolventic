@@ -4,6 +4,7 @@
  */
 
 import type { CaseWithRelations } from '../case/schemas';
+import { getSmmlv, smmlvYearForCase } from '../case/validation-rules';
 import { nowColombia } from '@/lib/date-colombia';
 import { renderTemplate } from './handlebars-lite';
 import {
@@ -63,7 +64,13 @@ function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
     (sum, d) => sum + (Number(d.amount) || 0),
     0,
   );
-  const SMMLV = 1300000; // Salario mínimo 2025 Colombia
+  // El SMMLV sale de la tabla por año de `validation-rules.ts`, la misma que
+  // usa la validación del expediente. Acá vivía un literal `1300000` rotulado
+  // "Salario mínimo 2025" que en realidad era el de 2024: el Check List
+  // clasificaba los umbrales de 40 y 150 SMMLV sobre una base un 26% más baja
+  // que la del servidor, así que en la banda intermedia el documento marcaba
+  // una casilla y el formulario afirmaba lo contrario.
+  const SMMLV = getSmmlv(smmlvYearForCase(caseData));
 
   // Calculate total assets value
   const totalAssets = caseData.assets.reduce(

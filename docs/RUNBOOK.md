@@ -316,7 +316,39 @@ cuándo, qué se hizo, y qué haría falta para que no vuelva a pasar.
 
 ---
 
-## 7. Referencias
+## 7. Mantenimiento programado
+
+### 7.1 Actualización anual del SMMLV
+
+Cuando se decrete el salario mínimo del año siguiente —normalmente en
+diciembre—, agregarlo a `SMMLV_BY_YEAR` en
+`src/features/case/validation-rules.ts` y revisar si queda algún `TODO(legal)`
+de valor transitorio.
+
+Por qué no es opcional: de esa tabla cuelgan los dos umbrales de cuantía del
+trámite, y de uno de ellos —la mínima cuantía, 40 SMMLV— depende si el
+apoderado judicial es obligatorio en un expediente real. Es la **única** fuente
+de SMMLV del sistema: la usan la validación del caso (servidor y wizard) y el
+Check List de los documentos.
+
+Mientras el año no esté cargado, `getSmmlv` no falla: cae al último año
+conocido y lo registra con `logger.warn` (`action: 'smmlv'`), de modo que los
+centros pueden seguir radicando. Esa degradación es visible en los logs, y es
+la señal de que esta tarea quedó pendiente.
+
+Qué hacer:
+
+1. Agregar la fila del año nuevo a `SMMLV_BY_YEAR`, con la fuente normativa
+   anotada al lado como las demás.
+2. Revisar el `TODO(legal)` del encabezado: si el valor de un año anterior era
+   transitorio y ya hay norma en firme, actualizar el comentario o retirarlo.
+3. Correr `npx jest tests/unit/cases/smmlv-fuente-unica.test.ts` y el golden
+   master (`npm test`): agregar un año no debería cambiar ningún documento de
+   un expediente ya radicado, porque el año sale de su fecha de radicación.
+
+---
+
+## 8. Referencias
 
 - Arquitectura y flujos: `docs/ARQUITECTURA.md`
 - Auditoría pre-producción y hallazgos abiertos:
