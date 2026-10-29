@@ -44,6 +44,10 @@ _transform.*
 plan.md
 *.report.md
 
+# Datos de contacto reales (el repo es público): ver docs/RUNBOOK.md §0.1.
+# La plantilla commiteada es docs/CONTACTOS.example.md.
+docs/*.local.md
+
 # Claude / AI artifacts
 .claude/
 
