@@ -202,6 +202,11 @@ Formato: archivo, línea aproximada, qué dice hoy, qué debería decir.
 
 ### 7.1 `README.md`
 
+> **Aplicadas el 2026-10-29** en la rama `docs/readme-al-dia` (hallazgos D-1 a
+> D-4 de `docs/AUDITORIA_BLOQUE3_2026-10-27.md`). Las cifras de esta tabla
+> eran las de septiembre; las que quedó en el README son las medidas el
+> 2026-10-29. El resto de las secciones (§7.2 a §7.10) sigue sin aplicar.
+
 | Línea   | Dice hoy                                                                                 | Debería decir                                                                                                                                                                     |
 | ------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 92      | "Node.js 20.x o superior"                                                                | Node 24 (los tres workflows y Vercel usan 24.x)                                                                                                                                   |

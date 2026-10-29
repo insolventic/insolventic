@@ -48,7 +48,7 @@ jobs:
         run: npm run lint
 
       # El type-check del proyecto necesita >2 GB de heap (el modelo Case tiene
-      # 283 campos y los tipos generados de Prisma son ~22% de los 277k tipos
+      # 293 campos y los tipos generados de Prisma son ~22% de los 277k tipos
       # que instancia tsc). Sin este NODE_OPTIONS el step pasa por poco y es
       # candidato a empezar a fallar solo.
       - name: Type check

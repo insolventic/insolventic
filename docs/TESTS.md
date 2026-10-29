@@ -1,8 +1,12 @@
 # Plan y Reporte de Pruebas — INSOLVENTIC
 
-> Estado: **27 suites / 447 tests ✅** (cifra de suites y de casos individuales verificada contra los archivos reales en `tests/` — ago-2026). El inventario de la sección 3 fue reconstruido en esta pasada: la tabla anterior (abril 2026, 23 suites) tenía rutas que ya no existen — varias suites se reorganizaron entre abril y julio (`tests/unit/case/` → `tests/unit/cases/`, CRUD de acreedor/deudor/usuario consolidado, etc.) y se sumaron `tests/security/` (5 suites) y las suites de P3/P4 (`tests/unit/documents/generation-job.test.ts`, `generation-request.test.ts`, `retry.test.ts`, `handlebars-lite.test.ts`, `tests/unit/observability/request-context.smoke.test.ts`) que no existían todavía.
+> Estado: **164 suites / 2184 tests ✅** (medido en `dev` el 2026-10-29 con `npx jest --ci`; excluye `tests/db` y `tests/e2e`, que corren aparte). El conteo lo vigila `tests/unit/docs/conteo-de-tests.test.ts`: falla si esta cifra, la del README o la de `CLAUDE.md` se despegan de la realidad o entre sí. Antes de ese test las tres decían números distintos y ninguno era el correcto — este documento afirmaba 27 suites / 447 tests, de agosto de 2026.
 >
-> ⚠️ **La sección 4 (Cobertura funcional) no se re-verificó en esta pasada** — son afirmaciones semánticas sobre qué prueba cada suite y confirmarlas requiere leer el contenido de las 27 suites, no solo sus rutas. Dado que las rutas subyacentes cambiaron bastante, tratar la sección 4 como orientativa hasta una revisión dedicada.
+> ⚠️ **El inventario de la sección 3 cubre 27 de esas 164 suites**: las que existían cuando se escribió, en agosto de 2026 (y esas 27 hoy tienen 511 casos, no 447). No es el inventario completo del proyecto, es la lista de las suites del núcleo; reconstruirlo entero es trabajo propio, y no está hecho.
+>
+> ⚠️ **La sección 4 (Cobertura funcional) tampoco se re-verificó** — son afirmaciones semánticas sobre qué prueba cada suite, y confirmarlas requiere leer el contenido de las suites, no solo sus rutas. Tratarla como orientativa hasta una revisión dedicada.
+>
+> _Historia de la pasada de agosto de 2026:_ la tabla anterior (abril 2026, 23 suites) tenía rutas que ya no existían — varias suites se reorganizaron entre abril y julio (`tests/unit/case/` → `tests/unit/cases/`, CRUD de acreedor/deudor/usuario consolidado, etc.) y se sumaron `tests/security/` (5 suites) y las suites de P3/P4 (`tests/unit/documents/generation-job.test.ts`, `generation-request.test.ts`, `retry.test.ts`, `handlebars-lite.test.ts`, `tests/unit/observability/request-context.smoke.test.ts`) que no existían todavía.
 
 ---
 
@@ -136,9 +140,9 @@ arreglos deja **20 tests en rojo**, y cada uno nombra su hallazgo.
 | 25  | `tests/unit/notifications/alerts.test.ts`                | scanUpcomingHearings / scanOverduePayments + dedupe                                 | ~7      |
 | 26  | `tests/unit/observability/logger-sentry.test.ts`         | Logger como único wrapper de Sentry: waitUntil + flush, tag `action`, no-op sin DSN | ~13     |
 | 27  | `tests/unit/observability/request-context.smoke.test.ts` | Propagación de `requestId` vía `AsyncLocalStorage`                                  | ~2      |
-|     | **TOTAL**                                                |                                                                                     | **447** |
+|     | **SUBTOTAL de estas 27 suites**                          |                                                                                     | **511** |
 
-> Conteos `~N`: recuento estático de llamadas `it(`/`test(` por archivo (415 en total) — jest reporta 447 al ejecutar; la diferencia son casos generados dinámicamente en loops de código (este proyecto no usa `it.each`, así que no es eso). La cifra de suites (27) y el total (447) están verificados; los conteos por fila son una aproximación razonable, igual que en la versión anterior de este documento.
+> Conteos `~N`: recuento estático de llamadas `it(`/`test(` por archivo — jest reporta más al ejecutar, porque hay casos generados dinámicamente en loops de código (en toda la suite: 1.655 estáticos contra 2.184 ejecutados). El subtotal de **511** es medido: `npx jest` sobre esas 27 rutas, el 2026-10-29. Los conteos por fila siguen siendo la aproximación estática de agosto de 2026 y están por debajo del real.
 >
 > **Ya no existe** `tests/integration/batch-document-generation.test.ts` (mencionado en versiones previas de este documento) — nunca hubo un archivo con ese nombre en el árbol actual. La cobertura real de generación de documentos vive en las filas 16 y 20–24 de esta tabla.
 
