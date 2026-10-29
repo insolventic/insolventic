@@ -1,5 +1,17 @@
 'use client';
 
+/**
+ * Auto-logout por inactividad.
+ *
+ * Las trazas de este hook van por `logger.debug`, no por `console.log`:
+ * el nivel por defecto en producción es `warn`, así que en el bundle de
+ * producción no imprimen nada, y en desarrollo siguen estando completas.
+ * Antes eran 30 `console.log` sin guarda de entorno, y uno de ellos
+ * imprimía el nombre del usuario en la consola del navegador en
+ * producción; ese dato ya no se registra, porque para depurar solo hace
+ * falta saber si hay usuario (`hasUser`), no quién es.
+ */
+
 import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 
@@ -53,9 +65,10 @@ export function useSessionTimeout(
     enabled = true,
   } = options;
 
-  console.log('🔧 [SessionTimeout] Hook initialized with options:', {
-    timeoutDuration: timeoutDuration / 1000 + 's',
-    warningDuration: warningDuration / 1000 + 's',
+  logger.debug('Session timeout: hook inicializado', {
+    action: 'sessionTimeout',
+    timeoutSeconds: timeoutDuration / 1000,
+    warningSeconds: warningDuration / 1000,
     enabled,
   });
 
@@ -66,13 +79,13 @@ export function useSessionTimeout(
   // Solo log cuando hay cambios en el estado de autenticación o en modo debug
   if (!isAuthenticated || timeoutDuration < 5 * 60 * 1000) {
     // Debug mode o no autenticado
-    console.log('🔍 [SessionTimeout] Auth state:', {
+    logger.debug('Session timeout: estado de autenticación', {
+      action: 'sessionTimeout',
       isAuthenticated,
       hasUser: !!user,
-      userName: user?.name || 'N/A',
       wasAuthenticated: wasAuthenticatedRef.current,
       enabled,
-      timeoutDuration: timeoutDuration / 1000 + 's',
+      timeoutSeconds: timeoutDuration / 1000,
     });
   }
 
@@ -107,11 +120,15 @@ export function useSessionTimeout(
 
   const showWarning = useCallback(() => {
     if (warningShownRef.current) {
-      console.log('⚠️ [SessionTimeout] Warning already shown, skipping');
+      logger.debug('Session timeout: el aviso ya se mostró, se omite', {
+        action: 'sessionTimeout',
+      });
       return;
     }
 
-    console.log('⚠️ [SessionTimeout] Showing session expiration warning');
+    logger.debug('Session timeout: mostrando el aviso de expiración', {
+      action: 'sessionTimeout',
+    });
     warningShownRef.current = true;
     isWarningActiveRef.current = true;
 
@@ -123,7 +140,9 @@ export function useSessionTimeout(
       action: {
         label: 'Mantener sesión',
         onClick: () => {
-          console.log('🔄 [SessionTimeout] User clicked "Mantener sesión"');
+          logger.debug('Session timeout: el usuario pidió mantener la sesión', {
+            action: 'sessionTimeout',
+          });
           resetTimerRef.current();
           toast.success('Sesión extendida exitosamente');
         },
@@ -132,24 +151,31 @@ export function useSessionTimeout(
   }, [warningDuration]);
 
   const resetTimer = useCallback(() => {
-    console.log('🔄 [SessionTimeout] Resetting timer...', {
+    logger.debug('Session timeout: reiniciando el temporizador', {
+      action: 'sessionTimeout',
       enabled,
       isAuthenticated,
-      timeoutDuration: timeoutDuration / 1000 + 's',
-      warningDuration: warningDuration / 1000 + 's',
+      timeoutSeconds: timeoutDuration / 1000,
+      warningSeconds: warningDuration / 1000,
     });
 
     // Limpiar timers existentes
     if (timeoutIdRef.current) {
-      console.log('🧹 [SessionTimeout] Clearing existing timeout timer');
+      logger.debug('Session timeout: limpiando el temporizador de cierre', {
+        action: 'sessionTimeout',
+      });
       clearTimeout(timeoutIdRef.current);
     }
     if (warningTimeoutIdRef.current) {
-      console.log('🧹 [SessionTimeout] Clearing existing warning timer');
+      logger.debug('Session timeout: limpiando el temporizador de aviso', {
+        action: 'sessionTimeout',
+      });
       clearTimeout(warningTimeoutIdRef.current);
     }
     if (countdownIntervalRef.current) {
-      console.log('🧹 [SessionTimeout] Clearing existing countdown interval');
+      logger.debug('Session timeout: limpiando la cuenta regresiva', {
+        action: 'sessionTimeout',
+      });
       clearInterval(countdownIntervalRef.current);
     }
 
@@ -159,9 +185,10 @@ export function useSessionTimeout(
     timeRemainingRef.current = timeoutDuration;
 
     if (!enabled || !isAuthenticated) {
-      console.log(
-        '❌ [SessionTimeout] Timer not started - disabled or not authenticated',
+      logger.debug(
+        'Session timeout: temporizador no iniciado (deshabilitado o sin sesión)',
         {
+          action: 'sessionTimeout',
           enabled,
           isAuthenticated,
         },
@@ -171,10 +198,10 @@ export function useSessionTimeout(
 
     // Configurar timer de advertencia
     const warningTime = timeoutDuration - warningDuration;
-    console.log(
-      '⏰ [SessionTimeout] Setting warning timer for',
-      warningTime / 1000 + 's',
-    );
+    logger.debug('Session timeout: programando el aviso', {
+      action: 'sessionTimeout',
+      warningAtSeconds: warningTime / 1000,
+    });
 
     // Solo mostrar countdown en los últimos 10 segundos para evitar spam de logs
     let secondsRemaining = Math.floor(timeoutDuration / 1000);
@@ -185,9 +212,10 @@ export function useSessionTimeout(
         countdownIntervalRef.current = setInterval(() => {
           secondsRemaining--;
           if (secondsRemaining <= 10 && secondsRemaining > 0) {
-            console.log(
-              `⏱️ [SessionTimeout] ${secondsRemaining}s remaining until logout`,
-            );
+            logger.debug('Session timeout: cuenta regresiva', {
+              action: 'sessionTimeout',
+              secondsRemaining,
+            });
           }
           if (secondsRemaining <= 0) {
             if (countdownIntervalRef.current) {
@@ -201,23 +229,23 @@ export function useSessionTimeout(
     }
 
     warningTimeoutIdRef.current = setTimeout(() => {
-      console.log(
-        '⚠️ [SessionTimeout] Warning timer triggered at',
-        warningTime / 1000 + 's',
-      );
+      logger.debug('Session timeout: se disparó el aviso', {
+        action: 'sessionTimeout',
+        warningAtSeconds: warningTime / 1000,
+      });
       showWarning();
     }, warningTime);
 
     // Configurar timer de logout
-    console.log(
-      '⏰ [SessionTimeout] Setting logout timer for',
-      timeoutDuration / 1000 + 's',
-    );
+    logger.debug('Session timeout: programando el cierre de sesión', {
+      action: 'sessionTimeout',
+      logoutAtSeconds: timeoutDuration / 1000,
+    });
     timeoutIdRef.current = setTimeout(() => {
-      console.log(
-        '🚨 [SessionTimeout] Logout timer triggered at',
-        timeoutDuration / 1000 + 's',
-      );
+      logger.debug('Session timeout: se disparó el cierre de sesión', {
+        action: 'sessionTimeout',
+        logoutAtSeconds: timeoutDuration / 1000,
+      });
       if (countdownIntervalRef.current) {
         clearInterval(countdownIntervalRef.current);
       }
@@ -253,34 +281,45 @@ export function useSessionTimeout(
   const handleActivity = useCallback(() => {
     // Solo log en modo debug (timeouts menores a 5 minutos)
     if (timeoutDuration < 5 * 60 * 1000) {
-      console.log(
-        '👆 [SessionTimeout] User activity detected, resetting timer',
+      logger.debug(
+        'Session timeout: actividad del usuario, se reinicia el temporizador',
+        { action: 'sessionTimeout' },
       );
     }
     resetTimerRef.current();
   }, [timeoutDuration]); // Incluir timeoutDuration como dependencia
 
   const forceInitialize = useCallback(() => {
-    console.log('🚀 [SessionTimeout] Force initialization requested');
+    logger.debug('Session timeout: inicialización forzada solicitada', {
+      action: 'sessionTimeout',
+    });
 
     // Intentar varias veces con un delay para manejar la condición de carrera
     const attemptInit = (attempt = 1, maxAttempts = 5) => {
       if (enabled && isAuthenticated) {
-        console.log('✅ [SessionTimeout] Force initializing timeout system');
+        logger.debug('Session timeout: inicialización forzada en curso', {
+          action: 'sessionTimeout',
+        });
         resetTimerRef.current();
       } else if (attempt < maxAttempts) {
-        console.log(
-          `⏳ [SessionTimeout] Auth state not ready (attempt ${attempt}/${maxAttempts}), retrying...`,
+        logger.debug(
+          'Session timeout: estado de autenticación no listo, reintentando',
           {
+            action: 'sessionTimeout',
+            attempt,
+            maxAttempts,
             enabled,
             isAuthenticated,
           },
         );
         setTimeout(() => attemptInit(attempt + 1, maxAttempts), 200 * attempt);
       } else {
-        console.log(
-          '❌ [SessionTimeout] Cannot force initialize after retries - disabled or not authenticated',
+        logger.debug(
+          'Session timeout: no se pudo inicializar tras los reintentos (deshabilitado o sin sesión)',
           {
+            action: 'sessionTimeout',
+            attempt,
+            maxAttempts,
             enabled,
             isAuthenticated,
           },
@@ -297,20 +336,23 @@ export function useSessionTimeout(
     const isNowAuthenticated = isAuthenticated;
 
     if (!wasAuthenticated && isNowAuthenticated) {
-      console.log(
-        '🚀 [SessionTimeout] User just logged in! Forcing timer initialization',
+      logger.debug(
+        'Session timeout: sesión recién iniciada, se fuerza el temporizador',
+        { action: 'sessionTimeout' },
       );
       // Delay más largo para asegurar que todo esté listo
       setTimeout(() => {
         if (enabled && isAuthenticated) {
-          console.log(
-            '✅ [SessionTimeout] Auto-initializing after login state change',
+          logger.debug(
+            'Session timeout: autoinicializando tras el cambio de sesión',
+            { action: 'sessionTimeout' },
           );
           resetTimerRef.current();
         } else {
-          console.log(
-            '⚠️ [SessionTimeout] Cannot auto-initialize - state changed',
+          logger.debug(
+            'Session timeout: no se pudo autoinicializar, el estado cambió',
             {
+              action: 'sessionTimeout',
               enabled,
               isAuthenticated,
             },
@@ -323,35 +365,41 @@ export function useSessionTimeout(
   }, [isAuthenticated, enabled]);
 
   useEffect(() => {
-    console.log('🔧 [SessionTimeout] Main effect triggered', {
+    logger.debug('Session timeout: efecto principal disparado', {
+      action: 'sessionTimeout',
       enabled,
       isAuthenticated,
     });
 
     if (!enabled || !isAuthenticated) {
-      console.log(
-        '❌ [SessionTimeout] Effect skipped - disabled or not authenticated',
+      logger.debug(
+        'Session timeout: efecto omitido (deshabilitado o sin sesión)',
+        { action: 'sessionTimeout' },
       );
       return;
     }
 
-    console.log('✅ [SessionTimeout] Initializing session timeout system');
+    logger.debug('Session timeout: inicializando el sistema', {
+      action: 'sessionTimeout',
+    });
 
     // Inicializar timer
     resetTimerRef.current();
 
     // Agregar event listeners para detectar actividad
-    console.log(
-      '👂 [SessionTimeout] Adding activity event listeners:',
-      activityEvents,
-    );
+    logger.debug('Session timeout: registrando los eventos de actividad', {
+      action: 'sessionTimeout',
+      events: activityEvents.join(', '),
+    });
     activityEvents.forEach((event) => {
       document.addEventListener(event, handleActivity, true);
     });
 
     // Cleanup
     return () => {
-      console.log('🧹 [SessionTimeout] Cleaning up timers and event listeners');
+      logger.debug('Session timeout: limpiando temporizadores y eventos', {
+        action: 'sessionTimeout',
+      });
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current);
       }
@@ -371,8 +419,9 @@ export function useSessionTimeout(
   // Limpiar timers cuando el usuario no está autenticado
   useEffect(() => {
     if (!isAuthenticated) {
-      console.log(
-        '🧹 [SessionTimeout] User not authenticated, cleaning up all timers',
+      logger.debug(
+        'Session timeout: sin sesión, se limpian todos los temporizadores',
+        { action: 'sessionTimeout' },
       );
       if (timeoutIdRef.current) {
         clearTimeout(timeoutIdRef.current);
