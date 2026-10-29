@@ -70,18 +70,18 @@
 
 ## 🧱 Stack Técnico
 
-| Capa               | Tecnología                                    |
-| ------------------ | --------------------------------------------- |
-| **Frontend**       | Next.js 15 (App Router, Turbopack) + React 19 |
-| **UI**             | Shadcn UI + Radix Primitives + Tailwind CSS 4 |
-| **Formularios**    | React Hook Form + Zod                         |
-| **ORM**            | Prisma (PostgreSQL / CockroachDB)             |
-| **Auth**           | JWT con `jose` (HS256, cookies httpOnly)      |
-| **Almacenamiento** | Google Drive API (por centro de conciliación) |
+| Capa               | Tecnología                                                         |
+| ------------------ | ------------------------------------------------------------------ |
+| **Frontend**       | Next.js 15 (App Router, Turbopack) + React 19                      |
+| **UI**             | Shadcn UI + Radix Primitives + Tailwind CSS 4                      |
+| **Formularios**    | React Hook Form + Zod                                              |
+| **ORM**            | Prisma (PostgreSQL / CockroachDB)                                  |
+| **Auth**           | JWT con `jose` (HS256, cookies httpOnly)                           |
+| **Almacenamiento** | Google Drive API (por centro de conciliación)                      |
 | **Documentos**     | Plantillas HTML → Puppeteer/Chromium (PDF) + `html-to-docx` (DOCX) |
-| **Testing**        | Jest + React Testing Library + Playwright     |
-| **CI/CD**          | GitHub Actions + Vercel                       |
-| **Email**          | Nodemailer (Gmail SMTP)                       |
+| **Testing**        | Jest + React Testing Library + Playwright                          |
+| **CI/CD**          | GitHub Actions + Vercel                                            |
+| **Email**          | Nodemailer (Gmail SMTP)                                            |
 
 ---
 
@@ -243,23 +243,23 @@ Ver [`.env.example`](./.env.example) para el listado completo. Variables crític
 
 ## 📚 Documentación
 
-| Documento                                                                                            | Propósito                                                                    |
-| ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| [`docs/ARQUITECTURA.md`](./docs/ARQUITECTURA.md)                                                     | Diagrama de arquitectura, flujos y decisiones técnicas                       |
-| [`docs/DIAGRAMA_COMPONENTES.md`](./docs/DIAGRAMA_COMPONENTES.md)                                     | Diagrama de componentes: desglose de módulos y dependencias                  |
-| [`docs/MODELO_ENTIDAD_RELACION.md`](./docs/MODELO_ENTIDAD_RELACION.md)                               | Modelo Entidad-Relación (ERD) en 3 vistas temáticas                          |
-| [`docs/DIAGRAMA_CLASES.md`](./docs/DIAGRAMA_CLASES.md)                                               | Diagrama de clases (UML) del modelo de dominio                               |
-| [`docs/DICCIONARIO_DATOS.md`](./docs/DICCIONARIO_DATOS.md)                                           | Diccionario de datos: modelo relacional de la base de datos (tablas, columnas, tipos, relaciones) |
-| [`docs/DICCIONARIO_PLACEHOLDERS.md`](./docs/DICCIONARIO_PLACEHOLDERS.md)                             | Diccionario de placeholders para plantillas documentales                     |
-| [`docs/REQUISITOS_INSOLVENTIC.xlsx`](./docs/REQUISITOS_INSOLVENTIC.xlsx)                             | Requisitos funcionales (RF) y no funcionales (RNF)                           |
-| [`docs/MANUAL_USUARIO.md`](./docs/MANUAL_USUARIO.md)                                                 | Guía funcional para operadores y administradores                             |
-| [`docs/TESTS.md`](./docs/TESTS.md)                                                                   | Plan de pruebas y reporte de cobertura                                       |
-| [`docs/FORMULARIO_MAESTRO.md`](./docs/FORMULARIO_MAESTRO.md)                                         | Especificación del formulario maestro de insolvencia                         |
-| [`docs/VALIDACIONES_Y_GENERACION.md`](./docs/VALIDACIONES_Y_GENERACION.md)                           | Reglas de validación y proceso de generación                                 |
-| [`docs/AUDITORIA_SISTEMA_DOCUMENTOS.md`](./docs/AUDITORIA_SISTEMA_DOCUMENTOS.md)                     | Auditoría del sistema documental                                             |
-| [`docs/AUDITORIA_MODULO_GENERACION_2026-07.md`](./docs/AUDITORIA_MODULO_GENERACION_2026-07.md)       | Auditoría técnica del módulo de generación de documentos                     |
-| [`docs/AUDITORIA_INSOLVENTIC_2026-07-11.md`](./docs/AUDITORIA_INSOLVENTIC_2026-07-11.md)             | Auditoría integral del sistema y decisiones de arquitectura                  |
-| [`CHANGELOG.md`](./CHANGELOG.md)                                                                     | Historial de versiones                                                       |
+| Documento                                                                                      | Propósito                                                                                         |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [`docs/ARQUITECTURA.md`](./docs/ARQUITECTURA.md)                                               | Diagrama de arquitectura, flujos y decisiones técnicas                                            |
+| [`docs/DIAGRAMA_COMPONENTES.md`](./docs/DIAGRAMA_COMPONENTES.md)                               | Diagrama de componentes: desglose de módulos y dependencias                                       |
+| [`docs/MODELO_ENTIDAD_RELACION.md`](./docs/MODELO_ENTIDAD_RELACION.md)                         | Modelo Entidad-Relación (ERD) en 3 vistas temáticas                                               |
+| [`docs/DIAGRAMA_CLASES.md`](./docs/DIAGRAMA_CLASES.md)                                         | Diagrama de clases (UML) del modelo de dominio                                                    |
+| [`docs/DICCIONARIO_DATOS.md`](./docs/DICCIONARIO_DATOS.md)                                     | Diccionario de datos: modelo relacional de la base de datos (tablas, columnas, tipos, relaciones) |
+| [`docs/DICCIONARIO_PLACEHOLDERS.md`](./docs/DICCIONARIO_PLACEHOLDERS.md)                       | Diccionario de placeholders para plantillas documentales                                          |
+| [`docs/REQUISITOS_INSOLVENTIC.xlsx`](./docs/REQUISITOS_INSOLVENTIC.xlsx)                       | Requisitos funcionales (RF) y no funcionales (RNF)                                                |
+| [`docs/MANUAL_USUARIO.md`](./docs/MANUAL_USUARIO.md)                                           | Guía funcional para operadores y administradores                                                  |
+| [`docs/TESTS.md`](./docs/TESTS.md)                                                             | Plan de pruebas y reporte de cobertura                                                            |
+| [`docs/FORMULARIO_MAESTRO.md`](./docs/FORMULARIO_MAESTRO.md)                                   | Especificación del formulario maestro de insolvencia                                              |
+| [`docs/VALIDACIONES_Y_GENERACION.md`](./docs/VALIDACIONES_Y_GENERACION.md)                     | Reglas de validación y proceso de generación                                                      |
+| [`docs/AUDITORIA_SISTEMA_DOCUMENTOS.md`](./docs/AUDITORIA_SISTEMA_DOCUMENTOS.md)               | Auditoría del sistema documental                                                                  |
+| [`docs/AUDITORIA_MODULO_GENERACION_2026-07.md`](./docs/AUDITORIA_MODULO_GENERACION_2026-07.md) | Auditoría técnica del módulo de generación de documentos                                          |
+| [`docs/AUDITORIA_INSOLVENTIC_2026-07-11.md`](./docs/AUDITORIA_INSOLVENTIC_2026-07-11.md)       | Auditoría integral del sistema y decisiones de arquitectura                                       |
+| [`CHANGELOG.md`](./CHANGELOG.md)                                                               | Historial de versiones                                                                            |
 
 ---
 
