@@ -19,13 +19,13 @@ Antes de la tabla, lo que pude y no pude verificar. Esto condiciona todo lo dem�
 
 ### 2.1 Los documentos de referencia NO existen en ningún lado accesible
 
-| Documento pedido | `origin/dev` (f542f22) | Clon local `Documentos/GitHub/insolventic` | Disco completo (`C:\Users\user`) |
-|---|---|---|---|
-| `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md` | ❌ no existe | ❌ no existe | ❌ no existe |
-| `docs/IMPLEMENTACION_SEMANA_1.md` | ❌ | ❌ | ❌ |
-| `docs/IMPLEMENTACION_SEMANA_2.md` | ❌ | ❌ | ❌ |
-| Rama `fix/health-version-gated` | ❌ (`git ls-remote`: solo `dev`, `main`, `vercel/react-server-components-cve-vu-8n1j1e`) | ❌ (ni en reflog) | — |
-| `HEALTH_DETAILS_TOKEN` en código | ❌ cero referencias | ❌ | — |
+| Documento pedido                             | `origin/dev` (f542f22)                                                                   | Clon local `Documentos/GitHub/insolventic` | Disco completo (`C:\Users\user`) |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------ | -------------------------------- |
+| `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md` | ❌ no existe                                                                             | ❌ no existe                               | ❌ no existe                     |
+| `docs/IMPLEMENTACION_SEMANA_1.md`            | ❌                                                                                       | ❌                                         | ❌                               |
+| `docs/IMPLEMENTACION_SEMANA_2.md`            | ❌                                                                                       | ❌                                         | ❌                               |
+| Rama `fix/health-version-gated`              | ❌ (`git ls-remote`: solo `dev`, `main`, `vercel/react-server-components-cve-vu-8n1j1e`) | ❌ (ni en reflog)                          | —                                |
+| `HEALTH_DETAILS_TOKEN` en código             | ❌ cero referencias                                                                      | ❌                                         | —                                |
 
 `docs/RUNBOOK.md` línea 305 enlaza a la auditoría del 25/08 como si estuviera en el repo. No está.
 
@@ -33,45 +33,45 @@ Antes de la tabla, lo que pude y no pude verificar. Esto condiciona todo lo dem�
 
 ### 2.2 Estado real de git
 
-| Qué | Valor |
-|---|---|
-| `origin/dev` | `f542f22` (2026-08-26) — 9 commits de Semana 1/2 sobre `c53fbc5` |
-| `origin/main` | `70868c6` (2026-08-18) — **cero commits de Semana 1/2** |
-| `origin/main..origin/dev` | 10 commits sin promover |
+| Qué                                        | Valor                                                                                     |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `origin/dev`                               | `f542f22` (2026-08-26) — 9 commits de Semana 1/2 sobre `c53fbc5`                          |
+| `origin/main`                              | `70868c6` (2026-08-18) — **cero commits de Semana 1/2**                                   |
+| `origin/main..origin/dev`                  | 10 commits sin promover                                                                   |
 | Clon local `Documentos/GitHub/insolventic` | `dev` en `c53fbc5`, último fetch 18/08: **desactualizado 9 commits**, working tree limpio |
-| Ramas locales sin mergear | ninguna |
-| Sesión de Claude actual | abierta en el directorio de **LIFTRANK**, no de Insolventic |
+| Ramas locales sin mergear                  | ninguna                                                                                   |
+| Sesión de Claude actual                    | abierta en el directorio de **LIFTRANK**, no de Insolventic                               |
 
 Los 9 commits de Semana 1/2 se pushearon **directo a `dev` sin PR**. `pr.yml` solo dispara en `pull_request`, así que lint, `tsc`, jest y build **nunca corrieron en CI** para ese código. Los únicos runs de GitHub Actions posteriores al 13/08 son dos del workflow de smoke test.
 
 Para compensar, cloné `origin/dev` en el scratchpad de la sesión (fuera de tus repos) y corrí la suite completa:
 
-| Verificación local sobre `origin/dev` | Resultado |
-|---|---|
-| `npx jest --ci` | **31 suites / 504 tests verdes** |
-| `npx tsc --noEmit` | ⟨ver §2.4⟩ |
-| `npx eslint` | ⟨ver §2.4⟩ |
-| `npm audit --audit-level=high` | ⟨ver §2.4⟩ |
+| Verificación local sobre `origin/dev` | Resultado                        |
+| ------------------------------------- | -------------------------------- |
+| `npx jest --ci`                       | **31 suites / 504 tests verdes** |
+| `npx tsc --noEmit`                    | ⟨ver §2.4⟩                       |
+| `npx eslint`                          | ⟨ver §2.4⟩                       |
+| `npm audit --audit-level=high`        | ⟨ver §2.4⟩                       |
 
 ### 2.3 Qué se desplegó realmente
 
 Fuente: API de GitHub Deployments (lo que emite la integración nativa de Vercel) y logs de Actions.
 
-| Fecha | Entorno | Commit | Resultado |
-|---|---|---|---|
-| 2026-08-18 22:09 | **Production** | `70868c6` | success — **es lo que sirve producción hoy** |
-| 2026-08-26 15:37 | Preview | `f542f22` | success; smoke test con `startup_failure` (workflow recién creado en ese mismo commit) |
+| Fecha            | Entorno                         | Commit    | Resultado                                                                                                      |
+| ---------------- | ------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------- |
+| 2026-08-18 22:09 | **Production**                  | `70868c6` | success — **es lo que sirve producción hoy**                                                                   |
+| 2026-08-26 15:37 | Preview                         | `f542f22` | success; smoke test con `startup_failure` (workflow recién creado en ese mismo commit)                         |
 | 2026-08-27 17:01 | Preview (redeploy de `f542f22`) | `f542f22` | success; **smoke test OK**: `/api/health` 200 con BD ok, home 200, `/cases` → `/login`, `/register` → `/login` |
 
 URL del preview verificado: `https://insolventic-rkfougz34-insolventics-projects.vercel.app`.
 
 ### 2.4 Resultados de type-check, lint y audit
 
-| Comando (sobre `origin/dev`, clon aislado, hoy) | Resultado |
-|---|---|
-| `npx tsc --noEmit` | **0 errores** |
-| `npx eslint` | **0 errores, 23 warnings** (todos en `tests/`: unused-vars, un `import/no-anonymous-default-export` en `k6.config.js`, un `jsx-a11y` en `document-generation.test.tsx`) |
-| `npm audit --audit-level=high` | **exit 1: 10 high, 3 moderate, 0 critical** (13 total). 9 de las high solo cierran con upgrade breaking (`prisma`, `puppeteer-core`, `html-to-docx`, `next`); **1 (`browserslist`) tiene fix no-breaking disponible**. El commit de A-1 decía "quedan 12 con `--force`": hoy son 13, o apareció un advisory nuevo o `browserslist` quedó fuera del `npm audit fix` original. |
+| Comando (sobre `origin/dev`, clon aislado, hoy) | Resultado                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npx tsc --noEmit`                              | **0 errores**                                                                                                                                                                                                                                                                                                                                                                |
+| `npx eslint`                                    | **0 errores, 23 warnings** (todos en `tests/`: unused-vars, un `import/no-anonymous-default-export` en `k6.config.js`, un `jsx-a11y` en `document-generation.test.tsx`)                                                                                                                                                                                                      |
+| `npm audit --audit-level=high`                  | **exit 1: 10 high, 3 moderate, 0 critical** (13 total). 9 de las high solo cierran con upgrade breaking (`prisma`, `puppeteer-core`, `html-to-docx`, `next`); **1 (`browserslist`) tiene fix no-breaking disponible**. El commit de A-1 decía "quedan 12 con `--force`": hoy son 13, o apareció un advisory nuevo o `browserslist` quedó fuera del `npm audit fix` original. |
 
 Los cuatro comandos son los mismos que corre `pr.yml`; en CI nunca se ejecutaron para estos commits.
 
@@ -92,29 +92,29 @@ Leyenda: ✅ código + test + confirmado en preview · 🟡 en código pero no v
 
 ### 3.1 Hallazgos identificables por ID
 
-| ID | Hallazgo | Estado | Justificación (verificada en código) |
-|---|---|---|---|
-| **C-1** | Middleware trataba toda ruta como pública (`startsWith('/')`) | ✅ | `src/middleware.ts:33-37` matching exacto o sub-path; 12 tests en `tests/security/middleware-auth-gate.test.ts`; smoke del 27/08 confirma `/cases` → `/login` en preview. **Sigue abierto en producción.** |
-| **C-2** | Registro público autoservicio abierto | ✅ | `registerUser` exige `P.CREAR_USUARIOS` (`src/features/auth/actions.ts:631-643`); `/register` fuera de `PUBLIC_ROUTES` y la página redirige a `/login`; smoke del 27/08 lo confirma en preview. **Sigue abierto en producción.** |
-| **A-1** | CVEs high en Next y deps | 🟡 | Lockfile en Next 15.5.24 y build de preview verde: los advisories de Next que motivaron el hallazgo están cerrados. Pero `npm audit` hoy sigue en **exit 1 con 10 high** (§2.4): 9 requieren upgrade breaking (decisión tuya: aceptar el riesgo por escrito o planificar los upgrades) y 1 (`browserslist`) tiene fix no-breaking pendiente. No se puede llamar "resuelto" un ítem cuyo criterio de aceptación era `npm audit` limpio en high. |
-| **A-2** | Rate limiting in-memory inútil en serverless | 🟡 | `src/lib/rate-limit.ts` implementa Upstash con fallback in-memory y flag `degraded`; 18 tests. **No puedo saber si el preview/prod usan Redis o el fallback**: depende de `UPSTASH_REDIS_REST_URL/TOKEN` en Vercel (sin acceso al team) y el resultado no se expone hacia afuera. Ver §5 cómo verificarlo. |
-| **A-3** | JWT devueltos en el body de login/refresh | 🟡 | `authResultSchema` ya no tiene `accessToken`/`refreshToken` (`src/features/auth/schemas.ts:47-51`); 27 tests en `auth-actions.test.ts`. Nada automatizado lo verifica en preview. Ver §5. |
-| **A-4** | Backup y restauración de BD sin verificar | ⬜ | `RUNBOOK.md` §3.1 lo declara "teórico" hasta que se ejecute una restauración de prueba. Depende del proveedor de Postgres (configuración externa, tu acción). |
-| **A-5** | Sin health check ni verificación post-deploy | ✅ | `src/app/api/health/route.ts` (GET/HEAD, `SELECT 1` con timeout 5 s, 200/503, sin filtrar detalles); `scripts/smoke-test.sh`; `.github/workflows/smoke.yml` sobre `deployment_status`; 7 tests; run verde del 27/08 en preview. Nota: `/api/health` expone `environment` pero no versión; la variante "version gated" (`HEALTH_DETAILS_TOKEN`) no existe en el remoto. |
-| **A-6** | (ID no referenciado en ningún commit ni archivo) | ❓ | No evaluable sin la auditoría original. |
-| **A-7** | CSP bloqueaba el ingest de Sentry | ⬜ | La CSP sí incluye el origen del DSN (`src/lib/csp.ts`, 10 tests). **Pero es irrelevante hoy: `Sentry.init()` no se ejecuta en ningún runtime** (hallazgo nuevo N-1, §4). El objetivo real del hallazgo, "que los errores lleguen al dashboard", no está resuelto. |
-| **M-8** | Sin branch protection en `main` | ⬜ | `GET /repos/insolventic/insolventic/branches/main/protection` → 404 (sin protección). `GET .../rulesets` → 403 "Upgrade to GitHub Pro or make this repository public". **Repo privado bajo cuenta de usuario en plan Free: branch protection no está disponible.** Además tu usuario no es admin. Depende de una decisión tuya (plan o proceso), ver §5. |
-| **M-9** | 6 páginas sin guard server-side | 🟡 | `requirePageAuth()` en `src/lib/auth.ts:136-152`, aplicado a `/audit-log`, `/calendar`, `/documents`, `/notifications`, `/profile`, `/reports` (verificado por grep); 3 tests. El smoke solo prueba `/cases` y desde afuera el middleware (C-1) tapa el guard: no es verificable en preview sin bypass. Ver §5 para el chequeo mínimo. |
-| **M-10** | Sin runbook operativo | 🟡 | `docs/RUNBOOK.md` existe (307 líneas) pero tiene 5 campos `⟨COMPLETAR⟩` (responsable, contactos de ambos centros, proveedor de Postgres, URL de Sentry), enlaza a un documento inexistente, y sus pasos de triage dependen de un Sentry que no reporta (N-1). |
-| **M-1 … M-7** | (IDs no referenciados) | ❓ | No evaluables sin la auditoría original. |
-| **7 ✅ originales** | (no identificables) | ❓ | Idem. |
+| ID                  | Hallazgo                                                      | Estado | Justificación (verificada en código)                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **C-1**             | Middleware trataba toda ruta como pública (`startsWith('/')`) | ✅     | `src/middleware.ts:33-37` matching exacto o sub-path; 12 tests en `tests/security/middleware-auth-gate.test.ts`; smoke del 27/08 confirma `/cases` → `/login` en preview. **Sigue abierto en producción.**                                                                                                                                                                                                                                     |
+| **C-2**             | Registro público autoservicio abierto                         | ✅     | `registerUser` exige `P.CREAR_USUARIOS` (`src/features/auth/actions.ts:631-643`); `/register` fuera de `PUBLIC_ROUTES` y la página redirige a `/login`; smoke del 27/08 lo confirma en preview. **Sigue abierto en producción.**                                                                                                                                                                                                               |
+| **A-1**             | CVEs high en Next y deps                                      | 🟡     | Lockfile en Next 15.5.24 y build de preview verde: los advisories de Next que motivaron el hallazgo están cerrados. Pero `npm audit` hoy sigue en **exit 1 con 10 high** (§2.4): 9 requieren upgrade breaking (decisión tuya: aceptar el riesgo por escrito o planificar los upgrades) y 1 (`browserslist`) tiene fix no-breaking pendiente. No se puede llamar "resuelto" un ítem cuyo criterio de aceptación era `npm audit` limpio en high. |
+| **A-2**             | Rate limiting in-memory inútil en serverless                  | 🟡     | `src/lib/rate-limit.ts` implementa Upstash con fallback in-memory y flag `degraded`; 18 tests. **No puedo saber si el preview/prod usan Redis o el fallback**: depende de `UPSTASH_REDIS_REST_URL/TOKEN` en Vercel (sin acceso al team) y el resultado no se expone hacia afuera. Ver §5 cómo verificarlo.                                                                                                                                     |
+| **A-3**             | JWT devueltos en el body de login/refresh                     | 🟡     | `authResultSchema` ya no tiene `accessToken`/`refreshToken` (`src/features/auth/schemas.ts:47-51`); 27 tests en `auth-actions.test.ts`. Nada automatizado lo verifica en preview. Ver §5.                                                                                                                                                                                                                                                      |
+| **A-4**             | Backup y restauración de BD sin verificar                     | ⬜     | `RUNBOOK.md` §3.1 lo declara "teórico" hasta que se ejecute una restauración de prueba. Depende del proveedor de Postgres (configuración externa, tu acción).                                                                                                                                                                                                                                                                                  |
+| **A-5**             | Sin health check ni verificación post-deploy                  | ✅     | `src/app/api/health/route.ts` (GET/HEAD, `SELECT 1` con timeout 5 s, 200/503, sin filtrar detalles); `scripts/smoke-test.sh`; `.github/workflows/smoke.yml` sobre `deployment_status`; 7 tests; run verde del 27/08 en preview. Nota: `/api/health` expone `environment` pero no versión; la variante "version gated" (`HEALTH_DETAILS_TOKEN`) no existe en el remoto.                                                                         |
+| **A-6**             | (ID no referenciado en ningún commit ni archivo)              | ❓     | No evaluable sin la auditoría original.                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **A-7**             | CSP bloqueaba el ingest de Sentry                             | ⬜     | La CSP sí incluye el origen del DSN (`src/lib/csp.ts`, 10 tests). **Pero es irrelevante hoy: `Sentry.init()` no se ejecuta en ningún runtime** (hallazgo nuevo N-1, §4). El objetivo real del hallazgo, "que los errores lleguen al dashboard", no está resuelto.                                                                                                                                                                              |
+| **M-8**             | Sin branch protection en `main`                               | ⬜     | `GET /repos/insolventic/insolventic/branches/main/protection` → 404 (sin protección). `GET .../rulesets` → 403 "Upgrade to GitHub Pro or make this repository public". **Repo privado bajo cuenta de usuario en plan Free: branch protection no está disponible.** Además tu usuario no es admin. Depende de una decisión tuya (plan o proceso), ver §5.                                                                                       |
+| **M-9**             | 6 páginas sin guard server-side                               | 🟡     | `requirePageAuth()` en `src/lib/auth.ts:136-152`, aplicado a `/audit-log`, `/calendar`, `/documents`, `/notifications`, `/profile`, `/reports` (verificado por grep); 3 tests. El smoke solo prueba `/cases` y desde afuera el middleware (C-1) tapa el guard: no es verificable en preview sin bypass. Ver §5 para el chequeo mínimo.                                                                                                         |
+| **M-10**            | Sin runbook operativo                                         | 🟡     | `docs/RUNBOOK.md` existe (307 líneas) pero tiene 5 campos `⟨COMPLETAR⟩` (responsable, contactos de ambos centros, proveedor de Postgres, URL de Sentry), enlaza a un documento inexistente, y sus pasos de triage dependen de un Sentry que no reporta (N-1).                                                                                                                                                                                  |
+| **M-1 … M-7**       | (IDs no referenciados)                                        | ❓     | No evaluables sin la auditoría original.                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **7 ✅ originales** | (no identificables)                                           | ❓     | Idem.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ### 3.2 Pendientes de decisión tuya, fuera de la numeración
 
-| Ítem | Estado | Detalle |
-|---|---|---|
+| Ítem                       | Estado                  | Detalle                                                                                                                                                                                                                                                                                   |
+| -------------------------- | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `fix/health-version-gated` | ⬜ **pendiente de vos** | No existe en `origin` ni en el clon local. Si existe en otra máquina, hay que pushearla; si no, la decisión (exponer versión en `/api/health` detrás de `HEALTH_DETAILS_TOKEN`) está sin implementar. Hoy `/api/health` devuelve `status`, `environment`, `timestamp`, `checks.database`. |
-| Promover `dev` → `main` | ⬜ **pendiente de vos** | Producción sirve `70868c6` del 18/08. Los 9 commits de Semana 1/2 no están en producción. |
+| Promover `dev` → `main`    | ⬜ **pendiente de vos** | Producción sirve `70868c6` del 18/08. Los 9 commits de Semana 1/2 no están en producción.                                                                                                                                                                                                 |
 
 ---
 
@@ -150,26 +150,26 @@ Ya documentado como pendiente en `CLAUDE.md`; lo repito porque bloquea directame
 
 ### N-5 — Cifras de tests divergentes en cuatro lugares
 
-| Fuente | Dice |
-|---|---|
-| `README.md:186` | 20 suites / 405 tests |
-| `CLAUDE.md:18` | 445 tests |
-| `docs/TESTS.md:3` | 27 suites / 447 tests |
-| commit `c507501` (A-1) | 477 tests |
+| Fuente                              | Dice                      |
+| ----------------------------------- | ------------------------- |
+| `README.md:186`                     | 20 suites / 405 tests     |
+| `CLAUDE.md:18`                      | 445 tests                 |
+| `docs/TESTS.md:3`                   | 27 suites / 447 tests     |
+| commit `c507501` (A-1)              | 477 tests                 |
 | **Real (`origin/dev`, jest local)** | **31 suites / 504 tests** |
 
 ---
 
 ## 5. Qué falta verificar en cada 🟡 y cómo
 
-| Ítem | Qué verificar | Cómo |
-|---|---|---|
-| **A-2 Upstash** | ¿Redis o fallback in-memory en preview y prod? | 1) Vercel → team `insolventics-projects` → proyecto → Settings → Environment Variables: deben existir `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` en **Production y Preview** (hoy no puedo verlo). 2) Vercel → Logs (Runtime) del deploy: buscar `"rate limiting degradado"`; si aparece `reason: "missing-env"`, está en fallback. 3) Prueba positiva: hacer 2 intentos de login fallidos en preview y mirar en Upstash Console → base → Data Browser: deben aparecer claves con prefijo `insolventic:rl`. Si no aparecen, está en fallback. |
-| **A-3 JWT en body** | Que la respuesta de login no traiga tokens | En preview, DevTools → Network → login → request de la server action (POST con header `Next-Action`) → Response: no debe contener `accessToken` ni `refreshToken`; en Application → Cookies deben estar `access-token` y `refresh-token` como HttpOnly. |
-| **M-9 guards de página** | Que las 6 páginas redirijan sin sesión | `for p in documents reports audit-log calendar notifications profile; do curl -s -o /dev/null -w "$p %{http_code} %{redirect_url}\n" https://⟨preview⟩/$p; done` → todas 307 a `/login?redirect=/…`. Esto prueba el middleware, no el guard; el guard solo lo cubren los 3 unit tests. Es defensa en profundidad: aceptable. |
-| **M-10 runbook** | Completar los `⟨COMPLETAR⟩` y arreglar el enlace roto | Editar `docs/RUNBOOK.md` líneas 16-21 y 305. No hay nada que "verificar" en preview. |
-| **M-8** | Ver §6, punto 4. | — |
-| **A-7 / N-1 Sentry** | Después de implementar `instrumentation.ts`: que un error de prueba llegue | Server: `curl https://⟨preview⟩/api/health` con `DATABASE_URL` roto no es opción; alternativa: forzar un `logger.error` de prueba o un `throw` en una server action temporal. Client: `throw new Error('sentry-test')` desde la consola del navegador en una página de la app. Mirar Sentry → Issues filtrando por `environment` = valor de `NEXT_PUBLIC_APP_ENV` del deploy. Hoy, sin N-1 resuelto, esta prueba va a dar cero eventos. |
+| Ítem                     | Qué verificar                                                              | Cómo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A-2 Upstash**          | ¿Redis o fallback in-memory en preview y prod?                             | 1) Vercel → team `insolventics-projects` → proyecto → Settings → Environment Variables: deben existir `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` en **Production y Preview** (hoy no puedo verlo). 2) Vercel → Logs (Runtime) del deploy: buscar `"rate limiting degradado"`; si aparece `reason: "missing-env"`, está en fallback. 3) Prueba positiva: hacer 2 intentos de login fallidos en preview y mirar en Upstash Console → base → Data Browser: deben aparecer claves con prefijo `insolventic:rl`. Si no aparecen, está en fallback. |
+| **A-3 JWT en body**      | Que la respuesta de login no traiga tokens                                 | En preview, DevTools → Network → login → request de la server action (POST con header `Next-Action`) → Response: no debe contener `accessToken` ni `refreshToken`; en Application → Cookies deben estar `access-token` y `refresh-token` como HttpOnly.                                                                                                                                                                                                                                                                                                  |
+| **M-9 guards de página** | Que las 6 páginas redirijan sin sesión                                     | `for p in documents reports audit-log calendar notifications profile; do curl -s -o /dev/null -w "$p %{http_code} %{redirect_url}\n" https://⟨preview⟩/$p; done` → todas 307 a `/login?redirect=/…`. Esto prueba el middleware, no el guard; el guard solo lo cubren los 3 unit tests. Es defensa en profundidad: aceptable.                                                                                                                                                                                                                             |
+| **M-10 runbook**         | Completar los `⟨COMPLETAR⟩` y arreglar el enlace roto                      | Editar `docs/RUNBOOK.md` líneas 16-21 y 305. No hay nada que "verificar" en preview.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **M-8**                  | Ver §6, punto 4.                                                           | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **A-7 / N-1 Sentry**     | Después de implementar `instrumentation.ts`: que un error de prueba llegue | Server: `curl https://⟨preview⟩/api/health` con `DATABASE_URL` roto no es opción; alternativa: forzar un `logger.error` de prueba o un `throw` en una server action temporal. Client: `throw new Error('sentry-test')` desde la consola del navegador en una página de la app. Mirar Sentry → Issues filtrando por `environment` = valor de `NEXT_PUBLIC_APP_ENV` del deploy. Hoy, sin N-1 resuelto, esta prueba va a dar cero eventos.                                                                                                                  |
 
 ---
 
@@ -181,8 +181,8 @@ En orden de bloqueo.
 2. **Decidir cómo inicializar Sentry (N-1).** Recomendación: `src/instrumentation.ts` + `src/instrumentation-client.ts`, sin `withSentryConfig`. Después, vos mirás la consola de Sentry para confirmar el evento de prueba. Hasta entonces, A-7 y el runbook son teóricos.
 3. **Acceso a Vercel.** Pedir que `insolvenic@gmail.com` invite a tu cuenta al team `insolventics-projects`, o loguear el CLI con esa cuenta. Sin esto no se puede confirmar Upstash (A-2), DSN (A-7), `NEXT_PUBLIC_APP_ENV`, `CRON_SECRET`, ni leer logs.
 4. **M-8, branch protection: qué mirar exactamente en GitHub.** Con la cuenta owner `insolventic` (la tuya no es admin): `github.com/insolventic/insolventic` → **Settings** → **Branches** (menú izquierdo, sección "Code and automation"). Vas a ver una de dos cosas:
-   - Un banner tipo *"Upgrade to GitHub Pro or make this repository public to enable this feature"*. Eso confirma lo que vi por API: **no se puede configurar** en plan Free con repo privado. Decisión: (a) GitHub Pro en la cuenta `insolventic`, o (b) aceptar que la protección sea de proceso (PR obligatorio por convención) hasta que haya plan.
-   - Si el plan lo permite: **Add branch ruleset** (o *Add classic branch protection rule*) → Target: `main` → tildar **Require a pull request before merging** (≥1 approval), **Require status checks to pass** seleccionando `quality-checks` (de `pr.yml`) y `playwright` (de `e2e.yml`), **Require branches to be up to date before merging**, **Block force pushes**, **Restrict deletions**, y en rulesets **Bypass list: vacío** (o en reglas clásicas, *Include administrators*). Repetir para `dev` con al menos "Require a pull request".
+   - Un banner tipo _"Upgrade to GitHub Pro or make this repository public to enable this feature"_. Eso confirma lo que vi por API: **no se puede configurar** en plan Free con repo privado. Decisión: (a) GitHub Pro en la cuenta `insolventic`, o (b) aceptar que la protección sea de proceso (PR obligatorio por convención) hasta que haya plan.
+   - Si el plan lo permite: **Add branch ruleset** (o _Add classic branch protection rule_) → Target: `main` → tildar **Require a pull request before merging** (≥1 approval), **Require status checks to pass** seleccionando `quality-checks` (de `pr.yml`) y `playwright` (de `e2e.yml`), **Require branches to be up to date before merging**, **Block force pushes**, **Restrict deletions**, y en rulesets **Bypass list: vacío** (o en reglas clásicas, _Include administrators_). Repetir para `dev` con al menos "Require a pull request".
 5. **Promover `dev` → `main`.** Producción tiene C-1 y C-2 abiertos desde siempre. Antes: resolver N-1 (o aceptar deploy sin Sentry), confirmar env vars de Production (Upstash, `CRON_SECRET`), y recordar la regla del autor del commit HEAD (`Insolventic <insolvenic@gmail.com>`) para que Vercel no bloquee el deploy.
 6. **A-4 backups.** Confirmar en el panel del proveedor de Postgres que hay backups/PITR y ejecutar una restauración de prueba a una instancia nueva. Anotar el resultado en el runbook §3.1.
 7. **Completar `RUNBOOK.md`** (contactos, proveedor, URL de Sentry) y corregir el enlace de la línea 305.
@@ -202,97 +202,102 @@ Formato: archivo, línea aproximada, qué dice hoy, qué debería decir.
 
 ### 7.1 `README.md`
 
-| Línea | Dice hoy | Debería decir |
-|---|---|---|
-| 92 | "Node.js 20.x o superior" | Node 24 (los tres workflows y Vercel usan 24.x) |
-| 100 | `git clone https://github.com/Nick220505/insolventic.git` | `https://github.com/insolventic/insolventic.git` |
-| 140 | workflows: "pr.yml, deploy.yml, release.yml" | `pr.yml`, `e2e.yml`, `release.yml`, `smoke.yml` (`deploy.yml` se eliminó el 18/08) |
-| 152 | `api/` → "download, webhooks" | `api/cron/alerts` y `api/health` (no hay download ni webhooks) |
-| 186 | "20 suites / 405 tests" | 31 suites / 504 tests |
-| 203-209 | Pasos de `pr.yml`: sin type-check ni audit | Agregar `npx tsc --noEmit` y `npm audit` (informativo); aclarar que solo corre en PR |
-| 211-217 | Sección "Deploy (`deploy.yml`)" completa, "baseline automático de `20260205212559_init`" | Deploy por integración nativa Vercel↔GitHub; migraciones en `buildCommand` gateadas por `VERCEL_ENV=production`; smoke test post-deploy vía `smoke.yml` |
-| 226-241 | Tabla de env vars: incluye `JWT_REFRESH_SECRET`; faltan las nuevas | Quitar o implementar `JWT_REFRESH_SECRET` (N-4); agregar `UPSTASH_REDIS_REST_URL/TOKEN`, `NEXT_PUBLIC_SENTRY_DSN`/`SENTRY_DSN`, `NEXT_PUBLIC_APP_ENV`, `CRON_SECRET`, `LOG_LEVEL` |
-| 245-263 | Índice de docs sin `RUNBOOK.md` | Agregar `docs/RUNBOOK.md` |
-| 60-68 | Sección Seguridad no menciona registro cerrado, rate limiting distribuido ni CSP | Agregar: registro solo por admin (C-2), rate limiting Upstash con fallback (A-2), health check público (A-5) |
-| 175-183 | Comandos de test sin `test:smoke` | Agregar `npm run test:smoke -- <url>` |
-| 278 | "sufijo `-dev` según `NODE_ENV`" | según `NEXT_PUBLIC_APP_ENV` (ver `src/config/version.ts:26-39`) |
+> **Aplicadas el 2026-10-29** en la rama `docs/readme-al-dia` (hallazgos D-1 a
+> D-4 de `docs/AUDITORIA_BLOQUE3_2026-10-27.md`). Las cifras de esta tabla
+> eran las de septiembre; las que quedó en el README son las medidas el
+> 2026-10-29. El resto de las secciones (§7.2 a §7.10) sigue sin aplicar.
+
+| Línea   | Dice hoy                                                                                 | Debería decir                                                                                                                                                                     |
+| ------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 92      | "Node.js 20.x o superior"                                                                | Node 24 (los tres workflows y Vercel usan 24.x)                                                                                                                                   |
+| 100     | `git clone https://github.com/Nick220505/insolventic.git`                                | `https://github.com/insolventic/insolventic.git`                                                                                                                                  |
+| 140     | workflows: "pr.yml, deploy.yml, release.yml"                                             | `pr.yml`, `e2e.yml`, `release.yml`, `smoke.yml` (`deploy.yml` se eliminó el 18/08)                                                                                                |
+| 152     | `api/` → "download, webhooks"                                                            | `api/cron/alerts` y `api/health` (no hay download ni webhooks)                                                                                                                    |
+| 186     | "20 suites / 405 tests"                                                                  | 31 suites / 504 tests                                                                                                                                                             |
+| 203-209 | Pasos de `pr.yml`: sin type-check ni audit                                               | Agregar `npx tsc --noEmit` y `npm audit` (informativo); aclarar que solo corre en PR                                                                                              |
+| 211-217 | Sección "Deploy (`deploy.yml`)" completa, "baseline automático de `20260205212559_init`" | Deploy por integración nativa Vercel↔GitHub; migraciones en `buildCommand` gateadas por `VERCEL_ENV=production`; smoke test post-deploy vía `smoke.yml`                          |
+| 226-241 | Tabla de env vars: incluye `JWT_REFRESH_SECRET`; faltan las nuevas                       | Quitar o implementar `JWT_REFRESH_SECRET` (N-4); agregar `UPSTASH_REDIS_REST_URL/TOKEN`, `NEXT_PUBLIC_SENTRY_DSN`/`SENTRY_DSN`, `NEXT_PUBLIC_APP_ENV`, `CRON_SECRET`, `LOG_LEVEL` |
+| 245-263 | Índice de docs sin `RUNBOOK.md`                                                          | Agregar `docs/RUNBOOK.md`                                                                                                                                                         |
+| 60-68   | Sección Seguridad no menciona registro cerrado, rate limiting distribuido ni CSP         | Agregar: registro solo por admin (C-2), rate limiting Upstash con fallback (A-2), health check público (A-5)                                                                      |
+| 175-183 | Comandos de test sin `test:smoke`                                                        | Agregar `npm run test:smoke -- <url>`                                                                                                                                             |
+| 278     | "sufijo `-dev` según `NODE_ENV`"                                                         | según `NEXT_PUBLIC_APP_ENV` (ver `src/config/version.ts:26-39`)                                                                                                                   |
 
 ### 7.2 `CLAUDE.md`
 
-| Línea | Dice hoy | Debería decir |
-|---|---|---|
-| 7 | "solo existe una route handler (`/api/cron/alerts`)" | dos: `/api/cron/alerts` y `/api/health` |
-| 18 | "suite completa (445 tests)" | 504 tests / 31 suites |
-| 81 | "no hay Redis/BullMQ en producción" | Hay Upstash Redis solo para rate limiting (A-2); sigue sin haber cola de jobs |
-| 51-98 | Architecture Decisions termina en Session 3 (18/08) | Falta la sesión de Semana 1/2 (26/08): C-1, C-2, A-1, A-2, A-3, A-5, A-7, M-9, M-10, y sus decisiones (degradación de rate limit, health público sin detalles, CSP derivada del DSN, no usar `withSentryConfig`) |
-| 25-30 | Convenciones sin `requirePageAuth` ni `checkRateLimit` async | Agregar: páginas server → `requirePageAuth(path)`; `checkRateLimit` es async y devuelve `degraded` |
-| 122-126 | Referencias sin runbook ni auditoría de preproducción | Agregar `docs/RUNBOOK.md` y `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md` (cuando exista en el repo) |
-| 45, 49 | Describe Sentry como operativo (ERROR/WARN → Sentry) | Aclarar que el SDK no está inicializado hasta resolver N-1 |
+| Línea   | Dice hoy                                                     | Debería decir                                                                                                                                                                                                    |
+| ------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 7       | "solo existe una route handler (`/api/cron/alerts`)"         | dos: `/api/cron/alerts` y `/api/health`                                                                                                                                                                          |
+| 18      | "suite completa (445 tests)"                                 | 504 tests / 31 suites                                                                                                                                                                                            |
+| 81      | "no hay Redis/BullMQ en producción"                          | Hay Upstash Redis solo para rate limiting (A-2); sigue sin haber cola de jobs                                                                                                                                    |
+| 51-98   | Architecture Decisions termina en Session 3 (18/08)          | Falta la sesión de Semana 1/2 (26/08): C-1, C-2, A-1, A-2, A-3, A-5, A-7, M-9, M-10, y sus decisiones (degradación de rate limit, health público sin detalles, CSP derivada del DSN, no usar `withSentryConfig`) |
+| 25-30   | Convenciones sin `requirePageAuth` ni `checkRateLimit` async | Agregar: páginas server → `requirePageAuth(path)`; `checkRateLimit` es async y devuelve `degraded`                                                                                                               |
+| 122-126 | Referencias sin runbook ni auditoría de preproducción        | Agregar `docs/RUNBOOK.md` y `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md` (cuando exista en el repo)                                                                                                              |
+| 45, 49  | Describe Sentry como operativo (ERROR/WARN → Sentry)         | Aclarar que el SDK no está inicializado hasta resolver N-1                                                                                                                                                       |
 
 ### 7.3 `docs/ARQUITECTURA.md`
 
-| Línea | Dice hoy | Debería decir |
-|---|---|---|
-| 3 | "Última actualización: julio 2026" | Agosto 2026 (Semana 1/2) |
-| 15-20 | Diagrama §1: `API["API Routes (download, auth callback)"]`; sin Upstash ni Sentry en externos | `API["/api/cron/alerts, /api/health"]`; agregar `Upstash Redis (rate limiting)` y `Sentry` en "Servicios externos" |
-| 133-138 | "Hardening aplicado" solo lista lo de abril | Agregar: matching exacto de rutas públicas (C-1), registro cerrado (C-2), tokens solo en cookies (A-3), `requirePageAuth` (M-9) |
-| 271-283 | Diagrama §8 con `deploy.yml` (preview y `vercel --prod`) | Integración nativa Vercel; `smoke.yml` post-deploy; `pr.yml` con lint + tsc + jest + build |
-| 289-294 | Tabla "Workflows activos" incluye `deploy.yml` | Reemplazar por `smoke.yml` (`deployment_status` + manual) |
-| 331 | "`sentry.*.config.ts` inicializan Sentry por runtime" | Falso hoy: no se cargan (N-1). Debe describir `instrumentation.ts` cuando se implemente |
-| 298-361 | §9 sin rate limiting ni health check | Agregar: rate limiting distribuido (Upstash, sliding window, fallback y flag `degraded`) y `/api/health` (contrato 200/503) |
-| 374 | Decisión "docxtemplater + pdf-lib" | Contradice §6 líneas 210-215 (`pdf-lib` nunca existió, `docxtemplater` es dependencia muerta): debería decir "HTML + Puppeteer/Chromium (PDF) + html-to-docx (DOCX)" |
-| 404 | "Colocar `.docx` en `src/features/document/templates/`" | Contradice §6 línea 209: plantillas HTML en `templates/{insolvency,conciliation,support-agreements}/` |
-| 387 | "Drift entre schema e init migration — `prisma db push` en dev, baseline en deploy" | `prisma migrate deploy` en `buildCommand` (solo prod); existe `npm run check:schema-drift` |
+| Línea   | Dice hoy                                                                                      | Debería decir                                                                                                                                                        |
+| ------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 3       | "Última actualización: julio 2026"                                                            | Agosto 2026 (Semana 1/2)                                                                                                                                             |
+| 15-20   | Diagrama §1: `API["API Routes (download, auth callback)"]`; sin Upstash ni Sentry en externos | `API["/api/cron/alerts, /api/health"]`; agregar `Upstash Redis (rate limiting)` y `Sentry` en "Servicios externos"                                                   |
+| 133-138 | "Hardening aplicado" solo lista lo de abril                                                   | Agregar: matching exacto de rutas públicas (C-1), registro cerrado (C-2), tokens solo en cookies (A-3), `requirePageAuth` (M-9)                                      |
+| 271-283 | Diagrama §8 con `deploy.yml` (preview y `vercel --prod`)                                      | Integración nativa Vercel; `smoke.yml` post-deploy; `pr.yml` con lint + tsc + jest + build                                                                           |
+| 289-294 | Tabla "Workflows activos" incluye `deploy.yml`                                                | Reemplazar por `smoke.yml` (`deployment_status` + manual)                                                                                                            |
+| 331     | "`sentry.*.config.ts` inicializan Sentry por runtime"                                         | Falso hoy: no se cargan (N-1). Debe describir `instrumentation.ts` cuando se implemente                                                                              |
+| 298-361 | §9 sin rate limiting ni health check                                                          | Agregar: rate limiting distribuido (Upstash, sliding window, fallback y flag `degraded`) y `/api/health` (contrato 200/503)                                          |
+| 374     | Decisión "docxtemplater + pdf-lib"                                                            | Contradice §6 líneas 210-215 (`pdf-lib` nunca existió, `docxtemplater` es dependencia muerta): debería decir "HTML + Puppeteer/Chromium (PDF) + html-to-docx (DOCX)" |
+| 404     | "Colocar `.docx` en `src/features/document/templates/`"                                       | Contradice §6 línea 209: plantillas HTML en `templates/{insolvency,conciliation,support-agreements}/`                                                                |
+| 387     | "Drift entre schema e init migration — `prisma db push` en dev, baseline en deploy"           | `prisma migrate deploy` en `buildCommand` (solo prod); existe `npm run check:schema-drift`                                                                           |
 
 ### 7.4 `docs/TESTS.md`
 
-| Línea | Dice hoy | Debería decir |
-|---|---|---|
-| 3 | "27 suites / 447 tests" | 31 suites / 504 tests |
-| 28 | "`npx jest --ci` se ejecuta en `pr.yml` en cada pull request" | Cierto, pero aclarar que un push directo a `dev` no dispara CI (N-2) |
+| Línea | Dice hoy                                                                                                                                                           | Debería decir                                                                        |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| 3     | "27 suites / 447 tests"                                                                                                                                            | 31 suites / 504 tests                                                                |
+| 28    | "`npx jest --ci` se ejecuta en `pr.yml` en cada pull request"                                                                                                      | Cierto, pero aclarar que un push directo a `dev` no dispara CI (N-2)                 |
 | 33-64 | Inventario sin `tests/security/csp.test.ts` (10), `middleware-auth-gate.test.ts` (12), `page-auth-guard.test.ts` (3), `tests/unit/health/health-route.test.ts` (7) | Agregar las 4 suites; `rate-limit.test.ts` ~11 → 18; `auth-actions.test.ts` ~23 → 27 |
-| 83 | "Register con hash bcrypt + rol por defecto" | "Register exige permiso `Crear usuarios`; sin sesión o sin permiso se rechaza" |
-| 170 | "Snapshot de schema vs migration: No existe" | Existe: `tests/schema/check-schema-drift.ts` y script `check:schema-drift` |
-| 20-26 | Comandos sin smoke test | Agregar `npm run test:smoke -- <url>` y describir `scripts/smoke-test.sh` |
+| 83    | "Register con hash bcrypt + rol por defecto"                                                                                                                       | "Register exige permiso `Crear usuarios`; sin sesión o sin permiso se rechaza"       |
+| 170   | "Snapshot de schema vs migration: No existe"                                                                                                                       | Existe: `tests/schema/check-schema-drift.ts` y script `check:schema-drift`           |
+| 20-26 | Comandos sin smoke test                                                                                                                                            | Agregar `npm run test:smoke -- <url>` y describir `scripts/smoke-test.sh`            |
 
 ### 7.5 `docs/RUNBOOK.md`
 
-| Línea | Dice hoy | Debería decir |
-|---|---|---|
-| 305 | Enlace a `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md` | El archivo no está en el repo: agregarlo o quitar el enlace |
-| 16-21 | 5 campos `⟨COMPLETAR⟩` | Completar (acción tuya) |
-| 41-42, 167, 187, 212, 292 | Pasos que asumen que Sentry recibe eventos | Hasta resolver N-1, Sentry está vacío por construcción: el triage debe apoyarse solo en `/api/health` y Vercel Logs |
-| 227 | "`vercel login` cuenta insolvenic@gmail.com" | Correcto; agregar advertencia: con otra cuenta, `vercel link` puede crear un proyecto nuevo en el scope equivocado (pasó en esta sesión) |
+| Línea                     | Dice hoy                                              | Debería decir                                                                                                                            |
+| ------------------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 305                       | Enlace a `docs/AUDITORIA_PREPRODUCCION_2026-08-25.md` | El archivo no está en el repo: agregarlo o quitar el enlace                                                                              |
+| 16-21                     | 5 campos `⟨COMPLETAR⟩`                                | Completar (acción tuya)                                                                                                                  |
+| 41-42, 167, 187, 212, 292 | Pasos que asumen que Sentry recibe eventos            | Hasta resolver N-1, Sentry está vacío por construcción: el triage debe apoyarse solo en `/api/health` y Vercel Logs                      |
+| 227                       | "`vercel login` cuenta insolvenic@gmail.com"          | Correcto; agregar advertencia: con otra cuenta, `vercel link` puede crear un proyecto nuevo en el scope equivocado (pasó en esta sesión) |
 
 ### 7.6 `docs/DIAGRAMA_COMPONENTES.md`
 
-| Línea | Dice hoy | Debería decir |
-|---|---|---|
-| 5 | "ARQUITECTURA.md §1 … se deja tal cual" | Hereda la desactualización de §1 (sin health, sin Upstash) |
-| 38 | `InfraAuth: auth.ts + permissions.ts + rate-limit.ts` | Agregar `csp.ts` a infraestructura |
-| 47-52 | Externos: PostgreSQL, Drive, SMTP, Sentry | Agregar `Upstash Redis` con edge desde `rate-limit.ts` |
+| Línea | Dice hoy                                              | Debería decir                                              |
+| ----- | ----------------------------------------------------- | ---------------------------------------------------------- |
+| 5     | "ARQUITECTURA.md §1 … se deja tal cual"               | Hereda la desactualización de §1 (sin health, sin Upstash) |
+| 38    | `InfraAuth: auth.ts + permissions.ts + rate-limit.ts` | Agregar `csp.ts` a infraestructura                         |
+| 47-52 | Externos: PostgreSQL, Drive, SMTP, Sentry             | Agregar `Upstash Redis` con edge desde `rate-limit.ts`     |
 
 ### 7.7 `CHANGELOG.md`
 
-| Línea | Dice hoy | Debería decir |
-|---|---|---|
-| 8-15 | `[Unreleased]` solo tiene logger y P3/P4 | Faltan las 9 entradas de Semana 1/2 (Security: C-1, C-2, A-3, M-9; Added: `/api/health`, smoke test, `smoke.yml`, runbook, `csp.ts`; Changed: rate limiting Upstash, CSP; Dependencies: Next 15.5.24) |
+| Línea | Dice hoy                                 | Debería decir                                                                                                                                                                                         |
+| ----- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 8-15  | `[Unreleased]` solo tiene logger y P3/P4 | Faltan las 9 entradas de Semana 1/2 (Security: C-1, C-2, A-3, M-9; Added: `/api/health`, smoke test, `smoke.yml`, runbook, `csp.ts`; Changed: rate limiting Upstash, CSP; Dependencies: Next 15.5.24) |
 
 ### 7.8 `.env.example` (cruce contra `process.env.*` en código)
 
-| Línea | Variable | Situación | Debería |
-|---|---|---|---|
-| 33 | `JWT_REFRESH_SECRET` | **Documentada, no usada** (N-4) | Implementar en `createRefreshToken`/`verifyRefreshToken` o eliminar y corregir el comentario de la línea 30 |
-| 50 | `NEXTAUTH_SECRET` | Documentada, no usada | Eliminar (no hay NextAuth) |
-| 49 | `NEXTAUTH_URL` | 1 uso en código | Verificar si ese uso es vivo; si no, eliminar |
-| 84 | `VERCEL_OIDC_TOKEN` | Documentada, no usada | Eliminar |
-| 97-99 | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Documentadas, no usadas (sin `withSentryConfig` no hay upload de source maps) | Eliminar o marcar "reservadas para cuando se active el upload de source maps" |
-| — | `LOG_LEVEL` | **Usada** (`logger.ts:69`), no documentada | Agregar sección Observabilidad: `LOG_LEVEL=error|warn|info|debug` |
-| — | `HEALTH_DETAILS_TOKEN` | No existe en código de `origin/dev` | Nada que documentar hasta que se pushee la rama |
-| 56-58 | `NEXT_PUBLIC_APP_ENV` "para badge de versión" | También alimenta `environment` de Sentry y de `/api/health` | Ampliar el comentario |
-| 90-95 | `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN` | Documentadas y usadas, pero el SDK no se inicializa | Nota hasta resolver N-1 |
-| 126-135 | `UPSTASH_*` | ✅ correctas y consistentes con el código | — |
-| 105-122 | `CRON_SECRET`, `ALERTS_*` | ✅ correctas | — |
+| Línea   | Variable                                            | Situación                                                                     | Debería                                                                                                     |
+| ------- | --------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---- | ---- | ------ |
+| 33      | `JWT_REFRESH_SECRET`                                | **Documentada, no usada** (N-4)                                               | Implementar en `createRefreshToken`/`verifyRefreshToken` o eliminar y corregir el comentario de la línea 30 |
+| 50      | `NEXTAUTH_SECRET`                                   | Documentada, no usada                                                         | Eliminar (no hay NextAuth)                                                                                  |
+| 49      | `NEXTAUTH_URL`                                      | 1 uso en código                                                               | Verificar si ese uso es vivo; si no, eliminar                                                               |
+| 84      | `VERCEL_OIDC_TOKEN`                                 | Documentada, no usada                                                         | Eliminar                                                                                                    |
+| 97-99   | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | Documentadas, no usadas (sin `withSentryConfig` no hay upload de source maps) | Eliminar o marcar "reservadas para cuando se active el upload de source maps"                               |
+| —       | `LOG_LEVEL`                                         | **Usada** (`logger.ts:69`), no documentada                                    | Agregar sección Observabilidad: `LOG_LEVEL=error                                                            | warn | info | debug` |
+| —       | `HEALTH_DETAILS_TOKEN`                              | No existe en código de `origin/dev`                                           | Nada que documentar hasta que se pushee la rama                                                             |
+| 56-58   | `NEXT_PUBLIC_APP_ENV` "para badge de versión"       | También alimenta `environment` de Sentry y de `/api/health`                   | Ampliar el comentario                                                                                       |
+| 90-95   | `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_DSN`             | Documentadas y usadas, pero el SDK no se inicializa                           | Nota hasta resolver N-1                                                                                     |
+| 126-135 | `UPSTASH_*`                                         | ✅ correctas y consistentes con el código                                     | —                                                                                                           |
+| 105-122 | `CRON_SECRET`, `ALERTS_*`                           | ✅ correctas                                                                  | —                                                                                                           |
 
 ### 7.9 `next.config.ts` y `package.json`
 
@@ -302,15 +307,15 @@ Formato: archivo, línea aproximada, qué dice hoy, qué debería decir.
 
 ### 7.10 Inconsistencias entre documentos sobre el mismo tema
 
-| Tema | Doc A | Doc B |
-|---|---|---|
-| Cantidad de tests | README 405 · CLAUDE 445 · TESTS 447 | Real 504 |
-| Deploy | README y ARQUITECTURA §8: `deploy.yml` | CLAUDE.md y RUNBOOK: integración nativa, `deploy.yml` eliminado |
-| Pipeline de documentos | ARQUITECTURA §10 "docxtemplater + pdf-lib", §12 ".docx en templates/" | ARQUITECTURA §6, README, CLAUDE.md: HTML + Puppeteer + html-to-docx |
-| Refresh token | README/.env.example: secreto propio `JWT_REFRESH_SECRET` | Código: mismo `JWT_SECRET` |
-| Sentry | ARQUITECTURA §9, CLAUDE.md, DIAGRAMA_COMPONENTES: operativo | Código: `init()` nunca ejecutado |
-| Route handlers | CLAUDE.md: uno | Código: dos |
-| Auditoría de preproducción | RUNBOOK la enlaza | No existe en el repo |
+| Tema                       | Doc A                                                                 | Doc B                                                               |
+| -------------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Cantidad de tests          | README 405 · CLAUDE 445 · TESTS 447                                   | Real 504                                                            |
+| Deploy                     | README y ARQUITECTURA §8: `deploy.yml`                                | CLAUDE.md y RUNBOOK: integración nativa, `deploy.yml` eliminado     |
+| Pipeline de documentos     | ARQUITECTURA §10 "docxtemplater + pdf-lib", §12 ".docx en templates/" | ARQUITECTURA §6, README, CLAUDE.md: HTML + Puppeteer + html-to-docx |
+| Refresh token              | README/.env.example: secreto propio `JWT_REFRESH_SECRET`              | Código: mismo `JWT_SECRET`                                          |
+| Sentry                     | ARQUITECTURA §9, CLAUDE.md, DIAGRAMA_COMPONENTES: operativo           | Código: `init()` nunca ejecutado                                    |
+| Route handlers             | CLAUDE.md: uno                                                        | Código: dos                                                         |
+| Auditoría de preproducción | RUNBOOK la enlaza                                                     | No existe en el repo                                                |
 
 ---
 
@@ -342,39 +347,39 @@ Resumen sin commitear del trabajo hecho el 2026-09-01 después del checkpoint, a
 
 ### 9.1 Qué se hizo
 
-| Ítem | Detalle |
-|---|---|
-| Rama | `fix/sentry-init`, creada desde `dev` local ya sincronizado con `origin/dev` (`f542f22`) |
-| Commits | `1f06b33` — `fix(observability): inicializar Sentry via instrumentation.ts (N-1, reabre A-7)`; `416475c` — `chore(observability): endpoint TEMPORAL /api/sentry-test-temporal`. **Ambos pusheados a `origin/fix/sentry-init`** (rama nueva, push normal, autorizado por Maxi el 2026-09-01). |
-| ⚠️ Endpoint TEMPORAL | `src/app/api/sentry-test-temporal/route.ts` + `tests/unit/observability/sentry-test-route.test.ts`. **Eliminar antes de promover a producción.** Responde 404 si `VERCEL_ENV=production`; exige `Authorization: Bearer <CRON_SECRET>`. Modo por defecto: `logger.error` → 200; `?mode=throw`: excepción → `onRequestError` → 500. Suite con el endpoint: 33 suites / 520 tests. |
-| Nuevo `src/instrumentation.ts` | `register()` importa `sentry.server.config.ts` o `sentry.edge.config.ts` según `NEXT_RUNTIME`; exporta `onRequestError = Sentry.captureRequestError` (errores de Server Components, Route Handlers y Server Actions) |
-| Nuevo `src/instrumentation-client.ts` | Misma configuración que tenía `sentry.client.config.ts` (`sendDefaultPii: false`, `beforeSend` con `scrubSentryEvent`, `tracesSampleRate` 0.1 solo en prod) + `onRouterTransitionStart` |
-| Eliminado `sentry.client.config.ts` | Nunca se cargaba; dejarlo invitaría a un doble `init()` si algún día se agrega `withSentryConfig` |
-| `src/lib/observability.ts` | Solo el comentario que apuntaba al archivo eliminado |
-| Sin `withSentryConfig()` | Decisión mantenida: `serverExternalPackages: ['@opentelemetry/api']` sigue cubriendo el problema de tracing de agosto |
-| Tests | `tests/unit/observability/instrumentation.test.ts`, 11 casos: init una vez por runtime con el DSN correcto, fallback a `NEXT_PUBLIC_SENTRY_DSN` en servidor, no-op sin DSN, runtime desconocido no carga nada, el navegador ignora `SENTRY_DSN`, `beforeSend` redacta cookies/`authorization`/`token=` en la URL, y los dos exports de Next |
+| Ítem                                  | Detalle                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rama                                  | `fix/sentry-init`, creada desde `dev` local ya sincronizado con `origin/dev` (`f542f22`)                                                                                                                                                                                                                                                                                        |
+| Commits                               | `1f06b33` — `fix(observability): inicializar Sentry via instrumentation.ts (N-1, reabre A-7)`; `416475c` — `chore(observability): endpoint TEMPORAL /api/sentry-test-temporal`. **Ambos pusheados a `origin/fix/sentry-init`** (rama nueva, push normal, autorizado por Maxi el 2026-09-01).                                                                                    |
+| ⚠️ Endpoint TEMPORAL                  | `src/app/api/sentry-test-temporal/route.ts` + `tests/unit/observability/sentry-test-route.test.ts`. **Eliminar antes de promover a producción.** Responde 404 si `VERCEL_ENV=production`; exige `Authorization: Bearer <CRON_SECRET>`. Modo por defecto: `logger.error` → 200; `?mode=throw`: excepción → `onRequestError` → 500. Suite con el endpoint: 33 suites / 520 tests. |
+| Nuevo `src/instrumentation.ts`        | `register()` importa `sentry.server.config.ts` o `sentry.edge.config.ts` según `NEXT_RUNTIME`; exporta `onRequestError = Sentry.captureRequestError` (errores de Server Components, Route Handlers y Server Actions)                                                                                                                                                            |
+| Nuevo `src/instrumentation-client.ts` | Misma configuración que tenía `sentry.client.config.ts` (`sendDefaultPii: false`, `beforeSend` con `scrubSentryEvent`, `tracesSampleRate` 0.1 solo en prod) + `onRouterTransitionStart`                                                                                                                                                                                         |
+| Eliminado `sentry.client.config.ts`   | Nunca se cargaba; dejarlo invitaría a un doble `init()` si algún día se agrega `withSentryConfig`                                                                                                                                                                                                                                                                               |
+| `src/lib/observability.ts`            | Solo el comentario que apuntaba al archivo eliminado                                                                                                                                                                                                                                                                                                                            |
+| Sin `withSentryConfig()`              | Decisión mantenida: `serverExternalPackages: ['@opentelemetry/api']` sigue cubriendo el problema de tracing de agosto                                                                                                                                                                                                                                                           |
+| Tests                                 | `tests/unit/observability/instrumentation.test.ts`, 11 casos: init una vez por runtime con el DSN correcto, fallback a `NEXT_PUBLIC_SENTRY_DSN` en servidor, no-op sin DSN, runtime desconocido no carga nada, el navegador ignora `SENTRY_DSN`, `beforeSend` redacta cookies/`authorization`/`token=` en la URL, y los dos exports de Next                                     |
 
 ### 9.2 Verificación local (todo verde)
 
-| Comando | Resultado |
-|---|---|
-| `npx jest --ci` | 32 suites / 515 tests (antes 31 / 504) |
-| `npx tsc --noEmit` | 0 errores |
-| `npx eslint` (archivos tocados) | 0 errores |
-| `npx next build` | exit 0; emite `.next/server/instrumentation.js` (antes no existía) y el init entra en `main-app-*.js` |
-| Hook `pre-commit` (husky → lint-staged) | corrió: eslint --fix + prettier sobre los 4 archivos |
+| Comando                                 | Resultado                                                                                             |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `npx jest --ci`                         | 32 suites / 515 tests (antes 31 / 504)                                                                |
+| `npx tsc --noEmit`                      | 0 errores                                                                                             |
+| `npx eslint` (archivos tocados)         | 0 errores                                                                                             |
+| `npx next build`                        | exit 0; emite `.next/server/instrumentation.js` (antes no existía) y el init entra en `main-app-*.js` |
+| Hook `pre-commit` (husky → lint-staged) | corrió: eslint --fix + prettier sobre los 4 archivos                                                  |
 
 ### 9.2b Preview desplegado (2026-09-02 00:55 UTC)
 
-| Qué | Valor |
-|---|---|
-| Deploys de `1f06b33` y `416475c` | **Bloqueados por Vercel** ("Deployment was blocked", autor `MaxitoJM`, plan Hobby) |
-| Commit `5593aa7` | vacío, autor `Insolventic <insolvenic@gmail.com>`, push normal autorizado por Maxi (opción A, sin amend ni force) |
-| Preview | `https://insolventic-60f9vda8c-insolventics-projects.vercel.app` |
-| Smoke test post-deploy | run 33577304935: **OK** (health, home, gate de auth, registro cerrado) |
-| `/api/health` | 200, `environment: "preview"`, BD ok |
-| CSP `connect-src` en el preview | incluye `https://o4511983700934656.ingest.us.sentry.io` → **`NEXT_PUBLIC_SENTRY_DSN` sí está configurado en Preview** (deducido del header, no del dashboard) |
-| `/api/sentry-test-temporal` sin token | **503 "CRON_SECRET no configurado"** → falta `CRON_SECRET` en el entorno Preview; hasta que exista, el endpoint no dispara nada |
+| Qué                                   | Valor                                                                                                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Deploys de `1f06b33` y `416475c`      | **Bloqueados por Vercel** ("Deployment was blocked", autor `MaxitoJM`, plan Hobby)                                                                            |
+| Commit `5593aa7`                      | vacío, autor `Insolventic <insolvenic@gmail.com>`, push normal autorizado por Maxi (opción A, sin amend ni force)                                             |
+| Preview                               | `https://insolventic-60f9vda8c-insolventics-projects.vercel.app`                                                                                              |
+| Smoke test post-deploy                | run 33577304935: **OK** (health, home, gate de auth, registro cerrado)                                                                                        |
+| `/api/health`                         | 200, `environment: "preview"`, BD ok                                                                                                                          |
+| CSP `connect-src` en el preview       | incluye `https://o4511983700934656.ingest.us.sentry.io` → **`NEXT_PUBLIC_SENTRY_DSN` sí está configurado en Preview** (deducido del header, no del dashboard) |
+| `/api/sentry-test-temporal` sin token | **503 "CRON_SECRET no configurado"** → falta `CRON_SECRET` en el entorno Preview; hasta que exista, el endpoint no dispara nada                               |
 
 ### 9.3 Lo que falta y es tuyo, Maxi
 
@@ -416,15 +421,15 @@ Next lo propaga y `base-server.js:450` llama a `onRequestError` con `await`.
 
 La causa real es otra, y son **dos causas distintas, una por camino**:
 
-| Camino | Por qué no llegaba |
-|---|---|
+| Camino                           | Por qué no llegaba                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `?mode=throw` → `onRequestError` | `instrumentation.ts` exportaba `Sentry.captureRequestError` directo. Ese helper programa el flush con `vercelWaitUntil`, que en el SDK **es un no-op fuera del runtime edge**: `@sentry/core/build/cjs/utils/vercelWaitUntil.js` arranca con `if (typeof EdgeRuntime !== "string") return;`. En el runtime **Node** el evento queda encolado, la función responde el 500 y Vercel la congela antes de que salga el envío. |
-| camino logger | `logger.error/warn` devuelven `void` y disparaban `import('@sentry/nextjs')` + `captureException` sin esperar nada ni registrar la tarea en ningún `waitUntil`. Mismo final: la función se congela con el envío en vuelo. |
+| camino logger                    | `logger.error/warn` devuelven `void` y disparaban `import('@sentry/nextjs')` + `captureException` sin esperar nada ni registrar la tarea en ningún `waitUntil`. Mismo final: la función se congela con el envío en vuelo.                                                                                                                                                                                                 |
 
 Los puntos 2 y 3 de la investigación pedida quedaron **descartados como causa**:
 
 - **DSN del servidor:** `sentry.server.config.ts` lee `SENTRY_DSN ?? NEXT_PUBLIC_SENTRY_DSN`, y el fallback funciona. El header CSP del preview ya probaba que el DSN público existe. El endpoint ahora lo confirma por respuesta (`sentry.dsnConfigured`).
-- **Muestreo / `beforeSend`:** `tracesSampleRate` solo afecta *traces*, nunca errores; no hay `sampleRate` configurado (default 1.0); y `scrubSentryEvent` siempre devuelve el evento, nunca `null`. Ninguno descarta eventos.
+- **Muestreo / `beforeSend`:** `tracesSampleRate` solo afecta _traces_, nunca errores; no hay `sampleRate` configurado (default 1.0); y `scrubSentryEvent` siempre devuelve el evento, nunca `null`. Ninguno descarta eventos.
 
 ### 10.3 Verificación local (no fue deducción)
 
@@ -434,19 +439,19 @@ tres caminos enviaban con el proceso vivo (local no congela nada, por eso el
 bug es invisible fuera de serverless). Después del fix, midiendo el envío
 contra el instante de la respuesta HTTP:
 
-| Modo | HTTP | Envelope |
-|---|---|---|
-| `?mode=direct` | 200 | **antes** de la respuesta (−3 ms) |
-| `?mode=throw` | 500 | **antes** de la respuesta (−1 ms) |
-| logger (por defecto) | 200 | después (+4 ms) — local no expone `waitUntil`; en Vercel sí |
+| Modo                 | HTTP | Envelope                                                    |
+| -------------------- | ---- | ----------------------------------------------------------- |
+| `?mode=direct`       | 200  | **antes** de la respuesta (−3 ms)                           |
+| `?mode=throw`        | 500  | **antes** de la respuesta (−1 ms)                           |
+| logger (por defecto) | 200  | después (+4 ms) — local no expone `waitUntil`; en Vercel sí |
 
 ### 10.4 El fix (commits `2cf9520` y `94387f2`)
 
-| Archivo | Cambio |
-|---|---|
-| `src/instrumentation.ts` | `onRequestError` deja de ser el helper del SDK y pasa a ser una función propia: captura y **espera el flush** (2 s) antes de devolver. Next la espera, así que el evento sale antes del 500. `register()` no se tocó. |
-| `src/lib/logger.ts` | La cadena captura + flush se registra en el `waitUntil` del contexto de request de la plataforma (símbolos `@next/request-context` y `@vercel/request-context`, el mismo mecanismo que usa `after()`). Fuera de la plataforma, comportamiento idéntico al anterior. Nuevo export `hasServerlessWaitUntil()` para diagnóstico. |
-| `src/app/api/sentry-test-temporal/route.ts` | Nuevo `?mode=direct` (captura explícita + flush esperado) como camino de referencia, y diagnóstico booleano en las respuestas 200: `initialized`, `dsnConfigured`, `waitUntilAvailable`. Nunca expone el DSN (hay un test que lo verifica). |
+| Archivo                                     | Cambio                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/instrumentation.ts`                    | `onRequestError` deja de ser el helper del SDK y pasa a ser una función propia: captura y **espera el flush** (2 s) antes de devolver. Next la espera, así que el evento sale antes del 500. `register()` no se tocó.                                                                                                         |
+| `src/lib/logger.ts`                         | La cadena captura + flush se registra en el `waitUntil` del contexto de request de la plataforma (símbolos `@next/request-context` y `@vercel/request-context`, el mismo mecanismo que usa `after()`). Fuera de la plataforma, comportamiento idéntico al anterior. Nuevo export `hasServerlessWaitUntil()` para diagnóstico. |
+| `src/app/api/sentry-test-temporal/route.ts` | Nuevo `?mode=direct` (captura explícita + flush esperado) como camino de referencia, y diagnóstico booleano en las respuestas 200: `initialized`, `dsnConfigured`, `waitUntilAvailable`. Nunca expone el DSN (hay un test que lo verifica).                                                                                   |
 
 ### 10.5 Tests de regresión agregados
 
@@ -456,12 +461,12 @@ Cubren exactamente la clase de bug "el servidor responde bien pero no reporta":
 - `instrumentation.test.ts`: `onRequestError` **no resuelve** hasta que el flush termina (con el flush pendiente, la promesa que Next espera sigue abierta).
 - `sentry-test-route.test.ts`: modo `direct` (captura + flush + `eventId`), `flushed:false` si vence el timeout, y que el diagnóstico no filtre el DSN.
 
-| Verificación | Resultado |
-|---|---|
-| `npx jest --ci` | **34 suites / 532 tests** (antes 33 / 520) |
-| `npx tsc --noEmit` | 0 errores |
-| `npx eslint` (archivos tocados) | 0 errores |
-| `npx next build` | exit 0 |
+| Verificación                    | Resultado                                  |
+| ------------------------------- | ------------------------------------------ |
+| `npx jest --ci`                 | **34 suites / 532 tests** (antes 33 / 520) |
+| `npx tsc --noEmit`              | 0 errores                                  |
+| `npx eslint` (archivos tocados) | 0 errores                                  |
+| `npx next build`                | exit 0                                     |
 
 ### 10.6 Estado de la rama y lo que sigue
 
@@ -469,10 +474,10 @@ Cubren exactamente la clase de bug "el servidor responde bien pero no reporta":
 (autorizado explícitamente por Maxi el 2026-09-02). Tres commits nuevos sobre
 `5593aa7`:
 
-| Commit | Autor | Qué |
-|---|---|---|
-| `2cf9520` | MaxitoJM | El fix de entrega (`instrumentation.ts` + `logger.ts` + tests) |
-| `94387f2` | MaxitoJM | Modo `direct` y diagnóstico en el endpoint TEMPORAL |
+| Commit    | Autor       | Qué                                                                                                                                                 |
+| --------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `2cf9520` | MaxitoJM    | El fix de entrega (`instrumentation.ts` + `logger.ts` + tests)                                                                                      |
+| `94387f2` | MaxitoJM    | Modo `direct` y diagnóstico en el endpoint TEMPORAL                                                                                                 |
 | `3591790` | Insolventic | Commit vacío de trigger — el HEAD debía tener ese autor o el plan Hobby bloquea el preview. Mismo patrón de `5593aa7`, **sin reescribir historial** |
 
 `dev` (`f542f22`) y `main` (`70868c6`) **sin tocar**.
@@ -490,4 +495,4 @@ si viene `true` y aun así no llega, el problema no es la entrega.
 
 ---
 
-*Generado el 2026-09-01 a partir de `origin/dev` (`f542f22`), `origin/main` (`70868c6`), la API de GitHub, la API de Vercel (scope personal) y una ejecución local de la suite de tests en un clon aislado. No se modificó ningún archivo existente del repositorio.*
+_Generado el 2026-09-01 a partir de `origin/dev` (`f542f22`), `origin/main` (`70868c6`), la API de GitHub, la API de Vercel (scope personal) y una ejecución local de la suite de tests en un clon aislado. No se modificó ningún archivo existente del repositorio._

@@ -415,16 +415,28 @@ flowchart TD
 
 **Agregar una nueva plantilla documental:**
 
-1. Colocar `.docx` en `src/features/document/templates/`.
-2. Registrarla en el manifiesto de paquetes.
+1. Colocar el `.html` en `templates/{insolvency,conciliation,support-agreements}/`
+   (las plantillas son HTML y viven en la raíz del repo, no `.docx` dentro de
+   `src/`).
+2. Registrarla en `src/features/document/templates-config.ts`: una entrada
+   `DocumentTemplate` con su `fileName`, `caseType`, paquete y `folderPath`.
 3. Declarar sus placeholders en `docs/DICCIONARIO_PLACEHOLDERS.md`.
 
 **Agregar un nuevo tenant/centro:**
 
-1. Crear BD, añadir `DATABASE_URL_<SLUG>` al entorno.
-2. Añadir el tenant en `src/lib/prisma.ts` resolver.
+1. Crear el tenant **en la base única**. No hay una BD por centro ni un
+   `DATABASE_URL_<SLUG>` en runtime: lo dice §2 de este mismo documento, y
+   hasta el 2026-10-29 estos pasos seguían describiendo esa arquitectura
+   inexistente.
+2. Añadir su metadata de UI (id, nombre, slug, logo) a `tenantConfigs` en
+   `src/lib/prisma.ts`. Ese mapa es solo metadata: no resuelve conexiones.
 3. Seed específico con el rol Admin y usuario inicial.
 4. Configurar carpeta raíz de Drive y credenciales OAuth del centro.
+
+> Antes de agregar un tercer centro hay que resolver lo que detectó
+> `docs/CHECKPOINT_2026-10-09.md`: el branding por centro nunca eligió por
+> centro, porque `Case.tenantId` guarda un cuid y no el slug. Es trabajo de
+> código, no de configuración.
 
 ---
 

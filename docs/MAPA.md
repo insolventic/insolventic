@@ -22,7 +22,7 @@ Convención del proyecto: la API son **server actions** en `src/features/<domini
 | Reportes                    | `src/features/report/actions.ts`                                                    | `src/app/reports/`                                        |
 | Calendario                  | `src/features/calendar/actions.ts`                                                  | `src/app/calendar/`                                       |
 | Auditoría                   | `src/features/audit-log/actions.ts`, `src/features/case/audit-diff.ts`              | `src/app/audit-log/`                                      |
-| Esquema de BD               | `src/prisma/schema.prisma` (~1.041 líneas), migraciones en `src/prisma/migrations/` | —                                                         |
+| Esquema de BD               | `src/prisma/schema.prisma` (~1.094 líneas), migraciones en `src/prisma/migrations/` | —                                                         |
 
 ## 2. Módulos del dominio `case` (los 15 auxiliares)
 
@@ -92,7 +92,7 @@ Hooks: `src/hooks/use-auth.ts`, `use-session-timeout.ts`. Providers: `src/compon
 
 `npm test` excluye `tests/db` y `tests/e2e`.
 
-## 6. Índice de `docs/` (57 archivos)
+## 6. Índice de `docs/`
 
 Para no leer los 3 MB a ciegas:
 
