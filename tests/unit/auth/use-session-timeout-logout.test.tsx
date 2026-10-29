@@ -18,7 +18,7 @@
  * de este archivo exige que el hook no escriba nada por `console`.
  */
 
-import { renderHook, act } from '@testing-library/react';
+import { render, renderHook, act } from '@testing-library/react';
 
 const mockLogout = jest.fn();
 const mockAuth = {
@@ -41,6 +41,7 @@ jest.mock('sonner', () => ({
 
 import { logger } from '@/lib/logger';
 import { useSessionTimeout } from '@/hooks/use-session-timeout';
+import { SessionTimeoutProvider } from '@/components/auth/session-timeout-provider';
 
 const TIMEOUT_MS = 1000;
 
@@ -143,5 +144,52 @@ describe('useSessionTimeout — auto-logout', () => {
     // de autenticación; para depurar basta con `hasUser`.
     const serializado = JSON.stringify(debugSpy.mock.calls);
     expect(serializado).not.toContain('Ana Torres');
+  });
+});
+/**
+ * H-4 — El provider tenía el mismo defecto que el hook.
+ *
+ * `SessionTimeoutProvider` envuelve el layout principal, así que su
+ * `console.log` corría en cada render — y aparecía incluso en la salida del
+ * `next build`, con la configuración del timeout. Va por `logger.debug` por
+ * el mismo motivo que el hook.
+ */
+describe('SessionTimeoutProvider', () => {
+  let debugSpy: jest.SpyInstance;
+  let consoleLogSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    debugSpy = jest.spyOn(logger, 'debug').mockImplementation(() => {});
+    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+  });
+
+  it('no escribe nada por console al montarse', () => {
+    render(
+      <SessionTimeoutProvider>
+        <span>contenido</span>
+      </SessionTimeoutProvider>,
+    );
+
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+    expect(debugSpy).toHaveBeenCalledWith(
+      'Session timeout: provider inicializado',
+      expect.objectContaining({ action: 'sessionTimeout' }),
+    );
+  });
+
+  it('renderiza a sus hijos tal cual', () => {
+    const { getByText } = render(
+      <SessionTimeoutProvider>
+        <span>contenido</span>
+      </SessionTimeoutProvider>,
+    );
+
+    expect(getByText('contenido')).toBeTruthy();
   });
 });
