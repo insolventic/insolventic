@@ -269,7 +269,7 @@ Todos los ítems deben pasar. Anotar la hora y quién lo verificó.
 ### 5.1 `/api/health` en Production
 
 ```bash
-curl -s https://⟨DOMINIO-PRODUCCION⟩/api/health | jq
+curl -s https://insolventic.vercel.app/api/health | jq
 ```
 
 Esperado: HTTP **200** y
