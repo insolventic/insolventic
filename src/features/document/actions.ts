@@ -11,6 +11,7 @@ import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import { logger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
+import { isRetryableDriveError } from '@/lib/drive-errors';
 import { canGenerateDocument } from '../case/validation-rules';
 import { assertCaseAccessOnRow } from '../case/case-access';
 import {
@@ -912,8 +913,11 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Get HTML templates to process
-    const { getTemplatePath, getTemplateAssetsBaseDir, resolveTemplatesToProcess } =
-      await import('./templates-config');
+    const {
+      getTemplatePath,
+      getTemplateAssetsBaseDir,
+      resolveTemplatesToProcess,
+    } = await import('./templates-config');
 
     const templatesToProcess: DocumentTemplate[] = resolveTemplatesToProcess({
       templateIds,
@@ -1004,8 +1008,9 @@ export async function batchGenerateDocuments(input: {
     // viene de fetchCaseForGeneration (CASE_GENERATION_INCLUDE trae
     // tenant.slug) — el cuid solo es fallback si por lo que sea faltara.
     const centerFolderName = resolveCenterFolderName(
-      tenantSlugDelCaso(caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0]) ??
-        tenantId,
+      tenantSlugDelCaso(
+        caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0],
+      ) ?? tenantId,
       caseData.centroConciliacionNombre,
     );
 
@@ -1326,7 +1331,10 @@ export async function batchGenerateDocuments(input: {
                     variant.buffer,
                     targetFolderId,
                   ),
-                { label: `upload:${variantDocName}` },
+                {
+                  label: `upload:${variantDocName}`,
+                  isRetryable: isRetryableDriveError,
+                },
               );
               fileId = uploadResult.fileId;
               fileUrl = uploadResult.fileUrl;
@@ -1663,11 +1671,21 @@ export async function uploadCaseDocuments(input: {
     for (const d of documents) {
       const safeFileName = sanitizeFileName(d.fileName);
       const buffer = Buffer.from(d.dataBase64, 'base64');
-      const fileId = await googleDriveService.uploadFile(
-        safeFileName,
-        buffer,
-        d.mimeType,
-        adjuntosFolderId,
+      // Con reintento, como las dos rutas de generación: un 429 o un 5xx
+      // transitorio de Drive dejaba el adjunto sin subir, y el usuario ya
+      // eligió el archivo — no hay nada que reintentar del lado de él.
+      const fileId = await withRetry(
+        () =>
+          googleDriveService.uploadFile(
+            safeFileName,
+            buffer,
+            d.mimeType,
+            adjuntosFolderId,
+          ),
+        {
+          label: `upload-adjunto:${safeFileName}`,
+          isRetryable: isRetryableDriveError,
+        },
       );
 
       const fileUrl = googleDriveService.getFileUrl(fileId);

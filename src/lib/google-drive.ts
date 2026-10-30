@@ -1,12 +1,43 @@
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
+import { logger } from '@/lib/logger';
+import { isRetryableDriveError, statusDeDrive } from '@/lib/drive-errors';
+
 /**
  * Sanitizes a value for use in Google Drive API query strings.
  * Escapes backslashes and single quotes to prevent query injection.
  */
 function sanitizeDriveQueryValue(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+/**
+ * Envuelve un error de Drive **sin perder la causa**.
+ *
+ * Los 13 `catch` de este archivo hacían
+ * `console.error(...); throw new Error('Error al …')`: el `Error` nuevo no
+ * llevaba `cause`, así que a Sentry y al operador les llegaba el mismo texto
+ * para un token expirado, una cuota agotada, un 429 y una carpeta borrada a
+ * mano — cuatro incidentes con cuatro procedimientos distintos en
+ * `docs/RUNBOOK.md` §3.4, que pide diagnosticar justo lo que el código acababa
+ * de borrar (hallazgo R-1 de `docs/AUDITORIA_BLOQUE3_2026-10-27.md`).
+ *
+ * El mensaje de cara al usuario no cambia: lo que se agrega es la causa, el
+ * status y el contexto para el log.
+ */
+function errorDeDrive(
+  mensaje: string,
+  error: unknown,
+  contexto: { action: string } & Record<string, unknown>,
+): Error {
+  const status = statusDeDrive(error);
+  logger.error(mensaje, error, {
+    ...contexto,
+    driveStatus: status,
+    retryable: isRetryableDriveError(error),
+  });
+  return new Error(mensaje, { cause: error });
 }
 
 class GoogleDriveService {
@@ -76,8 +107,11 @@ class GoogleDriveService {
 
       return response.data.id;
     } catch (error) {
-      console.error('Error subiendo archivo a Google Drive:', error);
-      throw new Error('Error al subir archivo a Google Drive');
+      throw errorDeDrive('Error al subir archivo a Google Drive', error, {
+        action: 'drive-upload',
+        fileName,
+        folderId,
+      });
     }
   }
 
@@ -125,8 +159,10 @@ class GoogleDriveService {
         });
       });
     } catch (error) {
-      console.error('Error descargando archivo de Google Drive:', error);
-      throw new Error('Error al descargar archivo de Google Drive');
+      throw errorDeDrive('Error al descargar archivo de Google Drive', error, {
+        action: 'drive-download',
+        fileId,
+      });
     }
   }
 
@@ -136,8 +172,10 @@ class GoogleDriveService {
         fileId,
       });
     } catch (error) {
-      console.error('Error eliminando archivo de Google Drive:', error);
-      throw new Error('Error al eliminar archivo de Google Drive');
+      throw errorDeDrive('Error al eliminar archivo de Google Drive', error, {
+        action: 'drive-delete',
+        fileId,
+      });
     }
   }
 
@@ -164,8 +202,10 @@ class GoogleDriveService {
 
       return response.data;
     } catch (error) {
-      console.error('Error obteniendo información del archivo:', error);
-      throw new Error('Error al obtener información del archivo');
+      throw errorDeDrive('Error al obtener información del archivo', error, {
+        action: 'drive-get-file',
+        fileId,
+      });
     }
   }
 
@@ -190,8 +230,11 @@ class GoogleDriveService {
 
       return response.data.id;
     } catch (error) {
-      console.error('Error creando carpeta en Google Drive:', error);
-      throw new Error('Error al crear carpeta en Google Drive');
+      throw errorDeDrive('Error al crear carpeta en Google Drive', error, {
+        action: 'drive-create-folder',
+        folderName: name,
+        parentFolderId,
+      });
     }
   }
 
@@ -217,8 +260,10 @@ class GoogleDriveService {
         media,
       });
     } catch (error) {
-      console.error('Error actualizando archivo en Google Drive:', error);
-      throw new Error('Error al actualizar archivo en Google Drive');
+      throw errorDeDrive('Error al actualizar archivo en Google Drive', error, {
+        action: 'drive-update-file',
+        fileId,
+      });
     }
   }
 
@@ -247,8 +292,10 @@ class GoogleDriveService {
         fields: 'id, parents',
       });
     } catch (error) {
-      console.error('Error moviendo archivo en Google Drive:', error);
-      throw new Error('Error al mover archivo en Google Drive');
+      throw errorDeDrive('Error al mover archivo en Google Drive', error, {
+        action: 'drive-move-file',
+        fileId,
+      });
     }
   }
 
@@ -281,11 +328,10 @@ class GoogleDriveService {
         files: filesResponse.data.files || [],
       };
     } catch (error) {
-      console.error(
-        'Error listando carpetas y archivos de Google Drive:',
-        error,
-      );
-      throw new Error('Error al listar contenido de Google Drive');
+      throw errorDeDrive('Error al listar contenido de Google Drive', error, {
+        action: 'drive-list',
+        folderId: parentFolderId,
+      });
     }
   }
 
@@ -366,7 +412,16 @@ class GoogleDriveService {
           }
         }
       } catch (error) {
-        console.error(`Error processing folder ${folderId}:`, error);
+        // Se absorbe a propósito: un subarbol que falla no debe tirar el
+        // listado entero. Pero el resultado queda INCOMPLETO, y eso la
+        // sincronización lo interpreta como "esos archivos no existen", así
+        // que tiene que verse en algún lado.
+        logger.warn('No se pudo listar una carpeta de Drive; se omite', {
+          action: 'drive-list-recursive',
+          folderId,
+          driveStatus: statusDeDrive(error),
+          reason: error instanceof Error ? error.message : String(error),
+        });
       }
     };
 
@@ -404,7 +459,14 @@ class GoogleDriveService {
 
       return path;
     } catch (error) {
-      console.error('Error obteniendo ruta de carpeta:', error);
+      // Devuelve [] y el llamador lo lee como "sin ruta": conviene que el log
+      // distinga eso de una carpeta que de verdad está en la raíz.
+      logger.warn('No se pudo resolver la ruta de una carpeta de Drive', {
+        action: 'drive-folder-path',
+        folderId,
+        driveStatus: statusDeDrive(error),
+        reason: error instanceof Error ? error.message : String(error),
+      });
       return [];
     }
   }
@@ -425,8 +487,10 @@ class GoogleDriveService {
 
       return await this.createFolder(caseNumber, casesFolderId);
     } catch (error) {
-      console.error('Error finding or creating case folder:', error);
-      throw new Error('Error al crear carpeta del caso');
+      throw errorDeDrive('Error al crear carpeta del caso', error, {
+        action: 'drive-case-folder',
+        caseNumber,
+      });
     }
   }
 
@@ -458,8 +522,10 @@ class GoogleDriveService {
 
       return currentParentId;
     } catch (error) {
-      console.error('Error creating folder hierarchy:', error);
-      throw new Error('Error al crear jerarquía de carpetas');
+      throw errorDeDrive('Error al crear jerarquía de carpetas', error, {
+        action: 'drive-folder-hierarchy',
+        ruta: folderPath.join('/'),
+      });
     }
   }
 
@@ -491,8 +557,10 @@ class GoogleDriveService {
 
       return { fileId, fileUrl };
     } catch (error) {
-      console.error('Error uploading document to case folder:', error);
-      throw new Error('Error al subir documento al caso');
+      throw errorDeDrive('Error al subir documento al caso', error, {
+        action: 'drive-upload',
+        fileName,
+      });
     }
   }
 
