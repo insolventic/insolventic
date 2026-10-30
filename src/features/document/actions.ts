@@ -912,8 +912,11 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Get HTML templates to process
-    const { getTemplatePath, getTemplateAssetsBaseDir, resolveTemplatesToProcess } =
-      await import('./templates-config');
+    const {
+      getTemplatePath,
+      getTemplateAssetsBaseDir,
+      resolveTemplatesToProcess,
+    } = await import('./templates-config');
 
     const templatesToProcess: DocumentTemplate[] = resolveTemplatesToProcess({
       templateIds,
@@ -1004,8 +1007,9 @@ export async function batchGenerateDocuments(input: {
     // viene de fetchCaseForGeneration (CASE_GENERATION_INCLUDE trae
     // tenant.slug) — el cuid solo es fallback si por lo que sea faltara.
     const centerFolderName = resolveCenterFolderName(
-      tenantSlugDelCaso(caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0]) ??
-        tenantId,
+      tenantSlugDelCaso(
+        caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0],
+      ) ?? tenantId,
       caseData.centroConciliacionNombre,
     );
 
