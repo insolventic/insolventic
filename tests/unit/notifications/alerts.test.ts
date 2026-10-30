@@ -6,6 +6,8 @@
  *   2. Dedupe: if an identical notification was written recently, skip it.
  *   3. Overdue-payment scan flips pendiente → vencido and notifies operator.
  *   4. Cases/payments with no operator are skipped (nothing to notify).
+ *   5. Los dos escaneos están acotados (`take`) y lo dicen cuando recortan.
+ *   6. La deduplicación es UNA consulta por lote, no una por ítem (O-3).
  */
 
 process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only';
@@ -125,8 +127,11 @@ describe('alerts.ts — scanUpcomingHearings', () => {
         operatorId: 'user-1',
       },
     ]);
-    // Simulate an existing notification from 2h ago.
-    mockPrisma.notification.findFirst.mockResolvedValue({ id: 'existing' });
+    // Una notificación de hace 2 h. La deduplicación es por lote: una sola
+    // consulta que devuelve los pares (userId, relatedId) ya notificados.
+    mockPrisma.notification.findMany.mockResolvedValue([
+      { relatedId: 'case-1', userId: 'user-1' },
+    ]);
 
     const result = await scanUpcomingHearings(mockPrisma as never, 'armonia');
 
@@ -201,15 +206,16 @@ describe('alerts.ts — scanOverduePayments', () => {
         },
       },
     ]);
-    mockPrisma.notification.findFirst.mockResolvedValue(null);
-    mockPrisma.payment.update.mockResolvedValue({});
+    mockPrisma.notification.findMany.mockResolvedValue([]);
+    mockPrisma.payment.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.notification.create.mockResolvedValue({ id: 'notif-1' });
 
     const result = await scanOverduePayments(mockPrisma as never, 'armonia');
 
     expect(result.created).toBe(1);
-    expect(mockPrisma.payment.update).toHaveBeenCalledWith({
-      where: { id: 'pay-1' },
+    // Un solo `updateMany` para todo el lote, en vez de un `update` por pago.
+    expect(mockPrisma.payment.updateMany).toHaveBeenCalledWith({
+      where: { tenantId: 'armonia', id: { in: ['pay-1'] } },
       data: { status: 'vencido' },
     });
     expect(mockPrisma.notification.create).toHaveBeenCalledWith({
@@ -238,11 +244,14 @@ describe('alerts.ts — scanOverduePayments', () => {
         },
       },
     ]);
-    mockPrisma.notification.findFirst.mockResolvedValue(null);
+    mockPrisma.notification.findMany.mockResolvedValue([]);
 
     const result = await scanOverduePayments(mockPrisma as never, 'armonia');
 
     expect(result.created).toBe(1);
+    // Un pago parcial sigue parcialmente satisfecho: no entra en el lote que
+    // pasa a `vencido`.
+    expect(mockPrisma.payment.updateMany).not.toHaveBeenCalled();
     expect(mockPrisma.payment.update).not.toHaveBeenCalled();
   });
 
@@ -267,5 +276,174 @@ describe('alerts.ts — scanOverduePayments', () => {
     expect(result.created).toBe(0);
     expect(result.skipped).toBe(1);
     expect(mockPrisma.notification.create).not.toHaveBeenCalled();
+  });
+});
+/**
+ * La cota de los escaneos — O-3.
+ *
+ * Los dos `findMany` no tenían `take`, y el conjunto que recorren crece de
+ * forma monótona: un pago vencido sigue vencido hasta que se paga. El costo de
+ * la corrida de mañana es mayor que el de hoy sin que cambie una línea de
+ * código, y el cron no tenía presupuesto para eso.
+ */
+describe('alerts.ts — la cota de los escaneos', () => {
+  const LIMITE = 500;
+
+  /** `n` casos con audiencia dentro de la ventana. */
+  const casos = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `case-${i}`,
+      caseNumber: `C-${i}`,
+      debtorName: 'Deudor',
+      hearingDate: new Date(FIXED_NOW.getTime() + 3 * 60 * 60 * 1000),
+      firstHearingDate: null,
+      operatorId: 'user-1',
+    }));
+
+  /** `n` pagos vencidos. */
+  const pagos = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `pay-${i}`,
+      amount: { toString: () => '1000' },
+      dueDate: new Date(FIXED_NOW.getTime() - 24 * 60 * 60 * 1000),
+      status: 'parcial',
+      case: {
+        id: `case-${i}`,
+        caseNumber: `C-${i}`,
+        debtorName: 'Deudor',
+        operatorId: 'user-1',
+      },
+    }));
+
+  beforeEach(() => {
+    resetAllMocks();
+    // El logger se mockea a nivel de modulo: sin esto, los `warn` de un test
+    // sobreviven al siguiente y el que afirma que NO se registro nada falla.
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    jest.setSystemTime(FIXED_NOW);
+    mockPrisma.notification.findMany.mockResolvedValue([]);
+    mockPrisma.notification.create.mockResolvedValue({ id: 'n-1' });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('el escaneo de audiencias pide `take` y el orden que hace útil el recorte', async () => {
+    mockPrisma.case.findMany.mockResolvedValue([]);
+
+    await scanUpcomingHearings(mockPrisma as never, 'armonia');
+
+    const args = mockPrisma.case.findMany.mock.calls[0][0];
+    expect(args.take).toBe(LIMITE);
+    // Primero la audiencia más próxima: lo que queda afuera es lo menos
+    // urgente, no una fila al azar.
+    expect(args.orderBy).toEqual({ hearingDate: 'asc' });
+  });
+
+  it('el escaneo de pagos pide `take` y ordena por vencimiento', async () => {
+    mockPrisma.payment.findMany.mockResolvedValue([]);
+
+    await scanOverduePayments(mockPrisma as never, 'armonia');
+
+    const args = mockPrisma.payment.findMany.mock.calls[0][0];
+    expect(args.take).toBe(LIMITE);
+    expect(args.orderBy).toEqual({ dueDate: 'asc' });
+  });
+
+  it('cuando llega al tope lo dice en el resultado y lo registra', async () => {
+    mockPrisma.case.findMany.mockResolvedValue(casos(LIMITE));
+
+    const result = await scanUpcomingHearings(mockPrisma as never, 'armonia');
+
+    // Un tope silencioso se lee como "revisó todo".
+    expect(result.truncated).toBe(true);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('tope'),
+      expect.objectContaining({ tenantId: 'armonia', limite: LIMITE }),
+    );
+  });
+
+  it('por debajo del tope, `truncated` es false y no registra nada', async () => {
+    mockPrisma.case.findMany.mockResolvedValue(casos(3));
+
+    const result = await scanUpcomingHearings(mockPrisma as never, 'armonia');
+
+    expect(result.truncated).toBe(false);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('la deduplicación es UNA consulta para todo el lote, no una por ítem', async () => {
+    mockPrisma.case.findMany.mockResolvedValue(casos(120));
+
+    await scanUpcomingHearings(mockPrisma as never, 'armonia');
+
+    // Era un `findFirst` por caso: 120 viajes secuenciales a la base solo
+    // para descubrir que no había nada que hacer.
+    expect(mockPrisma.notification.findFirst).not.toHaveBeenCalled();
+    expect(mockPrisma.notification.findMany).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.notification.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'armonia',
+          type: 'hearing_upcoming',
+          relatedId: { in: expect.arrayContaining(['case-0', 'case-119']) },
+        }),
+      }),
+    );
+  });
+
+  it('el paso de `pendiente` a `vencido` es un solo `updateMany` para el lote', async () => {
+    const lote = pagos(50).map((p, i) => ({
+      ...p,
+      status: i % 2 === 0 ? 'pendiente' : 'parcial',
+    }));
+    mockPrisma.payment.findMany.mockResolvedValue(lote);
+    mockPrisma.payment.updateMany.mockResolvedValue({ count: 25 });
+
+    await scanOverduePayments(mockPrisma as never, 'armonia');
+
+    expect(mockPrisma.payment.update).not.toHaveBeenCalled();
+    expect(mockPrisma.payment.updateMany).toHaveBeenCalledTimes(1);
+    const args = mockPrisma.payment.updateMany.mock.calls[0][0];
+    // Solo los 25 `pendiente`; los `parcial` quedan como están.
+    expect(args.where.id.in).toHaveLength(25);
+    expect(args.data).toEqual({ status: 'vencido' });
+  });
+
+  it('un lote sin ningún `pendiente` no escribe nada', async () => {
+    mockPrisma.payment.findMany.mockResolvedValue(pagos(10));
+
+    await scanOverduePayments(mockPrisma as never, 'armonia');
+
+    expect(mockPrisma.payment.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('la deduplicación distingue destinatarios: el mismo pago a otro operador sí se notifica', async () => {
+    mockPrisma.payment.findMany.mockResolvedValue([
+      {
+        id: 'pay-1',
+        amount: { toString: () => '1000' },
+        dueDate: new Date(FIXED_NOW.getTime() - 60 * 1000),
+        status: 'parcial',
+        case: {
+          id: 'case-1',
+          caseNumber: 'C-001',
+          debtorName: 'Deudor',
+          operatorId: 'user-2',
+        },
+      },
+    ]);
+    // Ya notificado, pero a OTRO usuario.
+    mockPrisma.notification.findMany.mockResolvedValue([
+      { relatedId: 'pay-1', userId: 'user-1' },
+    ]);
+    mockPrisma.notification.create.mockResolvedValue({ id: 'n-1' });
+
+    const result = await scanOverduePayments(mockPrisma as never, 'armonia');
+
+    expect(result.created).toBe(1);
+    expect(result.skipped).toBe(0);
   });
 });

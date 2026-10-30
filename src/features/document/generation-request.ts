@@ -10,6 +10,7 @@
  */
 
 import prisma from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 import { Prisma } from '@prisma/client';
 import type { GeneratedDocument } from './generate-documents';
 
@@ -163,6 +164,60 @@ export async function claimGenerationRequest(params: {
   );
 }
 
+/**
+ * Libera las solicitudes huérfanas de un centro — R-3.
+ *
+ * La recuperación que ya existía vive dentro de `claimGenerationRequest`, así
+ * que es **pasiva**: se dispara cuando llega un claim nuevo, no por el paso del
+ * tiempo. Si la lambda muere a mitad de una generación y nadie reintenta, la
+ * fila se queda con su `activeKey` tomado indefinidamente y la UI sigue
+ * mostrando "generación en curso". Nada la barría.
+ *
+ * Esto es el barrido activo, para llamarlo desde el cron que ya corre todos
+ * los días. Es **una** consulta por centro: el `where` de `updateMany` ya
+ * expresa la condición de huérfana (lock tomado y más vieja que
+ * {@link STALE_GENERATION_TIMEOUT_MS}), y el mensaje de error es el mismo que
+ * escribe el camino pasivo, para que las dos vías se lean igual en la UI.
+ *
+ * `activeKey: null` en varias filas a la vez no choca con la unique: en
+ * Postgres los NULL no colisionan, que es lo que hace de este campo un lock
+ * parcial.
+ */
+export async function sweepStaleGenerationRequests(params: {
+  tenantId: string;
+  now?: Date;
+}): Promise<{ tenantId: string; released: number }> {
+  const { tenantId, now = new Date() } = params;
+  const corte = new Date(now.getTime() - STALE_GENERATION_TIMEOUT_MS);
+
+  const { count } = await prisma.documentGenerationRequest.updateMany({
+    where: {
+      tenantId,
+      activeKey: { not: null },
+      createdAt: { lt: corte },
+    },
+    data: {
+      status: 'FAILED',
+      activeKey: null,
+      error: 'Generación huérfana: superó el tiempo máximo sin finalizar',
+      finishedAt: now,
+    },
+  });
+
+  if (count > 0) {
+    // Una huérfana significa que una generación murió a mitad sin que nadie
+    // la reintentara: es excepcional y vale verlo, no es ruido diario.
+    logger.warn('Se liberaron solicitudes de generación huérfanas', {
+      action: 'sweepStaleGenerationRequests',
+      tenantId,
+      released: count,
+      timeoutMs: STALE_GENERATION_TIMEOUT_MS,
+    });
+  }
+
+  return { tenantId, released: count };
+}
+
 /** Marca la solicitud como en proceso. */
 export async function markGenerationProcessing(id: string): Promise<void> {
   await prisma.documentGenerationRequest.update({
@@ -283,7 +338,10 @@ export async function continueOrResumeGenerationRequest(params: {
   // se re-toma el lock condicionalmente — si otra operación ya lo tiene
   // (otra pestaña, otro operador), count=0 y se reporta el conflicto en vez
   // de pisarla.
-  if (existing.status === 'FAILED' || existing.status === 'COMPLETED_WITH_ERRORS') {
+  if (
+    existing.status === 'FAILED' ||
+    existing.status === 'COMPLETED_WITH_ERRORS'
+  ) {
     const result = await prisma.documentGenerationRequest.updateMany({
       where: { id: existing.id, activeKey: null },
       data: { activeKey, status: 'PROCESSING', error: null },
@@ -329,7 +387,9 @@ export async function recordBatchTandaProgress(
  * Mismo criterio de "no hubo ni un documento → no es COMPLETED limpio" que
  * `completeGenerationRequest`.
  */
-export async function finalizeBatchGenerationRequest(id: string): Promise<void> {
+export async function finalizeBatchGenerationRequest(
+  id: string,
+): Promise<void> {
   const row = await prisma.documentGenerationRequest.findUnique({
     where: { id },
   });

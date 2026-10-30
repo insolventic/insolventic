@@ -31,39 +31,72 @@ const DEDUPE_WINDOW_HOURS = Number(
   process.env.ALERTS_DEDUPE_WINDOW_HOURS ?? 20,
 );
 
+/**
+ * Tope de ítems que revisa un escaneo por tenant y por corrida.
+ *
+ * Los dos `findMany` no tenían cota, y el conjunto que recorren **crece de
+ * forma monótona**: un pago vencido sigue vencido hasta que se paga, así que
+ * el cron de cada mañana revisa más filas que el de ayer. Con una cota, el
+ * costo de una corrida tiene techo; sin cota, el cron empieza a fallar por
+ * crecimiento de datos sin que cambie una línea de código (hallazgo O-3 de
+ * `docs/AUDITORIA_BLOQUE3_2026-10-27.md`).
+ *
+ * El orden es parte de la cota: audiencias por fecha ascendente (primero la
+ * más próxima) y pagos por vencimiento ascendente (primero el más atrasado),
+ * así que lo que queda afuera es siempre lo menos urgente. Y cuando se recorta,
+ * el resultado lo dice (`truncated`): un tope silencioso se lee como
+ * "revisó todo".
+ */
+const SCAN_LIMIT = 500;
+
 export interface AlertScanResult {
   tenantId: string;
   created: number;
   skipped: number;
   errors: number;
+  /** `true` si el escaneo llegó al tope y quedó trabajo sin revisar. */
+  truncated: boolean;
 }
 
 /**
- * Returns true if a notification for `(type, relatedId, userId)` was created
- * inside the dedupe window. Used by both scanners to avoid duplicates.
+ * Los `relatedId` que ya se notificaron dentro de la ventana de deduplicación,
+ * en **una** consulta para todo el lote.
+ *
+ * Antes esto era un `findFirst` por ítem dentro del loop: con 500 pagos
+ * vencidos acumulados, 500 viajes secuenciales a la base solo para descubrir
+ * que no había nada que hacer. Era el N+1 que hacía crecer el costo del cron
+ * con la antigüedad del centro.
+ *
+ * La clave incluye el usuario porque la deduplicación es por destinatario: el
+ * mismo pago notificado a dos operadores distintos son dos notificaciones.
  */
-async function wasRecentlyNotified(
+async function yaNotificados(
   prisma: PrismaClient,
   params: {
     tenantId: string;
-    userId: string;
     type: 'hearing_upcoming' | 'payment_overdue';
-    relatedId: string;
+    relatedIds: string[];
   },
-): Promise<boolean> {
+): Promise<Set<string>> {
+  if (params.relatedIds.length === 0) return new Set();
+
   const since = new Date(Date.now() - DEDUPE_WINDOW_HOURS * 60 * 60 * 1000);
-  const existing = await prisma.notification.findFirst({
+  const filas = await prisma.notification.findMany({
     where: {
       tenantId: params.tenantId,
-      userId: params.userId,
       type: params.type,
-      relatedId: params.relatedId,
+      relatedId: { in: params.relatedIds },
       createdDate: { gte: since },
     },
-    select: { id: true },
+    select: { relatedId: true, userId: true },
   });
-  return existing !== null;
+
+  return new Set(filas.map((f) => `${f.userId}:${f.relatedId}`));
 }
+
+/** La clave con la que `yaNotificados` indexa el conjunto. */
+const claveDedupe = (userId: string, relatedId: string) =>
+  `${userId}:${relatedId}`;
 
 /**
  * Format a DateTime in Bogotá timezone-agnostic, compact form for the
@@ -102,6 +135,7 @@ export async function scanUpcomingHearings(
     created: 0,
     skipped: 0,
     errors: 0,
+    truncated: false,
   };
 
   try {
@@ -127,6 +161,26 @@ export async function scanUpcomingHearings(
         firstHearingDate: true,
         operatorId: true,
       },
+      // Primero la audiencia más próxima: si hay que recortar, lo que queda
+      // afuera es lo menos urgente.
+      orderBy: { hearingDate: 'asc' },
+      take: SCAN_LIMIT,
+    });
+
+    result.truncated = cases.length === SCAN_LIMIT;
+    if (result.truncated) {
+      logger.warn('El escaneo de audiencias llegó al tope de la corrida', {
+        action: 'scanUpcomingHearings',
+        tenantId,
+        limite: SCAN_LIMIT,
+      });
+    }
+
+    // Una sola consulta de deduplicación para todo el lote, antes del loop.
+    const notificados = await yaNotificados(prisma, {
+      tenantId,
+      type: 'hearing_upcoming',
+      relatedIds: cases.map((c) => c.id),
     });
 
     for (const c of cases) {
@@ -140,18 +194,12 @@ export async function scanUpcomingHearings(
         continue;
       }
 
-      try {
-        const alreadySent = await wasRecentlyNotified(prisma, {
-          tenantId,
-          userId: c.operatorId,
-          type: 'hearing_upcoming',
-          relatedId: c.id,
-        });
-        if (alreadySent) {
-          result.skipped += 1;
-          continue;
-        }
+      if (notificados.has(claveDedupe(c.operatorId, c.id))) {
+        result.skipped += 1;
+        continue;
+      }
 
+      try {
         await prisma.notification.create({
           data: {
             type: 'hearing_upcoming',
@@ -215,6 +263,7 @@ export async function scanOverduePayments(
     created: 0,
     skipped: 0,
     errors: 0,
+    truncated: false,
   };
 
   try {
@@ -238,6 +287,37 @@ export async function scanOverduePayments(
           },
         },
       },
+      // Primero el pago más atrasado.
+      orderBy: { dueDate: 'asc' },
+      take: SCAN_LIMIT,
+    });
+
+    result.truncated = overdue.length === SCAN_LIMIT;
+    if (result.truncated) {
+      logger.warn('El escaneo de pagos vencidos llegó al tope de la corrida', {
+        action: 'scanOverduePayments',
+        tenantId,
+        limite: SCAN_LIMIT,
+      });
+    }
+
+    // `pendiente` -> `vencido` para todo el lote de una vez. Antes era un
+    // `update` por pago dentro del loop. `parcial` se deja como está: un pago
+    // parcial sigue parcialmente satisfecho.
+    const aVencer = overdue
+      .filter((p) => p.status === 'pendiente')
+      .map((p) => p.id);
+    if (aVencer.length > 0) {
+      await prisma.payment.updateMany({
+        where: { tenantId, id: { in: aVencer } },
+        data: { status: 'vencido' },
+      });
+    }
+
+    const notificados = await yaNotificados(prisma, {
+      tenantId,
+      type: 'payment_overdue',
+      relatedIds: overdue.map((p) => p.id),
     });
 
     for (const p of overdue) {
@@ -246,26 +326,12 @@ export async function scanOverduePayments(
         continue;
       }
 
+      if (notificados.has(claveDedupe(p.case.operatorId, p.id))) {
+        result.skipped += 1;
+        continue;
+      }
+
       try {
-        // Flip pendiente → vencido; leave parcial so partial credit isn't lost.
-        if (p.status === 'pendiente') {
-          await prisma.payment.update({
-            where: { id: p.id },
-            data: { status: 'vencido' },
-          });
-        }
-
-        const alreadySent = await wasRecentlyNotified(prisma, {
-          tenantId,
-          userId: p.case.operatorId,
-          type: 'payment_overdue',
-          relatedId: p.id,
-        });
-        if (alreadySent) {
-          result.skipped += 1;
-          continue;
-        }
-
         const amount = p.amount.toString();
         const dueLabel = p.dueDate ? formatDateTime(p.dueDate) : '—';
         await prisma.notification.create({
