@@ -16,6 +16,11 @@ on:
   push:
     branches:
       - dev
+      # Y main, por los mismos dos motivos: el commit que sale del squash de
+      # `dev -> main` es nuevo y nunca se compilo como tal, y es el commit que
+      # se despliega a produccion, asi que es el que necesita sus source maps
+      # en Sentry (ver el step "Subir source maps").
+      - main
 
 permissions:
   contents: read
@@ -26,6 +31,12 @@ jobs:
     env:
       DEPLOY_ENV: ${{ github.base_ref == 'main' && 'production' || 'development' }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      # A nivel de job y no del step: el contexto `env` de un `if` de step solo
+      # ve el env del job o del workflow, no el que declara el propio step, asi
+      # que la condicion "hay token" no se podria escribir de la otra forma.
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
     steps:
       - uses: actions/checkout@v5
 
@@ -80,3 +91,37 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=4096
           CI_SKIP_BUILD_TYPECHECK: '1'
+          # El release se embute en el bundle del cliente en tiempo de build, y
+          # tiene que ser el MISMO string que reportara el bundle que Vercel
+          # despliega de este commit (alla lo pone Vercel). Si no coincide,
+          # Sentry no encuentra los mapas.
+          NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+
+      # O-1: sin esto, cada error de produccion apunta a
+      # `chunks/740-79d2c44d906524ae.js:1:48213`. No se usa
+      # `withSentryConfig()` a proposito —reabre el ENOENT de
+      # `@opentelemetry/api` que rompio los deploys en agosto, ver
+      # next.config.ts—, asi que los mapas se suben aparte, desde aca, con el
+      # SHA del commit como nombre de release.
+      #
+      # Solo en push (dev/main): en un PR el commit no se despliega, y subir
+      # sus mapas ensuciaria el proyecto de Sentry con releases que no existen.
+      #
+      # Inerte hasta que el secret exista: sin SENTRY_AUTH_TOKEN el step se
+      # saltea y el resto del job sigue igual. Lo que hace falta para
+      # encenderlo esta en docs/RUNBOOK.md §8.
+      - name: Subir source maps a Sentry
+        if: >-
+          github.event_name == 'push' &&
+          env.SENTRY_AUTH_TOKEN != ''
+        # `continue-on-error`: Sentry caido o un token vencido no pueden
+        # bloquear el merge. El sintoma de que fallo es un stack trace
+        # minificado, no un CI en rojo, y el paso queda en amarillo en la
+        # corrida.
+        continue-on-error: true
+        run: |
+          npx --yes @sentry/cli@2 releases new "$GITHUB_SHA"
+          npx --yes @sentry/cli@2 sourcemaps inject .next
+          npx --yes @sentry/cli@2 sourcemaps upload             --release "$GITHUB_SHA"             --url-prefix '~/_next'             .next/static/chunks
+          npx --yes @sentry/cli@2 releases set-commits "$GITHUB_SHA" --auto
+          npx --yes @sentry/cli@2 releases finalize "$GITHUB_SHA"
