@@ -121,13 +121,33 @@ describe('RecentCases (dashboard) con filas del listado', () => {
   it('muestra los casos recientes que devuelve getAllCases', async () => {
     mockGetAllCases.mockResolvedValue({
       success: true,
-      data: [listItem({ caseNumber: 'INS-2026-777' })],
+      data: {
+        items: [listItem({ caseNumber: 'INS-2026-777' })],
+        total: 1,
+        page: 1,
+        pageSize: 5,
+      },
     });
 
     render(<RecentCases />);
 
     await waitFor(() =>
       expect(screen.getByText('INS-2026-777')).toBeInTheDocument(),
+    );
+  });
+
+  it('pide 5 casos, no el listado entero', async () => {
+    // Mostraba 5 pero pedía todos los del centro y descartaba el resto con un
+    // `slice` en el cliente.
+    mockGetAllCases.mockResolvedValue({
+      success: true,
+      data: { items: [], total: 0, page: 1, pageSize: 5 },
+    });
+
+    render(<RecentCases />);
+
+    await waitFor(() =>
+      expect(mockGetAllCases).toHaveBeenCalledWith({ page: 1, pageSize: 5 }),
     );
   });
 });

@@ -139,7 +139,12 @@ describe('Case Actions — src/features/case/actions.ts', () => {
       const result = await getAllCases();
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
+      expect(result.data).toEqual({
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 20,
+      });
     });
 
     it('should deny access when user lacks "Ver casos" permission', async () => {
@@ -182,7 +187,12 @@ describe('Case Actions — src/features/case/actions.ts', () => {
       const result = await getAllCases();
 
       expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
+      expect(result.data).toEqual({
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 20,
+      });
     });
   });
 
@@ -289,9 +299,13 @@ describe('Case Actions — src/features/case/actions.ts', () => {
           document: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
           debt: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
           asset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          legalProcess: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+          legalProcess: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
           libranza: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          suspendedService: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+          suspendedService: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+          },
           dependent: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
           case: { delete: jest.fn().mockResolvedValue(deletedCase) },
         });

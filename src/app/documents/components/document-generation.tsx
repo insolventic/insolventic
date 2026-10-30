@@ -51,7 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getAllCases } from '@/features/case/actions';
+import { getCasesForSelector } from '@/features/case/actions';
 import {
   batchGenerateDocuments,
   planBatchGeneration,
@@ -160,6 +160,8 @@ export function DocumentGeneration({
   } | null>(null);
 
   const [cases, setCases] = useState<CaseOption[]>([]);
+  /** Cuántos casos quedaron fuera del tope del selector. */
+  const [casosOcultos, setCasosOcultos] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   const selectedCase = useMemo(
@@ -336,10 +338,15 @@ export function DocumentGeneration({
 
   useEffect(() => {
     const loadCases = async () => {
-      const { success, data } = await getAllCases();
+      // `getCasesForSelector` y no el listado paginado: este combobox filtra en
+      // el cliente, así que necesita el conjunto, no una página de 20. Trae
+      // solo las seis columnas que se mapean abajo, sin la relación del
+      // deudor, y con un tope — que es el que `casosOcultos` informa, para no
+      // hacer pasar un recorte por la lista completa.
+      const { success, data } = await getCasesForSelector();
       if (success && data) {
         setCases(
-          data.map((c) => ({
+          data.items.map((c) => ({
             id: c.id,
             caseNumber: c.caseNumber,
             debtorName: c.debtorName,
@@ -349,6 +356,7 @@ export function DocumentGeneration({
             phase: c.phase,
           })),
         );
+        setCasosOcultos(Math.max(0, data.total - data.items.length));
       }
     };
 
@@ -409,6 +417,13 @@ export function DocumentGeneration({
                   />
                   <CommandList>
                     <CommandEmpty>No se encontraron casos.</CommandEmpty>
+                    {casosOcultos > 0 && (
+                      <div className="text-muted-foreground border-b px-3 py-2 text-xs">
+                        Mostrando los {cases.length} casos más recientes. Quedan{' '}
+                        {casosOcultos} fuera de la lista: buscá por número de
+                        caso desde el listado de casos.
+                      </div>
+                    )}
                     <CommandGroup>
                       {cases.map((caseItem) => (
                         <CommandItem

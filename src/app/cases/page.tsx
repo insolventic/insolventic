@@ -11,11 +11,33 @@ import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { getAllCases, getCaseStats } from '@/features/case/actions';
+import { CASES_PAGE_SIZE_DEFAULT } from '@/features/case/schemas';
 
 import { DashboardHeader } from '../dashboard/components/dashboard-header';
 import { CasesContent } from './components/cases-content';
 
-export default async function CasesPage() {
+/**
+ * El listado se pide **por página**, y la página y los filtros viven en el
+ * query string.
+ *
+ * Que el estado esté en la URL no es cosmético: así el servidor renderiza
+ * siempre la página que el usuario está viendo, y el refresh que disparan las
+ * mutaciones (`revalidateTag('cases')`) sigue funcionando sin que el cliente
+ * tenga que mantener una copia del listado. También hace compartible un
+ * filtro, y `?search=` ya se usaba así.
+ *
+ * Los valores no se validan acá: `getAllCasesParamsSchema` los acota (página
+ * mínima 1, `pageSize` con tope) y cae al default ante cualquier basura.
+ */
+type CasesSearchParams = Record<string, string | string[] | undefined>;
+
+function soloTexto(valor: string | string[] | undefined): string | undefined {
+  return typeof valor === 'string' && valor.trim() !== '' ? valor : undefined;
+}
+
+export default async function CasesPage({
+  searchParams,
+}: Readonly<{ searchParams: Promise<CasesSearchParams> }>) {
   // Verify authentication server-side before rendering
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('access-token')?.value;
@@ -29,12 +51,26 @@ export default async function CasesPage() {
     redirect('/login?redirect=/cases');
   }
 
+  const sp = await searchParams;
+  const filtros = {
+    page: soloTexto(sp.page),
+    pageSize: soloTexto(sp.pageSize),
+    search: soloTexto(sp.search),
+    phase: soloTexto(sp.phase),
+    type: soloTexto(sp.type),
+  };
+
   const [casesResult, statsResult] = await Promise.all([
-    getAllCases(),
+    getAllCases(filtros),
     getCaseStats(),
   ]);
-  const cases = casesResult.data || [];
   const stats = statsResult.data;
+  const casesPage = casesResult.data ?? {
+    items: [],
+    total: 0,
+    page: 1,
+    pageSize: CASES_PAGE_SIZE_DEFAULT,
+  };
 
   return (
     <PermissionGuard
@@ -57,7 +93,12 @@ export default async function CasesPage() {
       }
     >
       <CasesContent
-        cases={cases || []}
+        casesPage={casesPage}
+        filtros={{
+          search: filtros.search ?? '',
+          phase: filtros.phase ?? 'all',
+          type: filtros.type ?? 'all',
+        }}
         stats={
           stats || {
             total: 0,
