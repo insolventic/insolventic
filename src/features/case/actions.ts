@@ -632,7 +632,8 @@ export async function createCase(
                       payerAddress: libranza.payerAddress,
                       payerEmail: libranza.payerEmail,
                       payerPhone: libranza.payerPhone,
-                      deductedAmount: parsearMonto(libranza.deductedAmount) ?? 0,
+                      deductedAmount:
+                        parsearMonto(libranza.deductedAmount) ?? 0,
                       productAndCreditor: libranza.productAndCreditor,
                       tenantId,
                     })),
@@ -961,7 +962,8 @@ export async function updateCase(
       hearingDate: parseDateOnly(hearingDate) ?? undefined,
       filingDate: parseDateOnly(filingDate) ?? undefined,
       designationDate: parseDateOnly(designationDate) ?? undefined,
-      positionAcceptanceDate: parseDateOnly(positionAcceptanceDate) ?? undefined,
+      positionAcceptanceDate:
+        parseDateOnly(positionAcceptanceDate) ?? undefined,
       inadmissionDate: parseDateOnly(inadmissionDate) ?? undefined,
       admissionDate: parseDateOnly(admissionDate) ?? undefined,
       firstHearingDate: parseDateOnly(firstHearingDate) ?? undefined,
@@ -1234,8 +1236,12 @@ export async function addDebtToCase(
         creditorAddress: cleanText(creditorAddress),
         creditorCity: cleanText(creditorCity),
         creditorEmail: cleanText(creditorEmail),
-        capitalAmount: capitalAmount ? (parsearMonto(capitalAmount) ?? null) : null,
-        interestAmount: interestAmount ? (parsearMonto(interestAmount) ?? null) : null,
+        capitalAmount: capitalAmount
+          ? (parsearMonto(capitalAmount) ?? null)
+          : null,
+        interestAmount: interestAmount
+          ? (parsearMonto(interestAmount) ?? null)
+          : null,
         isDeferred: isDeferred ?? false,
         documentType: cleanText(documentType),
         grantDate: otorgamientoAgregado.value,
@@ -1522,7 +1528,11 @@ export async function removeLibranzaFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('libranza', libranzaId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'libranza',
+      libranzaId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Libranza no encontrada' };
     }
@@ -1678,7 +1688,11 @@ export async function removeSuspendedServiceFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('suspendedService', suspendedServiceId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'suspendedService',
+      suspendedServiceId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Servicio suspendido no encontrado' };
     }
@@ -2039,7 +2053,11 @@ export async function removeDependentFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('dependent', dependentId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'dependent',
+      dependentId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Dependiente no encontrado' };
     }
@@ -2217,7 +2235,11 @@ export async function removeApoderadoFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('apoderado', apoderadoId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'apoderado',
+      apoderadoId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Apoderado no encontrado' };
     }

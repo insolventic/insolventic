@@ -71,7 +71,11 @@ export const montoRequerido = (mensaje: string) =>
 const FECHA_SOLO_DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** true si año/mes/día forman una fecha de calendario real (rechaza "31 de febrero"). */
-function esFechaDeCalendarioValida(year: number, month: number, day: number): boolean {
+function esFechaDeCalendarioValida(
+  year: number,
+  month: number,
+  day: number,
+): boolean {
   const d = new Date(Date.UTC(year, month - 1, day));
   return (
     d.getUTCFullYear() === year &&
