@@ -69,9 +69,10 @@ jest.mock('@/features/document/prepare-template', () => ({
 }));
 
 jest.mock('@/lib/html-to-pdf', () => ({
-  batchHtmlToPdf: jest.fn().mockResolvedValue([
-    { filename: 'solicitud-insolvencia.pdf', buffer: Buffer.from('pdf') },
-  ]),
+  batchHtmlToPdf: jest.fn().mockResolvedValue({
+    ok: [{ filename: 'solicitud-insolvencia.pdf', buffer: Buffer.from('pdf') }],
+    failed: [],
+  }),
 }));
 
 const mockUploadDocumentToCase = jest.fn();

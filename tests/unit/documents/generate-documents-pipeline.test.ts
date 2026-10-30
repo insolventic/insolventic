@@ -42,12 +42,16 @@ const mockCreateFolderHierarchy =
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // `{ ok, failed }` desde P-4: la funcion ya no devuelve un array mas corto
+  // cuando un documento se cae, lo nombra.
   mockBatchHtmlToPdf.mockImplementation(
-    async (docs: Array<{ filename: string }>) =>
-      docs.map((d) => ({
+    async (docs: Array<{ filename: string }>) => ({
+      ok: docs.map((d) => ({
         filename: d.filename.replace(/\.html$/, '.pdf'),
         buffer: Buffer.from(`PDF:${d.filename}`),
       })),
+      failed: [],
+    }),
   );
   mockUploadFile.mockImplementation(
     async (fileName: string) => `drive-id:${fileName}`,
@@ -56,6 +60,47 @@ beforeEach(() => {
 });
 
 describe('generateFromTemplates — pipeline en 3 fases (P1)', () => {
+  /**
+   * P-4 — un PDF que no sale ahora dice por qué.
+   *
+   * `batchHtmlToPdf` sigue sin cortar el lote por un documento (eso está
+   * bien), pero antes devolvía un array más corto sin decir cuáles faltaban:
+   * la Fase 3 detectaba el hueco por ausencia y ponía 'Error al generar el
+   * PDF' a secas. El motivo quedaba solo en la consola del servidor, donde el
+   * operador no lo ve.
+   */
+  it('el motivo del fallo de un PDF llega al resultado, no solo a la consola', async () => {
+    mockBatchHtmlToPdf.mockImplementation(
+      async (docs: Array<{ filename: string }>) => {
+        const [primero, ...resto] = docs;
+        return {
+          ok: resto.map((d) => ({
+            filename: d.filename.replace(/\.html$/, '.pdf'),
+            buffer: Buffer.from(`PDF:${d.filename}`),
+          })),
+          failed: [
+            {
+              filename: primero.filename,
+              reason: 'Navigation timeout of 30000 ms exceeded',
+            },
+          ],
+        };
+      },
+    );
+
+    const caseData = makeCase({ type: 'INSOLVENCY' });
+    const result = await generateDocumentsForAdmission(
+      caseData as never,
+      'case-folder-id',
+    );
+
+    const fallidos = result.filter((d) => d.status === 'error');
+    expect(fallidos).toHaveLength(1);
+    expect(fallidos[0].error).toContain('Navigation timeout');
+    // El resto del lote no se vio afectado.
+    expect(result.filter((d) => d.status === 'success')).toHaveLength(5);
+  });
+
   it('un solo llamado a batchHtmlToPdf para las 6 plantillas de Admisión que pasan la Fase 1 (8 en total, 2 se saltan)', async () => {
     const caseData = makeCase({ type: 'INSOLVENCY' });
     const result = await generateDocumentsForAdmission(
