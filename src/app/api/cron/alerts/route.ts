@@ -24,6 +24,7 @@ import {
   scanOverduePayments,
   type AlertScanResult,
 } from '@/features/notification/alerts';
+import { cronCheckInFinish, cronCheckInStart } from '@/lib/cron-monitor';
 
 // Node runtime — Prisma can't run on the Edge.
 export const runtime = 'nodejs';
@@ -75,6 +76,12 @@ async function run(authHeader: string | null): Promise<NextResponse> {
   if (!matchesBearer(authHeader, secret)) {
     return unauthorized('Invalid or missing cron token', requestId);
   }
+
+  // O-4: el heartbeat va DESPUES de la autenticacion, para que un escaneo de
+  // puertos contra la ruta no cuente como una corrida del cron, y ANTES de
+  // los escaneos, para que una corrida que se cuelga tambien se vea (queda
+  // abierta y Sentry la marca como perdida por `maxRuntime`).
+  const checkInId = await cronCheckInStart();
 
   const tenants = getAvailableTenants();
   const startedAt = Date.now();
@@ -143,6 +150,14 @@ async function run(authHeader: string | null): Promise<NextResponse> {
   const totalErrors = [...hearings, ...payments].reduce(
     (acc, r) => acc + r.errors,
     0,
+  );
+
+  // Una corrida cortada por el deadline, o con errores de algun tenant, no es
+  // la corrida que el runbook espera: se cierra como `error` para que la
+  // alerta exista, aunque la respuesta HTTP siga siendo 200.
+  await cronCheckInFinish(
+    checkInId,
+    timedOut || totalErrors > 0 ? 'error' : 'ok',
   );
 
   return NextResponse.json({
