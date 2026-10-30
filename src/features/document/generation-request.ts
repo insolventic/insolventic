@@ -283,7 +283,10 @@ export async function continueOrResumeGenerationRequest(params: {
   // se re-toma el lock condicionalmente — si otra operación ya lo tiene
   // (otra pestaña, otro operador), count=0 y se reporta el conflicto en vez
   // de pisarla.
-  if (existing.status === 'FAILED' || existing.status === 'COMPLETED_WITH_ERRORS') {
+  if (
+    existing.status === 'FAILED' ||
+    existing.status === 'COMPLETED_WITH_ERRORS'
+  ) {
     const result = await prisma.documentGenerationRequest.updateMany({
       where: { id: existing.id, activeKey: null },
       data: { activeKey, status: 'PROCESSING', error: null },
@@ -329,7 +332,9 @@ export async function recordBatchTandaProgress(
  * Mismo criterio de "no hubo ni un documento → no es COMPLETED limpio" que
  * `completeGenerationRequest`.
  */
-export async function finalizeBatchGenerationRequest(id: string): Promise<void> {
+export async function finalizeBatchGenerationRequest(
+  id: string,
+): Promise<void> {
   const row = await prisma.documentGenerationRequest.findUnique({
     where: { id },
   });
