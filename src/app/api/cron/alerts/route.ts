@@ -24,6 +24,7 @@ import {
   scanOverduePayments,
   type AlertScanResult,
 } from '@/features/notification/alerts';
+import { sweepStaleGenerationRequests } from '@/features/document/generation-request';
 
 // Node runtime — Prisma can't run on the Edge.
 export const runtime = 'nodejs';
@@ -82,6 +83,7 @@ async function run(authHeader: string | null): Promise<NextResponse> {
 
   const hearings: AlertScanResult[] = [];
   const payments: AlertScanResult[] = [];
+  const generations: { tenantId: string; released: number }[] = [];
   let timedOut = false;
 
   for (const tenant of tenants) {
@@ -106,6 +108,7 @@ async function run(authHeader: string | null): Promise<NextResponse> {
         created: 0,
         skipped: 0,
         errors: 1,
+        truncated: false,
       });
     }
 
@@ -131,7 +134,29 @@ async function run(authHeader: string | null): Promise<NextResponse> {
         created: 0,
         skipped: 0,
         errors: 1,
+        truncated: false,
       });
+    }
+
+    // R-3: barrido de solicitudes de generación huérfanas. Va en este cron
+    // porque es el único que corre, y es una consulta por centro. Sin esto, una
+    // generación que muere a mitad deja su lock tomado hasta que alguien
+    // reintenta — y si nadie reintenta, para siempre.
+    try {
+      generations.push(
+        await sweepStaleGenerationRequests({ tenantId: tenant.id }),
+      );
+    } catch (error) {
+      logger.error(
+        'Cron de alertas: falló el barrido de generaciones huérfanas',
+        error,
+        {
+          action: 'cron.alerts.sweepStaleGenerationRequests',
+          tenantId: tenant.id,
+          requestId,
+        },
+      );
+      generations.push({ tenantId: tenant.id, released: -1 });
     }
   }
 
@@ -145,15 +170,21 @@ async function run(authHeader: string | null): Promise<NextResponse> {
     0,
   );
 
+  // `truncated` en cualquiera de los escaneos significa que quedó trabajo sin
+  // revisar: el runbook lo mira para saber si hay que subir el tope o el plan.
+  const truncated = [...hearings, ...payments].some((r) => r.truncated);
+
   return NextResponse.json({
     ok: !timedOut,
     requestId,
     durationMs,
     timedOut,
+    truncated,
     totalCreated,
     totalErrors,
     hearings,
     payments,
+    generations,
   });
 }
 
