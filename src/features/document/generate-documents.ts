@@ -6,6 +6,7 @@
 import path from 'path';
 import { googleDriveService } from '@/lib/google-drive';
 import { withRetry } from '@/lib/retry';
+import { isRetryableDriveError } from '@/lib/drive-errors';
 import { logger } from '@/lib/logger';
 import { htmlToPdf, batchHtmlToPdf } from '@/lib/html-to-pdf';
 import {
@@ -309,7 +310,10 @@ async function getOrCreateCaseFolder(
           ],
           rootFolderId,
         ),
-      { label: `case-folder:${caseNumber}` },
+      {
+        label: `case-folder:${caseNumber}`,
+        isRetryable: isRetryableDriveError,
+      },
     );
     return hierarchyId;
   }
@@ -506,7 +510,7 @@ async function generateDocument(
             mimeType,
             targetFolderId,
           ),
-        { label: `upload:${fileName}` },
+        { label: `upload:${fileName}`, isRetryable: isRetryableDriveError },
       );
       googleDriveUrl = googleDriveService.getFileUrl(googleDriveId);
     }
@@ -724,7 +728,10 @@ async function uploadGeneratedDocument(
             mimeType,
             targetFolderId,
           ),
-        { label: `upload:${prepared.fileName}` },
+        {
+          label: `upload:${prepared.fileName}`,
+          isRetryable: isRetryableDriveError,
+        },
       );
       googleDriveUrl = googleDriveService.getFileUrl(googleDriveId);
     }
