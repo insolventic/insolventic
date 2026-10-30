@@ -816,6 +816,8 @@ async function generateFromTemplates(
   // Fase 2: un solo navegador para todo el lote que pasó la Fase 1.
   const projectRoot = process.cwd();
   const buffers = new Map<string, { buffer: Buffer; mimeType: string }>();
+  /** jobKey -> motivo, para los PDFs que `batchHtmlToPdf` no pudo generar. */
+  const motivosDeFallo = new Map<string, string>();
 
   if (options.generatePdf) {
     if (prepared.length > 0) {
@@ -831,11 +833,16 @@ async function generateFromTemplates(
         ),
       }));
       const pdfResults = await batchHtmlToPdf(htmlInputs);
-      for (const r of pdfResults) {
+      for (const r of pdfResults.ok) {
         buffers.set(r.filename.replace(/\.pdf$/, ''), {
           buffer: r.buffer,
           mimeType: 'application/pdf',
         });
+      }
+      // El motivo de cada fallo, indexado por jobKey, para que la Fase 3
+      // pueda decir qué pasó en vez de un 'Error al generar el PDF' a secas.
+      for (const f of pdfResults.failed) {
+        motivosDeFallo.set(f.filename.replace(/\.html$/, ''), f.reason);
       }
     }
   } else {
@@ -851,8 +858,11 @@ async function generateFromTemplates(
   for (const p of prepared) {
     const generated = buffers.get(p.jobKey);
     if (!generated) {
-      // batchHtmlToPdf ya logueó el fallo puntual de esta plantilla y siguió
-      // con el resto del lote (ver src/lib/html-to-pdf.ts).
+      // `batchHtmlToPdf` siguió con el resto del lote a propósito, y ahora
+      // además dice por qué se cayó esta plantilla. Antes el operador veía
+      // 'Error al generar el PDF' sin nada más y el motivo quedaba solo en la
+      // consola del servidor.
+      const motivo = motivosDeFallo.get(p.jobKey);
       results[p.index] = {
         templateId: p.template.id,
         templateName: p.template.name,
@@ -860,7 +870,9 @@ async function generateFromTemplates(
         googleDriveId: '',
         googleDriveUrl: '',
         status: 'error',
-        error: 'Error al generar el PDF',
+        error: motivo
+          ? `Error al generar el PDF: ${motivo}`
+          : 'Error al generar el PDF',
         coveragePercentage: p.coveragePercentage,
         missingVariables: p.missingVariables,
       };

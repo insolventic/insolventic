@@ -912,8 +912,11 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Get HTML templates to process
-    const { getTemplatePath, getTemplateAssetsBaseDir, resolveTemplatesToProcess } =
-      await import('./templates-config');
+    const {
+      getTemplatePath,
+      getTemplateAssetsBaseDir,
+      resolveTemplatesToProcess,
+    } = await import('./templates-config');
 
     const templatesToProcess: DocumentTemplate[] = resolveTemplatesToProcess({
       templateIds,
@@ -1004,8 +1007,9 @@ export async function batchGenerateDocuments(input: {
     // viene de fetchCaseForGeneration (CASE_GENERATION_INCLUDE trae
     // tenant.slug) — el cuid solo es fallback si por lo que sea faltara.
     const centerFolderName = resolveCenterFolderName(
-      tenantSlugDelCaso(caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0]) ??
-        tenantId,
+      tenantSlugDelCaso(
+        caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0],
+      ) ?? tenantId,
       caseData.centroConciliacionNombre,
     );
 
@@ -1194,10 +1198,22 @@ export async function batchGenerateDocuments(input: {
       console.log(
         `[batchGenerateDocuments] Phase 2a: Generating ${htmlDocuments.length} PDFs via batchHtmlToPdf...`,
       );
-      pdfResults = await batchHtmlToPdf(htmlInputs, {}, assetsBaseDir);
+      const pdfBatch = await batchHtmlToPdf(htmlInputs, {}, assetsBaseDir);
+      pdfResults = pdfBatch.ok;
       console.log(
         `[batchGenerateDocuments] Phase 2a complete: ${pdfResults.length} PDFs generated`,
       );
+      // Un lote que genera 7 de 10 ya no se lee como un lote de 7: los 3 que
+      // se cayeron quedan nombrados, con su motivo.
+      if (pdfBatch.failed.length > 0) {
+        logger.warn('Hubo documentos que no se pudieron convertir a PDF', {
+          action: 'batch-generate-documents',
+          pedidos: htmlInputs.length,
+          generados: pdfResults.length,
+          fallidos: pdfBatch.failed.map((f) => f.filename).join(', '),
+          primerMotivo: pdfBatch.failed[0].reason,
+        });
+      }
     }
 
     // Generate DOCX if requested
