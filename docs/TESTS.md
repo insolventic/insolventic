@@ -24,7 +24,17 @@ npm run test:integration  # solo integración
 npm run test:coverage     # con reporte de cobertura
 npm run test:e2e          # Playwright (pendiente CI)
 npm run test:db           # smoke contra Postgres REAL (ver §2.1); NO forma parte de `npm test`
+npm run test:handles      # la suite con --detectOpenHandles, para el aviso de abajo
 ```
+
+**Sobre `test:handles`.** Jest avisó una vez —una sola, sin reproducirse
+después— con _"A worker process has failed to exit gracefully and has been
+force exited"_. Ese aviso significa que algo quedó abierto (un timer, una
+conexión, un `setInterval`) después de que el test terminó; en un test que
+pasa no se nota, pero puede volverse intermitencia. `test:handles` corre la
+suite en serie y con `--detectOpenHandles`, que imprime **qué** quedó abierto
+y dónde. No va en `npm test` porque `--runInBand` multiplica el tiempo de la
+suite por el número de workers.
 
 **CI:** `npx jest --ci` se ejecuta en `pr.yml` en cada pull request contra `dev` o `main` (solo dos ramas de larga vida — ver `ARQUITECTURA.md` §8; `stg` no existe en el workflow actual). `npm run test:db` corre en `e2e.yml`, que ya tiene el servicio de Postgres.
 
