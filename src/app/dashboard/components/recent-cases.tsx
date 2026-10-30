@@ -29,9 +29,14 @@ export function RecentCases() {
   useEffect(() => {
     const fetchCases = async () => {
       try {
-        const { success, data, error } = await getAllCases();
+        // Solo se muestran 5: se piden 5. Antes pedía el listado completo del
+        // centro y descartaba el resto con un `slice` en el cliente.
+        const { success, data, error } = await getAllCases({
+          page: 1,
+          pageSize: 5,
+        });
         if (success && data) {
-          setCases(data.slice(0, 5));
+          setCases(data.items);
         } else if (error) {
           // Only log non-auth errors to avoid console spam
           if (!error.includes('autorizado') && !error.includes('token')) {

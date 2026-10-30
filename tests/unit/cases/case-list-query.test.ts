@@ -1,5 +1,13 @@
 /**
- * Listado de casos (getAllCases): lee solo las columnas del listado.
+ * Listado de casos (getAllCases): lee una página, y solo las columnas que usa.
+ *
+ * Dos propiedades distintas, por dos bugs distintos:
+ *
+ *   1. **La cota.** La consulta no tenía `take` ni `skip`: traía todos los
+ *      casos del centro y la pantalla paginaba en memoria del cliente (P-1 de
+ *      `docs/AUDITORIA_BLOQUE3_2026-10-27.md`). Los tests de "paginación
+ *      acotada" son los que impiden que vuelva.
+ *   2. **El ancho de la fila.** Antes traía las 269 columnas de cada caso.
  *
  * Antes traía las 269 columnas de cada caso (`include`) y las validaba todas con
  * `z.array(caseSchema)`: una columna ausente en la base (o un null que el schema
@@ -41,7 +49,11 @@ import {
   PERMISSIONS,
 } from '../../helpers/fixtures';
 
-import { getAllCases, deleteCase } from '@/features/case/actions';
+import {
+  getAllCases,
+  getCasesForSelector,
+  deleteCase,
+} from '@/features/case/actions';
 import {
   CASE_LIST_COLUMNS,
   caseSchema,
@@ -152,7 +164,7 @@ describe('getAllCases — la validación ya no depende del resto de las columnas
     const result = await getAllCases();
 
     expect(result.success).toBe(true);
-    const item = result.data![0];
+    const item = result.data!.items[0];
     expect(item.caseNumber).toBe('INS-2026-001');
     expect(item.type).toBe('Insolvencia'); // mapCaseTypeToSpanish sigue aplicándose
     expect(item.totalDebt).toBe(50_000_000);
@@ -179,7 +191,7 @@ describe('getAllCases — la validación ya no depende del resto de las columnas
     const result = await getAllCases();
 
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(2);
+    expect(result.data!.items).toHaveLength(2);
   });
 });
 
@@ -268,5 +280,233 @@ describe('deleteCase — lectura acotada + visibilidad por fila', () => {
 
     expect(result.success).toBe(false);
     expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+/**
+ * La cota del listado — P-1.
+ *
+ * Ningún test del repositorio verificaba `take`/`skip` en ninguna action, y
+ * así fue como el listado principal se quedó sin cota mientras los demás
+ * (audit-log, notificaciones, búsqueda) sí la tenían. Estos tests son esa
+ * verificación para `/cases`: si alguien saca el `take` o deja de pasar el
+ * mismo `where` al `count`, fallan.
+ */
+describe('getAllCases — paginación acotada', () => {
+  const argsFindMany = () => mockPrisma.case.findMany.mock.calls[0][0];
+  const argsCount = () => mockPrisma.case.count.mock.calls[0][0];
+
+  beforeEach(() => {
+    mockPrisma.case.findMany.mockResolvedValue([]);
+    mockPrisma.case.count.mockResolvedValue(0);
+  });
+
+  it('SIEMPRE pide una página: `take` y `skip` presentes, nunca el listado entero', async () => {
+    asAdmin();
+
+    await getAllCases();
+
+    const args = argsFindMany();
+    expect(args.take).toBe(20);
+    expect(args.skip).toBe(0);
+  });
+
+  it('`skip` sale de la página pedida', async () => {
+    asAdmin();
+
+    await getAllCases({ page: 3, pageSize: 50 });
+
+    const args = argsFindMany();
+    expect(args.take).toBe(50);
+    expect(args.skip).toBe(100);
+  });
+
+  it('un `pageSize` desmedido se recorta al tope en vez de traer todo', async () => {
+    asAdmin();
+
+    await getAllCases({ pageSize: 5000 });
+
+    // El tope es lo que impide que un parámetro del cliente reintroduzca el
+    // bug: 5.000 no es "sin límite", es 100.
+    expect(argsFindMany().take).toBe(100);
+  });
+
+  it('página y pageSize basura caen al default, sin romper la pantalla', async () => {
+    asAdmin();
+
+    const result = await getAllCases({ page: '-3', pageSize: 'muchos' });
+
+    expect(result.success).toBe(true);
+    expect(argsFindMany()).toMatchObject({ take: 20, skip: 0 });
+  });
+
+  it('el `count` recibe EXACTAMENTE el mismo `where` que el `findMany`', async () => {
+    // El agujero más fácil de dejar: un total que filtra por tenant pero no
+    // por rol le mostraría a un Abogado el total del centro entero.
+    mockAuthenticateUser.mockResolvedValue({
+      user: {
+        id: 'abogado-1',
+        name: 'Abogado',
+        email: 'abogado@example.com',
+        permissions: [PERMISSIONS.VIEW_CASES, PERMISSIONS.VIEW_OWN_CASES],
+      },
+      tenantId: TENANT.id,
+    });
+
+    await getAllCases({ search: 'torres' });
+
+    expect(argsCount().where).toEqual(argsFindMany().where);
+    // Y el alcance por rol sigue en los dos.
+    expect(argsCount().where).toMatchObject({
+      tenantId: TENANT.id,
+      operatorId: 'abogado-1',
+    });
+  });
+
+  it('el total lo da el `count`, no la cantidad de filas de la página', async () => {
+    asAdmin();
+    mockPrisma.case.findMany.mockResolvedValue([listRow()]);
+    mockPrisma.case.count.mockResolvedValue(4321);
+
+    const result = await getAllCases();
+
+    expect(result.data!.items).toHaveLength(1);
+    expect(result.data!.total).toBe(4321);
+    expect(result.data!.page).toBe(1);
+    expect(result.data!.pageSize).toBe(20);
+  });
+
+  it('un usuario sin alcance no consulta: ni `findMany` ni `count`', async () => {
+    mockAuthenticateUser.mockResolvedValue({
+      user: {
+        id: 'u-1',
+        name: 'Sin alcance',
+        email: 'sin@example.com',
+        permissions: [PERMISSIONS.VIEW_CASES],
+      },
+      tenantId: TENANT.id,
+    });
+
+    const result = await getAllCases();
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ items: [], total: 0, page: 1, pageSize: 20 });
+    expect(mockPrisma.case.findMany).not.toHaveBeenCalled();
+    expect(mockPrisma.case.count).not.toHaveBeenCalled();
+  });
+
+  it('del deudor pide tres columnas, no la relación completa', async () => {
+    asAdmin();
+
+    await getAllCases();
+
+    // `debtor: true` eran los 56 campos del deudor por fila — su situación
+    // financiera entera — para mostrar una cédula.
+    const { debtor } = argsFindMany().select;
+    expect(debtor).not.toBe(true);
+    expect(Object.keys(debtor.select).sort()).toEqual([
+      'id',
+      'idNumber',
+      'name',
+    ]);
+  });
+});
+
+/**
+ * Los filtros, que antes se evaluaban en el cliente sobre la lista completa.
+ * Cada uno tenía su trampa al bajarlo a la consulta.
+ */
+describe('getAllCases — los filtros van a la consulta', () => {
+  const where = () => mockPrisma.case.findMany.mock.calls[0][0].where;
+
+  beforeEach(() => {
+    mockPrisma.case.findMany.mockResolvedValue([]);
+    mockPrisma.case.count.mockResolvedValue(0);
+    asAdmin();
+  });
+
+  it('la búsqueda cubre número de caso, nombre del deudor y cédula', async () => {
+    await getAllCases({ search: 'torres' });
+
+    expect(where().AND).toEqual([
+      {
+        OR: [
+          { caseNumber: { contains: 'torres', mode: 'insensitive' } },
+          { debtorName: { contains: 'torres', mode: 'insensitive' } },
+          // La cédula vive en la relación, no en una columna de Case: es el
+          // motivo por el que el select del deudor tiene que seguir trayendo
+          // `idNumber`.
+          { debtor: { idNumber: { contains: 'torres' } } },
+        ],
+      },
+    ]);
+  });
+
+  it("filtrar por 'Inicial' incluye los casos con la fase en NULL", async () => {
+    await getAllCases({ phase: 'Inicial' });
+
+    // La pantalla muestra 'Inicial' para `phase === null`. Sin el OR, el
+    // filtro perdía en silencio todos los casos que nunca cambiaron de fase.
+    expect(where().AND).toEqual([
+      { OR: [{ phase: 'Inicial' }, { phase: null }] },
+    ]);
+  });
+
+  it('otra fase filtra por igualdad, sin el OR', async () => {
+    await getAllCases({ phase: 'Admisión' });
+
+    expect(where().AND).toEqual([{ phase: 'Admisión' }]);
+  });
+
+  it('el tipo se traduce de la etiqueta en español al enum de la columna', async () => {
+    await getAllCases({ type: 'Acuerdo de Apoyo' });
+
+    // El `<Select>` ofrece 'Acuerdo de Apoyo'; la columna guarda
+    // 'SUPPORT_AGREEMENT'. Mientras el filtro era client-side la diferencia no
+    // se notaba, porque comparaba contra el valor ya traducido por Zod.
+    expect(where().AND).toEqual([{ type: 'SUPPORT_AGREEMENT' }]);
+  });
+
+  it("'all' no filtra", async () => {
+    await getAllCases({ phase: 'all', type: 'all' });
+
+    expect(where().AND).toBeUndefined();
+    expect(where()).toEqual({ tenantId: TENANT.id });
+  });
+
+  it('los filtros se acumulan en `AND`, sin pisarse entre sí', async () => {
+    await getAllCases({ search: 'ana', phase: 'Inicial', type: 'Insolvencia' });
+
+    // Tres cláusulas: dos de ellas necesitan su propio `OR`, así que al mismo
+    // nivel la segunda habría pisado a la primera.
+    expect(where().AND).toHaveLength(3);
+  });
+});
+
+/**
+ * El selector de `/documents` filtra en el cliente, así que necesita el
+ * conjunto y no una página — pero tampoco puede ser una consulta sin cota.
+ */
+describe('getCasesForSelector', () => {
+  beforeEach(() => {
+    mockPrisma.case.findMany.mockResolvedValue([]);
+    mockPrisma.case.count.mockResolvedValue(0);
+    asAdmin();
+  });
+
+  it('lleva `take` y no pide la relación del deudor', async () => {
+    await getCasesForSelector();
+
+    const args = mockPrisma.case.findMany.mock.calls[0][0];
+    expect(args.take).toBe(500);
+    expect(args.select.debtor).toBeUndefined();
+    expect(args.select.debtorName).toBe(true);
+  });
+
+  it('informa el total para que la pantalla pueda avisar del recorte', async () => {
+    mockPrisma.case.count.mockResolvedValue(1200);
+
+    const result = await getCasesForSelector();
+
+    expect(result.data).toMatchObject({ total: 1200, limit: 500 });
   });
 });

@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 
 import { authenticateUser } from '@/features/auth/actions';
@@ -34,7 +35,9 @@ import {
   assertCaseAccess,
   assertCaseAccessOnRow,
   assertOperatorInTenant,
+  caseWhereFromVisibility,
   findParentCaseId,
+  resolveCaseVisibility,
 } from './case-access';
 // GC-M4: el audit log de `updateCase` decia solo "Se ha actualizado el caso X".
 // Esto calcula QUE cambio, comparando el payload contra lo que hay en la base.
@@ -101,7 +104,15 @@ import {
   dependentResponseSchema,
   apoderadoResponseSchema,
   getAllCasesSchema,
+  getAllCasesParamsSchema,
+  casesPageSchema,
+  caseSelectorItemSchema,
   CASE_LIST_COLUMNS,
+  CASE_LIST_DEBTOR_COLUMNS,
+  CASE_SELECTOR_COLUMNS,
+  CASES_SELECTOR_LIMIT,
+  caseTypeFilterToColumn,
+  type GetAllCasesParams,
   getCaseByIdSchema,
   deleteCaseSchema,
   caseStatsSchema,
@@ -138,99 +149,188 @@ function sanitizeJsonFields<T extends Record<string, unknown>>(data: T): T {
   return copy as T;
 }
 
-export async function getAllCases(): Promise<{
+/**
+ * Listado de casos, **paginado en el servidor**.
+ *
+ * Antes era un `findMany` sin `take` ni `skip`: traía todos los casos del
+ * centro, con los 56 campos del deudor por fila y un subquery de `_count` por
+ * caso, y `/cases` los paginaba en memoria del cliente. Con 5.000 expedientes
+ * eso son del orden de 7-15 MB de payload RSC por carga de página y el `parse`
+ * de Zod sobre el conjunto entero, dentro de los 60 s que ya son el techo del
+ * plan Hobby: no se degradaba, se caía (hallazgo P-1).
+ *
+ * Ahora la consulta trae **una página**, el filtro y la búsqueda se resuelven
+ * en la base (donde están los índices) y el total sale de un `count` con el
+ * mismo `where`, para que el pie de la tabla siga diciendo la verdad.
+ *
+ * La visibilidad por rol sale de `resolveCaseVisibility`, la fuente única que
+ * ya usan reportes y búsqueda; `caseWhereFromVisibility` devuelve `null`
+ * cuando el usuario no debe ver nada, que **no** es lo mismo que un `where`
+ * vacío (eso devolvería todo). Por eso se corta antes de consultar.
+ */
+export async function getAllCases(params?: GetAllCasesParams): Promise<{
   success: boolean;
-  data?: z.infer<typeof getAllCasesSchema>;
+  data?: z.infer<typeof casesPageSchema>;
   error?: string;
 }> {
   try {
     const { user, tenantId } = await authenticateUser();
 
-    // Check permission
     const hasPermission = user.permissions.includes(P.VER_CASOS);
     if (!hasPermission) {
       return { success: false, error: 'No tienes permisos para ver casos' };
     }
 
-    // Build where clause based on user permissions and role
-    let whereClause: {
-      operatorId?: string;
-      debtorId?: string;
-      tenantId: string;
-    } = {
-      tenantId,
-    };
+    const { page, pageSize, search, phase, type } =
+      getAllCasesParamsSchema.parse(params ?? {});
 
-    // Check user permissions to determine case visibility scope
-    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
-    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
-    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
+    const emptyPage = { items: [], total: 0, page, pageSize };
 
-    if (canViewAllCases) {
-      // Administrador, Operadora de Insolvencia, Secretaria: see all cases
-      // No additional filtering needed
-    } else if (canViewOwnCases) {
-      // Abogado, Asistente Legal: only cases they are working on (assigned as operator)
-      whereClause = {
-        ...whereClause,
-        operatorId: user.id,
-      };
-    } else if (canViewAsClient) {
-      // Usuario: only cases where they are the debtor (client)
-      const userDebtor = await prisma.debtor.findFirst({
-        where: {
-          email: user.email,
-          tenantId,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (userDebtor) {
-        whereClause = {
-          ...whereClause,
-          debtorId: userDebtor.id,
-        };
-      } else {
-        // If user is not found as a debtor, return empty array
-        return { success: true, data: [] };
-      }
-    } else {
-      // If user has no specific case visibility permissions, return empty array
-      return { success: true, data: [] };
+    const visibility = await resolveCaseVisibility(user, tenantId);
+    const caseScope = caseWhereFromVisibility(visibility);
+    if (caseScope === null) {
+      return { success: true, data: emptyPage };
     }
 
-    // Solo las columnas que usa el listado (CASE_LIST_COLUMNS), no las 269 de
-    // cada caso: menos datos por fila y sin depender de columnas que la
-    // pantalla no lee. El detalle sí trae todo (getCaseById).
-    const cases = await prisma.case.findMany({
-      where: whereClause,
-      select: {
-        ...CASE_LIST_COLUMNS,
-        debtor: true,
-        operator: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        _count: {
-          select: {
-            documents: true,
-          },
-        },
-      },
-      orderBy: {
-        createdDate: 'desc',
-      },
-    });
+    // Cada filtro es una cláusula aparte dentro de `AND` en vez de ir al nivel
+    // de arriba: la búsqueda ya usa su propio `OR` y el filtro por fase
+    // también necesita uno, así que mezclarlos al mismo nivel haría que el
+    // segundo pise al primero.
+    const filters: Prisma.CaseWhereInput[] = [];
 
-    const result = getAllCasesSchema.parse(cases);
-    return { success: true, data: result };
+    if (search) {
+      filters.push({
+        OR: [
+          { caseNumber: { contains: search, mode: 'insensitive' } },
+          { debtorName: { contains: search, mode: 'insensitive' } },
+          // La cédula no lleva `mode`: son dígitos, no hay mayúsculas.
+          { debtor: { idNumber: { contains: search } } },
+        ],
+      });
+    }
+
+    if (phase && phase !== 'all') {
+      // La pantalla muestra 'Inicial' para los casos con `phase` en NULL, así
+      // que filtrar por 'Inicial' tiene que traerlos. Sin esto, el filtro
+      // perdía en silencio todos los casos que nunca cambiaron de fase.
+      filters.push(
+        phase === 'Inicial'
+          ? { OR: [{ phase: 'Inicial' }, { phase: null }] }
+          : { phase },
+      );
+    }
+
+    if (type && type !== 'all') {
+      // El filtro llega traducido ('Insolvencia'); la columna guarda el enum.
+      filters.push({ type: caseTypeFilterToColumn(type) });
+    }
+
+    const whereClause: Prisma.CaseWhereInput = {
+      tenantId,
+      ...caseScope,
+      ...(filters.length > 0 ? { AND: filters } : {}),
+    };
+
+    // Las dos consultas en paralelo: el `count` usa el MISMO `where`, que es
+    // lo que mantiene coherentes el total y la página.
+    const [cases, total] = await Promise.all([
+      prisma.case.findMany({
+        where: whereClause,
+        select: {
+          ...CASE_LIST_COLUMNS,
+          debtor: { select: CASE_LIST_DEBTOR_COLUMNS },
+          operator: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          _count: {
+            select: {
+              documents: true,
+            },
+          },
+        },
+        orderBy: {
+          createdDate: 'desc',
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.case.count({ where: whereClause }),
+    ]);
+
+    const items = getAllCasesSchema.parse(cases);
+    return { success: true, data: { items, total, page, pageSize } };
   } catch (error) {
-    console.error('Error getting all cases:', error);
+    logger.error('Error al obtener el listado de casos', error, {
+      action: 'getAllCases',
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Error al obtener casos',
+    };
+  }
+}
+
+/**
+ * Casos para el combobox de `/documents`, que filtra en el cliente.
+ *
+ * No es el listado: son seis columnas escalares y el conteo de documentos, sin
+ * la relación del deudor. Lleva `take` igual que todo lo demás, y devuelve
+ * `total` para que la pantalla pueda decir que está mostrando los primeros
+ * `CASES_SELECTOR_LIMIT` y no hacer pasar un recorte por la lista completa.
+ */
+export async function getCasesForSelector(): Promise<{
+  success: boolean;
+  data?: {
+    items: z.infer<typeof caseSelectorItemSchema>[];
+    total: number;
+    limit: number;
+  };
+  error?: string;
+}> {
+  try {
+    const { user, tenantId } = await authenticateUser();
+
+    if (!user.permissions.includes(P.VER_CASOS)) {
+      return { success: false, error: 'No tienes permisos para ver casos' };
+    }
+
+    const visibility = await resolveCaseVisibility(user, tenantId);
+    const caseScope = caseWhereFromVisibility(visibility);
+    if (caseScope === null) {
+      return {
+        success: true,
+        data: { items: [], total: 0, limit: CASES_SELECTOR_LIMIT },
+      };
+    }
+
+    const whereClause: Prisma.CaseWhereInput = { tenantId, ...caseScope };
+
+    const [cases, total] = await Promise.all([
+      prisma.case.findMany({
+        where: whereClause,
+        select: {
+          ...CASE_SELECTOR_COLUMNS,
+          _count: { select: { documents: true } },
+        },
+        orderBy: { createdDate: 'desc' },
+        take: CASES_SELECTOR_LIMIT,
+      }),
+      prisma.case.count({ where: whereClause }),
+    ]);
+
+    const items = z.array(caseSelectorItemSchema).parse(cases);
+    return {
+      success: true,
+      data: { items, total, limit: CASES_SELECTOR_LIMIT },
+    };
+  } catch (error) {
+    logger.error('Error al obtener los casos del selector', error, {
+      action: 'getCasesForSelector',
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Error al obtener casos',
@@ -632,7 +732,8 @@ export async function createCase(
                       payerAddress: libranza.payerAddress,
                       payerEmail: libranza.payerEmail,
                       payerPhone: libranza.payerPhone,
-                      deductedAmount: parsearMonto(libranza.deductedAmount) ?? 0,
+                      deductedAmount:
+                        parsearMonto(libranza.deductedAmount) ?? 0,
                       productAndCreditor: libranza.productAndCreditor,
                       tenantId,
                     })),
@@ -961,7 +1062,8 @@ export async function updateCase(
       hearingDate: parseDateOnly(hearingDate) ?? undefined,
       filingDate: parseDateOnly(filingDate) ?? undefined,
       designationDate: parseDateOnly(designationDate) ?? undefined,
-      positionAcceptanceDate: parseDateOnly(positionAcceptanceDate) ?? undefined,
+      positionAcceptanceDate:
+        parseDateOnly(positionAcceptanceDate) ?? undefined,
       inadmissionDate: parseDateOnly(inadmissionDate) ?? undefined,
       admissionDate: parseDateOnly(admissionDate) ?? undefined,
       firstHearingDate: parseDateOnly(firstHearingDate) ?? undefined,
@@ -1234,8 +1336,12 @@ export async function addDebtToCase(
         creditorAddress: cleanText(creditorAddress),
         creditorCity: cleanText(creditorCity),
         creditorEmail: cleanText(creditorEmail),
-        capitalAmount: capitalAmount ? (parsearMonto(capitalAmount) ?? null) : null,
-        interestAmount: interestAmount ? (parsearMonto(interestAmount) ?? null) : null,
+        capitalAmount: capitalAmount
+          ? (parsearMonto(capitalAmount) ?? null)
+          : null,
+        interestAmount: interestAmount
+          ? (parsearMonto(interestAmount) ?? null)
+          : null,
         isDeferred: isDeferred ?? false,
         documentType: cleanText(documentType),
         grantDate: otorgamientoAgregado.value,
@@ -1522,7 +1628,11 @@ export async function removeLibranzaFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('libranza', libranzaId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'libranza',
+      libranzaId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Libranza no encontrada' };
     }
@@ -1678,7 +1788,11 @@ export async function removeSuspendedServiceFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('suspendedService', suspendedServiceId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'suspendedService',
+      suspendedServiceId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Servicio suspendido no encontrado' };
     }
@@ -2039,7 +2153,11 @@ export async function removeDependentFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('dependent', dependentId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'dependent',
+      dependentId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Dependiente no encontrado' };
     }
@@ -2217,7 +2335,11 @@ export async function removeApoderadoFromCase(
 
     // GC-A1 — la action recibe el id de la fila hija, no el del expediente:
     // hay que subir al padre antes de decidir el acceso.
-    const parentCaseId = await findParentCaseId('apoderado', apoderadoId, tenantId);
+    const parentCaseId = await findParentCaseId(
+      'apoderado',
+      apoderadoId,
+      tenantId,
+    );
     if (!parentCaseId) {
       return { success: false, error: 'Apoderado no encontrado' };
     }

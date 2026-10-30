@@ -2,12 +2,7 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-} from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -49,14 +44,13 @@ const mockBatchGenerateDocuments = jest.fn();
 const mockPlanBatchGeneration = jest.fn();
 
 jest.mock('@/features/case/actions', () => ({
-  getAllCases: (...args: unknown[]) => mockGetAllCases(...args),
+  getCasesForSelector: (...args: unknown[]) => mockGetAllCases(...args),
 }));
 
 jest.mock('@/features/document/actions', () => ({
   batchGenerateDocuments: (...args: unknown[]) =>
     mockBatchGenerateDocuments(...args),
-  planBatchGeneration: (...args: unknown[]) =>
-    mockPlanBatchGeneration(...args),
+  planBatchGeneration: (...args: unknown[]) => mockPlanBatchGeneration(...args),
 }));
 
 // Mock Radix Popover (simplify for testing)
@@ -454,9 +448,12 @@ describe('DocumentGeneration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockCheckPermission.mockReturnValue(true);
+    // El selector ya no usa el listado paginado: `getCasesForSelector`
+    // devuelve `{ items, total, limit }` para poder avisar si hay casos
+    // fuera del tope.
     mockGetAllCases.mockResolvedValue({
       success: true,
-      data: MOCK_CASES,
+      data: { items: MOCK_CASES, total: MOCK_CASES.length, limit: 500 },
     });
     mockBatchGenerateDocuments.mockResolvedValue(MOCK_SUCCESS_RESULT);
     mockPlanBatchGeneration.mockResolvedValue({
@@ -534,7 +531,7 @@ describe('DocumentGeneration', () => {
   // ─── Case Loading ───────────────────────────────────────────────────────
 
   describe('Case Loading', () => {
-    it('calls getAllCases on mount', async () => {
+    it('calls getCasesForSelector on mount', async () => {
       render(
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
@@ -544,7 +541,7 @@ describe('DocumentGeneration', () => {
       });
     });
 
-    it('renders case items from getAllCases response', async () => {
+    it('renders case items from getCasesForSelector response', async () => {
       render(
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
@@ -571,7 +568,7 @@ describe('DocumentGeneration', () => {
       });
     });
 
-    it('handles getAllCases failure gracefully', async () => {
+    it('handles getCasesForSelector failure gracefully', async () => {
       mockGetAllCases.mockResolvedValue({
         success: false,
         error: 'Network error',

@@ -7,8 +7,8 @@ import {
   HeartHandshake,
   Plus,
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { getCaseById } from '@/features/case/actions';
@@ -34,10 +34,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  TablePagination,
-  usePagination,
-} from '@/components/ui/table-pagination';
+import { TablePagination } from '@/components/ui/table-pagination';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
 
@@ -52,19 +49,35 @@ import { DeleteCaseDialog } from './delete-case-dialog';
 import { EditCaseDialog } from './edit-case-dialog';
 import { PhaseTransitionDialog } from './phase-transition-dialog';
 
+import { CASES_PAGE_SIZE_OPTIONS } from '@/features/case/schemas';
+
 import type {
   CaseListItem,
+  CasesPage,
   CaseStats as CaseStatsType,
   CaseWithRelations,
 } from '@/features/case/schemas';
 
 interface CasesContentProps {
-  cases: CaseListItem[];
+  /** Una página del listado, ya filtrada por el servidor. */
+  casesPage: CasesPage;
+  /** Los filtros con los que el servidor armó esa página (vienen de la URL). */
+  filtros: { search: string; phase: string; type: string };
   stats: CaseStatsType;
 }
 
-export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
+/** Cuánto se espera después de la última tecla antes de consultar. */
+const DEBOUNCE_BUSQUEDA_MS = 350;
+
+export function CasesContent({
+  casesPage,
+  filtros,
+  stats,
+}: Readonly<CasesContentProps>) {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
   const [selectedCase, setSelectedCase] = useState<CaseListItem | null>(null);
   const [selectedCaseWithRelations, setSelectedCaseWithRelations] =
     useState<CaseWithRelations | null>(null);
@@ -86,33 +99,64 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showPhaseDialog, setShowPhaseDialog] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(
-    searchParams.get('search') ?? '',
-  );
-  const [selectedPhase, setSelectedPhase] = useState('all');
-  const [selectedType, setSelectedType] = useState('all');
+  // El input es local para que escribir no espere al servidor; lo que viaja a
+  // la URL va con debounce. `filtros.search` es lo último que el servidor
+  // aplicó, así que comparar contra eso evita navegar al montar y después de
+  // cada navegación.
+  const [searchTerm, setSearchTerm] = useState(filtros.search);
 
   const { checkPermission } = useAuth();
   const canCreateCases = checkPermission(P.CREAR_CASOS);
   const [loadingCaseDetails, setLoadingCaseDetails] = useState(false);
 
-  const filteredCases = cases.filter((caseItem) => {
-    const matchesSearch =
-      caseItem.debtorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      caseItem.caseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      caseItem.debtor.idNumber.includes(searchTerm);
-    const matchesPhase =
-      selectedPhase === 'all' ||
-      (caseItem.phase ?? 'Inicial') === selectedPhase;
-    const matchesType =
-      selectedType === 'all' || caseItem.type === selectedType;
-    return matchesSearch && matchesPhase && matchesType;
-  });
+  /**
+   * Escribe los filtros en la URL y deja que el servidor traiga la página.
+   *
+   * Un valor vacío o `'all'` borra el parámetro en vez de escribirlo: así la
+   * URL del listado sin filtros queda limpia y el `?search=` que ya se usaba
+   * sigue significando lo mismo.
+   *
+   * `navegacion`: cambiar de página va con `push`, porque el "atrás" del
+   * navegador tiene que devolver a la página anterior de la tabla. Tipear en el
+   * buscador va con `replace`, o el historial se llena de una entrada por
+   * letra.
+   */
+  const aplicar = (
+    cambios: Record<string, string | number | null>,
+    navegacion: 'push' | 'replace' = 'replace',
+  ) => {
+    const qs = new URLSearchParams(searchParams.toString());
+    for (const [clave, valor] of Object.entries(cambios)) {
+      if (valor === null || valor === '' || valor === 'all') {
+        qs.delete(clave);
+      } else {
+        qs.set(clave, String(valor));
+      }
+    }
+    const query = qs.toString();
+    const destino = query ? `${pathname}?${query}` : pathname;
+    startTransition(() => {
+      if (navegacion === 'push') {
+        router.push(destino, { scroll: false });
+      } else {
+        router.replace(destino, { scroll: false });
+      }
+    });
+  };
 
-  const { paginatedItems: paginatedCases, paginationProps } = usePagination(
-    filteredCases,
-    20,
-  );
+  useEffect(() => {
+    if (searchTerm === filtros.search) return;
+    const id = setTimeout(
+      () => aplicar({ search: searchTerm, page: null }),
+      DEBOUNCE_BUSQUEDA_MS,
+    );
+    return () => clearTimeout(id);
+    // `aplicar` se recrea en cada render; depender de él reprogramaría el
+    // timer sin parar. Lo que importa es el texto y lo ya aplicado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, filtros.search]);
+
+  const paginatedCases = casesPage.items;
 
   const openCaseDetails = async (caseItem: CaseListItem) => {
     setSelectedCase(caseItem);
@@ -248,22 +292,41 @@ export function CasesContent({ cases, stats }: Readonly<CasesContentProps>) {
                 <CaseFilters
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
-                  selectedPhase={selectedPhase}
-                  onPhaseChange={setSelectedPhase}
-                  selectedType={selectedType}
-                  onTypeChange={setSelectedType}
+                  selectedPhase={filtros.phase}
+                  onPhaseChange={(valor) =>
+                    aplicar({ phase: valor, page: null })
+                  }
+                  selectedType={filtros.type}
+                  onTypeChange={(valor) => aplicar({ type: valor, page: null })}
                 />
               </div>
             </CardHeader>
             <CardContent>
-              <CaseTable
-                cases={paginatedCases}
-                onViewDetails={openCaseDetails}
-                onEdit={editCase}
-                onDelete={deleteCase}
-                onChangePhase={changePhase}
+              {/* `aria-busy` + opacidad: la tabla se repinta con datos del
+                  servidor, y sin señal el cambio de página se siente colgado. */}
+              <div
+                aria-busy={isPending}
+                className={isPending ? 'opacity-60 transition-opacity' : ''}
+              >
+                <CaseTable
+                  cases={paginatedCases}
+                  onViewDetails={openCaseDetails}
+                  onEdit={editCase}
+                  onDelete={deleteCase}
+                  onChangePhase={changePhase}
+                />
+              </div>
+              <TablePagination
+                currentPage={casesPage.page}
+                totalItems={casesPage.total}
+                pageSize={casesPage.pageSize}
+                onPageChange={(pagina) => aplicar({ page: pagina }, 'push')}
+                onPageSizeChange={(tamanio) =>
+                  aplicar({ pageSize: tamanio, page: null })
+                }
+                pageSizeOptions={[...CASES_PAGE_SIZE_OPTIONS]}
+                itemLabel="casos"
               />
-              <TablePagination {...paginationProps} itemLabel="casos" />
             </CardContent>
           </Card>
         </div>
