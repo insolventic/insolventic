@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import nodemailer from 'nodemailer';
 
+import { logger } from './logger';
+
 interface EmailOptions {
   to: string;
   subject: string;
@@ -90,27 +92,21 @@ class EmailService {
         if (process.env.NODE_ENV === 'production') {
           // En producción la falta de SMTP es un error operativo, no
           // un caso de simulación: se reporta y el envío falla explícito.
-          console.error(
-            '❌ SMTP no configurado (SMTP_USER/SMTP_PASSWORD): no se pudo enviar el correo a:',
-            to,
+          logger.error(
+            'SMTP no configurado: el correo no se envió',
+            new Error('SMTP_USER / SMTP_PASSWORD ausentes'),
+            { action: 'email.send', email: to, subject },
           );
           return false;
         }
-        console.log('\n📧 ===== EMAIL SIMULATION MODE =====');
-        console.log('⚠️  SMTP not configured - Simulating email send');
-        console.log('📤 To:', to);
-        console.log('📋 Subject:', subject);
-        console.log(
-          '📄 Content Preview:',
-          text?.substring(0, 200) + '...' || 'HTML content',
-        );
-        console.log(
-          '💡 To enable real email sending, configure SMTP_USER and SMTP_PASSWORD in your .env file',
-        );
-        console.log(
-          '🔗 For Gmail: Use App Password from https://support.google.com/accounts/answer/185833',
-        );
-        console.log('=======================================\n');
+        // Fuera de producción no hay envío: se simula. Va por `info` y no por
+        // `error` porque es el camino esperado en desarrollo.
+        logger.info('Correo simulado (SMTP no configurado)', {
+          action: 'email.simulate',
+          email: to,
+          subject,
+          preview: text?.substring(0, 120),
+        });
         return true;
       }
 
@@ -125,12 +121,23 @@ class EmailService {
         html,
       });
 
-      console.log('✅ Email sent successfully to:', to);
-      console.log('📧 Message ID:', info.messageId);
+      logger.info('Correo enviado', {
+        action: 'email.send',
+        email: to,
+        subject,
+        messageId: info.messageId,
+      });
       return true;
     } catch (error) {
-      console.error('❌ Error sending email to:', to);
-      console.error('💥 Error details:', error);
+      // R-2: este `catch` devolvía `false` y dejaba el rastro solo en la
+      // consola. Varios llamadores son best-effort y no miran el booleano,
+      // así que el aviso "no existía" para nadie. Por el logger va a Sentry,
+      // que es lo mínimo para poder responder "¿le llegó el correo?".
+      logger.error('No se pudo enviar el correo', error, {
+        action: 'email.send',
+        email: to,
+        subject,
+      });
       return false;
     }
   }
@@ -900,29 +907,28 @@ class EmailService {
   async verifyConnection(): Promise<boolean> {
     try {
       if (!process.env.SMTP_PASSWORD) {
-        console.log('\n🔧 ===== EMAIL CONFIGURATION STATUS =====');
-        console.log('⚠️  SMTP not configured - emails will be simulated');
-        console.log('📧 SMTP_USER:', process.env.SMTP_USER || 'NOT SET');
-        console.log(
-          '🔐 SMTP_PASSWORD:',
-          process.env.SMTP_PASSWORD ? 'SET' : 'NOT SET',
-        );
-        console.log('💡 To enable real email sending:');
-        console.log('   1. Set SMTP_USER in your .env file');
-        console.log('   2. Set SMTP_PASSWORD in your .env file');
-        console.log('   3. For Gmail, use App Password');
-        console.log('======================================\n');
+        // Sin interpolar los valores: `SMTP_USER` es una dirección de
+        // correo y el logger redacta la clave `email`. Antes se imprimía
+        // entera en los logs de Vercel.
+        logger.warn('SMTP no configurado: los correos se van a simular', {
+          action: 'email.verify',
+          tieneUsuario: Boolean(process.env.SMTP_USER),
+          tieneContrasena: Boolean(process.env.SMTP_PASSWORD),
+        });
         return true;
       }
 
       await this.getTransporter().verify();
-      console.log('✅ SMTP connection verified successfully');
-      console.log('📧 SMTP_USER:', process.env.SMTP_USER);
-      console.log('🔐 SMTP_PASSWORD: SET (hidden for security)');
+      logger.info('Conexión SMTP verificada', {
+        action: 'email.verify',
+        email: process.env.SMTP_USER,
+      });
       return true;
     } catch (error) {
-      console.error('❌ SMTP connection failed:', error);
-      console.error('💡 Check your SMTP credentials and network connection');
+      logger.error('Falló la conexión SMTP', error, {
+        action: 'email.verify',
+        pista: 'revisar credenciales SMTP y conectividad de salida',
+      });
       return false;
     }
   }

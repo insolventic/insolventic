@@ -9,6 +9,7 @@
 
 import puppeteer from 'puppeteer-core';
 
+import { logger } from './logger';
 import { BRANDING_REF_PREFIX } from './branding-assets';
 
 // Dynamic import for serverless environments
@@ -217,23 +218,37 @@ export async function inlineAssets(
               const importedCss = fs.readFileSync(importPath, 'utf-8');
               cssContent = cssContent.replace(importMatch[0], importedCss);
             } else {
-              console.warn(
-                `Imported CSS not found: ${importPath} (from @import "${importUrl}")`,
-              );
+              logger.warn('No se encontro un @import de un CSS', {
+                action: 'pdf.inline-assets',
+                importPath,
+                importUrl,
+              });
             }
           } catch (importErr) {
-            console.warn(
-              `Error reading imported CSS ${importPath}:`,
-              importErr,
-            );
+            logger.warn('No se pudo leer un @import de un CSS', {
+              action: 'pdf.inline-assets',
+              importPath,
+              reason:
+                importErr instanceof Error
+                  ? importErr.message
+                  : String(importErr),
+            });
           }
         }
         result = result.replace(fullTag, `<style>\n${cssContent}\n</style>`);
       } else {
-        console.warn(`CSS file not found: ${cssPath} (from href="${href}")`);
+        logger.warn('No se encontró un CSS de la plantilla', {
+          action: 'pdf.inline-assets',
+          cssPath,
+          href,
+        });
       }
     } catch (err) {
-      console.warn(`Error reading CSS file ${cssPath}:`, err);
+      logger.warn('No se pudo leer un CSS de la plantilla', {
+        action: 'pdf.inline-assets',
+        cssPath,
+        reason: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -261,10 +276,18 @@ export async function inlineAssets(
         const newTag = fullTag.replace(src, dataUri);
         result = result.replace(fullTag, newTag);
       } else {
-        console.warn(`Image file not found: ${imgPath} (from src="${src}")`);
+        logger.warn('No se encontró una imagen de la plantilla', {
+          action: 'pdf.inline-assets',
+          imgPath,
+          src,
+        });
       }
     } catch (err) {
-      console.warn(`Error reading image file ${imgPath}:`, err);
+      logger.warn('No se pudo leer una imagen de la plantilla', {
+        action: 'pdf.inline-assets',
+        imgPath,
+        reason: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -375,7 +398,9 @@ export async function htmlToPdf(
 
     return Buffer.from(pdfBuffer);
   } catch (error) {
-    console.error('Error generating PDF:', error);
+    logger.error('Falló la generación de un PDF', error, {
+      action: 'pdf.single',
+    });
     throw new Error(
       `Error al generar PDF: ${error instanceof Error ? error.message : 'Unknown error'}`,
     );
@@ -425,9 +450,12 @@ export async function batchHtmlToPdf(
       const doc = documents[i];
       let page = null;
       try {
-        console.log(
-          `[batchHtmlToPdf] Processing ${i + 1}/${documents.length}: ${doc.filename}`,
-        );
+        logger.debug('Convirtiendo un documento del lote a PDF', {
+          action: 'pdf.batch',
+          indice: i + 1,
+          total: documents.length,
+          filename: doc.filename,
+        });
 
         // Inline assets if base directory provided (per-doc override wins)
         const docAssetsBase = doc.assetsBaseDir || assetsBaseDir;
@@ -463,9 +491,15 @@ export async function batchHtmlToPdf(
         await page.close();
         page = null;
       } catch (error) {
-        console.error(
-          `[batchHtmlToPdf] FAILED for ${doc.filename} (${i + 1}/${documents.length}):`,
-          error instanceof Error ? error.message : error,
+        logger.error(
+          'Un documento del lote no se pudo convertir a PDF',
+          error,
+          {
+            action: 'pdf.batch',
+            indice: i + 1,
+            total: documents.length,
+            filename: doc.filename,
+          },
         );
         // Continue with other documents - don't break the batch
         if (page) {
