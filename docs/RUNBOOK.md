@@ -283,6 +283,33 @@ porque `src/lib/google-drive.ts` lo registra con `console.error`.
 - **Impacto**: sin cron no salen avisos de audiencias próximas ni pagos
   vencidos. No corrompe datos; se puede disparar a mano.
 
+**Cómo se detecta** (antes no se detectaba: se descubría cuando un operador
+notaba que no le llegaban avisos). Dos cosas distintas vigilan dos cosas
+distintas:
+
+| Qué vigila                         | Quién                                           | Cómo avisa                                    |
+| ---------------------------------- | ----------------------------------------------- | --------------------------------------------- |
+| Que la **app y la base** respondan | `monitor.yml`, cada 30 min contra `/api/health` | GitHub manda un mail cuando el workflow falla |
+| Que el **cron corra**              | Cron monitor de Sentry (`cron-alertas`)         | Sentry alerta si el check-in **no llega**     |
+
+El monitor de Sentry se crea solo con el primer check-in del cron: no hay que
+configurarlo a mano. La corrida se cierra como `error` —no solo ante una
+excepción— también si se cortó por el deadline (`timedOut`) o si algún tenant
+acumuló errores, porque en los dos casos el resultado no es el que esta
+sección espera.
+
+Si el cron dejó de correr, el check-in que **no llega** es la señal: un cron
+que no corre no produce ningún error que reportar, así que sin esto el
+síntoma era silencio. `monitor.yml` también se puede correr a mano desde
+Actions contra cualquier URL (`workflow_dispatch`), útil durante un incidente
+o contra un preview.
+
+> Un servicio de uptime externo (Better Stack, UptimeRobot, el monitor de
+> Vercel en Pro) sigue siendo mejor herramienta: chequea desde varias regiones
+> y avisa por SMS. `monitor.yml` es lo que se puede tener sin abrir otra cuenta.
+> Y ojo con su límite: GitHub no garantiza la puntualidad de `schedule`, así
+> que detecta una caída sostenida, no un pico de un minuto.
+
 ### 3.7 Rate limiting degradado
 
 - Si Upstash no está configurado o Redis falla, el sistema **cae al

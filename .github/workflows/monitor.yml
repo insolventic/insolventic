@@ -1,0 +1,76 @@
+name: Monitor (health check)
+
+# O-4: `/api/health` esta construido para que algo lo vigile —tiene incluso un
+# HEAD para eso— y nadie lo llamaba. El smoke corre post-deploy y el cron
+# reporta su propia corrida, pero entre un deploy y el siguiente no habia nada
+# mirando si la app responde: una caida de madrugada se descubria cuando un
+# operador no podia entrar.
+#
+# POR QUE ACA Y NO EN UN SERVICIO DE UPTIME. Un monitor externo (Better Stack,
+# UptimeRobot, el de Vercel en Pro) es mejor herramienta: chequea desde varias
+# regiones y avisa por SMS. Esto es lo que se puede tener HOY sin abrir otra
+# cuenta ni pagar un plan: GitHub manda un mail al duenio del repo cuando un
+# workflow programado falla, y eso ya es mas que el silencio actual. Si algun
+# dia se contrata uno externo, este workflow se borra y nada mas depende de el.
+#
+# LIMITE QUE HAY QUE SABER: GitHub no garantiza la puntualidad de `schedule`
+# —puede atrasarse y, en periodos de carga, saltear corridas—, asi que esto
+# detecta una caida sostenida, no un pico de un minuto.
+
+on:
+  schedule:
+    # Cada 30 minutos. Mas seguido no aporta: la deteccion no es inmediata
+    # igual (ver el limite de arriba) y cada corrida consume minutos de CI.
+    - cron: '*/30 * * * *'
+  # Para verificar a mano durante un incidente, o contra un preview.
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL a verificar'
+        required: false
+        default: 'https://insolventic.vercel.app'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Health check
+        env:
+          URL: ${{ inputs.url || 'https://insolventic.vercel.app' }}
+        run: |
+          set -euo pipefail
+
+          # --max-time para que un cuelgue no deje el job esperando 5 minutos;
+          # sin --fail, porque un 503 hay que LEERLO (dice que la base no
+          # responde) y no tratarlo como un error de curl.
+          codigo=$(curl -s -o respuesta.json -w '%{http_code}' \
+            --max-time 20 "$URL/api/health" || echo 'sin-respuesta')
+
+          echo "HTTP $codigo"
+          cat respuesta.json || true
+
+          if [ "$codigo" = '200' ]; then
+            estado=$(jq -r '.status // "sin-status"' respuesta.json)
+            if [ "$estado" = 'ok' ]; then
+              echo "OK: la app y la base responden."
+              exit 0
+            fi
+            echo "La app responde 200 pero el estado es '$estado'." >&2
+            exit 1
+          fi
+
+          # Los dos modos de falla que el runbook distingue (§1):
+          #   503 -> la base no responde (§3.1)
+          #   sin respuesta / otro -> la app no esta sirviendo (§3.2)
+          if [ "$codigo" = '503' ]; then
+            echo "503: la base no responde. Ver RUNBOOK.md §3.1." >&2
+          else
+            echo "Sin respuesta util ($codigo). Ver RUNBOOK.md §3.2." >&2
+          fi
+          exit 1
