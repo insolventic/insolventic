@@ -520,6 +520,109 @@ export async function getDocumentsFromDrive() {
   }
 }
 
+/**
+ * Sincronización del árbol de Drive con la tabla `DocumentFromDrive`.
+ *
+ * Antes era un N+1 doble: por **cada** carpeta y por **cada** archivo del
+ * árbol, un `findUnique` y después un `update` o un `create`, en serie. Para un
+ * centro con 5.000 casos y ~10 documentos cada uno son ~50.000 ítems y del
+ * orden de 100.000 round trips a la base, dentro de una server action con
+ * techo de 60 s (hallazgo P-2 de `docs/AUDITORIA_BLOQUE3_2026-10-27.md`).
+ *
+ * Ahora son tres pasos, y ninguno crece con el número de ítems en round trips:
+ *
+ *   1. **Una lectura** de lo que ya está en la base, por lotes de ids.
+ *   2. `createMany` de lo que falta, por lotes.
+ *   3. `update` solo de las filas que **cambiaron**, agrupadas en
+ *      `$transaction` (Prisma manda el arreglo en un solo viaje).
+ *
+ * El paso 3 es el que más rinde en la práctica: una sincronización que se
+ * corre dos veces seguidas no escribe nada la segunda vez, cuando antes
+ * reescribía las 50.000 filas.
+ */
+
+/** Ids por consulta al leer lo que ya existe. */
+const SYNC_LECTURA_LOTE = 500;
+/** Filas por lote de escritura. */
+const SYNC_ESCRITURA_LOTE = 200;
+
+/** Los campos de `DocumentFromDrive` que la sincronización escribe. */
+interface FilaDeDrive {
+  googleDriveId: string;
+  fileName: string;
+  mimeType: string;
+  folderPath: string[];
+  parentFolderId: string | null;
+  isFolder: boolean;
+  size: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/** Lo que hace falta de una fila ya guardada para decidir si cambió. */
+interface FilaGuardada {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  folderPath: string[];
+  parentFolderId: string | null;
+  isFolder: boolean;
+  size: string | null;
+  updatedAt: Date;
+}
+
+function enLotes<T>(items: T[], tamanio: number): T[][] {
+  const lotes: T[][] = [];
+  for (let i = 0; i < items.length; i += tamanio) {
+    lotes.push(items.slice(i, i + tamanio));
+  }
+  return lotes;
+}
+
+/**
+ * `true` si la fila guardada ya dice exactamente lo que trae Drive.
+ *
+ * Es lo que permite no escribir nada cuando nada cambió. `updatedAt` entra en
+ * la comparación porque la sincronización lo escribe con el `modifiedTime` de
+ * Drive, no con la hora actual.
+ */
+function filaSinCambios(guardada: FilaGuardada, deseada: FilaDeDrive): boolean {
+  return (
+    guardada.fileName === deseada.fileName &&
+    guardada.mimeType === deseada.mimeType &&
+    (guardada.parentFolderId ?? null) === deseada.parentFolderId &&
+    guardada.isFolder === deseada.isFolder &&
+    (guardada.size ?? null) === deseada.size &&
+    guardada.updatedAt.getTime() === deseada.updatedAt.getTime() &&
+    guardada.folderPath.length === deseada.folderPath.length &&
+    guardada.folderPath.every((parte, i) => parte === deseada.folderPath[i])
+  );
+}
+
+/** Una fecha de Drive, o ahora si Drive no la trae (igual que antes). */
+function fechaDeDrive(valor: string | null | undefined): Date {
+  return valor ? new Date(valor) : new Date();
+}
+
+/**
+ * ¿Hay que conservar la ruta que ya está guardada, en vez de reescribirla?
+ *
+ * Sí cuando la ruta guardada ya identifica el caso: con el prefijo del centro
+ * (`[centro, 'INS-2026-001', ...]`) o sin él (`['INS-2026-001', ...]`). Una
+ * ruta vacía o que no nombra ningún caso se reescribe con la de Drive.
+ *
+ * Es la misma condición que tenía el `update` de archivos, extraída para que
+ * se pueda leer y probar aparte.
+ */
+function conservarRutaGuardada(folderPath: string[]): boolean {
+  const patronNumeroDeCaso = /(CON|INS|ACU)-\d{4}-\d{3}/;
+  const conPrefijoDeCentro =
+    folderPath.length > 1 && patronNumeroDeCaso.test(folderPath[1]);
+  const rutaVieja =
+    folderPath.length > 0 && patronNumeroDeCaso.test(folderPath[0]);
+  return conPrefijoDeCentro || rutaVieja;
+}
+
 export async function syncDocumentsWithGoogleDrive() {
   try {
     const { user, tenantId, tenantSlug } = await authenticateUser();
@@ -531,7 +634,10 @@ export async function syncDocumentsWithGoogleDrive() {
       };
     }
 
-    console.log('Starting Google Drive documents sync process...');
+    logger.info('Sincronizacion de documentos de Drive: arranca', {
+      action: 'syncDocumentsWithGoogleDrive',
+      tenantId,
+    });
     const { googleDriveService } = await import('@/lib/google-drive');
 
     // Resolve the center folder for this tenant. No hay caso cargado acá
@@ -543,8 +649,18 @@ export async function syncDocumentsWithGoogleDrive() {
     try {
       docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
     } catch (error) {
-      console.error('Error finding/creating documentos-generados:', error);
-      return { synced: 0, created: 0, updated: 0, folders: 0 };
+      // Devolvia `{ synced: 0, ... }` sin `success`, asi que el llamador
+      // —que desestructura `{ success, data }`— lo trataba como error por
+      // casualidad, sin mensaje. Ahora lo dice.
+      logger.error(
+        'No se pudo resolver la carpeta documentos-generados en Drive',
+        error,
+        { action: 'syncDocumentsWithGoogleDrive', tenantId },
+      );
+      return {
+        success: false,
+        error: 'No se pudo acceder a la carpeta de documentos en Google Drive',
+      };
     }
 
     // Find or create the center subfolder: documentos-generados/{centerFolderName}/
@@ -554,156 +670,162 @@ export async function syncDocumentsWithGoogleDrive() {
     );
 
     const casesFolderId = centerFolderId;
-    console.log(
-      `Found center folder "${centerFolderName}" with ID:`,
-      casesFolderId,
-    );
-
-    console.log(
-      'Fetching folders and files from documentos-generados folder in Google Drive...',
-    );
     const driveData =
       await googleDriveService.listAllFoldersAndFilesRecursively(casesFolderId);
-    console.log(
-      `Found ${driveData.folders.length} folders and ${driveData.files.length} files in documentos-generados folder`,
-    );
-
-    let created = 0;
-    let updated = 0;
-    let folders = 0;
-
-    for (const folder of driveData.folders) {
-      // Prefix all paths with the center folder name for consistency
-      const prefixedPath = [centerFolderName, ...folder.path];
-
-      const existingDocument = await prisma.documentFromDrive.findUnique({
-        where: {
-          googleDriveId_tenantId: {
-            googleDriveId: folder.id,
-            tenantId,
-          },
-        },
-      });
-
-      if (existingDocument) {
-        await prisma.documentFromDrive.update({
-          where: { id: existingDocument.id },
-          data: {
-            fileName: folder.name,
-            folderPath: prefixedPath,
-            parentFolderId: folder.parentId,
-            isFolder: true,
-            updatedAt: folder.modifiedTime
-              ? new Date(folder.modifiedTime)
-              : new Date(),
-          },
-        });
-        updated++;
-      } else {
-        await prisma.documentFromDrive.create({
-          data: {
-            googleDriveId: folder.id,
-            fileName: folder.name,
-            mimeType: 'application/vnd.google-apps.folder',
-            folderPath: prefixedPath,
-            parentFolderId: folder.parentId,
-            isFolder: true,
-            tenantId,
-            createdAt: folder.createdTime
-              ? new Date(folder.createdTime)
-              : new Date(),
-            updatedAt: folder.modifiedTime
-              ? new Date(folder.modifiedTime)
-              : new Date(),
-          },
-        });
-        created++;
-      }
-      folders++;
-    }
+    logger.debug('Sincronizacion de documentos: arbol de Drive leido', {
+      action: 'syncDocumentsWithGoogleDrive',
+      centerFolderName,
+      carpetas: driveData.folders.length,
+      archivos: driveData.files.length,
+    });
 
     const documentFiles = driveData.files.filter(
       (file) => file.mimeType && !file.mimeType.includes('folder'),
     );
 
-    for (const file of documentFiles) {
-      // Prefix all paths with the center folder name for consistency
-      const prefixedPath = [centerFolderName, ...file.path];
+    // Todas las rutas se guardan con el nombre de la carpeta del centro
+    // adelante, igual que antes.
+    const carpetas: FilaDeDrive[] = driveData.folders.map((folder) => ({
+      googleDriveId: folder.id,
+      fileName: folder.name,
+      mimeType: 'application/vnd.google-apps.folder',
+      folderPath: [centerFolderName, ...folder.path],
+      parentFolderId: folder.parentId ?? null,
+      isFolder: true,
+      size: null,
+      createdAt: fechaDeDrive(folder.createdTime),
+      updatedAt: fechaDeDrive(folder.modifiedTime),
+    }));
 
-      const existingDocument = await prisma.documentFromDrive.findUnique({
-        where: {
-          googleDriveId_tenantId: {
-            googleDriveId: file.id,
-            tenantId,
-          },
+    const archivos: FilaDeDrive[] = documentFiles.map((file) => ({
+      googleDriveId: file.id,
+      fileName: file.name,
+      mimeType: file.mimeType || 'application/octet-stream',
+      folderPath: [centerFolderName, ...file.path],
+      parentFolderId: file.parentId ?? null,
+      isFolder: false,
+      size: file.size ?? null,
+      createdAt: fechaDeDrive(file.createdTime),
+      updatedAt: fechaDeDrive(file.modifiedTime),
+    }));
+
+    const deseadas = [...carpetas, ...archivos];
+
+    // PASO 1 — una lectura por lote de ids, en vez de un `findUnique` por
+    // ítem. Solo las columnas que hacen falta para decidir si algo cambió.
+    const guardadas = new Map<string, FilaGuardada>();
+    for (const lote of enLotes(
+      deseadas.map((fila) => fila.googleDriveId),
+      SYNC_LECTURA_LOTE,
+    )) {
+      const filas = await prisma.documentFromDrive.findMany({
+        where: { tenantId, googleDriveId: { in: lote } },
+        select: {
+          id: true,
+          googleDriveId: true,
+          fileName: true,
+          mimeType: true,
+          folderPath: true,
+          parentFolderId: true,
+          isFolder: true,
+          size: true,
+          updatedAt: true,
         },
       });
-
-      if (existingDocument) {
-        const caseNumberPattern = /(CON|INS|ACU)-\d{4}-\d{3}/;
-        // Check if folderPath[0] is a center name or folderPath[1] is a case number
-        const hasCenterPrefix =
-          existingDocument.folderPath.length > 1 &&
-          caseNumberPattern.test(existingDocument.folderPath[1]);
-        const hasLegacyPath =
-          existingDocument.folderPath.length > 0 &&
-          caseNumberPattern.test(existingDocument.folderPath[0]);
-        const shouldUpdateFolderPath =
-          existingDocument.folderPath.length === 0 ||
-          (!hasCenterPrefix && !hasLegacyPath);
-
-        await prisma.documentFromDrive.update({
-          where: { id: existingDocument.id },
-          data: {
-            fileName: file.name,
-            mimeType: file.mimeType || 'application/octet-stream',
-            folderPath: shouldUpdateFolderPath
-              ? prefixedPath
-              : existingDocument.folderPath,
-            parentFolderId: file.parentId,
-            isFolder: false,
-            size: file.size,
-            updatedAt: file.modifiedTime
-              ? new Date(file.modifiedTime)
-              : new Date(),
-          },
-        });
-        updated++;
-      } else {
-        await prisma.documentFromDrive.create({
-          data: {
-            googleDriveId: file.id,
-            fileName: file.name,
-            mimeType: file.mimeType || 'application/octet-stream',
-            folderPath: prefixedPath,
-            parentFolderId: file.parentId,
-            isFolder: false,
-            size: file.size,
-            tenantId,
-            createdAt: file.createdTime
-              ? new Date(file.createdTime)
-              : new Date(),
-            updatedAt: file.modifiedTime
-              ? new Date(file.modifiedTime)
-              : new Date(),
-          },
-        });
-        created++;
+      for (const fila of filas) {
+        guardadas.set(fila.googleDriveId, fila);
       }
     }
+
+    const aCrear: FilaDeDrive[] = [];
+    const aActualizar: { id: string; data: Omit<FilaDeDrive, 'createdAt'> }[] =
+      [];
+    let sinCambios = 0;
+
+    for (const deseada of deseadas) {
+      const guardada = guardadas.get(deseada.googleDriveId);
+
+      if (!guardada) {
+        aCrear.push(deseada);
+        continue;
+      }
+
+      // La ruta de un archivo ya guardado no siempre se reescribe: si la que
+      // está en la base ya tiene el número de caso (con o sin el prefijo del
+      // centro), se respeta. Esta regla venía de una migración de rutas y se
+      // conserva tal cual; para las carpetas nunca aplicó.
+      const folderPath = deseada.isFolder
+        ? deseada.folderPath
+        : conservarRutaGuardada(guardada.folderPath)
+          ? guardada.folderPath
+          : deseada.folderPath;
+
+      const conRuta: FilaDeDrive = { ...deseada, folderPath };
+
+      if (filaSinCambios(guardada, conRuta)) {
+        sinCambios++;
+        continue;
+      }
+
+      aActualizar.push({
+        id: guardada.id,
+        data: {
+          googleDriveId: conRuta.googleDriveId,
+          fileName: conRuta.fileName,
+          mimeType: conRuta.mimeType,
+          folderPath: conRuta.folderPath,
+          parentFolderId: conRuta.parentFolderId,
+          isFolder: conRuta.isFolder,
+          size: conRuta.size,
+          updatedAt: conRuta.updatedAt,
+        },
+      });
+    }
+
+    // PASO 2 — `createMany` por lotes. `skipDuplicates` cubre la carrera de
+    // dos sincronizaciones simultáneas: la segunda no revienta por la unique
+    // de (googleDriveId, tenantId).
+    for (const lote of enLotes(aCrear, SYNC_ESCRITURA_LOTE)) {
+      await prisma.documentFromDrive.createMany({
+        data: lote.map((fila) => ({ ...fila, tenantId })),
+        skipDuplicates: true,
+      });
+    }
+
+    // PASO 3 — updates agrupados. Cada `update` lleva datos distintos, así
+    // que `updateMany` no sirve; `$transaction` con un arreglo manda el lote
+    // en un solo viaje.
+    for (const lote of enLotes(aActualizar, SYNC_ESCRITURA_LOTE)) {
+      await prisma.$transaction(
+        lote.map(({ id, data }) =>
+          prisma.documentFromDrive.update({ where: { id }, data }),
+        ),
+      );
+    }
+
+    const created = aCrear.length;
+    const updated = aActualizar.length;
+    const folders = carpetas.length;
 
     const syncResult = syncDocumentsWithGoogleDriveOutputSchema.parse({
       synced: documentFiles.length + folders,
       created,
       updated,
+      unchanged: sinCambios,
       folders,
     });
 
-    console.log('Documents sync completed:', syncResult);
+    logger.info('Sincronizacion de documentos de Drive: completada', {
+      action: 'syncDocumentsWithGoogleDrive',
+      tenantId,
+      ...syncResult,
+    });
     revalidatePath('/documents');
     return { success: true, data: syncResult };
   } catch (error) {
-    console.error('Error syncing documents with Google Drive:', error);
+    logger.error('Fallo la sincronizacion de documentos con Drive', error, {
+      action: 'syncDocumentsWithGoogleDrive',
+    });
     return {
       success: false,
       error: 'Error al sincronizar documentos con Google Drive',
@@ -912,8 +1034,11 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Get HTML templates to process
-    const { getTemplatePath, getTemplateAssetsBaseDir, resolveTemplatesToProcess } =
-      await import('./templates-config');
+    const {
+      getTemplatePath,
+      getTemplateAssetsBaseDir,
+      resolveTemplatesToProcess,
+    } = await import('./templates-config');
 
     const templatesToProcess: DocumentTemplate[] = resolveTemplatesToProcess({
       templateIds,
@@ -1004,8 +1129,9 @@ export async function batchGenerateDocuments(input: {
     // viene de fetchCaseForGeneration (CASE_GENERATION_INCLUDE trae
     // tenant.slug) — el cuid solo es fallback si por lo que sea faltara.
     const centerFolderName = resolveCenterFolderName(
-      tenantSlugDelCaso(caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0]) ??
-        tenantId,
+      tenantSlugDelCaso(
+        caseData as unknown as Parameters<typeof tenantSlugDelCaso>[0],
+      ) ?? tenantId,
       caseData.centroConciliacionNombre,
     );
 
