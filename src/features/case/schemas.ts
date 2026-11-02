@@ -71,7 +71,11 @@ export const montoRequerido = (mensaje: string) =>
 const FECHA_SOLO_DIA = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** true si año/mes/día forman una fecha de calendario real (rechaza "31 de febrero"). */
-function esFechaDeCalendarioValida(year: number, month: number, day: number): boolean {
+function esFechaDeCalendarioValida(
+  year: number,
+  month: number,
+  day: number,
+): boolean {
   const d = new Date(Date.UTC(year, month - 1, day));
   return (
     d.getUTCFullYear() === year &&
@@ -178,6 +182,29 @@ const mapCaseTypeToSpanish = z.string().transform((type) => {
   };
   return typeMap[type] || type;
 });
+
+/**
+ * El inverso de `mapCaseTypeToSpanish`, para filtrar en la base.
+ *
+ * El `type` que viaja a la UI está traducido ('Insolvencia'), pero la columna
+ * guarda el enum ('INSOLVENCY'), y el `<Select>` de `case-filters.tsx` ofrece
+ * los valores **traducidos**. Mientras el filtro se resolvía en el cliente la
+ * diferencia no se notaba, porque comparaba contra el valor ya traducido; al
+ * pasar el filtro a la consulta hay que volver al enum o la consulta no
+ * coincide con nada.
+ *
+ * Un valor que no esté en el mapa se pasa tal cual: si alguien edita el query
+ * string a mano, la consulta no devuelve filas, que es lo correcto.
+ */
+export const CASE_TYPE_FROM_SPANISH: Readonly<Record<string, string>> = {
+  Insolvencia: 'INSOLVENCY',
+  Conciliación: 'CONCILIATION',
+  'Acuerdo de Apoyo': 'SUPPORT_AGREEMENT',
+};
+
+export function caseTypeFilterToColumn(type: string): string {
+  return CASE_TYPE_FROM_SPANISH[type] ?? type;
+}
 
 const debtorForCaseSchema = z.object({
   id: z.string(),
@@ -985,14 +1012,59 @@ export const CASE_LIST_COLUMNS = {
   causes: true,
 } as const;
 
-export const caseListItemSchema = caseSchema.pick({
-  ...CASE_LIST_COLUMNS,
-  debtor: true,
-  operator: true,
+/**
+ * Lo único que el listado lee del deudor de cada caso.
+ *
+ * `debtor: true` traía los 56 campos del deudor **por fila**, incluida su
+ * situación financiera completa, para mostrar una cédula y un nombre. Los tres
+ * call-sites son `case-table.tsx` (`debtor.idNumber`), `cases-content.tsx` (el
+ * filtro por cédula) y `recent-cases.tsx` del dashboard (`debtor.name`); `id`
+ * va por ser la clave de la fila.
+ *
+ * Mismo criterio que `CASE_LIST_COLUMNS`: una sola máscara de la que salen el
+ * `select` de Prisma y el schema de validación, para que no puedan
+ * desalinearse. Si una pantalla necesita otro campo del deudor, se agrega
+ * acá y `tsc` avisa en el resto.
+ */
+export const CASE_LIST_DEBTOR_COLUMNS = {
+  id: true,
+  name: true,
+  idNumber: true,
+} as const;
+
+export const caseListItemSchema = caseSchema
+  .pick({
+    ...CASE_LIST_COLUMNS,
+    operator: true,
+    _count: true,
+  })
+  .extend({
+    debtor: debtorForCaseSchema.pick(CASE_LIST_DEBTOR_COLUMNS),
+  });
+
+export type CaseListItem = z.infer<typeof caseListItemSchema>;
+
+/**
+ * Columnas del selector de casos de `/documents`.
+ *
+ * Ese combobox no muestra nada del deudor más que el nombre desnormalizado que
+ * el propio caso ya guarda (`debtorName`), así que no necesita la relación.
+ */
+export const CASE_SELECTOR_COLUMNS = {
+  id: true,
+  caseNumber: true,
+  debtorName: true,
+  type: true,
+  phase: true,
+  driveFolderId: true,
+} as const;
+
+export const caseSelectorItemSchema = caseSchema.pick({
+  ...CASE_SELECTOR_COLUMNS,
   _count: true,
 });
 
-export type CaseListItem = z.infer<typeof caseListItemSchema>;
+export type CaseSelectorItem = z.infer<typeof caseSelectorItemSchema>;
 export const createCaseSchema = z.object({
   debtorId: z.string().min(1, 'El deudor es requerido'),
   type: z.enum(['INSOLVENCY', 'CONCILIATION', 'SUPPORT_AGREEMENT'], {
@@ -2209,6 +2281,72 @@ export const CaseType = {
 
 export type CaseTypeEnum = (typeof CaseType)[keyof typeof CaseType];
 export const getAllCasesSchema = z.array(caseListItemSchema);
+
+/**
+ * Paginación del listado de casos.
+ *
+ * `/cases` traía **todos** los casos del centro en una consulta sin cota y
+ * paginaba en memoria del cliente: con 5.000 expedientes son del orden de
+ * 7-15 MB de payload por carga, más un subquery de `_count` por fila, más el
+ * `parse` de Zod sobre el conjunto entero, todo dentro de un presupuesto de
+ * 60 s que ya es el techo del plan. No se degradaba: se caía, y el síntoma
+ * era un timeout de función, no un mensaje (hallazgo P-1 de
+ * `docs/AUDITORIA_BLOQUE3_2026-10-27.md`).
+ *
+ * El tope de `pageSize` no es decorativo: es lo que impide que un parámetro
+ * del cliente vuelva a pedir el listado completo.
+ */
+export const CASES_PAGE_SIZE_DEFAULT = 20;
+export const CASES_PAGE_SIZE_MAX = 100;
+export const CASES_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+
+/** Tope del selector de casos de `/documents`, que filtra en el cliente. */
+export const CASES_SELECTOR_LIMIT = 500;
+
+/**
+ * `.catch()` en vez de `.default()` a propósito: estos parámetros vienen del
+ * query string, así que un `?page=-3` o un `?pageSize=5000` son entradas
+ * esperables. Con `.default()` el parse lanzaría y la pantalla mostraría un
+ * error; con `.catch()` cae al valor sensato y el listado sigue funcionando.
+ * El tope de `pageSize` se aplica igual: pedir 5.000 devuelve 20, no 5.000.
+ */
+export const getAllCasesParamsSchema = z.object({
+  page: z.coerce
+    .number()
+    .int()
+    .catch(1)
+    .transform((n) => Math.max(1, n)),
+  /**
+   * Se **recorta** al tope en vez de rechazarse: `?pageSize=5000` devuelve 100,
+   * no un error ni 5.000. Un `.max()` a secas haría caer al default (20), que
+   * sorprende a quien pidió 200 de más.
+   */
+  pageSize: z.coerce
+    .number()
+    .int()
+    .catch(CASES_PAGE_SIZE_DEFAULT)
+    .transform((n) => Math.min(Math.max(1, n), CASES_PAGE_SIZE_MAX)),
+  /** Número de caso, nombre del deudor o cédula. */
+  search: z.string().trim().max(120).optional().catch(undefined),
+  /**
+   * Fase, o `'all'`. Ojo: la pantalla muestra `'Inicial'` para los casos con
+   * `phase` en NULL, así que filtrar por `'Inicial'` tiene que incluirlos.
+   */
+  phase: z.string().optional(),
+  type: z.string().optional(),
+});
+
+export type GetAllCasesParams = z.input<typeof getAllCasesParamsSchema>;
+
+export const casesPageSchema = z.object({
+  items: z.array(caseListItemSchema),
+  /** Total de casos que coinciden con el filtro, no los de esta página. */
+  total: z.coerce.number(),
+  page: z.coerce.number(),
+  pageSize: z.coerce.number(),
+});
+
+export type CasesPage = z.infer<typeof casesPageSchema>;
 export const getCaseByIdSchema = z.string();
 /**
  * GC-M6 — `deleteCase` es un borrado FÍSICO en cascada e irreversible de un
