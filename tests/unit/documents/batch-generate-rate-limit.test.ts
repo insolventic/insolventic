@@ -72,19 +72,23 @@ jest.mock('@/features/document/prepare-template', () => ({
 }));
 
 jest.mock('@/lib/html-to-pdf', () => ({
-  batchHtmlToPdf: jest
-    .fn()
-    .mockImplementation(
-      (
-        inputs: Array<{ filename: string }>,
-      ): Promise<Array<{ filename: string; buffer: Buffer }>> =>
-        Promise.resolve(
-          inputs.map((i) => ({
-            filename: i.filename.replace(/\.html$/, '.pdf'),
-            buffer: Buffer.from('pdf'),
-          })),
-        ),
-    ),
+  // `batchHtmlToPdf` devuelve `{ ok, failed }` desde P-4: antes devolvia solo
+  // el array de PDFs generados y un lote de 7 de 10 se leia como un lote de 7.
+  batchHtmlToPdf: jest.fn().mockImplementation(
+    (
+      inputs: Array<{ filename: string }>,
+    ): Promise<{
+      ok: Array<{ filename: string; buffer: Buffer }>;
+      failed: Array<{ filename: string; reason: string }>;
+    }> =>
+      Promise.resolve({
+        ok: inputs.map((i) => ({
+          filename: i.filename.replace(/\.html$/, '.pdf'),
+          buffer: Buffer.from('pdf'),
+        })),
+        failed: [],
+      }),
+  ),
 }));
 
 jest.mock('@/lib/google-drive', () => ({

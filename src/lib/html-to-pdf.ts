@@ -391,6 +391,27 @@ export async function htmlToPdf(
  * FIX 3: Reuses one Chromium process for all documents instead of N launches.
  * If assetsBaseDir is provided, CSS and images are inlined before rendering.
  */
+/**
+ * Lo que devuelve {@link batchHtmlToPdf}.
+ *
+ * Antes devolvía **solo** el array de PDFs generados. Un documento que se
+ * caía se registraba en consola y el lote seguía — la decisión de no cortar el
+ * lote por uno está bien —, pero la función devolvía un array **más corto**
+ * sin decir cuáles faltaban: el contrato no distinguía "generé 10" de "generé
+ * 7 y 3 se cayeron". Los dos llamadores tenían que reconstruir la
+ * correspondencia por nombre de archivo y se quedaban sin el motivo del fallo
+ * (hallazgo P-4 de `docs/AUDITORIA_BLOQUE3_2026-10-27.md`).
+ */
+export interface BatchPdfResult {
+  /** Los PDFs que salieron. `filename` con extensión `.pdf`. */
+  ok: Array<{ filename: string; buffer: Buffer }>;
+  /**
+   * Los que se cayeron, con el motivo. `filename` es el **de entrada** (con su
+   * `.html`), que es la clave con la que el llamador los ubica.
+   */
+  failed: Array<{ filename: string; reason: string }>;
+}
+
 export async function batchHtmlToPdf(
   documents: Array<{
     html: string;
@@ -402,7 +423,7 @@ export async function batchHtmlToPdf(
   }>,
   options: PDFOptions = {},
   assetsBaseDir?: string,
-): Promise<Array<{ filename: string; buffer: Buffer }>> {
+): Promise<BatchPdfResult> {
   const mergedOptions = { ...defaultOptions, ...options };
   let browser = null;
 
@@ -419,7 +440,7 @@ export async function batchHtmlToPdf(
       ...(isServerless && { defaultViewport: { width: 1920, height: 1080 } }),
     });
 
-    const results: Array<{ filename: string; buffer: Buffer }> = [];
+    const results: BatchPdfResult = { ok: [], failed: [] };
 
     for (let i = 0; i < documents.length; i++) {
       const doc = documents[i];
@@ -455,7 +476,7 @@ export async function batchHtmlToPdf(
           footerTemplate: mergedOptions.footerTemplate,
         });
 
-        results.push({
+        results.ok.push({
           filename: doc.filename.replace(/\.html$/, '.pdf'),
           buffer: Buffer.from(pdfBuffer),
         });
@@ -463,11 +484,15 @@ export async function batchHtmlToPdf(
         await page.close();
         page = null;
       } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
         console.error(
           `[batchHtmlToPdf] FAILED for ${doc.filename} (${i + 1}/${documents.length}):`,
-          error instanceof Error ? error.message : error,
+          reason,
         );
-        // Continue with other documents - don't break the batch
+        // Se sigue con el resto del lote a propósito — un documento que se cae
+        // no debería tirar los otros nueve — pero ahora el fallo VIAJA en el
+        // resultado en vez de quedar solo en la consola.
+        results.failed.push({ filename: doc.filename, reason });
         if (page) {
           try {
             await page.close();
