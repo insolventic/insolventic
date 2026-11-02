@@ -13,6 +13,17 @@ jest.mock('@/lib/prisma', () => ({
   default: require('../../__mocks__/prisma').default,
 }));
 
+// El barrido reporta por el logger; se mockea para silenciar la consola y
+// poder afirmar qué se registra.
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 import { Prisma } from '@prisma/client';
 import {
   claimGenerationRequest,
@@ -22,7 +33,9 @@ import {
   recordBatchTandaProgress,
   finalizeBatchGenerationRequest,
   STALE_GENERATION_TIMEOUT_MS,
+  sweepStaleGenerationRequests,
 } from '@/features/document/generation-request';
+import { logger } from '@/lib/logger';
 
 const p2002 = () =>
   new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
@@ -233,7 +246,9 @@ describe('continueOrResumeGenerationRequest — GD-A1, tandas sobre una sola sol
 
     expect(result.ok).toBe(true);
     // No reclama nada de nuevo — solo valida.
-    expect(mockPrisma.documentGenerationRequest.updateMany).not.toHaveBeenCalled();
+    expect(
+      mockPrisma.documentGenerationRequest.updateMany,
+    ).not.toHaveBeenCalled();
   });
 
   it('retoma una tanda que FAILED: re-activa el lock sobre la misma fila, sin crear una nueva', async () => {
@@ -298,7 +313,12 @@ describe('continueOrResumeGenerationRequest — GD-A1, tandas sobre una sola sol
 
   it('conflicto: otra operación ya tomó el lock de este caso/kind mientras se reintentaba', async () => {
     mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
-      baseRow({ id: 'req-1', kind: 'BATCH', status: 'FAILED', activeKey: null }),
+      baseRow({
+        id: 'req-1',
+        kind: 'BATCH',
+        status: 'FAILED',
+        activeKey: null,
+      }),
     );
     mockPrisma.documentGenerationRequest.updateMany.mockResolvedValueOnce({
       count: 0,
@@ -316,7 +336,12 @@ describe('continueOrResumeGenerationRequest — GD-A1, tandas sobre una sola sol
 
   it('rechaza una solicitud ya COMPLETED: no se puede continuar lo que ya terminó', async () => {
     mockPrisma.documentGenerationRequest.findUnique.mockResolvedValueOnce(
-      baseRow({ id: 'req-1', kind: 'BATCH', status: 'COMPLETED', activeKey: null }),
+      baseRow({
+        id: 'req-1',
+        kind: 'BATCH',
+        status: 'COMPLETED',
+        activeKey: null,
+      }),
     );
 
     const result = await continueOrResumeGenerationRequest({
@@ -360,7 +385,11 @@ describe('continueOrResumeGenerationRequest — GD-A1, tandas sobre una sola sol
 
 describe('recordBatchTandaProgress — GD-A1, acumula sin sobrescribir', () => {
   it('incrementa los 3 conteos, no los reemplaza', async () => {
-    await recordBatchTandaProgress('req-1', { total: 5, success: 4, errors: 1 });
+    await recordBatchTandaProgress('req-1', {
+      total: 5,
+      success: 4,
+      errors: 1,
+    });
 
     expect(mockPrisma.documentGenerationRequest.update).toHaveBeenCalledWith({
       where: { id: 'req-1' },
@@ -373,7 +402,11 @@ describe('recordBatchTandaProgress — GD-A1, acumula sin sobrescribir', () => {
   });
 
   it('no toca status ni activeKey — el lock sigue tomado entre tandas', async () => {
-    await recordBatchTandaProgress('req-1', { total: 1, success: 1, errors: 0 });
+    await recordBatchTandaProgress('req-1', {
+      total: 1,
+      success: 1,
+      errors: 0,
+    });
 
     const call = mockPrisma.documentGenerationRequest.update.mock.calls[0][0];
     expect(call.data.status).toBeUndefined();
@@ -419,5 +452,120 @@ describe('finalizeBatchGenerationRequest — GD-A1, cierre sobre el total acumul
     const call = mockPrisma.documentGenerationRequest.update.mock.calls[0][0];
     expect(call.data.activeKey).toBeNull();
     expect(call.data.finishedAt).toBeInstanceOf(Date);
+  });
+});
+/**
+ * Barrido activo de huérfanas — R-3.
+ *
+ * La recuperación que ya existía vive dentro de `claimGenerationRequest`: es
+ * **pasiva**, se dispara con un claim nuevo y no por el paso del tiempo. Si la
+ * lambda muere a mitad y nadie reintenta, la fila se queda con el `activeKey`
+ * tomado para siempre y la UI sigue diciendo "generación en curso". Esto es el
+ * barrido que corre desde el cron.
+ */
+describe('sweepStaleGenerationRequests — barrido activo (R-3)', () => {
+  const AHORA = new Date('2026-04-15T10:00:00.000Z');
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockPrisma.documentGenerationRequest.updateMany.mockResolvedValue({
+      count: 0,
+    });
+  });
+
+  it('libera solo las que tienen el lock tomado y son más viejas que el timeout', async () => {
+    await sweepStaleGenerationRequests({ tenantId: 'tenant-1', now: AHORA });
+
+    const args =
+      mockPrisma.documentGenerationRequest.updateMany.mock.calls[0][0];
+    expect(args.where).toEqual({
+      tenantId: 'tenant-1',
+      // `activeKey` no nulo ES la definición de "activa": el lock parcial.
+      activeKey: { not: null },
+      createdAt: {
+        lt: new Date(AHORA.getTime() - STALE_GENERATION_TIMEOUT_MS),
+      },
+    });
+    expect(args.data).toEqual({
+      status: 'FAILED',
+      activeKey: null,
+      error: 'Generación huérfana: superó el tiempo máximo sin finalizar',
+      finishedAt: AHORA,
+    });
+  });
+
+  it('es UNA sola consulta por centro', async () => {
+    await sweepStaleGenerationRequests({ tenantId: 'tenant-1', now: AHORA });
+
+    expect(
+      mockPrisma.documentGenerationRequest.updateMany,
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mockPrisma.documentGenerationRequest.findMany,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('devuelve cuántas libero y lo registra cuando hubo alguna', async () => {
+    mockPrisma.documentGenerationRequest.updateMany.mockResolvedValue({
+      count: 3,
+    });
+
+    const result = await sweepStaleGenerationRequests({
+      tenantId: 'tenant-1',
+      now: AHORA,
+    });
+
+    expect(result).toEqual({ tenantId: 'tenant-1', released: 3 });
+    // Una huérfana es una generación que murió a mitad: excepcional, vale
+    // verlo.
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('huérfanas'),
+      expect.objectContaining({ tenantId: 'tenant-1', released: 3 }),
+    );
+  });
+
+  it('sin huérfanas no registra nada: el caso normal no hace ruido', async () => {
+    const result = await sweepStaleGenerationRequests({
+      tenantId: 'tenant-1',
+      now: AHORA,
+    });
+
+    expect(result.released).toBe(0);
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('el mensaje de error es el MISMO que escribe el camino pasivo', async () => {
+    // Si los dos difieren, la UI muestra dos textos distintos para la misma
+    // cosa según quién la haya liberado.
+    mockPrisma.documentGenerationRequest.create.mockRejectedValue(p2002());
+    mockPrisma.documentGenerationRequest.findUnique.mockResolvedValue(
+      baseRow({
+        createdAt: new Date(Date.now() - STALE_GENERATION_TIMEOUT_MS - 1000),
+      }),
+    );
+    mockPrisma.documentGenerationRequest.updateMany.mockResolvedValue({
+      count: 1,
+    });
+
+    await claimGenerationRequest({
+      tenantId: 'tenant-1',
+      caseId: 'case-1',
+      kind: 'INITIAL',
+    }).catch(() => undefined);
+
+    const pasivo =
+      mockPrisma.documentGenerationRequest.updateMany.mock.calls[0][0].data
+        .error;
+
+    jest.clearAllMocks();
+    mockPrisma.documentGenerationRequest.updateMany.mockResolvedValue({
+      count: 0,
+    });
+    await sweepStaleGenerationRequests({ tenantId: 'tenant-1', now: AHORA });
+    const activo =
+      mockPrisma.documentGenerationRequest.updateMany.mock.calls[0][0].data
+        .error;
+
+    expect(activo).toBe(pasivo);
   });
 });

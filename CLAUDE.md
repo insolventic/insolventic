@@ -15,7 +15,7 @@ Sistema web full-stack de gestión de expedientes de insolvencia (proyecto de te
 
 ```bash
 npm run dev            # dev server (turbopack)
-npm test               # suite completa (1448 tests en 97 suites — medido en dev el 2026-10-01, commit f233b24; excluye tests/db y tests/e2e)
+npm test               # suite completa (164 suites / 2184 tests — medido en dev el 2026-10-29; excluye tests/db y tests/e2e)
 npx tsc --noEmit       # type-check
 npm run lint           # eslint
 npm run db:migrate     # prisma migrate dev
@@ -162,14 +162,14 @@ Conocimiento que impide reintroducir bugs ya cerrados, violar una decisión deli
 
 **Si tocás deploy o `next.config.ts`** — no hay workflow de deploy **a propósito**: `deploy.yml` se eliminó y el deploy lo hace solo la integración nativa Vercel↔GitHub. `serverExternalPackages: ['@opentelemetry/api']` es load-bearing — sin eso el build rompe con `ENOENT @opentelemetry/api`.
 
-**Dos cosas que no hay que hacer**, porque no corresponden al código real: migrar Float→Decimal (los montos ya usan `Decimal`) y hacer split de `schema.prisma` (tiene 1.041 líneas, no 2.516 — no urge).
+**Dos cosas que no hay que hacer**, porque no corresponden al código real: migrar Float→Decimal (los montos ya usan `Decimal`) y hacer split de `schema.prisma` (tiene 1.094 líneas, no 2.516 — no urge).
 
 ## Punteros — qué hay en cada archivo y cuándo leerlo
 
-| Archivo                                                               | Qué tiene                                                                                                                                             | Cuándo leerlo                                                                  |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `docs/MAPA.md`                                                        | dónde está cada cosa: módulo por dominio, UI por ruta, camino crítico de documentos, dónde va cada tipo de test, índice de los 57 archivos de `docs/` | **antes de buscar en el código**, y al empezar en un área nueva                |
-| `docs/DECISIONES.md`                                                  | decisiones de arquitectura por iteración, con su porqué y sus non-goals                                                                               | **antes de proponer un cambio estructural** o de reabrir algo ya decidido      |
-| `docs/ROADMAP.md`                                                     | Fase 2, Fase 3 y Quick Wins, con el detalle completo de cada trampa de arriba                                                                         | antes de tomar un pendiente, o cuando una trampa de arriba necesita su detalle |
-| `docs/RUNBOOK.md`, `RUNBOOK_ENV_VARS.md`, `RUNBOOK_ROTACION_DRIVE.md` | operación, variables de entorno, rotación de credenciales de Drive                                                                                    | antes de tocar producción o credenciales                                       |
-| `docs/CHECKPOINT_2026-10-09.md`                                       | estado más reciente; incluye que el branding por centro nunca eligió por centro (`Case.tenantId` es un cuid, no el slug)                              | al retomar el proyecto tras una pausa                                          |
+| Archivo                                                               | Qué tiene                                                                                                                          | Cuándo leerlo                                                                  |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `docs/MAPA.md`                                                        | dónde está cada cosa: módulo por dominio, UI por ruta, camino crítico de documentos, dónde va cada tipo de test, índice de `docs/` | **antes de buscar en el código**, y al empezar en un área nueva                |
+| `docs/DECISIONES.md`                                                  | decisiones de arquitectura por iteración, con su porqué y sus non-goals                                                            | **antes de proponer un cambio estructural** o de reabrir algo ya decidido      |
+| `docs/ROADMAP.md`                                                     | Fase 2, Fase 3 y Quick Wins, con el detalle completo de cada trampa de arriba                                                      | antes de tomar un pendiente, o cuando una trampa de arriba necesita su detalle |
+| `docs/RUNBOOK.md`, `RUNBOOK_ENV_VARS.md`, `RUNBOOK_ROTACION_DRIVE.md` | operación, variables de entorno, rotación de credenciales de Drive                                                                 | antes de tocar producción o credenciales                                       |
+| `docs/CHECKPOINT_2026-10-09.md`                                       | estado más reciente; incluye que el branding por centro nunca eligió por centro (`Case.tenantId` es un cuid, no el slug)           | al retomar el proyecto tras una pausa                                          |

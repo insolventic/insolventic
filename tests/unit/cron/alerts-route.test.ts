@@ -7,6 +7,8 @@
  *   - 200 (ok=true) when the Bearer token matches, with the expected JSON shape.
  *   - Per-tenant error isolation: a failing scan doesn't break the other tenant.
  *   - Response always includes a `requestId` for log correlation.
+ *   - El presupuesto de ejecución: `maxDuration` declarado y un deadline
+ *     interno que corta ANTES de ese techo (O-2).
  */
 
 process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only';
@@ -38,7 +40,7 @@ import {
   scanUpcomingHearings,
   scanOverduePayments,
 } from '@/features/notification/alerts';
-import { GET, POST } from '@/app/api/cron/alerts/route';
+import { GET, POST, maxDuration } from '@/app/api/cron/alerts/route';
 import { logger } from '@/lib/logger';
 
 const mockedHearings = scanUpcomingHearings as jest.MockedFunction<
@@ -192,5 +194,93 @@ describe('cron alerts route', () => {
         requestId: body.requestId,
       }),
     );
+  });
+});
+
+/**
+ * O-2 — Presupuesto de ejecución.
+ *
+ * La ruta tenía un deadline interno de 60 s pero NO exportaba `maxDuration`,
+ * así que la plataforma la cortaba en el default del plan (10 s en Hobby) y
+ * nada de lo que hay después del corte existía en la práctica: ni el break por
+ * `deadline`, ni el flag `timedOut`, ni la respuesta agregada que el runbook
+ * manda revisar. El export es lo único que mueve ese techo, y el deadline
+ * interno solo sirve si queda estrictamente por debajo de él.
+ */
+describe('cron alerts route — presupuesto de ejecución', () => {
+  const ORIGINAL_SECRET = process.env.CRON_SECRET;
+  let nowSpy: jest.SpyInstance<number, []>;
+  let clock = 0;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.CRON_SECRET = 'test-cron-secret';
+    clock = 0;
+    nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => clock);
+    // `clearAllMocks` no borra implementaciones: las fijamos aquí para no
+    // heredar la del test anterior (una que mueve el reloj lo cambiaría todo).
+    mockedHearings.mockImplementation(async (_prisma, tenantId) => ({
+      tenantId,
+      created: 0,
+      skipped: 0,
+      errors: 0,
+    }));
+    mockedPayments.mockImplementation(async (_prisma, tenantId) => ({
+      tenantId,
+      created: 0,
+      skipped: 0,
+      errors: 0,
+    }));
+  });
+
+  afterEach(() => {
+    nowSpy.mockRestore();
+  });
+
+  afterAll(() => {
+    process.env.CRON_SECRET = ORIGINAL_SECRET;
+  });
+
+  it('declara maxDuration = 60, el máximo del plan Hobby', () => {
+    // Sin este export no hay nada que probar debajo: la función muere a los
+    // 10 s. En Pro puede subir hasta 300, y entonces también sube el deadline.
+    expect(maxDuration).toBe(60);
+  });
+
+  it('una corrida que ya gastó casi todo el presupuesto de la plataforma se corta sola', async () => {
+    // Cada escaneo consume el techo de la plataforma menos 1 ms. Con un
+    // deadline interno por debajo de ese techo, el chequeo de antes del
+    // siguiente escaneo lo ve y corta. Si el deadline fuese igual al techo
+    // (el bug), este chequeo no dispararía y la plataforma mataría la
+    // función a mitad del escaneo siguiente, sin respuesta ni rastro.
+    const step = maxDuration * 1000 - 1;
+    mockedHearings.mockImplementation(async (_prisma, tenantId) => {
+      clock += step;
+      return { tenantId, created: 0, skipped: 0, errors: 0 };
+    });
+    mockedPayments.mockImplementation(async (_prisma, tenantId) => {
+      clock += step;
+      return { tenantId, created: 0, skipped: 0, errors: 0 };
+    });
+
+    const res = await GET(req('Bearer test-cron-secret'));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.timedOut).toBe(true);
+    expect(body.ok).toBe(false);
+    // Cortó dentro del primer tenant: el segundo no se intentó.
+    expect(mockedHearings).toHaveBeenCalledTimes(1);
+    expect(mockedPayments).not.toHaveBeenCalled();
+  });
+
+  it('el camino normal no se marca como timedOut', async () => {
+    // Mismo reloj simulado, pero escaneos que no consumen presupuesto.
+    const res = await GET(req('Bearer test-cron-secret'));
+    const body = await res.json();
+
+    expect(body.timedOut).toBe(false);
+    expect(body.ok).toBe(true);
+    expect(mockedHearings).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
+
+import { logger } from '@/lib/logger';
 import { useSessionTimeout } from '@/hooks/use-session-timeout';
 import type React from 'react';
 
@@ -37,12 +39,14 @@ export function SessionTimeoutProvider({
   const timeoutDuration = timeoutMinutes * 60 * 1000;
   const warningDuration = warningMinutes * 60 * 1000;
 
-  console.log('🔧 [SessionTimeoutProvider] Initialized with:', {
+  // Por `logger.debug` y no por `console.log`: esto corre en cada render del
+  // layout, y con `console.log` imprimía también en el build y en la consola
+  // del navegador en producción. Mismo motivo que en `use-session-timeout.ts`.
+  logger.debug('Session timeout: provider inicializado', {
+    action: 'sessionTimeout',
     timeoutMinutes,
     warningMinutes,
     enabled,
-    timeoutDuration: timeoutDuration + 'ms',
-    warningDuration: warningDuration + 'ms',
   });
 
   // Usar el hook de timeout de sesión
