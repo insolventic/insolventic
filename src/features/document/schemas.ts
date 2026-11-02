@@ -235,6 +235,12 @@ export const syncDocumentsWithGoogleDriveOutputSchema = z.object({
   synced: z.number(),
   updated: z.number(),
   created: z.number(),
+  /**
+   * Filas que ya decian lo mismo que Drive, asi que no se reescribieron.
+   * Antes `updated` las contaba: la sincronizacion reescribia cada fila en
+   * cada corrida, aunque nada hubiera cambiado.
+   */
+  unchanged: z.number().default(0),
   folders: z.number(),
 });
 
