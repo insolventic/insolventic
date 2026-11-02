@@ -29,10 +29,20 @@ import {
 export const runtime = 'nodejs';
 // Cron endpoints should always execute fresh, never a cached response.
 export const dynamic = 'force-dynamic';
+// Presupuesto que la plataforma le da a ESTA función. Sin este export Vercel
+// aplica su default (10 s en Hobby) y mata la corrida antes de que el
+// presupuesto interno de abajo llegue a cerrarla: el `deadline`, el flag
+// `timedOut` y la respuesta agregada quedaban inalcanzables. 60 s es el máximo
+// en Hobby; en Pro puede subirse hasta 300 (y con él, CRON_TIMEOUT_MS).
+export const maxDuration = 60;
 
-// Hard upper bound for the whole cron run. Vercel Cron on Hobby caps
-// functions at 10s / Pro at 5 min — we stay safely under either.
-const CRON_TIMEOUT_MS = 60_000;
+// Presupuesto interno de la corrida, estrictamente POR DEBAJO de
+// `maxDuration`: si fuesen iguales, el deadline nunca se alcanzaría antes del
+// corte de la plataforma y este control no serviría de nada. El deadline se
+// chequea *entre* tenants, así que después del chequeo todavía cabe un escaneo
+// completo; el margen de 10 s es para que ese último escaneo termine y la
+// respuesta agregada salga, en vez de morir cortada sin dejar rastro.
+const CRON_TIMEOUT_MS = 50_000;
 
 function unauthorized(message: string, requestId: string) {
   return NextResponse.json(
