@@ -5,22 +5,82 @@ Escrita para que alguien que no tocó el código en semanas pueda actuar a las
 2 de la mañana sin leer el repositorio entero.
 
 > **Campos marcados `⟨COMPLETAR⟩`**: datos que dependen de las cuentas y no
-> están en el código. Rellenarlos es parte de la preparación de go-live.
+> están en el código — hoy son los planes de los servicios de §0.2. Quedan
+> todos juntos en la checklist de §0.3, que es lo único que falta para cerrar
+> el handover. Los datos personales (nombres, teléfonos) **no** van en este
+> archivo: ver §0.1.
 
 ---
 
 ## 0. Datos de contacto y accesos
 
-| Qué                              | Dónde / quién                            |
-| -------------------------------- | ---------------------------------------- |
-| Responsable técnico principal    | ⟨COMPLETAR: nombre + teléfono⟩           |
-| Contacto en Centro Armonía       | ⟨COMPLETAR⟩                              |
-| Contacto en Constructores de Paz | ⟨COMPLETAR⟩                              |
-| Dashboard de Vercel              | https://vercel.com/insolventics-projects |
-| Proveedor de PostgreSQL          | ⟨COMPLETAR: proveedor + URL del panel⟩   |
-| Sentry                           | ⟨COMPLETAR: URL de la organización⟩      |
-| Upstash (rate limiting)          | https://console.upstash.com              |
-| Cuenta de Google (Drive + SMTP)  | `insolvenic@gmail.com`                   |
+| Qué                                                | Dónde / quién                                                                                    |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| App en producción                                  | https://insolventic.vercel.app                                                                   |
+| Repositorio                                        | https://github.com/insolventic/insolventic — **público**                                         |
+| Dashboard de Vercel                                | https://vercel.com/insolventics-projects                                                         |
+| Proveedor de PostgreSQL                            | **Neon** — https://console.neon.tech · conexión y rotación: `docs/RUNBOOK_ENV_VARS.md`           |
+| Sentry                                             | `https://sentry.io/organizations/<slug>/issues/` — el slug es el valor de `SENTRY_ORG` en Vercel |
+| Upstash (rate limiting)                            | https://console.upstash.com                                                                      |
+| Cuenta de Google (Drive + SMTP)                    | `insolvenic@gmail.com`                                                                           |
+| Responsable técnico y contactos de los dos centros | **No van en este archivo** — §0.1 dice dónde                                                     |
+
+### 0.1 Los contactos no van en el repositorio
+
+Este repositorio es **público** (comprobado el 2026-10-29: `gh repo view` →
+`"visibility": "PUBLIC"`). Hasta hoy esta sección pedía "nombre + teléfono"
+del responsable técnico y de una persona en cada centro, en celdas
+`⟨COMPLETAR⟩`. Rellenarlas habría publicado datos personales de terceros en
+internet — en un sistema que, además, tiene su propio procedimiento de
+derechos ARCO (`docs/PROCEDIMIENTO_ARCO.md`). Así que no se rellenan acá.
+
+Dónde van:
+
+1. **En la máquina de quien opera.** Copiar `docs/CONTACTOS.example.md` a
+   `docs/CONTACTOS.local.md` y rellenarlo. `.gitignore` ignora
+   `docs/*.local.md`, así que no hay forma de commitearlo por descuido.
+2. **O en el gestor de contraseñas del centro**, junto con las credenciales,
+   que es lo que conviene para el handover: una sola cosa que entregar.
+
+A las 2 de la mañana hace falta el teléfono, no esta explicación: tener ese
+archivo creado **antes** del go-live es el primer ítem de la checklist de
+§0.3.
+
+### 0.2 Inventario de servicios — qué hay que transferir
+
+Ocho servicios sostienen el sistema. La columna "si se pierde el acceso" dice
+qué **deja de funcionar**, no qué se degrada.
+
+| Servicio                                  | Para qué                                                                                 | Plan                                                  | Si se pierde el acceso                                                                           | Qué se transfiere                                                                                        |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| **GitHub** (`insolventic/insolventic`)    | Código, CI, releases. El deploy lo dispara el push a `dev`/`main`                        | ⟨COMPLETAR⟩ (lo habitual: Free, repo público)         | No hay CI **ni deploy**: la integración de Vercel escucha a este repo                            | Propiedad de la cuenta/org, el secret `VERCEL_TOKEN` de Actions, y revisar Settings → Collaborators      |
+| **Vercel** (`insolventics-projects`)      | Hosting, deploy, variables de entorno y el cron                                          | **Hobby** (de ahí el techo de 60 s y 1 cron al día)   | La app deja de servir                                                                            | Propiedad del proyecto, las env vars de Production **y** Preview, y el dominio si se registra uno propio |
+| **Neon** (PostgreSQL)                     | La base entera: todos los expedientes                                                    | ⟨COMPLETAR⟩ — define la retención de backups          | No hay sistema, y tampoco backups                                                                | Propiedad del proyecto, la contraseña de `neondb_owner`, y qué retención da el plan                      |
+| **Google Cloud** (proyecto con Drive API) | El cliente OAuth con el que la app sube documentos                                       | Free tier de la Drive API                             | No se suben ni se crean carpetas nuevas en Drive                                                 | El proyecto de GCP, `CLIENT_ID` / `CLIENT_SECRET`, y rehacer el refresh token (`RUNBOOK_ROTACION_DRIVE`) |
+| **Cuenta Google** `insolvenic@gmail.com`  | Es la **dueña de las carpetas de Drive** donde viven los documentos, y la que envía mail | Free                                                  | Se pierde el acceso a los documentos **ya subidos**, y dejan de salir los emails                 | La cuenta, o mover las carpetas a una cuenta del centro, más una app password nueva para SMTP            |
+| **Upstash Redis**                         | Rate limiting distribuido                                                                | ⟨COMPLETAR⟩ (el free tier alcanza para el uso actual) | El rate limiting cae a un contador en memoria, que en serverless **no protege** (§3.7)           | La base de Upstash y los dos valores `UPSTASH_REDIS_REST_*`                                              |
+| **Sentry**                                | Errores de producción                                                                    | ⟨COMPLETAR⟩                                           | Nada deja de funcionar: se opera a ciegas                                                        | La organización/proyecto y el DSN                                                                        |
+| **Vercel Cron** (parte de la cuenta)      | Dispara `/api/cron/alerts` una vez al día (08:00, `vercel.json`)                         | Incluido en Hobby: 2 crons, 1 invocación diaria       | No salen las alertas de audiencias ni de pagos vencidos, y **nadie se entera** salvo que se mire | Nada aparte de Vercel; verificar que el cron quedó configurado tras el traspaso (§3.6)                   |
+
+Las celdas `⟨COMPLETAR⟩` de esta tabla son planes de servicios: solo las sabe
+quien es dueño de las cuentas, y la de Neon es la que importa, porque de ella
+depende cuánto se puede recuperar (§3.1).
+
+### 0.3 Checklist de handover — lo que solo puede hacer el dueño
+
+- [ ] Crear `docs/CONTACTOS.local.md` a partir del ejemplo (responsable
+      técnico + una persona por centro).
+- [ ] Completar los cuatro planes `⟨COMPLETAR⟩` de §0.2 y el slug de Sentry
+      de §0.
+- [ ] Anotar, por servicio, **quién queda como dueño** después de la entrega.
+- [ ] **Hacer una prueba de restauración de backup.** Hoy §3.1 describe el
+      procedimiento pero nunca se ejecutó: con expedientes legales reales en
+      producción, un backup no probado no es un backup.
+- [ ] Responder los cuatro `⟨COMPLETAR⟩` de `docs/PROCEDIMIENTO_ARCO.md` (a
+      quién le llega el canal, cómo se verifica la identidad de quien pide,
+      en cuántos días hábiles responde el centro, y dónde se registra).
+- [ ] Decidir si el repositorio sigue siendo público. Hoy lo es, y eso
+      condiciona qué se puede escribir en estos documentos.
 
 ---
 
@@ -31,7 +91,7 @@ Ante cualquier reporte de "no funciona", en este orden y sin saltear pasos:
 1. **Health check** — dice en un request si la app y la BD están vivas:
 
    ```bash
-   curl -s https://⟨DOMINIO-PRODUCCION⟩/api/health | jq
+   curl -s https://insolventic.vercel.app/api/health | jq
    ```
 
    - `200 {"status":"ok"}` → la app y la BD están bien; el problema es de
@@ -42,11 +102,13 @@ Ante cualquier reporte de "no funciona", en este orden y sin saltear pasos:
 
    **¿Qué commit está desplegado?** El detalle no es público: hay que
    mandar el header con el valor de `HEALTH_DETAILS_TOKEN`.
+
    ```bash
    curl -s -H "x-health-token: $HEALTH_DETAILS_TOKEN" \
-     https://⟨DOMINIO-PRODUCCION⟩/api/health | jq .deployment
+     https://insolventic.vercel.app/api/health | jq .deployment
    # → { "version": "0.3.0", "commit": "abc123…", "branch": "main", "deploymentEnv": "production" }
    ```
+
    Sirve para confirmar si el rollback tomó efecto, o si producción está
    corriendo el commit que se cree. Si `commit` dice `unknown`, el proyecto
    en Vercel no tiene habilitado "Automatically expose System Environment
@@ -79,7 +141,7 @@ obvia y corregible en minutos. Rollback primero, diagnóstico después.
    disponible).
 4. Verificar con el smoke test:
    ```bash
-   npm run test:smoke -- https://⟨DOMINIO-PRODUCCION⟩
+   npm run test:smoke -- https://insolventic.vercel.app
    ```
 
 ### 2.2 ⚠️ El rollback NO revierte migraciones de base de datos
@@ -214,7 +276,7 @@ porque `src/lib/google-drive.ts` lo registra con `console.error`.
 - `401` → el token que manda Vercel no coincide con el configurado.
 - Prueba manual:
   ```bash
-  curl -H "Authorization: Bearer $CRON_SECRET" https://⟨DOMINIO⟩/api/cron/alerts
+  curl -H "Authorization: Bearer $CRON_SECRET" https://insolventic.vercel.app/api/cron/alerts
   ```
 - La respuesta trae `totalCreated`, `totalErrors` y `requestId`. Un
   `timedOut: true` indica que el escaneo excedió los 60s.
@@ -299,7 +361,7 @@ smoke test.
 Antes de dar por cerrado cualquier incidente:
 
 ```bash
-npm run test:smoke -- https://⟨DOMINIO-PRODUCCION⟩
+npm run test:smoke -- https://insolventic.vercel.app
 ```
 
 Y a mano, con una sesión real:
