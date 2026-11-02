@@ -1,0 +1,10 @@
+# Rechaza trailers de atribucion de agentes (Co-Authored-By: Claude...,
+# "Generated with Claude Code", 🤖). Regla de autoria de commits: CLAUDE.md.
+# Solo cuenta si la linea EMPIEZA asi, que es la forma del trailer: mencionarlo
+# en prosa sigue permitido, y los co-autores humanos tambien.
+PATRON='^(co-authored-by:.*(claude|anthropic)|[[:space:]]*(🤖[[:space:]]*)?generated with \[?claude code|[[:space:]]*🤖)'
+if grep -qiE "$PATRON" "$1"; then
+  echo "commit-msg: el mensaje trae atribucion de agente; quitala (ver CLAUDE.md, Autoria de commits)." >&2
+  grep -niE "$PATRON" "$1" >&2
+  exit 1
+fi
