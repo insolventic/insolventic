@@ -47,6 +47,7 @@ import {
 import {
   validateCaseBusinessRules,
   formatValidationErrors,
+  smmlvYearForCase,
 } from './validation-rules';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
@@ -474,10 +475,14 @@ export async function createCase(
     // C-2: las reglas del trámite se aplican en el servidor, no solo en el
     // formulario. Antes este módulo solo lo importaban los componentes de
     // React, así que un POST directo a esta action las saltaba todas.
+    // El año del SMMLV sale de la fecha de radicación del expediente, no del
+    // reloj: es la que fija qué salario mínimo rige para la mínima cuantía.
+    // Sin ella, `smmlvYearForCase` cae al año en curso, que para un caso que
+    // se está creando es su propia fecha de creación.
     const rulesCheck = validateCaseBusinessRules(validatedInput, {
       mode: 'create',
       debtorMaritalStatus: debtor.maritalStatus,
-      year: new Date().getFullYear(),
+      year: smmlvYearForCase({ filingDate: validatedInput.filingDate }),
     });
 
     if (!rulesCheck.isValid) {
@@ -997,9 +1002,19 @@ export async function updateCase(
       // el punto de partida obligatorio del guard de transición (C-1).
       // Se añaden las columnas del diff de GC-M4 al select que ya existía, en
       // la misma consulta.
+      // `filingDate` y `createdDate` se leen siempre, aunque el payload no las
+      // traiga: de ellas sale el año del SMMLV de la mínima cuantía. No entran
+      // al diff de auditoría, que solo mira las claves presentes también en
+      // `camposEnviados` (`resumirCambios`).
       const current = await tx.case.findUnique({
         where: { id, tenantId },
-        select: { version: true, phase: true, ...selectDeCambios },
+        select: {
+          version: true,
+          phase: true,
+          filingDate: true,
+          createdDate: true,
+          ...selectDeCambios,
+        },
       });
       if (!current) {
         throw new Error('Caso no encontrado');
@@ -1018,9 +1033,17 @@ export async function updateCase(
       // C-2: mismas reglas de negocio que en creación, en modo 'update' (solo
       // se evalúa lo que trae el payload; una edición parcial no debe fallar
       // por campos que ni siquiera toca).
+      // Mismo criterio que en creación: el año lo fija el expediente, no el
+      // reloj. Antes esto era `new Date().getFullYear()`, así que una edición
+      // del 2 de enero reevaluaba la mínima cuantía contra un SMMLV distinto
+      // del que regía al radicar. Si la edición cambia la fecha de radicación,
+      // manda la nueva.
       const rulesCheck = validateCaseBusinessRules(validatedInput, {
         mode: 'update',
-        year: new Date().getFullYear(),
+        year: smmlvYearForCase({
+          filingDate: validatedInput.filingDate ?? current.filingDate,
+          createdDate: current.createdDate,
+        }),
       });
       if (!rulesCheck.isValid) {
         throw new Error(
