@@ -63,6 +63,21 @@ export type CaseVisibility =
   | { scope: 'none' };
 
 /**
+ * El orden de precedencia de los permisos de alcance, sin tocar la base.
+ *
+ * Separado de `resolveCaseVisibility` porque `findUserIdsWhoCanSeeCase` lo
+ * necesita para muchos usuarios a la vez y resolver cada uno por separado sería
+ * una consulta de deudor por cliente. Las dos comparten este orden, que es lo
+ * que no puede divergir.
+ */
+function scopeFromPermissions(permissions: string[]): CaseVisibility['scope'] {
+  if (permissions.includes(P.VER_TODOS_CASOS)) return 'all';
+  if (permissions.includes(P.VER_CASOS_PROPIOS)) return 'own';
+  if (permissions.includes(P.VER_CASOS_CLIENTE)) return 'client';
+  return 'none';
+}
+
+/**
  * Traduce los permisos de la sesión al alcance de visibilidad.
  *
  * El orden de los `if` es el mismo de `getAllCases` y es significativo: un
@@ -73,15 +88,17 @@ export async function resolveCaseVisibility(
   user: CaseAccessUser,
   tenantId: string,
 ): Promise<CaseVisibility> {
-  if (user.permissions.includes(P.VER_TODOS_CASOS)) {
+  const scope = scopeFromPermissions(user.permissions);
+
+  if (scope === 'all') {
     return { scope: 'all' };
   }
 
-  if (user.permissions.includes(P.VER_CASOS_PROPIOS)) {
+  if (scope === 'own') {
     return { scope: 'own', operatorId: user.id };
   }
 
-  if (user.permissions.includes(P.VER_CASOS_CLIENTE)) {
+  if (scope === 'client') {
     const debtor = await prisma.debtor.findFirst({
       where: { email: user.email, tenantId },
       select: { id: true },
@@ -89,7 +106,9 @@ export async function resolveCaseVisibility(
     // Sin fila de deudor no hay nada que mostrar. Antes, cada call-site
     // resolvía esto por su cuenta y devolvía una lista vacía; acá se unifica
     // en `none` para que ningún consumidor pueda olvidarse del caso.
-    return debtor ? { scope: 'client', debtorId: debtor.id } : { scope: 'none' };
+    return debtor
+      ? { scope: 'client', debtorId: debtor.id }
+      : { scope: 'none' };
   }
 
   return { scope: 'none' };
@@ -232,6 +251,70 @@ export async function assertCaseAccess(params: {
   await assertCaseAccessOnRow({ caseRow, user, tenantId });
 
   return caseRow;
+}
+
+/**
+ * Los usuarios del centro que pueden ver un expediente: la misma regla de
+ * `assertCaseAccessOnRow`, en la otra dirección (de la fila a los usuarios).
+ *
+ * Lo usan los avisos de expediente, cuyo mensaje trae número de caso y nombre
+ * del deudor: `Ver casos` solo no alcanza, porque también lo tienen los roles
+ * acotados a sus propios expedientes y los clientes.
+ *
+ * `caseRow` en `null` significa "no hay expediente contra el cual comparar" y
+ * deja solo a quienes ven todos: ante la duda, un rol acotado no se entera.
+ *
+ * No exige que la fila siga en la base, así que sirve para avisar de un borrado
+ * con la fila que devolvió el `delete`: el deudor y los usuarios no se van en
+ * cascada con el expediente.
+ */
+export async function findUserIdsWhoCanSeeCase(
+  caseRow: CaseAccessRow | null,
+  tenantId: string,
+): Promise<string[]> {
+  const candidatos = await prisma.user.findMany({
+    where: {
+      tenantId,
+      role: { permissions: { some: { permission: { name: P.VER_CASOS } } } },
+    },
+    select: {
+      id: true,
+      email: true,
+      role: {
+        select: {
+          permissions: { select: { permission: { select: { name: true } } } },
+        },
+      },
+    },
+  });
+
+  // Una sola consulta, no una por cliente. Equivale al `findFirst` por correo de
+  // `resolveCaseVisibility` porque `Debtor` tiene `@@unique([email, tenantId])`.
+  const debtor = caseRow?.debtorId
+    ? await prisma.debtor.findFirst({
+        where: { id: caseRow.debtorId, tenantId },
+        select: { email: true },
+      })
+    : null;
+
+  return candidatos
+    .filter((candidato) => {
+      const scope = scopeFromPermissions(
+        candidato.role.permissions.map((rp) => rp.permission.name),
+      );
+
+      switch (scope) {
+        case 'all':
+          return true;
+        case 'own':
+          return caseRow?.operatorId === candidato.id;
+        case 'client':
+          return debtor?.email === candidato.email;
+        case 'none':
+          return false;
+      }
+    })
+    .map((candidato) => candidato.id);
 }
 
 /**

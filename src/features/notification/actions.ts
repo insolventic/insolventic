@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
+import { findUserIdsWhoCanSeeCase } from '@/features/case/case-access';
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { emailService } from '@/lib/email';
@@ -76,15 +77,20 @@ export async function getNotifications(
     const notifications = notificationsRaw.map((notification) => {
       const parsedType = notificationTypeSchema.safeParse(notification.type);
       if (!parsedType.success) {
-        logger.warn('Notificación con type desconocido — se muestra como genérica', {
-          action: 'get-notifications',
-          notificationId: notification.id,
-          rawType: notification.type,
-        });
+        logger.warn(
+          'Notificación con type desconocido — se muestra como genérica',
+          {
+            action: 'get-notifications',
+            notificationId: notification.id,
+            rawType: notification.type,
+          },
+        );
       }
       return {
         ...notification,
-        type: parsedType.success ? parsedType.data : ('system' as NotificationType),
+        type: parsedType.success
+          ? parsedType.data
+          : ('system' as NotificationType),
       };
     });
 
@@ -378,9 +384,19 @@ export async function createNotificationForAction(
 
   if (targetUserIds) {
     usersToNotify = targetUserIds;
+  } else if (entity === 'caso') {
+    // El mensaje trae número de caso y nombre del deudor, y `Ver casos` lo
+    // tienen también los roles acotados a sus propios expedientes y los
+    // clientes. Se avisa solo a quien puede ver esta fila.
+    const caseRow = caseId
+      ? await prisma.case.findUnique({
+          where: { id: caseId, tenantId },
+          select: { operatorId: true, debtorId: true },
+        })
+      : null;
+    usersToNotify = await findUserIdsWhoCanSeeCase(caseRow, tenantId);
   } else {
     const entityPermissionMap = {
-      case: 'Ver casos',
       creditor: 'Ver acreedores',
       debtor: 'Ver deudores',
       user: 'Ver usuarios',
@@ -392,11 +408,9 @@ export async function createNotificationForAction(
         ? 'creditor'
         : entity === 'deudor'
           ? 'debtor'
-          : entity === 'caso'
-            ? 'case'
-            : entity === 'usuario'
-              ? 'user'
-              : 'role';
+          : entity === 'usuario'
+            ? 'user'
+            : 'role';
 
     const requiredPermission =
       entityPermissionMap[entityType as keyof typeof entityPermissionMap];
