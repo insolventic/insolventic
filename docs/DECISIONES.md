@@ -2,6 +2,13 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## Iteración 4 (2026-11-03) — Calendario: quién puede abrirlo (solución por ahora)
+
+- Regla: abre el calendario quien tenga `Ver calendario` **o** `Editar casos` (`MODULES.calendar.alternateGatePermissions`). La usan las cuatro puertas: middleware, página, dashboard y `getHearings`. Lo que cada quien ve lo sigue acotando `getHearings`, por centro y por alcance de fila.
+- Razón: quien programa audiencias tiene que poder verlas. Se resolvió en código porque los roles de producción son filas en la base y el seed no les llega; asignar el permiso habría exigido una migración de datos que corre sola en el deploy.
+- **Limitación aceptada:** un administrador **no puede quitarle el calendario a un rol que edita casos**, aunque el editor de roles lo muestre desmarcado. Mientras el rol tenga `Editar casos`, desmarcar "Calendario" no tiene efecto.
+- Estado: aceptada por ahora para cualquier rol con `Editar casos`. Separar el permiso queda como tarea aparte.
+
 ## Iteración 3 (2026-08-18) — Deploy: workflow roto → integración nativa de Vercel
 
 **Diagnóstico:** `deploy.yml` (`vercel deploy --prebuilt`) fallaba siempre en ~2s (`ENOENT @opentelemetry/api`) y, al competir con la integración nativa Vercel↔GitHub, tapaba los previews nativos reales — no se podía validar el fix de OTel (`serverExternalPackages: ['@opentelemetry/api']`, ya en `next.config.ts`) contra un build real.

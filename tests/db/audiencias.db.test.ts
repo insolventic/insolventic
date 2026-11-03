@@ -648,6 +648,26 @@ describe('fase "Audiencia programada"', () => {
     expect(fila.hearingDate).toBeNull();
   });
 
+  it('cancelar en conciliación también devuelve a "En negociación"', async () => {
+    como(centro);
+    const caso = await crearCaso(centro, { type: 'CONCILIATION' });
+    await programarAudiencia({
+      caseId: caso.id,
+      fecha: dias(20),
+      hora: '10:00',
+    });
+    await updateCasePhase({ caseId: caso.id, newPhase: FASE });
+    expect((await leer(caso.id)).phase).toBe(FASE);
+
+    const r = await cancelarAudiencia({ caseId: caso.id });
+
+    expect(r.success).toBe(true);
+    const fila = await leer(caso.id);
+    expect(fila.type).toBe('CONCILIATION');
+    expect(fila.phase).toBe('En negociación');
+    expect(fila.hearingDate).toBeNull();
+  });
+
   it('cancelar en otra fase no la cambia', async () => {
     como(centro);
     const caso = await crearCaso(centro, { phase: 'Admisión' });
