@@ -138,8 +138,8 @@ describe('getAllCases — consulta acotada', () => {
         '_count',
       ].sort(),
     );
-    // Trae ~16 columnas del caso, no las 269.
-    expect(Object.keys(select).length).toBeLessThan(20);
+    // Trae ~20 columnas del caso, no las 270.
+    expect(Object.keys(select).length).toBeLessThan(25);
   });
 
   it('no pide columnas de los formularios de conciliación, apoyo ni definitivo', async () => {

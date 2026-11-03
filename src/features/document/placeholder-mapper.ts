@@ -6,6 +6,10 @@
 import type { CaseWithRelations } from '../case/schemas';
 import { getSmmlv, smmlvYearForCase } from '../case/validation-rules';
 import { nowColombia } from '@/lib/date-colombia';
+import {
+  audienciaVigente,
+  primeraAudiencia,
+} from '../calendar/audiencia';
 import { renderTemplate } from './handlebars-lite';
 import {
   formatCurrency,
@@ -447,6 +451,8 @@ export function mapCaseToPlaceholders(
   const monthlyExpenses =
     Number(caseData.monthlyExpenses) || Number(debtor.monthlyExpenses) || 0;
   const genderPrefix = getGenderPrefix(debtor.name);
+  const audiencia = audienciaVigente(caseData);
+  const primera = primeraAudiencia(caseData);
 
   const basePlaceholders: PlaceholderMap = {
     // Debtor basic info
@@ -490,15 +496,18 @@ export function mapCaseToPlaceholders(
     FECHA_ADMISION: caseData.admissionDate
       ? formatDate(caseData.admissionDate)
       : '________________',
-    FECHA_AUDIENCIA:
-      caseData.firstHearingDate || caseData.hearingDate
-        ? formatDate(caseData.firstHearingDate || caseData.hearingDate)
-        : '________________',
-    HORA_AUDIENCIA: caseData.firstHearingTime || '____:____',
-    FECHA_HORA_AUDIENCIA:
-      caseData.firstHearingDate || caseData.hearingDate
-        ? `${formatDate(caseData.firstHearingDate || caseData.hearingDate)} - ${caseData.firstHearingTime || '____:____'}`
-        : '________________',
+    FECHA_AUDIENCIA: audiencia
+      ? formatDate(audiencia.fecha)
+      : '________________',
+    HORA_AUDIENCIA: audiencia?.hora || '____:____',
+    FECHA_HORA_AUDIENCIA: audiencia
+      ? `${formatDate(audiencia.fecha)} - ${audiencia.hora || '____:____'}`
+      : '________________',
+    // Lo que fijó el Auto de Admisión: una reprogramación posterior no lo cambia.
+    FECHA_PRIMERA_AUDIENCIA: primera
+      ? formatDate(primera.fecha)
+      : '________________',
+    HORA_PRIMERA_AUDIENCIA: primera?.hora || '____:____',
 
     // Auto de admision (para Edicto Emplazatorio)
     DIA_AUTO: caseData.admissionDate
@@ -633,20 +642,9 @@ export function mapCaseToPlaceholders(
     ANO_ACEPTACION: caseData.admissionDate
       ? new Date(caseData.admissionDate).getFullYear().toString()
       : '______',
-    DIA_AUDIENCIA:
-      caseData.firstHearingDate || caseData.hearingDate
-        ? getDayNumber(caseData.firstHearingDate || caseData.hearingDate)
-        : '____',
-    MES_AUDIENCIA:
-      caseData.firstHearingDate || caseData.hearingDate
-        ? getMonthName(caseData.firstHearingDate || caseData.hearingDate)
-        : '____________',
-    ANO_AUDIENCIA:
-      caseData.firstHearingDate || caseData.hearingDate
-        ? new Date(caseData.firstHearingDate || caseData.hearingDate!)
-            .getFullYear()
-            .toString()
-        : '______',
+    DIA_AUDIENCIA: audiencia ? getDayNumber(audiencia.fecha) : '____',
+    MES_AUDIENCIA: audiencia ? getMonthName(audiencia.fecha) : '____________',
+    ANO_AUDIENCIA: audiencia ? getYear(audiencia.fecha) : '______',
 
     // Payment terms - Ahora con campos de BD
     NUMERO_MESES: caseData.paymentTermMonths?.toString() || '____',

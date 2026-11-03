@@ -87,6 +87,7 @@ model Case {
   creditors               Int
   createdDate             DateTime  @default(now())
   hearingDate             DateTime?
+  hearingTime             String?
   phase                   String?
   causes                  String[]  @default([])
   otherCauseDetail        String?

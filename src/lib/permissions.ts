@@ -81,6 +81,8 @@ export interface ModuleDefinition {
   route: string;
   icon: string;
   gatePermission: PermissionString;
+  /** Otros permisos que también abren el módulo, además de `gatePermission`. */
+  alternateGatePermissions?: readonly PermissionString[];
   permissions: readonly PermissionString[];
 }
 
@@ -187,6 +189,11 @@ export const MODULES = {
     route: '/calendar',
     icon: 'Calendar',
     gatePermission: P.VER_CALENDARIO,
+    // Quien programa audiencias (`Editar casos`) tiene que poder verlas. Es una
+    // regla de código y no una asignación de roles: los roles de producción son
+    // filas en la base, y el seed no les llega. Lo que ve cada quien lo sigue
+    // acotando `getHearings`, por centro y por alcance de fila.
+    alternateGatePermissions: [P.EDITAR_CASOS],
     permissions: [P.VER_CALENDARIO],
   },
   reports: {
@@ -206,13 +213,27 @@ export type ModuleKey = keyof typeof MODULES;
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Todos los permisos que abren un módulo. */
+export function modulePermissions(module: ModuleDefinition): string[] {
+  return [module.gatePermission, ...(module.alternateGatePermissions ?? [])];
+}
+
 /**
- * Build the route → gate-permission map used by the middleware.
+ * ¿Estos permisos abren el módulo? La usa el middleware, y por eso una ruta y su
+ * tarjeta del dashboard no pueden discrepar.
  */
-export function getRoutePermissions(): Record<string, string> {
-  return Object.fromEntries(
-    Object.values(MODULES).map((m) => [m.route, m.gatePermission]),
-  );
+export function canEnterModule(
+  module: ModuleDefinition,
+  userPermissions: readonly string[],
+): boolean {
+  return modulePermissions(module).some((p) => userPermissions.includes(p));
+}
+
+/** La regla del calendario, para `getHearings`. */
+export function puedeVerCalendario(
+  userPermissions: readonly string[],
+): boolean {
+  return canEnterModule(MODULES.calendar, userPermissions);
 }
 
 /**
@@ -232,7 +253,7 @@ export function getVisibleModules(
   userPermissions: string[],
 ): ModuleDefinition[] {
   return Object.values(MODULES).filter((m) =>
-    userPermissions.includes(m.gatePermission),
+    canEnterModule(m, userPermissions),
   );
 }
 

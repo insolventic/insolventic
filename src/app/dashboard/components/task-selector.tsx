@@ -21,7 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import { P } from '@/lib/permissions';
+import { MODULES, P, modulePermissions } from '@/lib/permissions';
 
 import { Task } from './task';
 
@@ -122,7 +122,7 @@ export function TaskSelector() {
       href: '/calendar',
       color: 'bg-cyan-100',
       iconColor: 'text-cyan-600 dark:text-cyan-400',
-      permission: P.VER_CALENDARIO,
+      permission: modulePermissions(MODULES.calendar),
       helpText:
         'Visualice las audiencias programadas en un calendario mensual con acceso directo a los casos y enlaces de Zoom.',
     },
@@ -164,7 +164,9 @@ export function TaskSelector() {
       <CardContent>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
           {tasks
-            .filter((task) => checkPermission(task.permission))
+            .filter((task) =>
+              [task.permission].flat().some((p) => checkPermission(p)),
+            )
             .map((task) => (
               <Task
                 key={task.id}
