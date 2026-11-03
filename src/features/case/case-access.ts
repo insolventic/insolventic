@@ -89,7 +89,9 @@ export async function resolveCaseVisibility(
     // Sin fila de deudor no hay nada que mostrar. Antes, cada call-site
     // resolvía esto por su cuenta y devolvía una lista vacía; acá se unifica
     // en `none` para que ningún consumidor pueda olvidarse del caso.
-    return debtor ? { scope: 'client', debtorId: debtor.id } : { scope: 'none' };
+    return debtor
+      ? { scope: 'client', debtorId: debtor.id }
+      : { scope: 'none' };
   }
 
   return { scope: 'none' };
@@ -238,11 +240,12 @@ export async function assertCaseAccess(params: {
  * GC-M2 — el operador asignado tiene que ser un usuario de ESTE centro.
  *
  * `operatorId` y `debtorId` llegaban del cliente validados solo como
- * `z.string()`. El deudor sí se comprobaba contra la base
- * (`prisma.debtor.findUnique({ where: { id, tenantId } })`); el operador **no**:
- * se escribía con un `operator: { connect: { id: operatorId } }` a secas, y
- * como el `connect` de Prisma solo exige que el id exista, bastaba mandar el id
- * de un usuario del OTRO centro para dejarle un expediente asignado.
+ * `z.string()`. El deudor sí se comprobaba contra la base en `createCase`
+ * (`prisma.debtor.findUnique({ where: { id, tenantId } })`; en `updateCase` no,
+ * ver `assertDebtorInTenant`); el operador **no**: se escribía con un
+ * `operator: { connect: { id: operatorId } }` a secas, y como el `connect` de
+ * Prisma solo exige que el id exista, bastaba mandar el id de un usuario del
+ * OTRO centro para dejarle un expediente asignado.
  *
  * Qué califica como operador asignable está definido por
  * `getAssignableOperators`: cualquier usuario del tenant. Esta función es su
@@ -265,6 +268,34 @@ export async function assertOperatorInTenant(
   if (!operador) {
     throw new Error(
       'El operador asignado no pertenece a este centro de conciliación.',
+    );
+  }
+}
+
+/**
+ * El mismo hueco de GC-M2, del lado del deudor: `updateCase` escribía
+ * `debtor: { connect: { id: debtorId } }` sin mirar el tenant, así que el id de
+ * un deudor del OTRO centro dejaba el expediente enlazado a él y la action
+ * devolvía `success`.
+ *
+ * `createCase` no la usa porque ya carga el deudor acotado por `tenantId` (y
+ * necesita sus datos para las reglas del trámite).
+ *
+ * Lanza un `Error` normal por la misma razón que `assertOperatorInTenant`: es
+ * un payload inválido, no un problema de visibilidad del usuario que llama.
+ */
+export async function assertDebtorInTenant(
+  debtorId: string,
+  tenantId: string,
+): Promise<void> {
+  const deudor = await prisma.debtor.findFirst({
+    where: { id: debtorId, tenantId },
+    select: { id: true },
+  });
+
+  if (!deudor) {
+    throw new Error(
+      'El deudor asignado no pertenece a este centro de conciliación.',
     );
   }
 }
