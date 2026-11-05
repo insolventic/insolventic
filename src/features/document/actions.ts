@@ -38,8 +38,7 @@ import {
   planBatchGenerationInputSchema,
   getDocumentsFromDriveOutputSchema,
   syncDocumentsWithGoogleDriveOutputSchema,
-  uploadCaseDocumentsInputSchema,
-  uploadCaseDocumentsOutputSchema,
+  uploadCaseDocumentInputSchema,
 } from './schemas';
 import { asCaseWithRelations, fetchCaseForGeneration } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
@@ -1707,20 +1706,32 @@ function validateFileType(
   return { valid: true };
 }
 
-// Upload user-provided documents (e.g., cédula, REDAM) to the case folder in Drive
-export async function uploadCaseDocuments(input: {
+/**
+ * Sube un documento del caso (cédula, REDAM...) a su carpeta de Drive.
+ *
+ * Un archivo por llamada y como `File`: el cuerpo de una server action no
+ * aguanta más (ver `limite-archivos.ts`), y así un archivo que falla no se lleva
+ * a los demás. Cada error es un texto para el usuario: la UI lo muestra junto al
+ * nombre del archivo.
+ */
+export async function uploadCaseDocument(input: {
   caseId: string;
-  personName: string;
-  documents: Array<{
-    docName: string;
-    fileName: string;
-    mimeType: string;
-    dataBase64: string;
-  }>;
-}) {
+  docName: string;
+  file: File;
+}): Promise<{ success: boolean; error?: string }> {
+  let sesion: Awaited<ReturnType<typeof authenticateUser>>;
   try {
-    const { user, tenantId, tenantSlug } = await authenticateUser();
+    sesion = await authenticateUser();
+  } catch {
+    return {
+      success: false,
+      error:
+        'No se pudo confirmar tu sesión. Inicia sesión de nuevo y vuelve a adjuntar el archivo.',
+    };
+  }
+  const { user, tenantId, tenantSlug } = sesion;
 
+  try {
     if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
       return {
         success: false,
@@ -1728,15 +1739,15 @@ export async function uploadCaseDocuments(input: {
       };
     }
 
-    const validatedInput = uploadCaseDocumentsInputSchema.parse(input);
-    const { caseId, documents } = validatedInput;
+    const validacion = uploadCaseDocumentInputSchema.safeParse(input);
+    if (!validacion.success) {
+      return { success: false, error: validacion.error.issues[0].message };
+    }
+    const { caseId, docName, file } = validacion.data;
 
-    // Validate each file type before any upload
-    for (const d of documents) {
-      const typeCheck = validateFileType(d.fileName, d.mimeType);
-      if (!typeCheck.valid) {
-        return { success: false, error: typeCheck.error };
-      }
+    const typeCheck = validateFileType(file.name, file.type);
+    if (!typeCheck.valid) {
+      return { success: false, error: typeCheck.error };
     }
 
     const { googleDriveService } = await import('@/lib/google-drive');
@@ -1753,7 +1764,7 @@ export async function uploadCaseDocuments(input: {
     });
 
     if (!caseData) {
-      throw new Error('Caso no encontrado');
+      return { success: false, error: 'Caso no encontrado' };
     }
 
     // Resolve center folder name from case data or tenant. Este `caseData`
@@ -1800,109 +1811,89 @@ export async function uploadCaseDocuments(input: {
       caseFolderId,
     );
 
-    let uploaded = 0;
-
-    for (const d of documents) {
-      const safeFileName = sanitizeFileName(d.fileName);
-      const buffer = Buffer.from(d.dataBase64, 'base64');
-      // Con reintento, como las dos rutas de generación: un 429 o un 5xx
-      // transitorio de Drive dejaba el adjunto sin subir, y el usuario ya
-      // eligió el archivo — no hay nada que reintentar del lado de él.
-      const fileId = await withRetry(
-        () =>
-          googleDriveService.uploadFile(
-            safeFileName,
-            buffer,
-            d.mimeType,
-            adjuntosFolderId,
-          ),
-        {
-          label: `upload-adjunto:${safeFileName}`,
-          isRetryable: isRetryableDriveError,
-        },
-      );
-
-      const fileUrl = googleDriveService.getFileUrl(fileId);
-
-      await prisma.document.create({
-        data: {
-          name: d.docName,
-          type: d.docName,
-          status: 'Cargado',
-          uploadDate: new Date(),
-          url: fileUrl,
-          googleDriveId: fileId,
-          fileName: safeFileName,
-          mimeType: d.mimeType,
-          isGenerated: false,
-          section: 'ADJUNTO',
-          templateFolderPath: [adjuntosFolderName],
-          caseId: caseId,
-          tenantId,
-        },
-      });
-
-      await prisma.documentFromDrive.upsert({
-        where: {
-          googleDriveId_tenantId: { googleDriveId: fileId, tenantId },
-        },
-        update: {
-          fileName: safeFileName,
-          mimeType: d.mimeType,
-          folderPath: [
-            centerFolderName,
-            caseData.caseNumber,
-            adjuntosFolderName,
-          ],
-          parentFolderId: adjuntosFolderId,
-          updatedAt: new Date(),
-        },
-        create: {
-          googleDriveId: fileId,
-          fileName: safeFileName,
-          mimeType: d.mimeType,
-          folderPath: [
-            centerFolderName,
-            caseData.caseNumber,
-            adjuntosFolderName,
-          ],
-          parentFolderId: adjuntosFolderId,
-          isFolder: false,
-          tenantId,
-        },
-      });
-
-      uploaded++;
-    }
-
-    if (uploaded > 0) {
-      createAuditLog({
-        action: 'created',
-        entityType: 'document',
-        entityId: caseId,
-        entityName: `${uploaded} documentos adjuntos para caso ${caseData.caseNumber}`,
-        actor: {
-          userId: user.id,
-          userName: user.name,
-          userCedula: user.professionalCard,
-        },
-        tenantId,
-      });
-    }
-
-    const result = uploadCaseDocumentsOutputSchema.parse({ uploaded });
-    return { success: true, data: result };
-  } catch (error) {
-    console.error(
-      'Error uploading case documents:',
-      error instanceof Error ? error.message : 'Unknown error',
+    const safeFileName = sanitizeFileName(file.name);
+    const buffer = Buffer.from(await file.arrayBuffer());
+    // Con reintento, como las dos rutas de generación: un 429 o un 5xx
+    // transitorio de Drive dejaba el adjunto sin subir, y el usuario ya
+    // eligió el archivo — no hay nada que reintentar del lado de él.
+    const fileId = await withRetry(
+      () =>
+        googleDriveService.uploadFile(
+          safeFileName,
+          buffer,
+          file.type,
+          adjuntosFolderId,
+        ),
+      {
+        label: `upload-adjunto:${safeFileName}`,
+        isRetryable: isRetryableDriveError,
+      },
     );
+
+    const fileUrl = googleDriveService.getFileUrl(fileId);
+
+    await prisma.document.create({
+      data: {
+        name: docName,
+        type: docName,
+        status: 'Cargado',
+        uploadDate: new Date(),
+        url: fileUrl,
+        googleDriveId: fileId,
+        fileName: safeFileName,
+        mimeType: file.type,
+        isGenerated: false,
+        section: 'ADJUNTO',
+        templateFolderPath: [adjuntosFolderName],
+        caseId: caseId,
+        tenantId,
+      },
+    });
+
+    await prisma.documentFromDrive.upsert({
+      where: {
+        googleDriveId_tenantId: { googleDriveId: fileId, tenantId },
+      },
+      update: {
+        fileName: safeFileName,
+        mimeType: file.type,
+        folderPath: [centerFolderName, caseData.caseNumber, adjuntosFolderName],
+        parentFolderId: adjuntosFolderId,
+        updatedAt: new Date(),
+      },
+      create: {
+        googleDriveId: fileId,
+        fileName: safeFileName,
+        mimeType: file.type,
+        folderPath: [centerFolderName, caseData.caseNumber, adjuntosFolderName],
+        parentFolderId: adjuntosFolderId,
+        isFolder: false,
+        tenantId,
+      },
+    });
+
+    await createAuditLog({
+      action: 'created',
+      entityType: 'document',
+      entityId: caseId,
+      entityName: `Documento adjunto "${safeFileName}" para caso ${caseData.caseNumber}`,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+    });
+
+    return { success: true };
+  } catch (error) {
+    logger.error('No se pudo subir un documento del caso', error, {
+      action: 'upload-case-document',
+      caseId: input.caseId,
+    });
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al subir documentos del caso',
+      error: 'No se pudo guardar el archivo. Inténtalo de nuevo más tarde.',
     };
   }
 }

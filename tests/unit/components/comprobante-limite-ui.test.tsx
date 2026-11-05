@@ -77,9 +77,9 @@ import { PaymentTrackingSection } from '@/app/cases/components/case-details-dial
 import { PaymentTrackingReport } from '@/app/reports/components/payment-tracking-report';
 import type { CaseWithRelations } from '@/features/case/schemas';
 import {
-  errorDeTamanoDeComprobante,
-  MAX_COMPROBANTE_BYTES,
-} from '@/features/payment/constants';
+  errorDeTamanoDeArchivo,
+  MAX_ARCHIVO_BYTES,
+} from '@/lib/limite-archivos';
 
 const CASO = { id: 'caso-1' } as unknown as CaseWithRelations;
 
@@ -104,7 +104,7 @@ function erroresEnElDialogo(): string[] {
   ).map((p) => p.textContent ?? '');
 }
 
-const DEMASIADO_GRANDE = MAX_COMPROBANTE_BYTES + 1;
+const DEMASIADO_GRANDE = MAX_ARCHIVO_BYTES + 1;
 
 async function abrirDesdeElCaso() {
   render(<PaymentTrackingSection caseData={CASO} />);
@@ -152,7 +152,7 @@ describe.each([
 
     await waitFor(() =>
       expect(erroresEnElDialogo()).toEqual([
-        errorDeTamanoDeComprobante(DEMASIADO_GRANDE),
+        errorDeTamanoDeArchivo(DEMASIADO_GRANDE),
       ]),
     );
     expect(screen.queryByText('foto-del-celular.pdf')).not.toBeInTheDocument();
@@ -165,7 +165,7 @@ describe.each([
     elegir(pdfDe(DEMASIADO_GRANDE));
     await waitFor(() => expect(erroresEnElDialogo()).toHaveLength(1));
 
-    elegir(pdfDe(MAX_COMPROBANTE_BYTES, 'reducido.pdf'));
+    elegir(pdfDe(MAX_ARCHIVO_BYTES, 'reducido.pdf'));
 
     await screen.findByText('reducido.pdf');
     expect(erroresEnElDialogo()).toEqual([]);
@@ -187,4 +187,33 @@ it('el comprobante llega a la acción como File, sin pasar por base64', async ()
 
   await waitFor(() => expect(mockRegisterPayment).toHaveBeenCalledTimes(1));
   expect(mockRegisterPayment.mock.calls[0][0].receipt).toBe(archivo);
+});
+
+it('si la plataforma rechaza el cuerpo, el diálogo explica el tamaño y no "Error al registrar pago"', async () => {
+  await abrirDesdeElCaso();
+  // Se salta la validación del cliente: `size` miente, los bytes no.
+  const archivo = new File(
+    [new Uint8Array(MAX_ARCHIVO_BYTES + 300_000)],
+    'escaneado.pdf',
+    { type: 'application/pdf' },
+  );
+  Object.defineProperty(archivo, 'size', { value: 1024 });
+  elegir(archivo);
+  await screen.findByText('escaneado.pdf');
+  fireEvent.change(screen.getByPlaceholderText('0'), {
+    target: { value: '150000' },
+  });
+  mockRegisterPayment.mockRejectedValueOnce(
+    new Error('An unexpected response was received from the server.'),
+  );
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar Pago' }));
+  });
+
+  await waitFor(() =>
+    expect(erroresEnElDialogo()).toEqual([
+      `escaneado.pdf: ${errorDeTamanoDeArchivo(MAX_ARCHIVO_BYTES + 300_000)}`,
+    ]),
+  );
 });

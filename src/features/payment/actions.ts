@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
-import { errorDeTamanoDeComprobante } from '@/features/payment/constants';
+import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
 import {
   checkRateLimit,
   getRateLimitKey,
@@ -105,7 +105,7 @@ function sanitizeFileName(fileName: string): string {
 }
 
 function validateReceiptFile(file: File): { valid: boolean; error?: string } {
-  const errorDeTamano = errorDeTamanoDeComprobante(file.size);
+  const errorDeTamano = errorDeTamanoDeArchivo(file.size);
   if (errorDeTamano) {
     return { valid: false, error: errorDeTamano };
   }

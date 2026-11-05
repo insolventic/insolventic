@@ -67,14 +67,19 @@ import {
   uploadPaymentReceipt,
 } from '@/features/payment/actions';
 import {
-  errorDeTamanoDeComprobante,
-  MAX_COMPROBANTE_BYTES,
-  MAX_COMPROBANTE_MB,
-} from '@/features/payment/constants';
+  errorDeTamanoDeArchivo,
+  errorDeTamanoTrasRechazo,
+  MAX_ARCHIVO_BYTES,
+  MAX_ARCHIVO_MB,
+} from '@/lib/limite-archivos';
 import { P } from '@/lib/permissions';
 
-/** Corte de Vercel: 4,5 MB. Se toma en base 1000, la lectura más estricta. */
-const CORTE_DE_VERCEL_BYTES = 4_500_000;
+/**
+ * Corte de Vercel, medido en un preview el 2026-11-05: 4.493.312 bytes pasan y
+ * uno más responde 413 FUNCTION_PAYLOAD_TOO_LARGE. Las cabeceras lo acercan: con
+ * una cookie de 4 KB, el corte baja a 4.490.297.
+ */
+const CORTE_DE_VERCEL_BYTES = 4_490_297;
 
 /** Lo que el cuerpo lleva además del archivo: cabeceras multipart y campos. */
 const HOLGURA_DEL_CUERPO_BYTES = 64 * 1024;
@@ -147,7 +152,7 @@ describe('límite de tamaño del comprobante', () => {
     it('deja pasar un comprobante del tamaño máximo con el resto del formulario', () => {
       expect(limite).toBeDefined();
       expect(bytes.parse(limite as string)).toBeGreaterThanOrEqual(
-        MAX_COMPROBANTE_BYTES + HOLGURA_DEL_CUERPO_BYTES,
+        MAX_ARCHIVO_BYTES + HOLGURA_DEL_CUERPO_BYTES,
       );
     });
 
@@ -162,7 +167,7 @@ describe('límite de tamaño del comprobante', () => {
     it.each(acciones)(
       '%s acepta un archivo justo en el límite y lo sube íntegro',
       async (_nombre, accion) => {
-        const resultado = await accion(pdfDe(MAX_COMPROBANTE_BYTES));
+        const resultado = await accion(pdfDe(MAX_ARCHIVO_BYTES));
 
         expect(resultado).toEqual({ success: true });
         expect(mockUploadFile).toHaveBeenCalledTimes(1);
@@ -170,18 +175,18 @@ describe('límite de tamaño del comprobante', () => {
         expect(nombre).toBe('comprobante.pdf');
         expect(tipo).toBe('application/pdf');
         expect(Buffer.isBuffer(contenido)).toBe(true);
-        expect(contenido).toHaveLength(MAX_COMPROBANTE_BYTES);
+        expect(contenido).toHaveLength(MAX_ARCHIVO_BYTES);
       },
     );
 
     it.each(acciones)(
       '%s rechaza un byte de más explicando el tamaño, sin tocar Drive ni el pago',
       async (_nombre, accion) => {
-        const resultado = await accion(pdfDe(MAX_COMPROBANTE_BYTES + 1));
+        const resultado = await accion(pdfDe(MAX_ARCHIVO_BYTES + 1));
 
         expect(resultado.success).toBe(false);
         expect(resultado.error).toBe(
-          errorDeTamanoDeComprobante(MAX_COMPROBANTE_BYTES + 1),
+          errorDeTamanoDeArchivo(MAX_ARCHIVO_BYTES + 1),
         );
         expect(mockUploadFile).not.toHaveBeenCalled();
         expect(mockPaymentUpdate).not.toHaveBeenCalled();
@@ -192,19 +197,51 @@ describe('límite de tamaño del comprobante', () => {
 
   describe('mensaje', () => {
     it('dice cuánto pesa el archivo y cuál es el máximo', () => {
-      expect(errorDeTamanoDeComprobante(5.2 * 1024 * 1024)).toMatch(
+      expect(errorDeTamanoDeArchivo(5.2 * 1024 * 1024)).toMatch(
         /pesa 5,2 MB y el máximo es 4 MB/,
       );
     });
 
     it('no dice "pesa 4 MB" de un archivo apenas por encima del máximo', () => {
-      expect(errorDeTamanoDeComprobante(MAX_COMPROBANTE_BYTES + 1)).toMatch(
+      expect(errorDeTamanoDeArchivo(MAX_ARCHIVO_BYTES + 1)).toMatch(
         /pesa 4,1 MB/,
       );
     });
 
     it('calla si el archivo cabe', () => {
-      expect(errorDeTamanoDeComprobante(MAX_COMPROBANTE_BYTES)).toBeNull();
+      expect(errorDeTamanoDeArchivo(MAX_ARCHIVO_BYTES)).toBeNull();
+    });
+
+    it('MAX_ARCHIVO_MB son MiB: 4 MB son 4.194.304 bytes', () => {
+      expect(MAX_ARCHIVO_BYTES).toBe(4_194_304);
+    });
+  });
+
+  describe('rechazo de la promesa', () => {
+    const GENERICO = new Error(
+      'An unexpected response was received from the server.',
+    );
+
+    it('por los bytes enviados, aunque el error no diga nada del tamaño', () => {
+      expect(errorDeTamanoTrasRechazo(GENERICO, MAX_ARCHIVO_BYTES + 1)).toBe(
+        errorDeTamanoDeArchivo(MAX_ARCHIVO_BYTES + 1),
+      );
+    });
+
+    it.each([
+      'Body exceeded 4.25mb limit.',
+      'Request Entity Too Large FUNCTION_PAYLOAD_TOO_LARGE iad1::x',
+    ])('por el texto del rechazo: %s', (texto) => {
+      expect(errorDeTamanoTrasRechazo(new Error(texto), 1024)).toMatch(
+        /hasta 4 MB/,
+      );
+    });
+
+    it('calla si nada apunta al tamaño (un corte de red)', () => {
+      expect(
+        errorDeTamanoTrasRechazo(new TypeError('Failed to fetch'), 1024),
+      ).toBeNull();
+      expect(errorDeTamanoTrasRechazo(GENERICO, MAX_ARCHIVO_BYTES)).toBeNull();
     });
   });
 
@@ -214,7 +251,10 @@ describe('límite de tamaño del comprobante', () => {
       'utf8',
     );
     expect(manual).toContain(
-      `**Comprobante** (PDF / JPG / PNG, máx. ${MAX_COMPROBANTE_MB} MB)`,
+      `**Comprobante** (PDF / JPG / PNG, máx. ${MAX_ARCHIVO_MB} MB)`,
+    );
+    expect(manual).toContain(
+      `**Documentos del caso:** PDF, JPG o PNG, máx. ${MAX_ARCHIVO_MB} MB por archivo`,
     );
   });
 });
