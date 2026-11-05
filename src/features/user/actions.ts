@@ -257,6 +257,68 @@ export async function createUser(input: unknown): Promise<{
   }
 }
 
+/** Campos de la cuenta cuyo cambio queda en la auditoría, solo por su nombre. */
+const CAMPOS_AUDITADOS = [
+  'name',
+  'email',
+  'phone',
+  'address',
+  'professionalCard',
+  'roleId',
+] as const;
+
+/**
+ * Tope para esperar a SMTP: `email.ts` no define timeouts y nodemailer puede
+ * tardar minutos en rendirse. Sin esto, la función serverless podría morir con
+ * la edición ya guardada, y quien edita vería un error que no es cierto.
+ */
+const ESPERA_AVISO_CORREO_MS = 5_000;
+
+/**
+ * Avisa al correo anterior de una cuenta. Nunca lanza: la edición ya quedó
+ * guardada y bloquearla impediría corregir un correo mal escrito, que es lo que
+ * permite recuperar la clave a quien perdió acceso a ese buzón.
+ *
+ * Se espera y no se usa `void`: en Vercel la función puede terminar al devolver
+ * la respuesta y matar el envío en vuelo. Si `sendEmail` devuelve `false` no hay
+ * nada que registrar aquí, porque él ya lo reportó a Sentry.
+ */
+async function avisarCambioDeCorreo(
+  correoAnterior: string,
+  userId: string,
+  changedBy: string,
+): Promise<void> {
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const resultado = await Promise.race([
+      emailService.sendEmailChangedNotice(correoAnterior, {
+        changedBy,
+        date: new Date(),
+      }),
+      new Promise<'sin-respuesta'>((resolve) => {
+        temporizador = setTimeout(
+          () => resolve('sin-respuesta'),
+          ESPERA_AVISO_CORREO_MS,
+        );
+      }),
+    ]);
+    if (resultado === 'sin-respuesta') {
+      logger.warn('El aviso de cambio de correo no se confirmó a tiempo', {
+        action: 'update-user.aviso-correo',
+        userId,
+        esperaMs: ESPERA_AVISO_CORREO_MS,
+      });
+    }
+  } catch (error) {
+    logger.error('No se pudo avisar el cambio de correo', error, {
+      action: 'update-user.aviso-correo',
+      userId,
+    });
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
 export async function updateUser(input: unknown): Promise<{
   success: boolean;
   data?: UserSummaryData;
@@ -286,6 +348,21 @@ export async function updateUser(input: unknown): Promise<{
       if (!roleExists) return { success: false, error: 'Rol no encontrado' };
     }
 
+    // La fila anterior y no las claves recibidas: el diálogo de edición envía
+    // todos los campos en cada guardado, hayan cambiado o no.
+    const anterior = await prisma.user.findFirst({
+      where: { id, tenantId },
+      select: {
+        name: true,
+        email: true,
+        phone: true,
+        address: true,
+        professionalCard: true,
+        roleId: true,
+      },
+    });
+    if (!anterior) return { success: false, error: 'Usuario no encontrado' };
+
     const updatedUser = await prisma.user.update({
       where: {
         id,
@@ -299,6 +376,33 @@ export async function updateUser(input: unknown): Promise<{
     });
 
     revalidateTag('users');
+
+    const cambiados: string[] = CAMPOS_AUDITADOS.filter(
+      (campo) => updatedUser[campo] !== anterior[campo],
+    );
+    if (hashedPassword) cambiados.push('password');
+
+    // Antes de la notificación: si esta lanza, la edición ya está guardada y
+    // tiene que quedar el registro y el aviso. Solo nombres de campo, nunca
+    // valores. El resultado no se mira porque `createAuditLog` ya reporta su
+    // propio fallo y la edición no se puede deshacer.
+    await createAuditLog({
+      action: 'updated',
+      entityType: 'user',
+      entityId: updatedUser.id,
+      entityName: updatedUser.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId,
+      metadata: { changedFields: cambiados.sort().join(', ') },
+    });
+
+    if (updatedUser.email !== anterior.email) {
+      await avisarCambioDeCorreo(anterior.email, updatedUser.id, user.name);
+    }
 
     await createNotificationForAction(
       'user_updated',
@@ -315,19 +419,6 @@ export async function updateUser(input: unknown): Promise<{
         professionalCard: user.professionalCard,
       },
     );
-
-    createAuditLog({
-      action: 'updated',
-      entityType: 'user',
-      entityId: updatedUser.id,
-      entityName: updatedUser.name,
-      actor: {
-        userId: user.id,
-        userName: user.name,
-        userCedula: user.professionalCard,
-      },
-      tenantId,
-    });
 
     const validated = userSummarySchema.parse(updatedUser);
     return {
