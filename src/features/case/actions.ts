@@ -38,6 +38,7 @@ import {
   assertOperatorInTenant,
   caseWhereFromVisibility,
   findParentCaseId,
+  findUserIdsWhoCanSeeCase,
   resolveCaseVisibility,
 } from './case-access';
 // GC-M4: el audit log de `updateCase` decia solo "Se ha actualizado el caso X".
@@ -2581,7 +2582,9 @@ export async function deleteCase(
       tenantId,
       undefined, // No entityId since case is deleted
       undefined, // No caseId since case is deleted
-      undefined,
+      // Sin caseId no hay fila que consultar: los destinatarios salen de la que
+      // devolvió el borrado, o el aviso no llegaría a los roles acotados.
+      await findUserIdsWhoCanSeeCase(deletedCase, tenantId),
       {
         name: user.name,
         email: user.email,
