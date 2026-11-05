@@ -243,7 +243,12 @@ describe('aviso al correo anterior', () => {
     const ajeno = await crearUsuario(otroCentro.tenantId, otroCentro.roleId);
 
     const result = await updateUser(
-      formulario(ajeno, { email: `robado-${ajeno.id}@centroejemplo.test` }),
+      // Con un rol de ESTE centro: con el del otro se rechazaría antes, por el
+      // rol, sin llegar a buscar al usuario.
+      formulario(ajeno, {
+        email: `robado-${ajeno.id}@centroejemplo.test`,
+        roleId: centro.roleId,
+      }),
     );
 
     expect(result).toEqual({ success: false, error: 'Usuario no encontrado' });
