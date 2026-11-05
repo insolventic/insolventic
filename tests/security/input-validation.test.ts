@@ -4,7 +4,7 @@
  */
 
 import { loginSchema, registerSchema } from '@/features/auth/schemas';
-import { uploadCaseDocumentsInputSchema } from '@/features/document/schemas';
+import { uploadCaseDocumentInputSchema } from '@/features/document/schemas';
 
 describe('Input Validation — Security', () => {
   describe('SQL Injection payloads', () => {
@@ -14,7 +14,7 @@ describe('Input Validation — Security', () => {
       "1' UNION SELECT * FROM users --",
       "admin'--",
       "' OR 1=1 --",
-      "1; DELETE FROM cases WHERE 1=1",
+      '1; DELETE FROM cases WHERE 1=1',
     ];
 
     sqlPayloads.forEach((payload) => {
@@ -76,38 +76,24 @@ describe('Input Validation — Security', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject file upload exceeding 10MB base64 limit', () => {
-      const oversizedBase64 = 'A'.repeat(14_000_000); // ~14MB > 13.7MB limit
-
-      const result = uploadCaseDocumentsInputSchema.safeParse({
+    it('should reject file upload over the 4 MB limit', () => {
+      const result = uploadCaseDocumentInputSchema.safeParse({
         caseId: 'case-123',
-        personName: 'Test User',
-        documents: [
-          {
-            docName: 'test.pdf',
-            fileName: 'test.pdf',
-            mimeType: 'application/pdf',
-            dataBase64: oversizedBase64,
-          },
-        ],
+        docName: 'test.pdf',
+        file: new File([new Uint8Array(4 * 1024 * 1024 + 1)], 'test.pdf', {
+          type: 'application/pdf',
+        }),
       });
       expect(result.success).toBe(false);
     });
 
-    it('should accept file upload within 10MB limit', () => {
-      const validBase64 = 'A'.repeat(1000); // Small file
-
-      const result = uploadCaseDocumentsInputSchema.safeParse({
+    it('should accept file upload within the limit', () => {
+      const result = uploadCaseDocumentInputSchema.safeParse({
         caseId: 'case-123',
-        personName: 'Test User',
-        documents: [
-          {
-            docName: 'test.pdf',
-            fileName: 'test.pdf',
-            mimeType: 'application/pdf',
-            dataBase64: validBase64,
-          },
-        ],
+        docName: 'test.pdf',
+        file: new File(['x'.repeat(1000)], 'test.pdf', {
+          type: 'application/pdf',
+        }),
       });
       expect(result.success).toBe(true);
     });
@@ -150,11 +136,10 @@ describe('Input Validation — Security', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject empty documents array in upload', () => {
-      const result = uploadCaseDocumentsInputSchema.safeParse({
+    it('should reject an upload without a file', () => {
+      const result = uploadCaseDocumentInputSchema.safeParse({
         caseId: 'case-123',
-        personName: 'Test',
-        documents: [],
+        docName: 'Test',
       });
       expect(result.success).toBe(false);
     });
