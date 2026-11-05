@@ -306,7 +306,7 @@ export async function createDebtor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'debtor',
       entityId: debtor.id,
@@ -402,7 +402,7 @@ export async function updateDebtor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'debtor',
       entityId: updatedDebtor.id,
@@ -513,7 +513,7 @@ export async function deleteDebtor(id: string): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'debtor',
       entityId: deletedDebtor.id,

@@ -130,7 +130,7 @@ export async function addContactToCreditor(input: unknown): Promise<{
 
     revalidatePath('/creditors');
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'contact',
       entityId: contact.id,
@@ -185,7 +185,7 @@ export async function updateContact(input: unknown): Promise<{
     revalidatePath('/contacts');
     revalidatePath('/creditors');
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'contact',
       entityId: contact.id,
@@ -239,7 +239,7 @@ export async function deleteContact(input: unknown): Promise<{
     revalidatePath('/contacts');
     revalidatePath('/creditors');
 
-    createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'contact',
       entityId: deletedContact.id,

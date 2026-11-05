@@ -323,7 +323,7 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
       orderBy: { paymentNumber: 'asc' },
     });
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: caseId,
@@ -440,7 +440,7 @@ export async function markPaymentPaid(
       },
     });
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'case',
       entityId: payment.caseId,
@@ -563,7 +563,7 @@ export async function registerPayment(
       },
     });
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'case',
       entityId: validated.caseId,
@@ -651,7 +651,7 @@ export async function uploadPaymentReceipt(
       data: receiptData,
     });
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'case',
       entityId: payment.caseId,
