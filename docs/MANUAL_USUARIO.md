@@ -19,13 +19,13 @@
 
 Los 5 roles con los que arranca cada centro (`src/prisma/seed.ts`):
 
-| Rol                      | Alcance                                                                                  |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| **Administrador**        | Acceso total: casos, usuarios, roles, reportes, auditoría, eliminar casos/deudores/acreedores |
+| Rol                          | Alcance                                                                                                        |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Administrador**            | Acceso total: casos, usuarios, roles, reportes, auditoría, eliminar casos/deudores/acreedores                  |
 | **Operadora de Insolvencia** | Crear y editar casos, acreedores y deudores; generar documentos. No elimina casos ni administra usuarios/roles |
-| **Abogado**              | Crear y editar casos (ve también los casos propios); genera documentos. No elimina nada  |
-| **Asistente Legal**      | Solo consulta de casos (propios y en general) y de acreedores/deudores; genera documentos |
-| **Secretaria**           | Solo consulta de casos y documentos — sin crear, editar ni generar                        |
+| **Abogado**                  | Crear y editar casos (ve también los casos propios); genera documentos. No elimina nada                        |
+| **Asistente Legal**          | Solo consulta de casos (propios y en general) y de acreedores/deudores; genera documentos                      |
+| **Secretaria**               | Solo consulta de casos y documentos — sin crear, editar ni generar                                             |
 
 Los permisos son configurables por rol desde **Configuración → Roles**.
 
@@ -98,17 +98,17 @@ actual** — el sistema no deja saltar fases.
 **Las 5 fases que distinguen el desenlace de la negociación**, en vez de
 caer todas a `Fracaso` con el mismo paquete de documentos:
 
-| Fase | Cuándo se usa |
-| --- | --- |
-| **Rechazo** | La solicitud se rechaza de entrada, antes de admitir — no es un fracaso de negociación |
-| **Retiro** | El solicitante se retira **antes** de que el caso sea admitido |
-| **Desistimiento** | El deudor abandona el trámite **después** de admitido. Pide un subtipo: *No pago de tarifas* o *Abandono total* |
-| **Acuerdo impugnado** | Hay una impugnación pendiente ante el juez sobre un acuerdo ya aprobado |
-| **Acuerdo reformado** | El juez ordena corregir el acuerdo y se corrige dentro del plazo |
+| Fase                  | Cuándo se usa                                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Rechazo**           | La solicitud se rechaza de entrada, antes de admitir — no es un fracaso de negociación                          |
+| **Retiro**            | El solicitante se retira **antes** de que el caso sea admitido                                                  |
+| **Desistimiento**     | El deudor abandona el trámite **después** de admitido. Pide un subtipo: _No pago de tarifas_ o _Abandono total_ |
+| **Acuerdo impugnado** | Hay una impugnación pendiente ante el juez sobre un acuerdo ya aprobado                                         |
+| **Acuerdo reformado** | El juez ordena corregir el acuerdo y se corrige dentro del plazo                                                |
 
 **Fracaso** (la fase que ya existía) pide un subtipo de entre 13 — por
-ejemplo *Inasistencia del deudor*, *Incumplimiento*, *Impugnación del
-acuerdo*, *Muerte del deudor* — porque cada uno genera un paquete de
+ejemplo _Inasistencia del deudor_, _Incumplimiento_, _Impugnación del
+acuerdo_, _Muerte del deudor_ — porque cada uno genera un paquete de
 documentos distinto.
 
 Otros botones contextuales que verás:
@@ -154,7 +154,7 @@ Módulos independientes con CRUD. Al crear un caso puedes vincular un deudor exi
 4. **Generar documentos.**
 
 **Lotes grandes (Todos los paquetes, o Paquete 5) se generan por tandas.**
-El botón muestra *"Generando tanda X de Y..."* mientras corre — es normal
+El botón muestra _"Generando tanda X de Y..."_ mientras corre — es normal
 que un lote grande tarde más que uno chico, y no se puede volver a hacer
 clic hasta que termine. Si una tanda falla a mitad de camino (por ejemplo,
 un corte de red), las tandas que ya terminaron **no se pierden**: aparece
@@ -203,9 +203,9 @@ Botón **"Registrar pago"** (o "Pagar" en una cuota):
 - Fecha de pago
 - Método (Transferencia, Efectivo, Cheque, PSE, Otro)
 - Observaciones
-- **Comprobante** (PDF / JPG / PNG, máx. 10 MB)
+- **Comprobante** (PDF / JPG / PNG, máx. 4 MB)
 
-El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive.
+El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive. Si el archivo pesa más de 4 MB, el formulario lo rechaza al elegirlo y dice cuánto pesa; una foto o un PDF escaneado suelen bajar de ese tamaño guardándolos en menor resolución.
 
 ### 8.3 Estados de pago
 

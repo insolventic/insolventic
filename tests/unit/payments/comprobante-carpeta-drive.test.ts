@@ -64,11 +64,9 @@ const ID_CARPETA_CASO = '1CarpetaDelCaso';
 const ID_CARPETA_COMPROBANTES = '1AbCdEfGhIjKlMnOpQrStUvWxYz';
 const ID_ARCHIVO = 'archivo-subido';
 
-const archivo = {
-  fileName: 'comprobante.pdf',
-  mimeType: 'application/pdf',
-  dataBase64: Buffer.from('%PDF-1.4').toString('base64'),
-};
+const archivo = new File(['%PDF-1.4'], 'comprobante.pdf', {
+  type: 'application/pdf',
+});
 
 const acciones = [
   [
@@ -87,7 +85,7 @@ const acciones = [
   ],
   [
     'uploadPaymentReceipt',
-    () => uploadPaymentReceipt({ paymentId: 'pago-1', ...archivo }),
+    () => uploadPaymentReceipt({ paymentId: 'pago-1', receipt: archivo }),
   ],
 ] as const;
 

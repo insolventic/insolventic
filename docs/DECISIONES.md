@@ -2,6 +2,21 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-05 — Comprobantes de pago: 4 MB por server action, sin subida directa a Drive
+
+**Diagnóstico:** la UI y el manual prometían 10 MB, pero el comprobante viajaba en base64 dentro de una server action sin `bodySizeLimit`. Next corta en 1 MB: reproducido contra `next dev`, 760 KB reales pasan y 780 KB rechazan la promesa en el cliente, que mostraba "Error al registrar pago".
+
+**Decisión:** `MAX_COMPROBANTE_MB = 4` (`src/features/payment/constants.ts`) y `bodySizeLimit: '4.25mb'` (`next.config.ts`). El techo es de la plataforma: Vercel corta el cuerpo de las funciones en 4,5 MB. El archivo pasa a viajar como `File` y no en base64, que con ese mismo techo solo dejaría 3 MB.
+
+**Descartado por ahora — subida directa con sesión reanudable de Drive** (la única forma de mantener 10 MB):
+
+- El servidor deja de ver los bytes: tamaño y tipo solo se pueden comprobar después de subidos, y un fallo entre la subida y el registro del pago deja archivos huérfanos que hay que limpiar.
+- El flujo pasa de una llamada a tres (abrir sesión, subir, confirmar), y su parte crítica (CORS de la sesión de Drive) no se puede probar sin el Drive real.
+
+Se reabre si 4 MB resulta poco en uso real, por ejemplo con fotos de celular. Que `bodySizeLimit`, la constante y el manual sigan de acuerdo lo vigila `tests/unit/payments/comprobante-limite-tamano.test.ts`.
+
+**Fuera de este cambio:** `uploadCaseDocuments` (alta y edición de casos) tiene el mismo problema y es peor: promete 10 MB por archivo y manda todos los archivos en una sola server action, en base64. `bodySizeLimit` es global, así que ahora le caben unos 3 MB en total, no 10 MB por archivo.
+
 ## Iteración 3 (2026-08-18) — Deploy: workflow roto → integración nativa de Vercel
 
 **Diagnóstico:** `deploy.yml` (`vercel deploy --prebuilt`) fallaba siempre en ~2s (`ENOENT @opentelemetry/api`) y, al competir con la integración nativa Vercel↔GitHub, tapaba los previews nativos reales — no se podía validar el fix de OTel (`serverExternalPackages: ['@opentelemetry/api']`, ya en `next.config.ts`) contra un build real.

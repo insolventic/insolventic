@@ -53,7 +53,11 @@ import {
   registerPayment,
   exportPaymentTrackingToExcel,
 } from '@/features/payment/actions';
-import { PAYMENT_METHODS } from '@/features/payment/constants';
+import {
+  errorDeTamanoDeComprobante,
+  MAX_COMPROBANTE_MB,
+  PAYMENT_METHODS,
+} from '@/features/payment/constants';
 import type {
   PaymentTrackingData,
   PaymentWithRelations,
@@ -208,15 +212,15 @@ export function PaymentTrackingReport() {
 
   useEffect(() => {
     void fetchReport();
-  // Deliberadamente con deps vacías: `fetchReport` no está memoizado, así que
-  // se recrea en cada render. Agregarlo a las deps haría que el efecto corra en
-  // cada render -> setLoading -> re-render -> efecto otra vez: un bucle infinito
-  // de fetches contra el servidor. Memoizarlo con useCallback([dateFrom, dateTo])
-  // tampoco es neutro: el reporte pasaría a refetchear ante cada cambio de
-  // fecha, y la pantalla tiene un botón "Filtrar" explícito justamente para que
-  // el refetch lo decida el usuario. La carga inicial va una vez al montar; las
-  // siguientes las dispara el botón.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Deliberadamente con deps vacías: `fetchReport` no está memoizado, así que
+    // se recrea en cada render. Agregarlo a las deps haría que el efecto corra en
+    // cada render -> setLoading -> re-render -> efecto otra vez: un bucle infinito
+    // de fetches contra el servidor. Memoizarlo con useCallback([dateFrom, dateTo])
+    // tampoco es neutro: el reporte pasaría a refetchear ante cada cambio de
+    // fecha, y la pantalla tiene un botón "Filtrar" explícito justamente para que
+    // el refetch lo decida el usuario. La carga inicial va una vez al montar; las
+    // siguientes las dispara el botón.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilter = () => {
@@ -948,17 +952,6 @@ function RegisterPaymentDialog({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const readFileAsBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
   const handleSubmit = async () => {
     if (!selectedCaseId || !amount || parseFloat(amount) <= 0) {
       setError('Selecciona un caso e ingresa un monto válido.');
@@ -968,26 +961,13 @@ function RegisterPaymentDialog({
     setSubmitting(true);
     setError('');
     try {
-      let receipt:
-        | { fileName: string; mimeType: string; dataBase64: string }
-        | undefined;
-
-      if (receiptFile) {
-        const dataBase64 = await readFileAsBase64(receiptFile);
-        receipt = {
-          fileName: receiptFile.name,
-          mimeType: receiptFile.type,
-          dataBase64,
-        };
-      }
-
       const result = await registerPayment({
         caseId: selectedCaseId,
         amount: parseFloat(amount),
         paymentDate,
         paymentMethod: method || undefined,
         observations: observations || undefined,
-        receipt,
+        receipt: receiptFile ?? undefined,
       });
 
       if (result.success) {
@@ -1195,18 +1175,20 @@ function RegisterPaymentDialog({
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    if (file.size > 10 * 1024 * 1024) {
-                      toast.error('El archivo no puede superar los 10MB');
-                      return;
-                    }
-                    setReceiptFile(file);
+                  if (!file) return;
+                  const errorDeTamano = errorDeTamanoDeComprobante(file.size);
+                  setError(errorDeTamano ?? '');
+                  if (errorDeTamano) {
+                    // Vacío para que volver a elegir el mismo archivo dispare `change`.
+                    e.target.value = '';
+                    return;
                   }
+                  setReceiptFile(file);
                 }}
               />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              PDF, JPG o PNG. Máximo 10MB.
+              PDF, JPG o PNG. Máximo {MAX_COMPROBANTE_MB} MB.
             </p>
           </div>
 
