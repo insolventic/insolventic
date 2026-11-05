@@ -390,7 +390,7 @@ export async function createCreditor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'creditor',
       entityId: creditor.id,
@@ -470,7 +470,7 @@ export async function updateCreditor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'creditor',
       entityId: updatedCreditor.id,
@@ -550,7 +550,7 @@ export async function deleteCreditor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'creditor',
       entityId: deletedCreditor.id,
