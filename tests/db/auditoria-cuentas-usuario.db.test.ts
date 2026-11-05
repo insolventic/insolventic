@@ -4,7 +4,7 @@
  *
  * Dos huecos:
  *
- *  1. `createUser`, `updateUser`, `deleteUser` y `revokeUserSessions` llamaban a
+ *  1. `createUser`, `deleteUser` y `revokeUserSessions` llamaban a
  *     `createAuditLog` sin `await`. En Vercel la función puede terminar al
  *     devolver la respuesta y matar el insert en vuelo (ver GC-M4 en
  *     `createAuditLog`).
@@ -51,7 +51,6 @@ import {
   createUser,
   deleteUser,
   revokeUserSessions,
-  updateUser,
 } from '@/features/user/actions';
 import { mockCookies } from '../__mocks__/next-headers';
 
@@ -184,6 +183,8 @@ afterAll(async () => {
   await prisma.$disconnect();
 });
 
+// `updateUser` no está aquí: su llamada la mueve y la espera la rama
+// `fix/update-user-aviso-cambio-correo`, que además le añade `changedFields`.
 describe('las acciones sobre usuarios esperan el registro de auditoría', () => {
   it('createUser', async () => {
     const creado = await createUser({
@@ -198,24 +199,6 @@ describe('las acciones sobre usuarios esperan el registro de auditoría', () => 
 
     const registros = await auditoriaDe(creado.data!.id);
     expect(registros.map((r) => r.action)).toEqual(['created']);
-  });
-
-  it('updateUser', async () => {
-    const usuario = await crearUsuario();
-
-    const editado = await updateUser({
-      id: usuario.id,
-      name: 'Natalia Ospina de Rojas',
-      email: usuario.email,
-      professionalCard: usuario.professionalCard,
-      phone: usuario.phone,
-      address: usuario.address,
-      roleId: usuario.roleId,
-    });
-    expect(editado.error).toBeUndefined();
-
-    const registros = await auditoriaDe(usuario.id);
-    expect(registros.map((r) => r.action)).toEqual(['updated']);
   });
 
   it('deleteUser', async () => {
