@@ -217,7 +217,7 @@ export async function createUser(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'user',
       entityId: createdUser.id,
@@ -400,7 +400,7 @@ export async function deleteUser(id: string): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'user',
       entityId: deletedUser.id,
@@ -458,7 +458,7 @@ export async function revokeUserSessions(userId: string): Promise<{
       data: { tokenVersion: { increment: 1 } },
     });
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'user',
       entityId: target.id,
