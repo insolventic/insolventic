@@ -9,9 +9,10 @@ const roleForUserSchema = z.object({
 });
 
 /**
- * Base de los esquemas de ENTRADA y del formulario de edición. Lleva `password`
- * porque `updateUser` lo acepta, así que NO sirve para parsear lo que sale hacia
- * el cliente: para eso están `userOutputSchema` y `userSummarySchema`.
+ * Base de los esquemas de ENTRADA y del formulario de edición. Todavía declara
+ * `password`, aunque crear y editar lo omiten y ninguna entrada lo acepta, así
+ * que NO sirve para parsear lo que sale hacia el cliente: para eso están
+ * `userOutputSchema` y `userSummarySchema`.
  *
  * Un campo nuevo acá no sale solo: la salida es una lista cerrada. Antes de
  * agregarlo a ella hay que revisar quién la recibe, en especial si es sensible,
