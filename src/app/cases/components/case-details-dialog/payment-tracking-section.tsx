@@ -53,6 +53,7 @@ import {
   MAX_COMPROBANTE_MB,
   PAYMENT_METHODS,
 } from '@/features/payment/constants';
+import { registrarRechazoPorTamano } from '@/lib/rechazo-tamano';
 
 interface PaymentTrackingSectionProps {
   caseData: CaseWithRelations;
@@ -188,6 +189,7 @@ export function PaymentTrackingSection({
     const errorDeTamano = errorDeTamanoDeComprobante(file.size);
     setPaymentError(errorDeTamano);
     if (errorDeTamano) {
+      registrarRechazoPorTamano('comprobante', file);
       // Vacío para que volver a elegir el mismo archivo dispare `change`.
       input.value = '';
       return;

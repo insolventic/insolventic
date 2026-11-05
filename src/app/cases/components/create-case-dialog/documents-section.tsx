@@ -30,6 +30,7 @@ import {
   casePoderOtorgado,
 } from '@/features/case/validation-rules';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
+import { registrarRechazoPorTamano } from '@/lib/rechazo-tamano';
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -230,6 +231,7 @@ export function DocumentsSection({
       toast.error('Solo se permiten archivos PDF, JPG o PNG');
     }
     if (tooLarge.length > 0) {
+      tooLarge.forEach((f) => registrarRechazoPorTamano('documento-caso', f));
       toast.error(`Cada archivo debe ser menor a ${MAX_FILE_SIZE_MB} MB`);
     }
 

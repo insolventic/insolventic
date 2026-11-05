@@ -6,6 +6,9 @@
  * `ErrorEvent`), con guards en runtime en lugar de asumir la forma exacta.
  */
 
+/** Inicio del mensaje de `registrarRechazoPorTamano`. */
+export const PREFIJO_RECHAZO_POR_TAMANO = 'Archivo rechazado por tamaño';
+
 const SENSITIVE_QUERY_PARAMS =
   /(token|secret|password|apikey|api_key|code)=([^&#]+)/gi;
 const SENSITIVE_HEADERS = ['authorization', 'cookie', 'x-api-key'];
@@ -166,6 +169,33 @@ function scrubStructured(value: unknown): unknown {
  * evento (mutado).
  */
 export function scrubSentryEvent<T>(event: T): T {
+  // Un rechazo por tamaño solo cuenta: no necesita contexto para diagnosticar
+  // nada, y el que agrega el SDK (la URL, las migas de pan de la sesión) puede
+  // traer datos del expediente. Ver `rechazo-tamano.ts`.
+  const minimo = event as {
+    message?: unknown;
+    request?: unknown;
+    breadcrumbs?: unknown;
+    user?: unknown;
+    extra?: unknown;
+    tags?: unknown;
+    contexts?: unknown;
+    transaction?: unknown;
+  };
+  if (
+    typeof minimo.message === 'string' &&
+    minimo.message.startsWith(PREFIJO_RECHAZO_POR_TAMANO)
+  ) {
+    delete minimo.request;
+    delete minimo.breadcrumbs;
+    delete minimo.user;
+    delete minimo.extra;
+    delete minimo.tags;
+    delete minimo.contexts;
+    delete minimo.transaction;
+    return event;
+  }
+
   const req = (
     event as {
       request?: {

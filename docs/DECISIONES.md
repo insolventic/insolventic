@@ -17,6 +17,37 @@ Se reabre si 4 MB resulta poco en uso real, por ejemplo con fotos de celular. Qu
 
 **Fuera de este cambio:** `uploadCaseDocuments` (alta y edición de casos) tiene el mismo problema y es peor: promete 10 MB por archivo y manda todos los archivos en una sola server action, en base64. `bodySizeLimit` es global, así que ahora le caben unos 3 MB en total, no 10 MB por archivo.
 
+## 2026-11-05 — ¿Alcanzan 4 MB? Drive no lo puede responder; se mide hacia adelante
+
+**Por qué no se midió Drive:** lo que hay guardado no dice cuánto pesa lo que la gente quiere subir, solo lo que cupo.
+
+- Antes de este límite no había `bodySizeLimit`, así que Next cortaba el cuerpo en 1 MB: por la app solo entraban archivos de hasta unos 760 KB. Lo que pase de eso en Drive se subió a mano.
+- Los comprobantes fallan desde el 2026-03-24 (`e777c30`): `uploadReceiptToDrive` recibía como carpeta el primer carácter del id. Lo corrige `#178`. Por la app no debería haber ninguno en Drive.
+
+Cualquier porcentaje "sobre 4 MB" calculado con esos datos saldría cerca de cero por construcción, y se leería como evidencia a favor de 4 MB sin serlo. Por eso no se tocó producción.
+
+**Decisión:** registrar cada archivo rechazado por tamaño (`registrarRechazoPorTamano`, `src/lib/rechazo-tamano.ts`) y decidir con esa cifra. Sale el origen, un intervalo y una categoría de tipo, de listas cerradas. No sale el nombre del archivo, ni el peso exacto, ni nada del caso.
+
+- **El contador es el issue de Sentry.** El repo no tiene otra forma de contar eventos. Cada combinación es un mensaje fijo, Sentry agrupa por mensaje, y el número de eventos del issue es la cuenta.
+- **Va en `warn` aunque sea un evento esperado.** El rechazo ocurre en el navegador: en `info` no saldría de la consola del usuario. Y va en el mensaje porque `logger.warn` no le pasa el contexto a Sentry.
+- **`scrubSentryEvent` les quita la URL, las migas de pan, el usuario, los tags, los contextos y la ruta.** El SDK los agrega por su cuenta y pueden traer datos del expediente. Comprobado con el SDK real contra un receptor local: el evento de rechazo sale solo con mensaje, nivel y metadatos del SDK, y uno de control desde la misma página sí llevaba URL y migas con esos datos.
+- **Solo se registra el rechazo de la UI.** `validateReceiptFile` no registra, para no contar dos veces; a esa validación solo se llega saltándose la UI.
+
+**Qué no cuenta:** quien ni lo intenta porque la pantalla ya dice "Máximo 4 MB", y quien comprime y vuelve a subir (cuenta el primer intento). Mientras `documents-section` siga en 10 MB, un documento de 4 a 10 MB no se rechaza al elegirlo, sino que falla al enviarse, y no queda registrado.
+
+**`bodySizeLimit` frente a los topes:**
+
+| Cifra                      | Bytes                   | Fuente                                                                                                     | Estado                                                                                |
+| -------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Archivo máximo (4 MB)      | 4.194.304               | `MAX_COMPROBANTE_BYTES`                                                                                    | Comprobado en `next dev`: pasa con 2.000 caracteres más en el formulario              |
+| Sobrecosto multipart       | 442 más el texto        | Medido con `FormData` en Node                                                                              | Medido en local                                                                       |
+| `bodySizeLimit` (`4.25mb`) | 4.456.448               | `next.config.ts`, leído con `bytes` como Next                                                              | Comprobado en `next dev`: 4,25 MB exactos se rechazan, 3 KB menos pasan               |
+| Tope de Vercel (4,5 MB)    | 4.500.000 si es decimal | [Documentación de Vercel](https://vercel.com/docs/functions/limitations), `413 FUNCTION_PAYLOAD_TOO_LARGE` | **No verificado:** no se desplegó, y la documentación no dice si es decimal o binario |
+
+Con la lectura decimal, la más estricta, `bodySizeLimit` queda 43.552 bytes por debajo del tope, y un comprobante máximo real unos 300 KB por debajo. **Tampoco verificado sin desplegar:** que un cuerpo de ese tamaño cruce Vercel sin problema, y que `NEXT_PUBLIC_SENTRY_DSN` esté definido en producción, sin lo cual el registro no llega a Sentry.
+
+**Cómo decidir:** revisión pendiente en `docs/ROADMAP.md`, Quick Win 10.
+
 ## Iteración 3 (2026-08-18) — Deploy: workflow roto → integración nativa de Vercel
 
 **Diagnóstico:** `deploy.yml` (`vercel deploy --prebuilt`) fallaba siempre en ~2s (`ENOENT @opentelemetry/api`) y, al competir con la integración nativa Vercel↔GitHub, tapaba los previews nativos reales — no se podía validar el fix de OTel (`serverExternalPackages: ['@opentelemetry/api']`, ya en `next.config.ts`) contra un build real.
