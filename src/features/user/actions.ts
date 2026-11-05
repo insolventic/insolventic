@@ -176,6 +176,12 @@ export async function createUser(input: unknown): Promise<{
     const validatedInput = createUserSchema.parse(input);
     const { roleId, ...rest } = validatedInput;
 
+    // Validate role belongs to the same tenant
+    const roleExists = await prisma.role.findFirst({
+      where: { id: roleId, tenantId },
+    });
+    if (!roleExists) return { success: false, error: 'Rol no encontrado' };
+
     // Temporary random password — user will set their own via activation link
     const tempPassword = randomUUID().replaceAll('-', '').slice(0, 16);
     const hashedPassword = await bcrypt.hash(tempPassword, 12);
