@@ -34,6 +34,7 @@ import { filasApoderadoDesdeFormulario } from './apoderado-acreedor';
 import {
   assertCaseAccess,
   assertCaseAccessOnRow,
+  assertDebtorInTenant,
   assertOperatorInTenant,
   caseWhereFromVisibility,
   findParentCaseId,
@@ -1024,6 +1025,11 @@ export async function updateCase(
     // edición y `pre-generation-form` manda ediciones sin él.
     if (validatedInput.operatorId) {
       await assertOperatorInTenant(validatedInput.operatorId, tenantId);
+    }
+
+    // Igual que el operador: el `connect` de abajo solo exige que el id exista.
+    if (validatedInput.debtorId) {
+      await assertDebtorInTenant(validatedInput.debtorId, tenantId);
     }
 
     const {

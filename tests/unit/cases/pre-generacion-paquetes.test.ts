@@ -70,6 +70,8 @@ beforeEach(() => {
   // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
   // pertenece a este centro" y lo que falla es la fixture, no el codigo.
   mockPrisma.user.findFirst.mockResolvedValue({ id: 'operador-1' });
+  // Mismo motivo para el deudor en `updateCase` (`assertDebtorInTenant`).
+  mockPrisma.debtor.findFirst.mockResolvedValue({ id: 'deudor-1' });
   mockAuthenticateUser.mockReset();
   jest.clearAllMocks();
 

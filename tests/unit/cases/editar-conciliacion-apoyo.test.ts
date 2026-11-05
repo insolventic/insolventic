@@ -243,6 +243,8 @@ describe('updateCase — el payload decide si la columna cambia', () => {
     // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
     // pertenece a este centro" y lo que falla es la fixture, no el codigo.
     mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
+    // Mismo motivo para el deudor en `updateCase` (`assertDebtorInTenant`).
+    mockPrisma.debtor.findFirst.mockResolvedValue({ id: 'debtor-1' });
     jest.clearAllMocks();
     mockAuthenticateUser.mockResolvedValue({
       // GC-A1: hace falta un permiso de alcance, no solo `EDITAR_CASOS`.
