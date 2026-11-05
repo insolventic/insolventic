@@ -34,9 +34,11 @@ import { filasApoderadoDesdeFormulario } from './apoderado-acreedor';
 import {
   assertCaseAccess,
   assertCaseAccessOnRow,
+  assertDebtorInTenant,
   assertOperatorInTenant,
   caseWhereFromVisibility,
   findParentCaseId,
+  findUserIdsWhoCanSeeCase,
   resolveCaseVisibility,
 } from './case-access';
 // GC-M4: el audit log de `updateCase` decia solo "Se ha actualizado el caso X".
@@ -1023,6 +1025,11 @@ export async function updateCase(
     // edición y `pre-generation-form` manda ediciones sin él.
     if (validatedInput.operatorId) {
       await assertOperatorInTenant(validatedInput.operatorId, tenantId);
+    }
+
+    // Igual que el operador: el `connect` de abajo solo exige que el id exista.
+    if (validatedInput.debtorId) {
+      await assertDebtorInTenant(validatedInput.debtorId, tenantId);
     }
 
     const {
@@ -2575,7 +2582,9 @@ export async function deleteCase(
       tenantId,
       undefined, // No entityId since case is deleted
       undefined, // No caseId since case is deleted
-      undefined,
+      // Sin caseId no hay fila que consultar: los destinatarios salen de la que
+      // devolvió el borrado, o el aviso no llegaría a los roles acotados.
+      await findUserIdsWhoCanSeeCase(deletedCase, tenantId),
       {
         name: user.name,
         email: user.email,
