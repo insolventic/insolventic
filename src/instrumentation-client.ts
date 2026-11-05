@@ -16,12 +16,15 @@
 import * as Sentry from '@sentry/nextjs';
 
 import { scrubSentryEvent } from '@/lib/sentry-scrub';
+import { clientSentryRelease } from '@/lib/sentry-release';
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
 if (dsn) {
   Sentry.init({
     dsn,
+    // Mismo release que el servidor y que los mapas subidos en CI (O-1).
+    release: clientSentryRelease(),
     environment:
       process.env.NEXT_PUBLIC_APP_ENV ?? process.env.NODE_ENV ?? 'development',
     // 10% de muestreo de performance en producción; 0 en el resto.

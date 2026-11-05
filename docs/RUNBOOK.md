@@ -437,7 +437,58 @@ Qué hacer:
 
 ---
 
-## 8. Referencias
+## 8. Source maps de Sentry
+
+Sin source maps, cada error de producción en el dashboard apunta a algo como
+`chunks/740-79d2c44d906524ae.js:1:48213`. El código ya está puesto para
+subirlos; falta **una cosa del lado de las cuentas**.
+
+### 8.1 Qué falta para encenderlo
+
+Tres secrets en GitHub (Settings → Secrets and variables → Actions):
+
+| Secret              | De dónde sale                                                          |
+| ------------------- | ---------------------------------------------------------------------- |
+| `SENTRY_AUTH_TOKEN` | Sentry → Settings → Auth Tokens → Create. Alcances: `project:releases` |
+| `SENTRY_ORG`        | El slug de la organización (está en la URL del dashboard)              |
+| `SENTRY_PROJECT`    | El slug del proyecto                                                   |
+
+Hasta que `SENTRY_AUTH_TOKEN` exista, el step "Subir source maps a Sentry" de
+`pr.yml` **se saltea solo** y el resto del CI sigue igual. No hay nada más que
+cambiar en el código.
+
+### 8.2 Cómo funciona, en dos líneas
+
+El proyecto **no** usa `withSentryConfig()` a propósito (reabre el ENOENT de
+`@opentelemetry/api` que rompió los deploys en agosto; ver `next.config.ts`),
+así que no hay _debug ids_ inyectados en el bundle. El emparejamiento es por
+**release**, y el nombre del release es el **SHA del commit**:
+
+- La app lo reporta con `release` en los tres `Sentry.init()`
+  (`src/lib/sentry-release.ts`), leído de `VERCEL_GIT_COMMIT_SHA` en el
+  servidor y de `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` en el navegador.
+- El CI sube los mapas de ese mismo SHA en los push a `dev` y a `main`.
+
+### 8.3 Si los stack traces siguen minificados
+
+En este orden:
+
+1. **¿Corrió el step?** Actions → la corrida del push → "Subir source maps a
+   Sentry". Si dice _skipped_, falta el secret. Si está en amarillo, falló el
+   upload (es `continue-on-error`: no bloquea el merge a propósito).
+2. **¿El evento trae release?** En el dashboard, el error tiene que mostrar un
+   release con forma de SHA. Si no trae ninguno, el proyecto en Vercel no tiene
+   activado "Automatically expose System Environment Variables" — el mismo
+   síntoma que hace que `/api/health` devuelva `commit: "unknown"` (§1).
+3. **¿Coinciden los nombres de archivo?** Sentry empareja por URL. Si el build
+   de CI y el de Vercel produjeron chunks con hashes distintos (versiones de
+   dependencias distintas entre los dos builds del mismo commit), los mapas
+   están subidos pero no casan. Se ve con
+   `npx @sentry/cli sourcemaps explain <event-id>`.
+
+---
+
+## 9. Referencias
 
 - Arquitectura y flujos: `docs/ARQUITECTURA.md`
 - Auditoría pre-producción y hallazgos abiertos:

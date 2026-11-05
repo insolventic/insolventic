@@ -25,6 +25,19 @@ const nextConfig: NextConfig = {
   // resolve it from node_modules at runtime instead of trying to trace it.
   serverExternalPackages: ['@opentelemetry/api'],
 
+  // Emite los source maps del bundle del navegador, que es lo que
+  // `sentry-cli sourcemaps upload` sube en CI. Sin esto no hay mapas que
+  // subir y cada error de produccion apunta a
+  // `chunks/740-79d2c44d906524ae.js:1:48213` (hallazgo O-1).
+  //
+  // El costo: los `.map` quedan servidos en `/_next/static/...`, asi que el
+  // codigo del cliente queda legible para cualquiera. Para este proyecto no
+  // cambia nada —el repositorio es publico— y es el precio de no usar
+  // `withSentryConfig()`, que subiria los mapas sin publicarlos pero reabre
+  // el ENOENT de `@opentelemetry/api` que rompio los deploys en agosto.
+  // Si el repositorio pasara a privado, hay que revisar esta linea.
+  productionBrowserSourceMaps: true,
+
   // `next build` avisaba en cada corrida:
   //   Module not found: Can't resolve 'encoding'
   //   ./node_modules/html-to-docx/dist/html-to-docx.esm.js
