@@ -38,12 +38,18 @@ export const createUserSchema = userSchema.omit({
 
 export type CreateUserData = z.infer<typeof createUserSchema>;
 
+/**
+ * Sin `password`: editar un usuario no cambia su contraseña. Para eso están
+ * `changePassword` y `forgotPassword`. `updateUser` rechaza el campo de forma
+ * explícita, porque aquí Zod solo lo descartaría.
+ */
 export const updateUserSchema = userSchema
   .omit({
     role: true,
     lastLogin: true,
     createdDate: true,
     assignedCases: true,
+    password: true,
   })
   .partial()
   .required({ id: true });
