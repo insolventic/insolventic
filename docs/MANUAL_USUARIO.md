@@ -59,6 +59,8 @@ Al ingresar verás:
 8. **Declaraciones** — veracidad, buena fe, no ocultamiento, autorizaciones.
 9. **Propuesta de pago** — plazo, cuota mensual, período de gracia, etc.
 
+**Documentos del caso:** PDF, JPG o PNG, máx. 4 MB por archivo, en la pestaña de documentos del formulario, al crear o al editar el caso. No hay límite para el total. Un archivo más pesado se rechaza al elegirlo; un PDF comprimido o una foto en menor resolución suelen caber. Si alguno no se puede subir al guardar, los demás quedan guardados y un aviso dice cuál falló y por qué; se vuelve a adjuntar desde **Editar caso → Documentos**.
+
 **Para un caso de Conciliación**, el formulario cambia: asunto y cuantía,
 audiencia virtual (Zoom: ID, código de acceso, enlace), convocante/convocado
 y sus apoderados, fechas reales del trámite (solicitud, citación,
@@ -205,7 +207,7 @@ Botón **"Registrar pago"** (o "Pagar" en una cuota):
 - Observaciones
 - **Comprobante** (PDF / JPG / PNG, máx. 4 MB)
 
-El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive. Si el archivo pesa más de 4 MB, el formulario lo rechaza al elegirlo y dice cuánto pesa; una foto o un PDF escaneado suelen bajar de ese tamaño guardándolos en menor resolución.
+El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive. Si el archivo pesa más de 4 MB, el formulario lo rechaza al elegirlo y dice cuánto pesa; una foto o un PDF escaneado suelen bajar de ese tamaño comprimiéndolos o guardándolos en menor resolución.
 
 ### 8.3 Estados de pago
 

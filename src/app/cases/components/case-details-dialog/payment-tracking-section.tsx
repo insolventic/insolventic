@@ -48,11 +48,8 @@ import {
   registerPayment,
   type Payment,
 } from '@/features/payment/actions';
-import {
-  errorDeTamanoDeComprobante,
-  MAX_COMPROBANTE_MB,
-  PAYMENT_METHODS,
-} from '@/features/payment/constants';
+import { PAYMENT_METHODS } from '@/features/payment/constants';
+import { errorDeTamanoDeArchivo, MAX_ARCHIVO_MB } from '@/lib/limite-archivos';
 
 interface PaymentTrackingSectionProps {
   caseData: CaseWithRelations;
@@ -185,7 +182,7 @@ export function PaymentTrackingSection({
 
   // El error vive en el diálogo, junto al campo: se limpia al abrir y al cerrar.
   const handleReceiptSelected = (file: File, input: HTMLInputElement) => {
-    const errorDeTamano = errorDeTamanoDeComprobante(file.size);
+    const errorDeTamano = errorDeTamanoDeArchivo(file.size);
     setPaymentError(errorDeTamano);
     if (errorDeTamano) {
       // Vacío para que volver a elegir el mismo archivo dispare `change`.
@@ -644,7 +641,7 @@ function PaymentDialog({
               />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              PDF, JPG o PNG. Máximo {MAX_COMPROBANTE_MB} MB.
+              PDF, JPG o PNG. Máximo {MAX_ARCHIVO_MB} MB.
             </p>
           </div>
 
