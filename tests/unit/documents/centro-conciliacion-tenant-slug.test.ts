@@ -37,7 +37,7 @@ describe('resolveCenterFolderName — resolución por SLUG, no por cuid', () => 
 
   it('REGRESIÓN: el cuid real del tenant (lo que pasaban los 7 llamadores) no resuelve ningún centro', () => {
     // Esto es exactamente lo que generateInitialDocuments / batchGenerateDocuments
-    // / uploadCaseDocuments / etc. le pasaban antes del fix: el cuid que
+    // / uploadCaseDocument / etc. le pasaban antes del fix: el cuid que
     // devuelve authenticateUser().tenantId, no el slug.
     for (const { cuid } of TENANTS) {
       expect(() => resolveCenterFolderName(cuid)).toThrow(

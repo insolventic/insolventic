@@ -25,6 +25,19 @@ const nextConfig: NextConfig = {
   // resolve it from node_modules at runtime instead of trying to trace it.
   serverExternalPackages: ['@opentelemetry/api'],
 
+  // Cuerpo máximo de una server action. Next corta en 1 MB si no se dice nada,
+  // y los comprobantes de pago y los documentos del caso viajan en una server
+  // action (hasta 4 MB por archivo, ver MAX_ARCHIVO_MB). Subirlo más no sirve:
+  // Vercel corta el cuerpo de las funciones cerca de 4,49 MB (medido) antes de
+  // que llegue aquí.
+  // Los 256 KB por encima de los 4 MB son para las cabeceras multipart y el
+  // resto del formulario.
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '4.25mb',
+    },
+  },
+
   // `next build` avisaba en cada corrida:
   //   Module not found: Can't resolve 'encoding'
   //   ./node_modules/html-to-docx/dist/html-to-docx.esm.js

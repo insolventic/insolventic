@@ -100,7 +100,7 @@ import {
 } from '@/features/debtor/actions';
 import {
   batchGenerateDocuments,
-  uploadCaseDocuments,
+  uploadCaseDocument,
 } from '@/features/document/actions';
 import {
   generatePaymentSchedule,
@@ -119,11 +119,8 @@ import {
 
 const TAG = `auditoria-modulos-${Date.now().toString(36)}`;
 const SIN_AUDITORIA = 'sin_auditoria_de_prueba_modulos';
-const COMPROBANTE = {
-  fileName: 'comprobante.pdf',
-  mimeType: 'application/pdf',
-  dataBase64: Buffer.from('pdf').toString('base64'),
-};
+const unPdf = (nombre: string) =>
+  new File(['%PDF-1.4'], nombre, { type: 'application/pdf' });
 
 let centro: TenantDePrueba;
 let consecutivo = 0;
@@ -416,15 +413,15 @@ const ESCENARIOS: Escenario[] = [
     quedoHecha: async (id) => (await documentosDelCaso(id)) === 1,
   },
   {
-    nombre: 'uploadCaseDocuments',
+    nombre: 'uploadCaseDocument',
     accionAuditada: 'created',
     entityType: 'document',
     ejecutar: async () => {
       const { id } = await crearCaso();
-      const resultado = await uploadCaseDocuments({
+      const resultado = await uploadCaseDocument({
         caseId: id,
-        personName: 'Rubén Darío Castaño Pérez',
-        documents: [{ docName: 'Cédula', ...COMPROBANTE }],
+        docName: 'Cédula',
+        file: unPdf('cedula.pdf'),
       });
       return { resultado, entityId: id };
     },
@@ -481,7 +478,7 @@ const ESCENARIOS: Escenario[] = [
       const pago = await crearPago();
       const resultado = await uploadPaymentReceipt({
         paymentId: pago.id,
-        ...COMPROBANTE,
+        receipt: unPdf('comprobante.pdf'),
       });
       return { resultado, entityId: pago.caseId };
     },

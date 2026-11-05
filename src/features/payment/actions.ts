@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
 import {
   checkRateLimit,
   getRateLimitKey,
@@ -103,10 +104,13 @@ function sanitizeFileName(fileName: string): string {
   return sanitized;
 }
 
-function validateReceiptFile(
-  fileName: string,
-  mimeType: string,
-): { valid: boolean; error?: string } {
+function validateReceiptFile(file: File): { valid: boolean; error?: string } {
+  const errorDeTamano = errorDeTamanoDeArchivo(file.size);
+  if (errorDeTamano) {
+    return { valid: false, error: errorDeTamano };
+  }
+
+  const { name: fileName, type: mimeType } = file;
   if (
     !ALLOWED_RECEIPT_MIME_TYPES.includes(
       mimeType as (typeof ALLOWED_RECEIPT_MIME_TYPES)[number],
@@ -131,9 +135,7 @@ function validateReceiptFile(
 async function uploadReceiptToDrive(
   caseId: string,
   tenantId: string,
-  fileName: string,
-  mimeType: string,
-  dataBase64: string,
+  file: File,
 ): Promise<{
   receiptFileId: string;
   receiptFileName: string;
@@ -161,17 +163,17 @@ async function uploadReceiptToDrive(
     });
   }
 
-  const [comprobantesFolderId] = await googleDriveService.createFolderHierarchy(
+  const comprobantesFolderId = await googleDriveService.createFolderHierarchy(
     ['Comprobantes'],
     caseFolderId,
   );
 
-  const sanitizedName = sanitizeFileName(fileName);
-  const buffer = Buffer.from(dataBase64, 'base64');
+  const sanitizedName = sanitizeFileName(file.name);
+  const buffer = Buffer.from(await file.arrayBuffer());
   const fileId = await googleDriveService.uploadFile(
     sanitizedName,
     buffer,
-    mimeType,
+    file.type,
     comprobantesFolderId,
   );
   const fileUrl = googleDriveService.getFileUrl(fileId);
@@ -364,13 +366,7 @@ const markPaymentPaidInput = z.object({
   amount: z.number().positive().optional(),
   paymentMethod: z.string().optional(),
   observations: z.string().optional(),
-  receipt: z
-    .object({
-      fileName: z.string(),
-      mimeType: z.string(),
-      dataBase64: z.string().max(13_700_000),
-    })
-    .optional(),
+  receipt: z.instanceof(File).optional(),
 });
 
 export async function markPaymentPaid(
@@ -409,19 +405,14 @@ export async function markPaymentPaid(
     } | null = null;
 
     if (validated.receipt) {
-      const fileValidation = validateReceiptFile(
-        validated.receipt.fileName,
-        validated.receipt.mimeType,
-      );
+      const fileValidation = validateReceiptFile(validated.receipt);
       if (!fileValidation.valid) {
         return { success: false, error: fileValidation.error };
       }
       receiptData = await uploadReceiptToDrive(
         payment.caseId,
         tenantId,
-        validated.receipt.fileName,
-        validated.receipt.mimeType,
-        validated.receipt.dataBase64,
+        validated.receipt,
       );
     }
 
@@ -480,13 +471,7 @@ const registerPaymentInput = z.object({
   paymentDate: z.string(),
   paymentMethod: z.string().optional(),
   observations: z.string().optional(),
-  receipt: z
-    .object({
-      fileName: z.string(),
-      mimeType: z.string(),
-      dataBase64: z.string().max(13_700_000),
-    })
-    .optional(),
+  receipt: z.instanceof(File).optional(),
 });
 
 export async function registerPayment(
@@ -532,19 +517,14 @@ export async function registerPayment(
     } | null = null;
 
     if (validated.receipt) {
-      const fileValidation = validateReceiptFile(
-        validated.receipt.fileName,
-        validated.receipt.mimeType,
-      );
+      const fileValidation = validateReceiptFile(validated.receipt);
       if (!fileValidation.valid) {
         return { success: false, error: fileValidation.error };
       }
       receiptData = await uploadReceiptToDrive(
         validated.caseId,
         tenantId,
-        validated.receipt.fileName,
-        validated.receipt.mimeType,
-        validated.receipt.dataBase64,
+        validated.receipt,
       );
     }
 
@@ -600,9 +580,7 @@ export async function registerPayment(
 
 const uploadReceiptInput = z.object({
   paymentId: z.string(),
-  fileName: z.string(),
-  mimeType: z.string(),
-  dataBase64: z.string().max(13_700_000),
+  receipt: z.instanceof(File),
 });
 
 export async function uploadPaymentReceipt(
@@ -619,10 +597,7 @@ export async function uploadPaymentReceipt(
       return { success: false, error: 'No tienes permisos' };
     }
 
-    const fileValidation = validateReceiptFile(
-      validated.fileName,
-      validated.mimeType,
-    );
+    const fileValidation = validateReceiptFile(validated.receipt);
     if (!fileValidation.valid) {
       return { success: false, error: fileValidation.error };
     }
@@ -641,9 +616,7 @@ export async function uploadPaymentReceipt(
     const receiptData = await uploadReceiptToDrive(
       payment.caseId,
       tenantId,
-      validated.fileName,
-      validated.mimeType,
-      validated.dataBase64,
+      validated.receipt,
     );
 
     await prisma.payment.update({
