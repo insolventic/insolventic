@@ -68,6 +68,7 @@ import {
 } from '@/features/payment/actions';
 import {
   errorDeTamanoDeArchivo,
+  errorDeTamanoTrasRechazo,
   MAX_ARCHIVO_BYTES,
   MAX_ARCHIVO_MB,
 } from '@/lib/limite-archivos';
@@ -209,6 +210,38 @@ describe('límite de tamaño del comprobante', () => {
 
     it('calla si el archivo cabe', () => {
       expect(errorDeTamanoDeArchivo(MAX_ARCHIVO_BYTES)).toBeNull();
+    });
+
+    it('MAX_ARCHIVO_MB son MiB: 4 MB son 4.194.304 bytes', () => {
+      expect(MAX_ARCHIVO_BYTES).toBe(4_194_304);
+    });
+  });
+
+  describe('rechazo de la promesa', () => {
+    const GENERICO = new Error(
+      'An unexpected response was received from the server.',
+    );
+
+    it('por los bytes enviados, aunque el error no diga nada del tamaño', () => {
+      expect(errorDeTamanoTrasRechazo(GENERICO, MAX_ARCHIVO_BYTES + 1)).toBe(
+        errorDeTamanoDeArchivo(MAX_ARCHIVO_BYTES + 1),
+      );
+    });
+
+    it.each([
+      'Body exceeded 4.25mb limit.',
+      'Request Entity Too Large FUNCTION_PAYLOAD_TOO_LARGE iad1::x',
+    ])('por el texto del rechazo: %s', (texto) => {
+      expect(errorDeTamanoTrasRechazo(new Error(texto), 1024)).toMatch(
+        /hasta 4 MB/,
+      );
+    });
+
+    it('calla si nada apunta al tamaño (un corte de red)', () => {
+      expect(
+        errorDeTamanoTrasRechazo(new TypeError('Failed to fetch'), 1024),
+      ).toBeNull();
+      expect(errorDeTamanoTrasRechazo(GENERICO, MAX_ARCHIVO_BYTES)).toBeNull();
     });
   });
 

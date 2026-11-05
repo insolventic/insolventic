@@ -1,7 +1,10 @@
 import { toast } from 'sonner';
 
 import { uploadCaseDocument } from '@/features/document/actions';
-import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
+import {
+  errorDeTamanoDeArchivo,
+  errorDeTamanoTrasRechazo,
+} from '@/lib/limite-archivos';
 
 export interface FalloDeSubida {
   fileName: string;
@@ -40,8 +43,8 @@ function conTipoDeclarado(file: File): File {
  * adjuntos en Drive, y dos a la vez podrían duplicarla.
  *
  * Nunca rechaza: un archivo que falla queda en `fallos` y se sigue con el
- * siguiente. El rechazo de la promesa es lo que llega ante un corte de red o de
- * cuerpo, antes de que la acción corra.
+ * siguiente. La acción no lanza; el rechazo de la promesa es lo que llega ante
+ * un corte de red o de cuerpo, antes de que corra.
  */
 export async function subirDocumentosDelCaso(
   caseId: string,
@@ -71,10 +74,13 @@ export async function subirDocumentosDelCaso(
             motivo: respuesta.error ?? 'Error desconocido',
           });
         }
-      } catch {
+      } catch (error) {
+        // Un 413 de la plataforma llega como un error genérico de Next
+        // ("An unexpected response..."), sin decir que fue por tamaño.
         resultado.fallos.push({
           fileName: file.name,
           motivo:
+            errorDeTamanoTrasRechazo(error, new Blob([file]).size) ??
             'No se pudo enviar el archivo. Revisa tu conexión e inténtalo de nuevo.',
         });
       }

@@ -113,17 +113,63 @@ describe('subirDocumentosDelCaso', () => {
     });
   });
 
-  it('una promesa rechazada (corte de red o de cuerpo) tampoco se lleva a los demás', async () => {
+  it('un corte de red no se lleva a los demás y se explica como conexión', async () => {
     mockUploadCaseDocument
-      .mockRejectedValueOnce(new Error('Body exceeded 4.25mb limit.'))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
       .mockResolvedValue({ success: true });
 
     const resultado = await subirDocumentosDelCaso('caso-1', SELECCION);
 
     expect(resultado.subidos).toBe(2);
+    expect(resultado.fallos).toEqual([
+      {
+        fileName: 'cedula.pdf',
+        motivo:
+          'No se pudo enviar el archivo. Revisa tu conexión e inténtalo de nuevo.',
+      },
+    ]);
+  });
+
+  it('el 413 de la plataforma (error genérico de Next) se explica con el mensaje de tamaño', async () => {
+    // Se salta la validación del cliente: `size` miente, los bytes no.
+    const grande = new File(
+      [new Uint8Array(CUATRO_MB + 300_000)],
+      'escritura.pdf',
+      {
+        type: 'application/pdf',
+      },
+    );
+    Object.defineProperty(grande, 'size', { value: 1 });
+    mockUploadCaseDocument
+      .mockRejectedValueOnce(
+        new Error('An unexpected response was received from the server.'),
+      )
+      .mockResolvedValue({ success: true });
+
+    const resultado = await subirDocumentosDelCaso('caso-1', [
+      { docName: 'Escritura', files: [grande] },
+      { docName: 'REDAM', files: [pdf('redam.pdf')] },
+    ]);
+
+    expect(mockUploadCaseDocument).toHaveBeenCalledTimes(2);
+    expect(resultado.subidos).toBe(1);
     expect(resultado.fallos).toHaveLength(1);
-    expect(resultado.fallos[0].fileName).toBe('cedula.pdf');
-    expect(resultado.fallos[0].motivo).toMatch(/No se pudo enviar/);
+    expect(resultado.fallos[0].fileName).toBe('escritura.pdf');
+    expect(resultado.fallos[0].motivo).toBe(
+      'El archivo pesa 4,3 MB y el máximo es 4 MB. Comprime el PDF o reduce la foto y vuelve a adjuntarlo.',
+    );
+  });
+
+  it('un "Body exceeded" con un archivo que cabe también se explica por tamaño, no como error técnico', async () => {
+    mockUploadCaseDocument.mockRejectedValueOnce(
+      new Error('Body exceeded 4.25mb limit.'),
+    );
+
+    const resultado = await subirDocumentosDelCaso('caso-1', [
+      { docName: 'Cédula', files: [pdf('cedula.pdf')] },
+    ]);
+
+    expect(resultado.fallos[0].motivo).toMatch(/hasta 4 MB/);
     expect(resultado.fallos[0].motivo).not.toMatch(/Body exceeded/);
   });
 

@@ -49,7 +49,11 @@ import {
   type Payment,
 } from '@/features/payment/actions';
 import { PAYMENT_METHODS } from '@/features/payment/constants';
-import { errorDeTamanoDeArchivo, MAX_ARCHIVO_MB } from '@/lib/limite-archivos';
+import {
+  errorDeTamanoDeArchivo,
+  errorDeTamanoTrasRechazo,
+  MAX_ARCHIVO_MB,
+} from '@/lib/limite-archivos';
 
 interface PaymentTrackingSectionProps {
   caseData: CaseWithRelations;
@@ -228,8 +232,16 @@ export function PaymentTrackingSection({
       } else {
         setPaymentError(result.error || 'Error al registrar pago');
       }
-    } catch {
-      setPaymentError('Error al registrar pago');
+    } catch (error) {
+      // Un cuerpo rechazado por la plataforma llega como error genérico.
+      const errorDeTamano =
+        receiptFile &&
+        errorDeTamanoTrasRechazo(error, new Blob([receiptFile]).size);
+      setPaymentError(
+        errorDeTamano
+          ? `${receiptFile.name}: ${errorDeTamano}`
+          : 'Error al registrar pago',
+      );
     } finally {
       setSubmitting(false);
     }

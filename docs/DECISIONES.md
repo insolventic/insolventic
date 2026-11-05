@@ -20,6 +20,8 @@ Un `File` cuesta su tamaño más 323 bytes de multipart. El preview se midió co
 
 **Decisión:** una llamada por archivo y como `File` (`uploadCaseDocument`), con `MAX_ARCHIVO_MB = 4` en `src/lib/limite-archivos.ts`, compartido con los comprobantes. El límite de los 3 MB por lote era de base64 y del envío conjunto, no del archivo. Quedan 261 KB de margen sobre `bodySizeLimit`, de sobra para los pocos bytes que acompañan al archivo. Los archivos se suben de a uno, porque cada llamada busca o crea la carpeta de adjuntos, y un fallo no detiene a los siguientes.
 
+**Rechazo de la plataforma:** el 413 de Vercel llega como `text/plain; charset=utf-8`, y el cliente de Next solo copia el texto si el tipo es exactamente `text/plain`: la promesa rechaza con "An unexpected response was received from the server.". El rechazo de `bodySizeLimit` llega enmascarado en producción. `errorDeTamanoTrasRechazo` (`limite-archivos.ts`) los traduce al mensaje del límite por los bytes enviados (`new Blob([file]).size`) y, si no, por el texto del rechazo.
+
 ## 2026-11-05 — Comprobantes de pago: 4 MB por server action, sin subida directa a Drive
 
 **Diagnóstico:** la UI y el manual prometían 10 MB, pero el comprobante viajaba en base64 dentro de una server action sin `bodySizeLimit`. Next corta en 1 MB: reproducido contra `next dev`, 760 KB reales pasan y 780 KB rechazan la promesa en el cliente, que mostraba "Error al registrar pago".
