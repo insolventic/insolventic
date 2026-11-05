@@ -161,7 +161,7 @@ async function uploadReceiptToDrive(
     });
   }
 
-  const [comprobantesFolderId] = await googleDriveService.createFolderHierarchy(
+  const comprobantesFolderId = await googleDriveService.createFolderHierarchy(
     ['Comprobantes'],
     caseFolderId,
   );
