@@ -192,15 +192,17 @@ describe('updateRole', () => {
         tenantId: centroA.tenantId,
       },
     });
-    expect(await enlacesCruzados()).toHaveLength(1);
+    const cruzadosDelRol = async () =>
+      (await enlacesCruzados()).filter((e) => e.roleId === rol.id);
+    expect(await cruzadosDelRol()).toHaveLength(1);
 
     const result = await updateRole({
       id: rol.id,
       permissions: [P.VER_CASOS],
     });
 
+    expect(await cruzadosDelRol()).toEqual([]);
     expect(result.data!.permissions).toEqual([P.VER_CASOS]);
-    expect(await enlacesCruzados()).toEqual([]);
   });
 
   // Control: el rol del otro centro no se entera de nada de lo anterior.
