@@ -82,6 +82,7 @@ export async function createRole(input: unknown): Promise<{
 
     const permissionRecords = await prisma.permission.findMany({
       where: {
+        tenantId,
         name: {
           in: permissions,
         },
@@ -199,6 +200,7 @@ export async function updateRole(input: unknown): Promise<{
 
       const permissionRecords = await prisma.permission.findMany({
         where: {
+          tenantId,
           name: {
             in: permissions,
           },
