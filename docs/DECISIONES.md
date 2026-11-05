@@ -2,6 +2,39 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-05 — Documentos del caso: un archivo por llamada y el mismo límite que los comprobantes
+
+**Diagnóstico:** la UI y el esquema prometían 10 MB por archivo, pero `uploadCaseDocuments` recibía todos los archivos del caso en una sola server action y en base64. Reproducido contra `next dev`: un lote de 2 + 1 MB pasa, 2 + 2 MB rechaza la promesa con `Body exceeded 4.25mb limit`, y un solo archivo de 3,5 MB también, porque en base64 ocupa 4,89 MB. El caso ya estaba creado cuando la subida fallaba, y al editar el fallo era silencioso.
+
+**Medición del tope real** (2026-11-05, `File` en una server action real, Chromium):
+
+| Cuerpo o archivo                        | `next dev`                               | Preview de Vercel                     |
+| --------------------------------------- | ---------------------------------------- | ------------------------------------- |
+| `File` de 4 MB (cuerpo 4.194.627)       | pasa, 10 de 10 (también en `next start`) | llega a la función, 5 de 5            |
+| Cuerpo de 4.456.448 (`bodySizeLimit`)   | es el borde; un byte más rechaza         | llega a la función                    |
+| Cuerpo de 4.493.312                     | rechazado por `bodySizeLimit`            | último que pasa; uno más responde 413 |
+| `File` de 4 MB + 261 KB de otros campos | pasa                                     | sin medir                             |
+| `File` de 4 MB + 267 KB de otros campos | rechazado                                | sin medir                             |
+
+Un `File` cuesta su tamaño más 323 bytes de multipart. El preview se midió con `curl` y un id de acción falso, sin sesión: prueba el corte de la plataforma, no una acción completa.
+
+**Decisión:** una llamada por archivo y como `File` (`uploadCaseDocument`), con `MAX_ARCHIVO_MB = 4` en `src/lib/limite-archivos.ts`, compartido con los comprobantes. El límite de los 3 MB por lote era de base64 y del envío conjunto, no del archivo. Quedan 261 KB de margen sobre `bodySizeLimit`, de sobra para los pocos bytes que acompañan al archivo. Los archivos se suben de a uno, porque cada llamada busca o crea la carpeta de adjuntos, y un fallo no detiene a los siguientes.
+
+**Rechazo de la plataforma:** el 413 de Vercel llega como `text/plain; charset=utf-8`, y el cliente de Next solo copia el texto si el tipo es exactamente `text/plain`: la promesa rechaza con "An unexpected response was received from the server.". El rechazo de `bodySizeLimit` llega enmascarado en producción. `errorDeTamanoTrasRechazo` (`limite-archivos.ts`) los traduce al mensaje del límite por los bytes enviados (`new Blob([file]).size`) y, si no, por el texto del rechazo.
+
+## 2026-11-05 — Comprobantes de pago: 4 MB por server action, sin subida directa a Drive
+
+**Diagnóstico:** la UI y el manual prometían 10 MB, pero el comprobante viajaba en base64 dentro de una server action sin `bodySizeLimit`. Next corta en 1 MB: reproducido contra `next dev`, 760 KB reales pasan y 780 KB rechazan la promesa en el cliente, que mostraba "Error al registrar pago".
+
+**Decisión:** 4 MB (hoy `MAX_ARCHIVO_MB`, `src/lib/limite-archivos.ts`) y `bodySizeLimit: '4.25mb'` (`next.config.ts`). El techo es de la plataforma: Vercel corta el cuerpo de las funciones cerca de 4,49 MB (medido). El archivo pasa a viajar como `File` y no en base64, que con ese mismo techo solo dejaría 3 MB.
+
+**Descartado por ahora — subida directa con sesión reanudable de Drive** (la única forma de mantener 10 MB):
+
+- El servidor deja de ver los bytes: tamaño y tipo solo se pueden comprobar después de subidos, y un fallo entre la subida y el registro del pago deja archivos huérfanos que hay que limpiar.
+- El flujo pasa de una llamada a tres (abrir sesión, subir, confirmar), y su parte crítica (CORS de la sesión de Drive) no se puede probar sin el Drive real.
+
+Se reabre si 4 MB resulta poco en uso real, por ejemplo con fotos de celular. Que `bodySizeLimit`, la constante y el manual sigan de acuerdo lo vigila `tests/unit/payments/comprobante-limite-tamano.test.ts`.
+
 ## Iteración 3 (2026-08-18) — Deploy: workflow roto → integración nativa de Vercel
 
 **Diagnóstico:** `deploy.yml` (`vercel deploy --prebuilt`) fallaba siempre en ~2s (`ENOENT @opentelemetry/api`) y, al competir con la integración nativa Vercel↔GitHub, tapaba los previews nativos reales — no se podía validar el fix de OTel (`serverExternalPackages: ['@opentelemetry/api']`, ya en `next.config.ts`) contra un build real.
