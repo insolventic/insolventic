@@ -7,7 +7,10 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { resumirCambios, valoresAuditables } from '@/features/case/audit-diff';
-import { assertCaseAccessOnRow } from '@/features/case/case-access';
+import {
+  assertCaseAccessOnRow,
+  findUserIdsWhoCanSeeCase,
+} from '@/features/case/case-access';
 import { createNotificationForAction } from '@/features/notification/actions';
 import {
   HEARING_SCHEDULED_PHASE,
@@ -223,6 +226,7 @@ async function registrarCambioDeAudiencia(params: {
     caseNumber: string;
     debtorName: string;
     operatorId: string;
+    debtorId: string;
   };
   antes: Record<string, unknown>;
   datos: Record<string, unknown>;
@@ -260,7 +264,14 @@ async function registrarCambioDeAudiencia(params: {
       },
     });
 
-    if (caso.operatorId !== user.id) {
+    // Una lista explícita de destinatarios se respeta tal cual, así que la regla
+    // de quién puede enterarse de este expediente se aplica aquí.
+    const puedeVerlo =
+      caso.operatorId !== user.id &&
+      (await findUserIdsWhoCanSeeCase(caso, tenantId)).includes(
+        caso.operatorId,
+      );
+    if (puedeVerlo) {
       await createNotificationForAction(
         'case_updated',
         entityName,

@@ -277,6 +277,49 @@ describe('programarAudiencia', () => {
   });
 });
 
+describe('aviso al operador', () => {
+  it('no llega a un operador cuyo rol no le deja ver el caso', async () => {
+    const permiso = await prisma.permission.findFirstOrThrow({
+      where: { tenantId: centro.tenantId, name: P.VER_CASOS },
+    });
+    const rol = await prisma.role.create({
+      data: {
+        name: `Sin alcance ${TAG}`,
+        description: TAG,
+        tenantId: centro.tenantId,
+        permissions: {
+          create: { permissionId: permiso.id, tenantId: centro.tenantId },
+        },
+      },
+    });
+    const sinAlcance = await prisma.user.create({
+      data: {
+        name: 'Operador sin alcance',
+        email: `sin-alcance-${TAG}@centro.test`,
+        professionalCard: '4',
+        phone: '3',
+        address: 'x',
+        roleId: rol.id,
+        tenantId: centro.tenantId,
+      },
+    });
+    como(centro);
+    const caso = await crearCaso(centro, { operatorId: sinAlcance.id });
+
+    const r = await programarAudiencia({
+      caseId: caso.id,
+      fecha: '2026-11-20',
+      hora: '10:00',
+    });
+
+    expect(r.success).toBe(true);
+    const avisos = await prisma.notification.count({
+      where: { tenantId: centro.tenantId, caseId: caso.id },
+    });
+    expect(avisos).toBe(0);
+  });
+});
+
 describe('permisos', () => {
   it('sin Editar casos no programa ni cancela', async () => {
     const caso = await crearCaso(soloLectura);
