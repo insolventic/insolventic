@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
+
 const mapDocumentTypeToSpanish = z.string().transform((type) => {
   const typeMap: Record<string, string> = {
     CEDULA: 'Cédula',
@@ -322,34 +324,24 @@ export const ALLOWED_UPLOAD_MIME_TYPES = [
   'image/png',
 ] as const;
 
-// Upload user-provided documents for a case
-export const uploadCaseDocumentsInputSchema = z.object({
+// Un documento del caso subido por el usuario. Un archivo por llamada y como
+// `File`: el cuerpo de una server action no aguanta más (ver limite-archivos.ts).
+export const uploadCaseDocumentInputSchema = z.object({
   caseId: z.string().min(1, 'El ID del caso es requerido'),
-  personName: z.string().min(1, 'El nombre de la persona es requerido'),
-  documents: z
-    .array(
-      z.object({
-        docName: z.string().min(1),
-        fileName: z
-          .string()
-          .min(1)
-          .max(255, 'Nombre de archivo demasiado largo'),
-        mimeType: z.enum(ALLOWED_UPLOAD_MIME_TYPES, {
-          error:
-            'Tipo de archivo no permitido. Solo se aceptan PDF, JPG y PNG.',
-        }),
-        dataBase64: z
-          .string()
-          .min(1)
-          .max(
-            13_700_000,
-            'El archivo excede el tamaño máximo permitido de 10MB',
-          ),
-      }),
-    )
-    .min(1, 'Debe adjuntar al menos un archivo'),
-});
-
-export const uploadCaseDocumentsOutputSchema = z.object({
-  uploaded: z.number(),
+  docName: z.string().min(1, 'El nombre del documento es requerido'),
+  file: z
+    .instanceof(File, { error: 'Debe adjuntar un archivo' })
+    .refine((f) => f.name.length >= 1, 'El archivo no tiene nombre')
+    .refine((f) => f.name.length <= 255, 'Nombre de archivo demasiado largo')
+    .refine((f) => f.size > 0, 'El archivo está vacío')
+    .superRefine((f, ctx) => {
+      const errorDeTamano = errorDeTamanoDeArchivo(f.size);
+      if (errorDeTamano) {
+        ctx.addIssue({ code: 'custom', message: errorDeTamano });
+      }
+    })
+    .refine(
+      (f) => (ALLOWED_UPLOAD_MIME_TYPES as readonly string[]).includes(f.type),
+      'Tipo de archivo no permitido. Solo se aceptan PDF, JPG y PNG.',
+    ),
 });

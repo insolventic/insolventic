@@ -54,7 +54,10 @@ import {
 import { CreditorsDetailedSection } from './create-case-dialog/creditors-detailed-section';
 import { DebtorSection } from './create-case-dialog/debtor-section';
 import { DocumentsSection } from './create-case-dialog/documents-section';
-import { uploadCaseDocuments } from '@/features/document/actions';
+import {
+  avisarResultadoDeSubida,
+  subirDocumentosDelCaso,
+} from './create-case-dialog/subir-documentos';
 import { CaseDetailsSection } from './create-case-dialog/case-details-section';
 import { LegalProcessSection } from './create-case-dialog/legal-process-section';
 import { ApplicantScopeSection } from './create-case-dialog/applicant-scope-section';
@@ -782,37 +785,13 @@ export function CreateCaseDialog({
       if (success && result) {
         // Upload files BEFORE closing dialog so File objects remain valid
         if (result.id && documentsToUploadRef.current.length > 0) {
-          try {
-            const payload = {
-              caseId: result.id,
-              personName: selectedDebtor?.name || 'Solicitante',
-              documents: await Promise.all(
-                documentsToUploadRef.current.flatMap(({ docName, files }) =>
-                  files.map(async (f) => ({
-                    docName,
-                    fileName: f.name,
-                    mimeType: f.type || 'application/octet-stream',
-                    dataBase64: await fileToBase64(f),
-                  })),
-                ),
-              ),
-            } as const;
-            const uploadResult = await uploadCaseDocuments(payload);
-            if (uploadResult.success) {
-              toast.success(
-                `Caso creado y ${payload.documents.length} documento(s) subido(s) exitosamente`,
-              );
-            } else {
-              toast.warning(
-                'Caso creado, pero hubo un error al subir documentos: ' +
-                  (uploadResult.error ?? 'Error desconocido'),
-              );
-            }
-          } catch {
-            toast.warning(
-              'Caso creado, pero hubo un error al subir documentos',
-            );
-          }
+          avisarResultadoDeSubida(
+            'Caso creado',
+            await subirDocumentosDelCaso(
+              result.id,
+              documentsToUploadRef.current,
+            ),
+          );
         } else {
           toast.success('Caso creado exitosamente');
         }
@@ -871,19 +850,6 @@ export function CreateCaseDialog({
       }
     });
   };
-
-  function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1] || '';
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
 
   const handleCreateDebtor = async (
     data: QuickDebtorFormData,
