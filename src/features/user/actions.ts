@@ -270,7 +270,10 @@ export async function createUser(input: unknown): Promise<{
   }
 }
 
-/** Campos de la cuenta cuyo cambio queda en la auditoría, solo por su nombre. */
+/**
+ * Campos de la cuenta cuyo cambio queda en la auditoría, solo por su nombre. El
+ * correo es la excepción: además guarda las dos direcciones (ver `updateUser`).
+ */
 const CAMPOS_AUDITADOS = [
   'name',
   'email',
@@ -394,11 +397,17 @@ export async function updateUser(input: unknown): Promise<{
       (campo) => updatedUser[campo] !== anterior[campo],
     );
     if (hashedPassword) cambiados.push('password');
+    const cambioDeCorreo = updatedUser.email !== anterior.email;
 
     // Antes de la notificación: si esta lanza, la edición ya está guardada y
-    // tiene que quedar el registro y el aviso. Solo nombres de campo, nunca
-    // valores. El resultado no se mira porque `createAuditLog` ya reporta su
-    // propio fallo y la edición no se puede deshacer.
+    // tiene que quedar el registro y el aviso. El resultado no se mira porque
+    // `createAuditLog` ya reporta su propio fallo y la edición no se puede
+    // deshacer.
+    //
+    // Las direcciones van solo cuando cambia el correo: sin ellas, quien pone
+    // el suyo, restablece la clave y restaura el original deja dos cambios de
+    // `email` que no dicen adónde fue, y no se distingue una corrección de una
+    // toma de la cuenta. Los demás campos quedan solo por su nombre.
     await createAuditLog({
       action: 'updated',
       entityType: 'user',
@@ -410,10 +419,16 @@ export async function updateUser(input: unknown): Promise<{
         userCedula: user.professionalCard,
       },
       tenantId,
-      metadata: { changedFields: cambiados.sort().join(', ') },
+      metadata: {
+        changedFields: cambiados.sort().join(', '),
+        ...(cambioDeCorreo && {
+          previousEmail: anterior.email,
+          newEmail: updatedUser.email,
+        }),
+      },
     });
 
-    if (updatedUser.email !== anterior.email) {
+    if (cambioDeCorreo) {
       await avisarCambioDeCorreo(anterior.email, updatedUser.id, user.name);
     }
 

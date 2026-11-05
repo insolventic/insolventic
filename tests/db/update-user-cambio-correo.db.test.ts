@@ -132,7 +132,7 @@ afterAll(async () => {
 });
 
 describe('auditoría de updateUser', () => {
-  it('registra el correo como campo cambiado, sin guardar ninguna de las dos direcciones', async () => {
+  it('registra el correo como campo cambiado, con las dos direcciones', async () => {
     const usuario = await crearUsuario();
     const nuevo = `nuevo-${usuario.id}@centroejemplo.test`;
 
@@ -141,10 +141,35 @@ describe('auditoría de updateUser', () => {
     expect(result.error).toBeUndefined();
     const auditoria = await auditoriaDe(usuario.id);
     expect(auditoria).toHaveLength(1);
-    expect(auditoria[0].metadata).toEqual({ changedFields: 'email' });
-    const guardado = JSON.stringify(auditoria);
-    expect(guardado).not.toContain(usuario.email);
-    expect(guardado).not.toContain(nuevo);
+    expect(auditoria[0].metadata).toEqual({
+      changedFields: 'email',
+      previousEmail: usuario.email,
+      newEmail: nuevo,
+    });
+  });
+
+  it('deja ver adónde fue el correo si alguien lo cambia y después restaura el original', async () => {
+    const usuario = await crearUsuario();
+    const intruso = `intruso-${usuario.id}@centroejemplo.test`;
+
+    await updateUser(formulario(usuario, { email: intruso }));
+    await updateUser(formulario(usuario));
+
+    const auditoria = await auditoriaDe(usuario.id);
+    expect(auditoria.map((a) => a.metadata)).toEqual(
+      expect.arrayContaining([
+        {
+          changedFields: 'email',
+          previousEmail: usuario.email,
+          newEmail: intruso,
+        },
+        {
+          changedFields: 'email',
+          previousEmail: intruso,
+          newEmail: usuario.email,
+        },
+      ]),
+    );
   });
 
   it('marca solo lo que cambió, aunque el formulario envíe todos los campos', async () => {
@@ -217,7 +242,11 @@ describe('aviso al correo anterior', () => {
 
     expect(correosA(usuario.email)).toHaveLength(1);
     const auditoria = await auditoriaDe(usuario.id);
-    expect(auditoria[0].metadata).toEqual({ changedFields: 'email' });
+    expect(auditoria[0].metadata).toEqual({
+      changedFields: 'email',
+      previousEmail: usuario.email,
+      newEmail: nuevo,
+    });
   });
 
   it('no avisa si el correo no cambió', async () => {
