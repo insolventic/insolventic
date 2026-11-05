@@ -48,11 +48,12 @@ import {
   registerPayment,
   type Payment,
 } from '@/features/payment/actions';
+import { PAYMENT_METHODS } from '@/features/payment/constants';
 import {
-  errorDeTamanoDeComprobante,
-  MAX_COMPROBANTE_MB,
-  PAYMENT_METHODS,
-} from '@/features/payment/constants';
+  errorDeTamanoDeArchivo,
+  errorDeTamanoTrasRechazo,
+  MAX_ARCHIVO_MB,
+} from '@/lib/limite-archivos';
 
 interface PaymentTrackingSectionProps {
   caseData: CaseWithRelations;
@@ -185,7 +186,7 @@ export function PaymentTrackingSection({
 
   // El error vive en el diálogo, junto al campo: se limpia al abrir y al cerrar.
   const handleReceiptSelected = (file: File, input: HTMLInputElement) => {
-    const errorDeTamano = errorDeTamanoDeComprobante(file.size);
+    const errorDeTamano = errorDeTamanoDeArchivo(file.size);
     setPaymentError(errorDeTamano);
     if (errorDeTamano) {
       // Vacío para que volver a elegir el mismo archivo dispare `change`.
@@ -231,8 +232,16 @@ export function PaymentTrackingSection({
       } else {
         setPaymentError(result.error || 'Error al registrar pago');
       }
-    } catch {
-      setPaymentError('Error al registrar pago');
+    } catch (error) {
+      // Un cuerpo rechazado por la plataforma llega como error genérico.
+      const errorDeTamano =
+        receiptFile &&
+        errorDeTamanoTrasRechazo(error, new Blob([receiptFile]).size);
+      setPaymentError(
+        errorDeTamano
+          ? `${receiptFile.name}: ${errorDeTamano}`
+          : 'Error al registrar pago',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -644,7 +653,7 @@ function PaymentDialog({
               />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              PDF, JPG o PNG. Máximo {MAX_COMPROBANTE_MB} MB.
+              PDF, JPG o PNG. Máximo {MAX_ARCHIVO_MB} MB.
             </p>
           </div>
 

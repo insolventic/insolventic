@@ -53,11 +53,12 @@ import {
   registerPayment,
   exportPaymentTrackingToExcel,
 } from '@/features/payment/actions';
+import { PAYMENT_METHODS } from '@/features/payment/constants';
 import {
-  errorDeTamanoDeComprobante,
-  MAX_COMPROBANTE_MB,
-  PAYMENT_METHODS,
-} from '@/features/payment/constants';
+  errorDeTamanoDeArchivo,
+  errorDeTamanoTrasRechazo,
+  MAX_ARCHIVO_MB,
+} from '@/lib/limite-archivos';
 import type {
   PaymentTrackingData,
   PaymentWithRelations,
@@ -977,8 +978,16 @@ function RegisterPaymentDialog({
       } else {
         setError(result.error ?? 'Error al registrar pago');
       }
-    } catch {
-      setError('Error al registrar pago');
+    } catch (error) {
+      // Un cuerpo rechazado por la plataforma llega como error genérico.
+      const errorDeTamano =
+        receiptFile &&
+        errorDeTamanoTrasRechazo(error, new Blob([receiptFile]).size);
+      setError(
+        errorDeTamano
+          ? `${receiptFile.name}: ${errorDeTamano}`
+          : 'Error al registrar pago',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -1176,7 +1185,7 @@ function RegisterPaymentDialog({
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
-                  const errorDeTamano = errorDeTamanoDeComprobante(file.size);
+                  const errorDeTamano = errorDeTamanoDeArchivo(file.size);
                   setError(errorDeTamano ?? '');
                   if (errorDeTamano) {
                     // Vacío para que volver a elegir el mismo archivo dispare `change`.
@@ -1188,7 +1197,7 @@ function RegisterPaymentDialog({
               />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              PDF, JPG o PNG. Máximo {MAX_COMPROBANTE_MB} MB.
+              PDF, JPG o PNG. Máximo {MAX_ARCHIVO_MB} MB.
             </p>
           </div>
 
