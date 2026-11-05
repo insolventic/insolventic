@@ -2,6 +2,19 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## Iteración 4 (2026-11-05) — Cambio de centro: solo por el login
+
+**Diagnóstico:** `switchTenant` elegía la cuenta destino solo por el correo del token, y `updateUser` deja poner en la propia cuenta un correo que existe en otro centro, porque la unicidad es por centro. Con `P.EDITAR_USUARIOS` del centro A se podía entrar a la cuenta de un usuario del centro B sin su clave. Confirmado contra Postgres real en `tests/db/switch-tenant-correo-ajeno.db.test.ts`.
+
+**Decisión:** eliminar la action. Ninguna pantalla la llamaba: "Cambiar Organización" usa `switchDatabase`, que cierra la sesión y lleva al login. Quien tiene cuenta en dos centros cambia entrando con la clave de la cuenta destino.
+
+**Descartado:**
+
+- Pedir la clave de destino dentro de `switchTenant`: exigía una pantalla nueva y mantener una segunda puerta de login para un flujo que ya existe.
+- Un vínculo explícito entre cuentas: exigía migración y definir quién lo aprueba y cómo se prueba que ambas cuentas son de la misma persona.
+
+**Non-goal:** cambiar de centro sin volver a poner la clave. Si algún día hace falta, se construye con alguna de esas dos opciones; nunca a partir del correo del token, porque el usuario puede editarlo.
+
 ## Iteración 3 (2026-08-18) — Deploy: workflow roto → integración nativa de Vercel
 
 **Diagnóstico:** `deploy.yml` (`vercel deploy --prebuilt`) fallaba siempre en ~2s (`ENOENT @opentelemetry/api`) y, al competir con la integración nativa Vercel↔GitHub, tapaba los previews nativos reales — no se podía validar el fix de OTel (`serverExternalPackages: ['@opentelemetry/api']`, ya en `next.config.ts`) contra un build real.
