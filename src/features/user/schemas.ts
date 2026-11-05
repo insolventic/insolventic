@@ -8,6 +8,15 @@ const roleForUserSchema = z.object({
   color: z.string(),
 });
 
+/**
+ * Base de los esquemas de ENTRADA y del formulario de edición. Lleva `password`
+ * porque `updateUser` lo acepta, así que NO sirve para parsear lo que sale hacia
+ * el cliente: para eso están `userOutputSchema` y `userSummarySchema`.
+ *
+ * Un campo nuevo acá no sale solo: la salida es una lista cerrada. Antes de
+ * agregarlo a ella hay que revisar quién la recibe, en especial si es sensible,
+ * como los datos de Zoom que se proponen para `User` (código de acceso incluido).
+ */
 export const userSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'El nombre es requerido'),
@@ -25,7 +34,22 @@ export const userSchema = z.object({
   assignedCases: z.array(z.object({ id: z.string() })),
 });
 
-export type User = z.infer<typeof userSchema>;
+/** Usuario tal como sale hacia el cliente. Nunca lleva `password`. */
+export const userOutputSchema = userSchema.pick({
+  id: true,
+  name: true,
+  email: true,
+  professionalCard: true,
+  phone: true,
+  address: true,
+  roleId: true,
+  lastLogin: true,
+  createdDate: true,
+  role: true,
+  assignedCases: true,
+});
+
+export type User = z.infer<typeof userOutputSchema>;
 
 export const createUserSchema = userSchema.omit({
   id: true,
@@ -56,7 +80,7 @@ export const updateUserSchema = userSchema
 
 export type UpdateUserData = z.infer<typeof updateUserSchema>;
 
-export const userSummarySchema = userSchema.omit({
+export const userSummarySchema = userOutputSchema.omit({
   role: true,
   assignedCases: true,
 });

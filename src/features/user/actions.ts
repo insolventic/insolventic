@@ -17,7 +17,7 @@ import { createAuditLog } from '@/features/audit-log/actions';
 import {
   createUserSchema,
   updateUserSchema,
-  userSchema,
+  userOutputSchema,
   userSummarySchema,
 } from './schemas';
 
@@ -106,13 +106,26 @@ export async function getAllUsers(): Promise<{
       where: {
         tenantId,
       },
-      include: {
+      // `select` y no `include`: un `include` trae la fila entera, contraseña
+      // incluida, aunque esta pantalla no la use.
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        professionalCard: true,
+        phone: true,
+        address: true,
+        roleId: true,
+        lastLogin: true,
+        createdDate: true,
         role: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            color: true,
             permissions: {
-              include: {
-                permission: true,
-              },
+              select: { permission: { select: { name: true } } },
             },
           },
         },
@@ -131,7 +144,7 @@ export async function getAllUsers(): Promise<{
       },
     }));
 
-    const validated = userSchema.array().parse(formattedUsers);
+    const validated = userOutputSchema.array().parse(formattedUsers);
     return {
       success: true,
       data: validated,
