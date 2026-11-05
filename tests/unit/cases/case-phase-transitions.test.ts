@@ -711,6 +711,8 @@ describe('updateCase — la puerta trasera de la máquina de estados (C-1)', () 
     // sea un usuario de ESTE centro. Sin este mock el guard corta con "no
     // pertenece a este centro" y lo que falla es la fixture, no el codigo.
     mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });
+    // Mismo motivo para el deudor en `updateCase` (`assertDebtorInTenant`).
+    mockPrisma.debtor.findFirst.mockResolvedValue({ id: 'deudor-del-centro' });
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
     authAsAdmin();
