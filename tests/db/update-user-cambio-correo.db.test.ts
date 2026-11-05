@@ -43,6 +43,9 @@ const TAG = `cambio-correo-${Date.now().toString(36)}`;
 const CLAVE_NUEVA = 'Clave-Nueva-2026!';
 
 let centro: TenantDePrueba;
+// No se llama `Administrador`: a ese rol le llega el aviso genérico de cada
+// edición, y ese correo se confundiría con los que se comprueban aquí.
+let rolOperadora: string;
 let consecutivo = 0;
 let enviarCorreo: jest.SpyInstance;
 
@@ -67,7 +70,7 @@ async function crearUsuario() {
       phone: '3152240078',
       address: 'Avenida 19 # 104-37, Bogotá D.C.',
       password: await bcrypt.hash('Clave-Original-2026!', 4),
-      roleId: centro.roleId,
+      roleId: rolOperadora,
       tenantId: centro.tenantId,
     },
   });
@@ -103,6 +106,14 @@ function auditoriaDe(usuarioId: string) {
 
 beforeAll(async () => {
   centro = await crearTenantDePrueba(TAG, [P.EDITAR_USUARIOS]);
+  const rol = await prisma.role.create({
+    data: {
+      name: 'Operadora de Insolvencia',
+      description: TAG,
+      tenantId: centro.tenantId,
+    },
+  });
+  rolOperadora = rol.id;
 });
 
 beforeEach(() => {
