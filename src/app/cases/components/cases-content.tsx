@@ -35,6 +35,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { TablePagination } from '@/components/ui/table-pagination';
+import {
+  audienciaVigente,
+  tieneAudienciaPendiente,
+} from '@/features/calendar/audiencia';
+import { HearingDialog } from '@/components/hearings/hearing-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
 
@@ -99,6 +104,7 @@ export function CasesContent({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showPhaseDialog, setShowPhaseDialog] = useState(false);
+  const [showHearingDialog, setShowHearingDialog] = useState(false);
   // El input es local para que escribir no espere al servidor; lo que viaja a
   // la URL va con debounce. `filtros.search` es lo último que el servidor
   // aplicó, así que comparar contra eso evita navegar al montar y después de
@@ -191,6 +197,11 @@ export function CasesContent({
   const changePhase = (caseItem: CaseListItem) => {
     setSelectedCase(caseItem);
     setShowPhaseDialog(true);
+  };
+
+  const scheduleHearing = (caseItem: CaseListItem) => {
+    setSelectedCase(caseItem);
+    setShowHearingDialog(true);
   };
 
   const handleCreateDialogChange = (open: boolean) => {
@@ -314,6 +325,7 @@ export function CasesContent({
                   onEdit={editCase}
                   onDelete={deleteCase}
                   onChangePhase={changePhase}
+                  onScheduleHearing={scheduleHearing}
                 />
               </div>
               <TablePagination
@@ -373,6 +385,18 @@ export function CasesContent({
           caseId={selectedCase.id}
           caseNumber={selectedCase.caseNumber}
           currentPhase={selectedCase.phase}
+          audienciaPendiente={tieneAudienciaPendiente(selectedCase)}
+        />
+      )}
+
+      {selectedCase && (
+        <HearingDialog
+          open={showHearingDialog}
+          onOpenChange={setShowHearingDialog}
+          caseId={selectedCase.id}
+          caseNumber={selectedCase.caseNumber}
+          version={selectedCase.version}
+          audiencia={audienciaVigente(selectedCase)}
         />
       )}
 

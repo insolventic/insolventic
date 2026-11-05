@@ -7,7 +7,8 @@ import { Loader2, Shield } from 'lucide-react';
 import { validateSession } from '@/features/auth/actions';
 
 interface PermissionGuardProps {
-  permission: string;
+  /** Con una lista, basta cualquiera de sus permisos. */
+  permission: string | readonly string[];
   children: React.ReactNode;
   fallback?: React.ReactNode;
   redirectTo?: string;
@@ -22,6 +23,8 @@ export function PermissionGuard({
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  // Una lista llega como referencia nueva: el efecto depende de su contenido.
+  const permisos = [permission].flat().join('|');
 
   useEffect(() => {
     async function checkPermission() {
@@ -36,7 +39,9 @@ export function PermissionGuard({
         return;
       }
 
-      const userHasPermission = user.permissions.includes(permission);
+      const userHasPermission = permisos
+        .split('|')
+        .some((p) => user.permissions.includes(p));
 
       setHasPermission(userHasPermission);
       setIsLoading(false);
@@ -47,7 +52,7 @@ export function PermissionGuard({
     }
 
     checkPermission();
-  }, [permission, redirectTo, router]);
+  }, [permisos, redirectTo, router]);
 
   if (isLoading) {
     return (

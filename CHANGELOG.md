@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Programar, reprogramar y cancelar audiencias**: botón de calendario en cada fila de `/cases` y "Reprogramar" en las
+  tarjetas de `/calendar`, con el permiso `Editar casos` y el alcance del caso. Desde el 29 de marzo de 2026 ningún
+  formulario escribía esa fecha. Migración aditiva: `Case.hearingTime`.
+
+### Fixed
+
+- **Una sola fecha de audiencia en todas las pantallas** (`src/features/calendar/audiencia.ts`): manda `hearingDate`, y
+  `firstHearingDate` queda como la primera que se fijó. Calendario, alertas, listado, reporte y documentos elegían cada
+  uno la suya. El Auto de Admisión cita la primera (`FECHA_PRIMERA_AUDIENCIA`).
+- **Los casos cerrados con audiencia futura salen del calendario, de las alertas y del dashboard.** Las audiencias que ya
+  pasaron siguen en el calendario como registro.
+- **La fase "Audiencia programada" exige una audiencia de hoy en adelante** al entrar a ella, en el servidor. Cancelar la
+  audiencia devuelve el caso a "En negociación". Los casos que ya estaban en esa fase sin fecha no se tocan.
+- **Quien puede editar casos puede abrir el calendario**, limitado a su centro y a los casos que ya ve.
+- **El calendario ya no muestra una audiencia en el mes equivocado**, ni las fechas viejas un día antes.
+- **La alerta de audiencia imprime la hora guardada**: antes imprimía la hora del instante interno (12:00 o 00:00).
+
 ## [1.0.0-rc.1] - 2026-10-18
 
 ### Changed

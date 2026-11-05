@@ -21,6 +21,12 @@
 
 import type { PrismaClient } from '@prisma/client';
 
+import {
+  audienciaVigente,
+  formatearAudiencia,
+  whereAudienciaEntre,
+  whereCasoAbierto,
+} from '@/features/calendar/audiencia';
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
 
@@ -142,23 +148,16 @@ export async function scanUpcomingHearings(
     const cases = await prisma.case.findMany({
       where: {
         tenantId,
-        OR: [
-          { hearingDate: { gte: now, lte: horizon } },
-          {
-            // Only consider firstHearingDate if hearingDate is null.
-            AND: [
-              { hearingDate: null },
-              { firstHearingDate: { gte: now, lte: horizon } },
-            ],
-          },
-        ],
+        AND: [whereAudienciaEntre(now, horizon), whereCasoAbierto()],
       },
       select: {
         id: true,
         caseNumber: true,
         debtorName: true,
         hearingDate: true,
+        hearingTime: true,
         firstHearingDate: true,
+        firstHearingTime: true,
         operatorId: true,
       },
       // Primero la audiencia más próxima: si hay que recortar, lo que queda
@@ -188,11 +187,14 @@ export async function scanUpcomingHearings(
         result.skipped += 1;
         continue;
       }
-      const when = c.hearingDate ?? c.firstHearingDate;
-      if (!when) {
+      const audiencia = audienciaVigente(c);
+      if (!audiencia) {
         result.skipped += 1;
         continue;
       }
+      // La fecha se guarda sin hora (mediodía UTC): el instante no dice a qué
+      // hora es la audiencia. Lo dice `hora`, y si no hay, no se inventa.
+      const when = formatearAudiencia(audiencia);
 
       if (notificados.has(claveDedupe(c.operatorId, c.id))) {
         result.skipped += 1;
@@ -204,7 +206,7 @@ export async function scanUpcomingHearings(
           data: {
             type: 'hearing_upcoming',
             title: 'Audiencia próxima',
-            message: `El caso ${c.caseNumber} (${c.debtorName}) tiene audiencia programada para el ${formatDateTime(when)}.`,
+            message: `El caso ${c.caseNumber} (${c.debtorName}) tiene audiencia programada para el ${when}.`,
             userId: c.operatorId,
             caseId: c.id,
             relatedId: c.id,
@@ -389,7 +391,7 @@ async function sendHearingAlertEmail(
     operatorId: string;
     caseNumber: string;
     debtorName: string;
-    when: Date;
+    when: string;
   },
 ): Promise<void> {
   try {
@@ -407,7 +409,7 @@ async function sendHearingAlertEmail(
       lines: [
         `Caso: ${params.caseNumber}`,
         `Deudor: ${params.debtorName}`,
-        `Fecha y hora: ${formatDateTime(params.when)}`,
+        `Fecha y hora: ${params.when}`,
       ],
     });
   } catch (error) {

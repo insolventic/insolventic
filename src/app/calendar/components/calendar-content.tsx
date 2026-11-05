@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +13,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { DashboardHeader } from '@/app/dashboard/components/dashboard-header';
+import { diaDelMes } from '@/features/calendar/audiencia';
 import { getHearings, type Hearing } from '@/features/calendar/actions';
 
 import { HearingCard } from './hearing-card';
@@ -88,7 +90,7 @@ export function CalendarContent() {
 
   const hearingsByDay: Record<number, Hearing[]> = {};
   for (const h of hearings) {
-    const d = new Date(h.date).getDate();
+    const d = diaDelMes(h.date);
     if (!hearingsByDay[d]) hearingsByDay[d] = [];
     hearingsByDay[d].push(h);
   }
@@ -107,7 +109,12 @@ export function CalendarContent() {
               Calendario de Audiencias
             </h1>
             <p className="text-muted-foreground">
-              Audiencias programadas por mes
+              Audiencias programadas por mes. Para programar una, use el botón
+              de calendario del caso en{' '}
+              <Link href="/cases" className="underline">
+                Gestión de Casos
+              </Link>
+              .
             </p>
           </div>
 
@@ -202,7 +209,11 @@ export function CalendarContent() {
                 {selectedHearings.length > 0 ? (
                   <div className="space-y-3">
                     {selectedHearings.map((h) => (
-                      <HearingCard key={h.id} hearing={h} />
+                      <HearingCard
+                        key={h.id}
+                        hearing={h}
+                        onChanged={fetchHearings}
+                      />
                     ))}
                   </div>
                 ) : selectedDay ? (
@@ -225,7 +236,11 @@ export function CalendarContent() {
               <CardContent>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {hearings.map((h) => (
-                    <HearingCard key={h.id} hearing={h} />
+                    <HearingCard
+                      key={h.id}
+                      hearing={h}
+                      onChanged={fetchHearings}
+                    />
                   ))}
                 </div>
               </CardContent>

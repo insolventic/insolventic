@@ -5,6 +5,10 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import {
+  audienciaVigente,
+  formatearAudiencia,
+} from '@/features/calendar/audiencia';
+import {
   checkRateLimit,
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
@@ -367,6 +371,9 @@ export async function exportCasesToExcel(
         creditors: true,
         createdDate: true,
         hearingDate: true,
+        hearingTime: true,
+        firstHearingDate: true,
+        firstHearingTime: true,
         city: true,
       },
     });
@@ -455,9 +462,7 @@ export async function exportCasesToExcel(
           creditors: c.creditors,
           city: c.city ?? '',
           createdDate: c.createdDate.toLocaleDateString('es-CO'),
-          hearingDate: c.hearingDate
-            ? c.hearingDate.toLocaleDateString('es-CO')
-            : '',
+          hearingDate: formatearAudiencia(audienciaVigente(c)),
         });
       }
       sheet.getColumn('totalDebt').numFmt = '"$"#,##0';

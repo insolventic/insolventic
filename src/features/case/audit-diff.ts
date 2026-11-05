@@ -78,6 +78,7 @@ export const CAMPOS_CON_VALOR_AUDITABLE: ReadonlySet<string> = new Set([
   'failureType',
   'resultType',
   'hearingDate',
+  'hearingTime',
   'filingDate',
   'designationDate',
   'positionAcceptanceDate',
