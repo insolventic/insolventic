@@ -149,6 +149,8 @@ describe('PaymentTrackingSection — diálogo de registrar pago', () => {
     await abrirPagoManual();
 
     expect(erroresEnElDialogo()).toEqual([]);
-    expect(screen.getByPlaceholderText('0')).toHaveValue(null);
+    // El campo es MoneyInput (type="text"): vacío vale '' y no null como el
+    // antiguo type="number".
+    expect(screen.getByPlaceholderText('0')).toHaveValue('');
   });
 });
