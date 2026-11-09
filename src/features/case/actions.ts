@@ -1061,6 +1061,15 @@ export async function updateCase(
       concFechaSolicitud,
       concFechaCitacion,
       concFechaDesistimiento,
+      // Las otras tres DateTime que createCase ya convertía. Sin sacarlas de
+      // `rest` viajaban como `''` o `'YYYY-MM-DD'` y Prisma rechazaba la
+      // edición entera ("premature end of input. Expected ISO-8601
+      // DateTime"): el diálogo de edición las manda siempre. Lo fija
+      // tests/unit/cases/update-case-fechas.test.ts, que deriva la lista de
+      // columnas del modelo.
+      fechaCesacionPagos,
+      propuestaFechaInicioPago,
+      fechaRadicacion,
       // Debtor fields (not Case fields)
       monthlyIncome,
       monthlyExpenses,
@@ -1095,6 +1104,10 @@ export async function updateCase(
       concFechaCitacion: parseDateOnly(concFechaCitacion) ?? undefined,
       concFechaDesistimiento:
         parseDateOnly(concFechaDesistimiento) ?? undefined,
+      fechaCesacionPagos: parseDateOnly(fechaCesacionPagos) ?? undefined,
+      propuestaFechaInicioPago:
+        parseDateOnly(propuestaFechaInicioPago) ?? undefined,
+      fechaRadicacion: parseDateOnly(fechaRadicacion) ?? undefined,
     };
 
     /** Exactamente lo que esta edición escribe en `Case`. */
@@ -1241,6 +1254,10 @@ export async function updateCase(
           concFechaCitacion: parseDateOnly(concFechaCitacion) ?? undefined,
           concFechaDesistimiento:
             parseDateOnly(concFechaDesistimiento) ?? undefined,
+          fechaCesacionPagos: parseDateOnly(fechaCesacionPagos) ?? undefined,
+          propuestaFechaInicioPago:
+            parseDateOnly(propuestaFechaInicioPago) ?? undefined,
+          fechaRadicacion: parseDateOnly(fechaRadicacion) ?? undefined,
         },
       });
 

@@ -74,13 +74,12 @@ sequenceDiagram
 
 - `src/lib/prisma.ts` crea **un solo** `PrismaClient` (sin override de `datasources`), así que toma la `url` del datasource: `env("DATABASE_URL")`. Lo único que ese módulo expone por tenant es **metadata para la UI** (`getTenantConfig` / `getAvailableTenants`: nombre, slug, logo) — no clientes ni conexiones.
 - `src/prisma/schema.prisma` declara un solo datasource: `url = env("DATABASE_URL")` + `directUrl = env("DIRECT_URL")`.
-- Los usuarios son filas de la misma base con unicidad compuesta: `switchTenant` los busca por `email_tenantId`. Si cada centro tuviera su propia BD, bastaría con `email`.
+- Los usuarios son filas de la misma base con unicidad compuesta: `loginUser` los busca por `email_tenantId`. Si cada centro tuviera su propia BD, bastaría con `email`.
 
 **Garantías:**
 
 - `tenantId` siempre presente en `where` de queries (no se comparte data entre centros).
-- El JWT embebe `tenantId` → el usuario no puede forzar otro tenant sin re-login.
-- `switchTenant` fuerza validación de `mustChangePassword` antes de emitir el nuevo token.
+- El JWT embebe `tenantId` → el usuario no puede forzar otro tenant sin re-login: cambiar de centro es `switchDatabase` (cierra la sesión) + `loginUser` con la clave de la cuenta destino. Lo sostiene `tests/db/switch-tenant-correo-ajeno.db.test.ts`.
 
 > **Corregido el 2026-10-09.** Esta sección describía una BD por centro, con un `getPrismaClient(tenantSlug)` que resolvía `DATABASE_URL_ARMONIA` / `DATABASE_URL_CONSTRUCTORES_PAZ` en tiempo de request. **Eso no existe en el código.** Esas dos variables sí están en `.env.example`, pero las lee únicamente `src/scripts/run-prisma.ts` (script manual) y `.github/workflows/e2e.yml`; el runtime las ignora. Para configurar o rotar credenciales en Vercel, las únicas que cuentan son `DATABASE_URL` y `DIRECT_URL` — el detalle está en `docs/RUNBOOK_ENV_VARS.md` §1 y §1.1.
 >
@@ -92,7 +91,7 @@ sequenceDiagram
 
 ```
 src/features/
-├── auth/         ← login, logout, refresh, switchTenant, resetPassword, RBAC
+├── auth/         ← login, logout, refresh, switchDatabase, resetPassword, RBAC
 ├── case/         ← createCase, updateCase (optimistic lock), phase transitions
 ├── debtor/       ← CRUD deudores + historial de casos
 ├── creditor/     ← CRUD acreedores
@@ -147,7 +146,7 @@ sequenceDiagram
 **Hardening aplicado:**
 
 - Refresh token **7 días** (antes 30).
-- `refresh` y `switchTenant` revalidan `mustChangePassword` y limpian cookies si falla.
+- `refresh` revalida `mustChangePassword` y limpia cookies si falla.
 - `validateSession` corre en middleware: token inválido o expirado → redirect a `/login`.
 - Logout revoca ambas cookies + audita la acción.
 
