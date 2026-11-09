@@ -140,10 +140,8 @@ describe('esquemas de usuario', () => {
     ]);
   });
 
-  it('la entrada no cambia: editar acepta contraseña y crear no', () => {
-    expect(
-      updateUserSchema.parse({ id: 'usuario-1', password: 'clave' }),
-    ).toEqual({ id: 'usuario-1', password: 'clave' });
+  it('la entrada tampoco la lleva: ni editar ni crear aceptan contraseña', () => {
+    expect(updateUserSchema.shape).not.toHaveProperty('password');
     expect(createUserSchema.shape).not.toHaveProperty('password');
   });
 });

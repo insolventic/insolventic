@@ -9,9 +9,10 @@ const roleForUserSchema = z.object({
 });
 
 /**
- * Base de los esquemas de ENTRADA y del formulario de edición. Lleva `password`
- * porque `updateUser` lo acepta, así que NO sirve para parsear lo que sale hacia
- * el cliente: para eso están `userOutputSchema` y `userSummarySchema`.
+ * Base de los esquemas de ENTRADA y del formulario de edición. Todavía declara
+ * `password`, aunque crear y editar lo omiten y ninguna entrada lo acepta, así
+ * que NO sirve para parsear lo que sale hacia el cliente: para eso están
+ * `userOutputSchema` y `userSummarySchema`.
  *
  * Un campo nuevo acá no sale solo: la salida es una lista cerrada. Antes de
  * agregarlo a ella hay que revisar quién la recibe, en especial si es sensible,
@@ -62,12 +63,18 @@ export const createUserSchema = userSchema.omit({
 
 export type CreateUserData = z.infer<typeof createUserSchema>;
 
+/**
+ * Sin `password`: editar un usuario no cambia su contraseña. Para eso están
+ * `changePassword` y `forgotPassword`. `updateUser` rechaza el campo de forma
+ * explícita, porque aquí Zod solo lo descartaría.
+ */
 export const updateUserSchema = userSchema
   .omit({
     role: true,
     lastLogin: true,
     createdDate: true,
     assignedCases: true,
+    password: true,
   })
   .partial()
   .required({ id: true });
