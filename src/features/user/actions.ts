@@ -335,6 +335,17 @@ async function avisarCambioDeCorreo(
   }
 }
 
+const CONTRASENA_NO_EDITABLE =
+  'La contraseña no se cambia al editar un usuario. Cada usuario la cambia desde su perfil o con «¿Olvidó su contraseña?» al iniciar sesión.';
+
+function traeContrasena(input: unknown): boolean {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    (input as { password?: unknown }).password !== undefined
+  );
+}
+
 export async function updateUser(input: unknown): Promise<{
   success: boolean;
   data?: UserSummaryData;
@@ -348,13 +359,15 @@ export async function updateUser(input: unknown): Promise<{
       throw new Error('No tiene permisos para: Editar usuarios');
     }
 
+    // Antes de parsear: Zod descarta las claves que no conoce, y la llamada
+    // devolvería `success` sin haber cambiado la contraseña.
+    if (traeContrasena(input)) {
+      return { success: false, error: CONTRASENA_NO_EDITABLE };
+    }
+
     // Validate input
     const validatedInput = updateUserSchema.parse(input);
-    const { id, roleId, password, ...rest } = validatedInput;
-
-    const hashedPassword = password
-      ? await bcrypt.hash(password, 10)
-      : undefined;
+    const { id, roleId, ...rest } = validatedInput;
 
     // Validate role belongs to the same tenant
     if (roleId) {
@@ -386,7 +399,6 @@ export async function updateUser(input: unknown): Promise<{
       },
       data: {
         ...rest,
-        ...(hashedPassword && { password: hashedPassword }),
         ...(roleId && { role: { connect: { id: roleId } } }),
       },
     });
@@ -396,7 +408,6 @@ export async function updateUser(input: unknown): Promise<{
     const cambiados: string[] = CAMPOS_AUDITADOS.filter(
       (campo) => updatedUser[campo] !== anterior[campo],
     );
-    if (hashedPassword) cambiados.push('password');
     const cambioDeCorreo = updatedUser.email !== anterior.email;
 
     // Antes de la notificación: si esta lanza, la edición ya está guardada y

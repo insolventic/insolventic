@@ -197,17 +197,6 @@ describe('auditoría de updateUser', () => {
     expect(auditoria[0].metadata).toEqual({ changedFields: 'roleId' });
   });
 
-  it('registra que cambió la contraseña, sin guardar la clave', async () => {
-    const usuario = await crearUsuario();
-    const clave = 'Clave-Temporal-2026!';
-
-    await updateUser(formulario(usuario, { password: clave }));
-
-    const auditoria = await auditoriaDe(usuario.id);
-    expect(auditoria[0].metadata).toEqual({ changedFields: 'password' });
-    expect(JSON.stringify(auditoria)).not.toContain(clave);
-  });
-
   it('un guardado sin cambios no marca ningún campo', async () => {
     const usuario = await crearUsuario();
 

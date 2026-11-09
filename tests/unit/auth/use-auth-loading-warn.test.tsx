@@ -33,7 +33,6 @@ jest.mock('@/features/auth/actions', () => ({
   validateSession: (...args: unknown[]) => mockValidateSession(...args),
   logoutUser: jest.fn(),
   switchDatabase: jest.fn(),
-  switchTenant: jest.fn(),
 }));
 
 import { logger } from '@/lib/logger';
@@ -126,7 +125,9 @@ describe('la duración que se reporta es la de la carga real', () => {
     // Todas las trazas emitidas con isLoading=false reportan duración 0; antes
     // el número crecía con el tiempo montado y alimentaba la advertencia.
     const durancionesSinCarga = debugSpy.mock.calls
-      .map((c) => c[1] as { isLoading?: boolean; loadingDurationSeconds?: number })
+      .map(
+        (c) => c[1] as { isLoading?: boolean; loadingDurationSeconds?: number },
+      )
       .filter((ctx) => ctx && ctx.isLoading === false)
       .map((ctx) => ctx.loadingDurationSeconds);
 

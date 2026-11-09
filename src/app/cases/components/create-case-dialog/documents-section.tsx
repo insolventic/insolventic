@@ -30,6 +30,7 @@ import {
   casePoderOtorgado,
 } from '@/features/case/validation-rules';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
+import { errorDeTamanoDeArchivo, MAX_ARCHIVO_MB } from '@/lib/limite-archivos';
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -197,9 +198,6 @@ export function DocumentsSection({
 
   const allDocs = [...mandatoryDocs, ...optionalDocs];
 
-  const MAX_FILE_SIZE_MB = 10;
-  const MAX_FILE_SIZE = MAX_FILE_SIZE_MB * 1024 * 1024;
-
   const handleChoose = (key: string) => {
     inputsRef.current[key]?.click();
   };
@@ -224,17 +222,17 @@ export function DocumentsSection({
     const fileArray = files ? Array.from(files) : [];
 
     const invalidType = fileArray.filter((f) => !isAllowedFile(f));
-    const tooLarge = fileArray.filter((f) => f.size > MAX_FILE_SIZE);
 
     if (invalidType.length > 0) {
       toast.error('Solo se permiten archivos PDF, JPG o PNG');
     }
-    if (tooLarge.length > 0) {
-      toast.error(`Cada archivo debe ser menor a ${MAX_FILE_SIZE_MB} MB`);
+    for (const f of fileArray) {
+      const errorDeTamano = errorDeTamanoDeArchivo(f.size);
+      if (errorDeTamano) toast.error(`${f.name}: ${errorDeTamano}`);
     }
 
     const validFiles = fileArray.filter(
-      (f) => isAllowedFile(f) && f.size <= MAX_FILE_SIZE,
+      (f) => isAllowedFile(f) && !errorDeTamanoDeArchivo(f.size),
     );
 
     const newMap = { ...filesMapRef.current, [key]: validFiles };
@@ -266,7 +264,12 @@ export function DocumentsSection({
           className="hidden"
           multiple={!!doc.multiple}
           accept={ACCEPT_STRING}
-          onChange={(e) => handleChange(doc.key, e.target.files)}
+          onChange={(e) => {
+            handleChange(doc.key, e.target.files);
+            // Vacío para que volver a elegir el mismo archivo, ya reducido,
+            // dispare `change`.
+            e.target.value = '';
+          }}
         />
         <div className="flex items-center gap-2">
           {isRequired && hasFile && (
@@ -307,7 +310,8 @@ export function DocumentsSection({
       <CardHeader>
         <CardTitle>Cargar Documentos</CardTitle>
         <CardDescription>
-          Suba los documentos necesarios para el caso (PDF, JPG, PNG — max 10MB)
+          Suba los documentos necesarios para el caso (PDF, JPG, PNG — máx.{' '}
+          {MAX_ARCHIVO_MB} MB por archivo)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
