@@ -1117,7 +1117,7 @@ export const createCaseSchema = z.object({
   monthlyExpenses: montoOpcional(),
   otherIncomeDescription: z.string().optional(),
   otherIncomeAmount: montoOpcional(),
-  hasEmployerCertification: z.boolean().default(false),
+  hasEmployerCertification: z.boolean().optional(),
 
   // Propuesta de Pago
   gracePeriodRequested: z.boolean().default(false),
