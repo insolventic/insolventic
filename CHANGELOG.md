@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Eliminar un deudor ya no borra sus casos.** Antes se llevaba todos sus expedientes sin la confirmación ni la auditoría de eliminar un caso; ahora se niega si el deudor tiene casos, incluidos los de la papelera.
 - La auditoría distingue "Restauración" y "Eliminación definitiva".
+- **Ningún monto puede ser negativo ni superar $1.000.000.000.000.000** (capital, intereses, garantías, valor de bienes, libranzas, servicios, ingresos y gastos, pagos). Antes una deuda negativa se imprimía como `-$ 3` en el documento, y un monto enorme salía con dígitos basura.
+- **El teléfono tiene formato**: entre 7 y 15 dígitos, con espacios, `+`, `-`, paréntesis y «ext.». Se exige al crear y, al editar, solo si el teléfono cambió.
+- **Los textos tienen longitud máxima**: 200 caracteres en nombres, documentos y ciudades, 254 en correos, 500 en direcciones y 10.000 en texto libre. Al editar se valida solo lo que cambió, así que un registro viejo se sigue pudiendo editar.
+- "Monto" (seguimiento de pagos del caso) y "Valor pagado" (Reportes) aceptan el separador de miles, como el resto de los montos.
+
+### Fixed
+
+- **Crear un caso ya no borra los ingresos de la ficha del deudor.** El asistente de alta enviaba ingresos, gastos y otros ingresos en 0, y la certificación laboral en «no», aunque esos campos no se muestran ahí; al crear cualquier caso, la ficha del deudor quedaba con ingreso 0.
+- Los montos de la interfaz salen sin decimales (antes, por ejemplo, `$8.916.666,667` en "Promedio por Caso").
+- Tildes que faltaban en el formulario de datos previo a la generación (radicación, designación, aceptación, aprobación, Admisión).
+- Accesibilidad: el buscador de casos y la deuda total del asistente tienen nombre para lectores de pantalla, y cada pantalla tiene un solo título principal.
 
 ## [1.0.0-rc.2] - 2026-11-08
 

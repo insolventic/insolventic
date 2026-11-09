@@ -15,7 +15,7 @@ Sistema web full-stack de gestión de expedientes de insolvencia (proyecto de te
 
 ```bash
 npm run dev            # dev server (turbopack)
-npm test               # suite completa (180 suites / 2435 tests — medido el 2026-11-09 con la papelera de casos; excluye tests/db y tests/e2e)
+npm test               # suite completa (193 suites / 2559 tests — medido el 2026-11-09 tras la tanda de auditoría; excluye tests/db y tests/e2e)
 npx tsc --noEmit       # type-check
 npm run lint           # eslint
 npm run db:migrate     # prisma migrate dev
@@ -146,7 +146,7 @@ Conocimiento que impide reintroducir bugs ya cerrados, violar una decisión deli
 
 **Si mergeás un stack de PRs** — mergear el de abajo con `--delete-branch` **cierra** el de arriba (GitHub no lo retargetea), y un PR cerrado cuya base ya no existe no se puede reabrir ni retargetear: retargetear el de arriba a `dev` **antes** de mergear el de abajo. Cambiar la base no vuelve a disparar los workflows (`pull_request: edited` no está en el set por defecto); lo que dispara es un push, y tras un squash merge hay que rebasear igual: `git rebase --onto origin/dev <viejo-tip-del-padre>` + `push --force-with-lease`.
 
-**Si tocás un campo de dinero** — `parseFloat("1.500.000")` da **1.5**. No alcanza con pasar el input a `type="text"`. Reusar `parsearMonto` (`src/features/case/monto.ts`) y `MoneyInput` (`src/components/ui/money-input.tsx`), **no reescribirlos**. Es el bug de `#136`, que vivía en tres capas y solo lo cerró un test que llega hasta Prisma. Quedan 2 campos sin normalizar (`case-details-dialog/payment-tracking-section.tsx`, `reports/components/payment-tracking-report.tsx`); los otros `type="number"` del proyecto (`dependents`, `approvalPercentage`, el `XAxis` de Recharts en `dashboard-charts.tsx`) **no** son dinero y no llevan separador.
+**Si tocás un campo de dinero** — `parseFloat("1.500.000")` da **1.5**. No alcanza con pasar el input a `type="text"`. Reusar `parsearMonto` (`src/features/case/monto.ts`) y `MoneyInput` (`src/components/ui/money-input.tsx`), **no reescribirlos**. Es el bug de `#136`, que vivía en tres capas y solo lo cerró un test que llega hasta Prisma. Desde la tanda de auditoría del 2026-11-09 los 2 campos de pago que faltaban (`payment-tracking-section.tsx`, `payment-tracking-report.tsx`) también usan `MoneyInputField`; los `type="number"` del proyecto (`dependents`, `approvalPercentage`, el `XAxis` de Recharts en `dashboard-charts.tsx`) **no** son dinero y no llevan separador.
 
 **Si subís archivos por server action** — el cuerpo lo cortan `bodySizeLimit` (`next.config.ts`, 4,25 MB) y, por encima, Vercel cerca de 4,49 MB (medido en un preview); subir el primero más allá no sirve. El rechazo no vuelve como `{ success: false }`: rechaza la promesa en el cliente, y con un texto genérico (el 413 de Vercel no llega como `text/plain` exacto; el de Next llega enmascarado en producción). El límite hay que comprobarlo **antes** de llamar a la acción, y el `catch` lo traduce con `errorDeTamanoTrasRechazo`. Un `File` cuesta su tamaño; base64 cuesta un 33 % más. **Un archivo por llamada**: el tope es de la petición, no del archivo. Comprobantes y documentos del caso comparten el límite de 4 MB (`MAX_ARCHIVO_MB`, `src/lib/limite-archivos.ts`). Todo rechazo por tamaño en la UI, al elegir el archivo o tras enviarlo, llama a `registrarRechazoPorTamano` (`src/lib/rechazo-tamano.ts`): es la cifra con la que se decide si el límite alcanza, y lo que hay en Drive no sirve para eso. Detalle: `docs/DECISIONES.md`.
 
