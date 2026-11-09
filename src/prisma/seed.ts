@@ -149,6 +149,10 @@ async function createPermissions(prisma: PrismaClient, tenantId: string) {
       category: 'Casos',
     },
     {
+      name: 'Eliminar casos definitivamente',
+      category: 'Casos',
+    },
+    {
       name: 'Ver acreedores',
       category: 'Acreedores',
     },
@@ -289,6 +293,7 @@ async function createRoles(
     'Crear casos',
     'Editar casos',
     'Eliminar casos',
+    'Eliminar casos definitivamente',
     'Ver acreedores',
     'Crear acreedores',
     'Editar acreedores',

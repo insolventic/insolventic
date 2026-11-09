@@ -11,6 +11,7 @@ import { Prisma } from '@prisma/client';
 
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
+import { incluyendoPapelera } from '@/lib/papelera';
 import { createAccessToken } from '@/lib/auth';
 
 const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
@@ -60,12 +61,17 @@ export function tenantScopedModelsChildrenFirst(): string[] {
 /** Borra todo lo del tenant y luego el tenant. */
 export async function purgeTenant(tenantId: string): Promise<void> {
   for (const delegate of tenantScopedModelsChildrenFirst()) {
+    // `incluyendoPapelera` en Case: sin eso la extensión de la papelera
+    // agrega `deletedAt: null`, los casos en la papelera sobreviven y el
+    // borrado del tenant choca con su FK.
+    const where =
+      delegate === 'case' ? { tenantId, ...incluyendoPapelera } : { tenantId };
     await (
       prisma as unknown as Record<
         string,
         { deleteMany: (a: object) => Promise<unknown> }
       >
-    )[delegate].deleteMany({ where: { tenantId } });
+    )[delegate].deleteMany({ where });
   }
   await prisma.tenant.delete({ where: { id: tenantId } });
 }

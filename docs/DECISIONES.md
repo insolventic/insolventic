@@ -2,6 +2,27 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-08 — Papelera de casos (soft-delete)
+
+**Diagnóstico:** `deleteCase` borraba en cascada y sin recuperación, con expedientes legales reales en producción y backups nunca probados (A-8, GC-M6). Además `deleteDebtor` destruía todos los expedientes del deudor sin la confirmación escrita ni la auditoría de `deleteCase`.
+
+**Decisión (dueño del proyecto):**
+
+- Eliminar marca `deletedAt`, `deletedById` y `deletedByName` (texto, no relación: un usuario borrado no debe arrastrar ni bloquear el registro). Restaurar devuelve el caso entero; nada se borra al mandarlo a la papelera.
+- Ver la papelera y restaurar: el mismo permiso que elimina (`Eliminar casos`).
+- Borrado físico (`purgeCase`): permiso nuevo `Eliminar casos definitivamente`, que la migración `20261109000000_case_papelera` crea en cada centro y da **solo** a Administrador. Solo sobre casos ya en la papelera, con confirmación escrita contra la base y auditoría `purged` antes de borrar (si no queda escrita, no se borra). Nunca automático: chocaría con la retención documental.
+- `deleteDebtor` se niega si el deudor tiene casos, incluidos los de la papelera.
+
+**Dónde vive el filtro:** una extensión de `query` en `src/lib/prisma.ts` pasa toda operación sobre `Case` por `conFiltroDePapelera` (`src/lib/papelera.ts`): si el `where` no nombra `deletedAt`, agrega `deletedAt: null`. Son ~60 consultas en 13 módulos; filtrarlas una por una garantizaba omisiones futuras (mismo criterio que el escapado de placeholders en el punto de fusión). Aplica también dentro de `$transaction(async (tx) => …)` — verificado contra Postgres real. Las lecturas **anidadas** (`debtor` → `cases`, `payment` → `case`, avisos) no pasan por extensiones de Prisma y filtran a mano con `CASO_ACTIVO` / `AVISO_SIN_CASO_EN_PAPELERA`; una guarda en `tests/unit/cases/papelera.test.ts` falla si aparece un `cases: true` en una action.
+
+**Descartado:**
+
+- Filtrar a mano en cada consulta: la omisión es silenciosa (un caso eliminado reaparece en un reporte) y nadie la nota.
+- Una vista de Postgres o RLS: el proyecto no usa ninguna de las dos y exigía cambiar cómo Prisma lee `Case`.
+- Purga automática tras N días: contradice la obligación de conservar expedientes.
+
+**Non-goals:** borrar la carpeta de Drive al purgar (sigue pendiente GC-M6; el registro guarda `driveFolderId`), soft-delete de otros modelos, y recortar quién tiene `Eliminar casos` (decisión del 2026-10-17, que ahora es menos crítica porque eliminar es reversible).
+
 ## 2026-11-05 — Cambio de centro: solo por el login
 
 **Diagnóstico:** `switchTenant` elegía la cuenta destino solo por el correo del token, y `updateUser` deja poner en la propia cuenta un correo que existe en otro centro, porque la unicidad es por centro. Con `P.EDITAR_USUARIOS` del centro A se podía entrar a la cuenta de un usuario del centro B sin su clave. Confirmado contra Postgres real en `tests/db/switch-tenant-correo-ajeno.db.test.ts`.
