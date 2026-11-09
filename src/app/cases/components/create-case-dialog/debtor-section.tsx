@@ -227,11 +227,18 @@ export function DebtorSection({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Deuda Total (calculada)</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <span className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2">
-                      $
-                    </span>
+                {/* FormControl envuelve el <Input> y no el <div>: el Slot
+                    le pasa el id que usa el htmlFor de FormLabel. Envolviendo
+                    el div, la etiqueta apuntaba al contenedor y el campo
+                    quedaba sin nombre accesible (A1). */}
+                <div className="relative">
+                  <span
+                    aria-hidden="true"
+                    className="text-muted-foreground absolute top-1/2 left-3 -translate-y-1/2"
+                  >
+                    $
+                  </span>
+                  <FormControl>
                     <Input
                       type="text"
                       value={field.value ? formatAmount(field.value) : '0'}
@@ -240,8 +247,8 @@ export function DebtorSection({
                       placeholder="Se calcula de los acreedores"
                       className="bg-muted cursor-not-allowed pl-8"
                     />
-                  </div>
-                </FormControl>
+                  </FormControl>
+                </div>
                 <p className="text-muted-foreground text-xs">
                   Suma automática del capital e intereses de todos los
                   acreedores

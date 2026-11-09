@@ -38,8 +38,13 @@ export function CaseFilters({
   return (
     <div className="flex items-center gap-3">
       <div className="relative">
-        <Search className="text-muted-foreground absolute top-3 left-3 h-4 w-4" />
+        <Search
+          aria-hidden="true"
+          className="text-muted-foreground absolute top-3 left-3 h-4 w-4"
+        />
         <Input
+          type="search"
+          aria-label="Buscar casos por nombre, ID o cédula"
           placeholder="Buscar por nombre, ID o cédula..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
