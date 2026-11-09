@@ -17,6 +17,7 @@ import {
   Plus,
   Pencil,
   Trash2,
+  ArchiveRestore,
   Download,
 } from 'lucide-react';
 
@@ -82,6 +83,8 @@ const actionLabels: Record<string, string> = {
   created: 'Creación',
   updated: 'Actualización',
   deleted: 'Eliminación',
+  restored: 'Restauración',
+  purged: 'Eliminación definitiva',
 };
 
 const entityTypeIcons: Record<string, typeof FileText> = {
@@ -98,6 +101,8 @@ const actionIcons: Record<string, typeof Plus> = {
   created: Plus,
   updated: Pencil,
   deleted: Trash2,
+  restored: ArchiveRestore,
+  purged: Trash2,
 };
 
 const actionColors: Record<string, string> = {
@@ -105,6 +110,9 @@ const actionColors: Record<string, string> = {
     'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   updated: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   deleted: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  restored:
+    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+  purged: 'bg-red-200 text-red-900 dark:bg-red-950/50 dark:text-red-300',
 };
 
 const entityColors: Record<string, string> = {
@@ -306,6 +314,8 @@ export function AuditLogManagement() {
                   <SelectItem value="created">Creación</SelectItem>
                   <SelectItem value="updated">Actualización</SelectItem>
                   <SelectItem value="deleted">Eliminación</SelectItem>
+                  <SelectItem value="restored">Restauración</SelectItem>
+                  <SelectItem value="purged">Eliminación definitiva</SelectItem>
                 </SelectContent>
               </Select>
 

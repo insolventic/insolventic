@@ -10,7 +10,14 @@ import { logger } from '@/lib/logger';
 // Types
 // ---------------------------------------------------------------------------
 
-export type AuditAction = 'created' | 'updated' | 'deleted';
+// `deleted` sobre un caso significa "a la papelera" desde el soft-delete
+// (2026-11-08); `purged` es el borrado físico desde la papelera.
+export type AuditAction =
+  | 'created'
+  | 'updated'
+  | 'deleted'
+  | 'restored'
+  | 'purged';
 
 export type AuditEntityType =
   | 'case'
@@ -80,6 +87,8 @@ export async function createAuditLog(params: {
     created: 'creado',
     updated: 'actualizado',
     deleted: 'eliminado',
+    restored: 'restaurado',
+    purged: 'eliminado definitivamente',
   };
 
   const entityLabels: Record<

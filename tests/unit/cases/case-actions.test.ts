@@ -259,7 +259,7 @@ describe('Case Actions — src/features/case/actions.ts', () => {
   });
 
   describe('deleteCase', () => {
-    it('should use $transaction for cascading delete', async () => {
+    it('sends the case to the papelera instead of deleting it', async () => {
       mockAuthenticateUser.mockResolvedValue({
         user: {
           id: ADMIN_USER.id,
@@ -292,23 +292,10 @@ describe('Case Actions — src/features/case/actions.ts', () => {
           _count: { documents: 0, debts: 0, assets: 0, dependents: 0 },
         });
 
-      // Mock transaction
-      const deletedCase = { ...CASE_DATA, debtorName: 'Test' };
-      mockPrisma.$transaction.mockImplementation(async (fn: Function) => {
-        return fn({
-          document: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          debt: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          asset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          legalProcess: {
-            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-          },
-          libranza: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          suspendedService: {
-            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-          },
-          dependent: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          case: { delete: jest.fn().mockResolvedValue(deletedCase) },
-        });
+      // Papelera: un `update` que marca `deletedAt`, no una transacción.
+      mockPrisma.case.update.mockResolvedValue({
+        ...CASE_DATA,
+        debtorName: 'Test',
       });
 
       // GC-M6: la confirmación escrita es obligatoria y se verifica contra el
@@ -318,8 +305,12 @@ describe('Case Actions — src/features/case/actions.ts', () => {
         confirmCaseNumber: CASE_DATA.caseNumber,
       });
 
-      // Transaction should be called (cascading delete)
-      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockPrisma.case.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ deletedAt: expect.any(Date) }),
+        }),
+      );
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
 
     it('should deny deletion without "Eliminar casos" permission', async () => {

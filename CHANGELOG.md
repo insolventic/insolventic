@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Papelera de casos.** Eliminar un caso ya no lo borra: lo manda a una papelera, desde donde se puede restaurar tal como estaba. Mientras está en la papelera no aparece en listados, búsquedas, reportes, alertas, pagos ni documentos, y no se puede modificar. La papelera la ve quien puede eliminar casos.
+- **Eliminación definitiva** desde la papelera, con un permiso nuevo ("Eliminar casos definitivamente") que se asigna solo al rol Administrador. Pide escribir el número del caso y queda en la auditoría. Existe para poder cumplir una solicitud de supresión de datos.
+
+### Changed
+
+- **Eliminar un deudor ya no borra sus casos.** Antes se llevaba todos sus expedientes sin la confirmación ni la auditoría de eliminar un caso; ahora se niega si el deudor tiene casos, incluidos los de la papelera.
+- La auditoría distingue "Restauración" y "Eliminación definitiva".
+
 ## [1.0.0-rc.2] - 2026-11-08
 
 ### Seguridad

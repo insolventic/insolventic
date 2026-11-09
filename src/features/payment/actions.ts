@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { CASO_ACTIVO } from '@/lib/papelera';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
@@ -202,7 +203,7 @@ export async function getPaymentSchedule(caseId: string): Promise<{
     }
 
     const payments = await prisma.payment.findMany({
-      where: { caseId, tenantId },
+      where: { caseId, tenantId, case: CASO_ACTIVO },
       orderBy: [{ paymentNumber: 'asc' }, { createdAt: 'asc' }],
     });
 
@@ -386,8 +387,9 @@ export async function markPaymentPaid(
       };
     }
 
+    // `case: CASO_ACTIVO`: el pago de un caso en la papelera no se toca.
     const payment = await prisma.payment.findUnique({
-      where: { id: validated.paymentId, tenantId },
+      where: { id: validated.paymentId, tenantId, case: CASO_ACTIVO },
       include: {
         case: { select: { caseNumber: true, debtorName: true, id: true } },
       },
@@ -602,8 +604,9 @@ export async function uploadPaymentReceipt(
       return { success: false, error: fileValidation.error };
     }
 
+    // `case: CASO_ACTIVO`: el pago de un caso en la papelera no se toca.
     const payment = await prisma.payment.findUnique({
-      where: { id: validated.paymentId, tenantId },
+      where: { id: validated.paymentId, tenantId, case: CASO_ACTIVO },
       include: {
         case: { select: { caseNumber: true, debtorName: true } },
       },
@@ -809,6 +812,11 @@ export async function getPaymentTrackingReport(
       ];
     }
 
+    // Papelera: los pagos de un caso eliminado no se listan ni se suman. Va
+    // dentro de `case` porque la extensión de Prisma solo filtra las consultas
+    // de primer nivel sobre Case.
+    where.case = { ...(where.case as object), ...CASO_ACTIVO };
+
     // Visibility scoping
     if (user.permissions.includes(P.VER_TODOS_CASOS)) {
       // Can see all
@@ -906,6 +914,7 @@ export async function getOverduePayments(): Promise<{
     const count = await prisma.payment.count({
       where: {
         tenantId,
+        case: CASO_ACTIVO,
         status: 'pendiente',
         dueDate: { lt: new Date() },
       },
@@ -1162,6 +1171,11 @@ export async function exportPaymentTrackingToExcel(
         },
       ];
     }
+
+    // Papelera: los pagos de un caso eliminado no se listan ni se suman. Va
+    // dentro de `case` porque la extensión de Prisma solo filtra las consultas
+    // de primer nivel sobre Case.
+    where.case = { ...(where.case as object), ...CASO_ACTIVO };
 
     // Visibility scoping
     if (user.permissions.includes(P.VER_TODOS_CASOS)) {
