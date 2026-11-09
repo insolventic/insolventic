@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Los textos tienen longitud máxima**: 200 caracteres en nombres, documentos y ciudades, 254 en correos, 500 en direcciones y 10.000 en texto libre. Al editar se valida solo lo que cambió, así que un registro viejo se sigue pudiendo editar.
 - "Monto" (seguimiento de pagos del caso) y "Valor pagado" (Reportes) aceptan el separador de miles, como el resto de los montos.
 
+### Seguridad
+
+- **Un error interno ya no llega a la pantalla.** Cuando algo fallaba por dentro (la base de datos, la red, Google Drive), el aviso mostraba el detalle técnico del fallo; y un dato inválido devolvía la lista completa de errores de validación, en inglés. Ahora el aviso dice qué operación falló, el detalle queda en el registro de errores, y los avisos de validación salen en español, uno a la vez. Los mensajes pensados para el usuario (permisos, "no encontrado", el motivo de un cambio de fase no permitido) siguen igual.
+
 ### Fixed
 
 - **Crear un caso ya no borra los ingresos de la ficha del deudor.** El asistente de alta enviaba ingresos, gastos y otros ingresos en 0, y la certificación laboral en «no», aunque esos campos no se muestran ahí; al crear cualquier caso, la ficha del deudor quedaba con ingreso 0.
