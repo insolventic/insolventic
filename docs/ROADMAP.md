@@ -97,4 +97,8 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
    **Por qué no urge:** mientras los campos sigan siendo `type="number"` el navegador no deja escribir el punto, así que el bug es inalcanzable desde la UI. Lo que molesta hoy es la inconsistencia visual — un monto se escribe `1.500.000` en el wizard y `1500000` acá.
 
+10. **Revisar los rechazos por tamaño y decidir sobre la subida directa a Drive.** Pendiente desde el 2026-11-05. Requiere que ya estén en producción este registro y el límite de 4 MB en comprobantes y documentos, y unas semanas de uso real desde entonces. Antes de que venza la retención de eventos del plan de Sentry (sin confirmar: `docs/RUNBOOK.md` §0.2 la deja por completar), buscar en Sentry `Archivo rechazado por tamaño`, solo en `production`, y comparar los rechazos con las subidas correctas del mismo periodo. Por qué Drive no responde esto: `docs/DECISIONES.md`, entrada del 2026-11-05.
+
+    **Si una parte importante queda fuera, evaluar la sesión reanudable** resolviendo antes: verificar tamaño y tipo después de subir, porque el servidor deja de ver los bytes; limpiar los archivos huérfanos cuando falla el registro tras la subida; y probar el CORS de la sesión contra el Drive real. El intervalo `5-10 MB` dice si bastaría esa vía, y el corte `más de 25 MB` si hay archivos que tampoco deberían entrar así. **Si casi no hay rechazos, se mantienen 4 MB** y se cierra este punto.
+
 > Nota: dos items del roadmap original se descartaron por no corresponder al código real: la migración Float→Decimal (los montos ya usan `Decimal`) y el split del schema Prisma (tiene 1.041 líneas, no 2.516 — no urge).

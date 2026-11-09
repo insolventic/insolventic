@@ -20,8 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Eliminar un deudor ya no borra sus casos.** Antes se llevaba todos sus expedientes sin la confirmación ni la auditoría de eliminar un caso; ahora se niega si el deudor tiene casos, incluidos los de la papelera.
 - La auditoría distingue "Restauración" y "Eliminación definitiva".
 
+### Seguridad
+
+- Dependencias al día dentro de sus versiones: `next` 15.5.29 y `@sentry/nextjs` 10.78, que cierran las dos vulnerabilidades críticas de `npm audit`. Las que quedan piden un cambio de versión mayor (`prisma` 7, `puppeteer-core` 25, `next` 16, `nodemailer` 10) y van aparte.
+- `zod` queda fijado en 4.1.12 exacto: 4.6 cambia cómo se validan los campos opcionales con preprocess y `updateCase` empieza a rechazar ediciones válidas (58 tests en rojo). Subirlo es un cambio propio, no una actualización de rutina.
+
 ### Fixed
 
+- **Un caso con una fase antigua ya no queda sin salida.** Se mostraba como «Inicial» y a la vez decía «No hay transiciones disponibles»; ahora ofrece las mismas transiciones que «Inicial», que son las que el servidor ya aceptaba.
+- El detalle del caso se titula con el número del expediente y no con su identificador interno.
 - **Una sola fecha de audiencia en todas las pantallas** (`src/features/calendar/audiencia.ts`): manda `hearingDate`, y
   `firstHearingDate` queda como la primera que se fijó. Calendario, alertas, listado, reporte y documentos elegían cada
   uno la suya. El Auto de Admisión cita la primera (`FECHA_PRIMERA_AUDIENCIA`).

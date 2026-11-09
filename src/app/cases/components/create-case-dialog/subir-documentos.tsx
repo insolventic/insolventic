@@ -5,6 +5,7 @@ import {
   errorDeTamanoDeArchivo,
   errorDeTamanoTrasRechazo,
 } from '@/lib/limite-archivos';
+import { registrarRechazoPorTamano } from '@/lib/rechazo-tamano';
 
 export interface FalloDeSubida {
   fileName: string;
@@ -56,6 +57,7 @@ export async function subirDocumentosDelCaso(
     for (const file of files) {
       const errorDeTamano = errorDeTamanoDeArchivo(file.size);
       if (errorDeTamano) {
+        registrarRechazoPorTamano('documento-caso', file);
         resultado.fallos.push({ fileName: file.name, motivo: errorDeTamano });
         continue;
       }
@@ -77,10 +79,15 @@ export async function subirDocumentosDelCaso(
       } catch (error) {
         // Un 413 de la plataforma llega como un error genérico de Next
         // ("An unexpected response..."), sin decir que fue por tamaño.
+        const porTamano = errorDeTamanoTrasRechazo(
+          error,
+          new Blob([file]).size,
+        );
+        if (porTamano) registrarRechazoPorTamano('documento-caso', file);
         resultado.fallos.push({
           fileName: file.name,
           motivo:
-            errorDeTamanoTrasRechazo(error, new Blob([file]).size) ??
+            porTamano ??
             'No se pudo enviar el archivo. Revisa tu conexión e inténtalo de nuevo.',
         });
       }
