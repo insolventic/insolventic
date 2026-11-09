@@ -76,8 +76,8 @@ describe('createAuditLog — espera el insert (GC-M4, parte a)', () => {
 
     mockPrisma.auditLog.create.mockRejectedValue(new Error('BD caída'));
 
-    // No lanza: hay 8 módulos que la llaman con `void` y un reject los
-    // convertiría en unhandled rejections.
+    // No lanza: la mutación ya ocurrió, y un reject haría que la acción
+    // respondiera error por un cambio que sí quedó hecho.
     await expect(
       createAuditLog({
         action: 'deleted',

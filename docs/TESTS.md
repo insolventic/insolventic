@@ -63,6 +63,29 @@ docker rm -f insolventic-smoke-pg      # al terminar
 
 **Seguridad (importante).** Estos tests crean y borran filas. `tests/db/db-guard.ts` (probada en `tests/unit/config/db-guard.test.ts`) aborta el runner, antes de importar Prisma, si `DATABASE_URL`/`DIRECT_URL`: (1) no está definida —no hay fallback al `.env`, que en `pr.yml` es el de Vercel con la URL real de Neon—; (2) no apunta a `localhost`/`127.0.0.1`/`::1`; o (3) la base no tiene `e2e`, `test` o `smoke` en el nombre. Cada corrida crea su propio tenant y lo borra al terminar (no depende del seed).
 
+### 2.1.1 El seed de fixtures de los E2E (`npm run db:seed`)
+
+Los E2E de Playwright sí dependen del seed: entran como
+`beatriz.malavera@insolventic.com`. El seed **no tiene contraseña literal**
+(`src/prisma/seed-guard.ts`; detalle y motivo en `docs/RUNBOOK.md` §7.2):
+
+- Hashea `SEED_PASSWORD` (mínimo 12 caracteres) con costo 12; si falta, genera
+  una aleatoria y la imprime una vez.
+- `tests/e2e/helpers.ts` entra con `E2E_PASSWORD` o, si no está, con la misma
+  `SEED_PASSWORD`. `e2e.yml` define `SEED_PASSWORD` en el `env` del job, así
+  que el paso del seed y el de Playwright usan la misma.
+- Aborta si `DATABASE_URL`/`DIRECT_URL` no son una base de prueba local (mismo
+  criterio que `db-guard.ts`). El Postgres de `e2e.yml`
+  (`localhost:5432/insolventic_e2e`) y el contenedor de §2.1 lo cumplen.
+
+En local, con el contenedor de §2.1 levantado:
+
+```bash
+export SEED_PASSWORD=una-contrasena-local-larga
+npm run db:seed
+npm run test:e2e
+```
+
 ### 2.2 Verificación de punta a punta: formulario → BD → documento
 
 `case-wizard.db.test.ts` comprueba que el wizard **guarda** bien. Estas dos
