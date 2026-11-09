@@ -1189,7 +1189,9 @@ async function createCases(
       creditors: 2,
       createdDate: new Date('2025-01-05'),
       hearingDate: null,
-      phase: 'Documentos pendientes',
+      // 'Documentos pendientes' no es una fase de CASE_PHASES (es un estado
+      // del listado de documentos): el caso quedaba sin transiciones (N1).
+      phase: 'Inicial',
       debtorId: debtors.ana.id,
       operatorId: users.sofia.id,
       tramite: 'Acuerdo de Apoyo Económico',
