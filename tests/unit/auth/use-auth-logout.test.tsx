@@ -29,7 +29,6 @@ jest.mock('@/features/auth/actions', () => ({
   validateSession: (...args: unknown[]) => mockValidateSession(...args),
   logoutUser: (...args: unknown[]) => mockLogoutUser(...args),
   switchDatabase: jest.fn(),
-  switchTenant: jest.fn(),
 }));
 
 import { logger } from '@/lib/logger';

@@ -21,7 +21,10 @@ import { normalizeCausas } from '@/features/case/causas-insolvencia';
 import { normalizeAssetType } from '@/features/case/asset-category-types';
 
 import { updateCase, getCaseById } from '@/features/case/actions';
-import { uploadCaseDocuments } from '@/features/document/actions';
+import {
+  avisarResultadoDeSubida,
+  subirDocumentosDelCaso,
+} from './create-case-dialog/subir-documentos';
 import {
   updateCaseFormSchema,
   type UpdateCaseFormData,
@@ -126,6 +129,12 @@ export function EditCaseDialog({
   });
 
   const [isPending, startTransition] = useTransition();
+
+  // Cancelar y reabrir no debe subir lo que se eligió antes: el diálogo no se
+  // desmonta al cerrar, y el ref sobrevive.
+  useEffect(() => {
+    if (open) documentsToUploadRef.current = [];
+  }, [open]);
 
   useEffect(() => {
     if (
@@ -422,34 +431,23 @@ export function EditCaseDialog({
       const { success, error } = await updateCase(submitData);
 
       if (success) {
-        toast.success('Caso actualizado exitosamente');
+        // Antes de cerrar y con un solo aviso: el usuario tiene que ver qué
+        // archivo no subió, y el formulario no debe parecer listo hasta entonces.
+        if (documentsToUploadRef.current.length > 0) {
+          avisarResultadoDeSubida(
+            'Caso actualizado',
+            await subirDocumentosDelCaso(
+              caseData.id,
+              documentsToUploadRef.current,
+            ),
+          );
+          documentsToUploadRef.current = [];
+        } else {
+          toast.success('Caso actualizado exitosamente');
+        }
         onCaseUpdated();
         onOpenChange(false);
         form.reset();
-
-        // Upload documents if there are any
-        if (documentsToUploadRef.current.length > 0) {
-          try {
-            const payload = {
-              caseId: caseData.id,
-              personName:
-                (selectedDebtor?.name as string) || caseData.debtorName,
-              documents: await Promise.all(
-                documentsToUploadRef.current.flatMap(({ docName, files }) =>
-                  files.map(async (f) => ({
-                    docName,
-                    fileName: f.name,
-                    mimeType: f.type || 'application/pdf',
-                    dataBase64: await fileToBase64(f),
-                  })),
-                ),
-              ),
-            } as const;
-
-            // Temporary: uploadCaseDocuments hasn't been migrated yet
-            await uploadCaseDocuments(payload);
-          } catch {}
-        }
       } else if (error?.includes('modificado por otro usuario')) {
         toast.error(
           'Este caso fue modificado por otro usuario. Recargue y vuelva a intentarlo.',
@@ -461,19 +459,6 @@ export function EditCaseDialog({
       }
     });
   };
-
-  function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(',')[1] || '';
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
 
   const handleCreateDebtor = async (
     data: QuickDebtorFormData,

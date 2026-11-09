@@ -9,7 +9,6 @@ import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
-import { isNextRedirectError } from '@/lib/next-redirect';
 import { P } from '@/lib/permissions';
 // Importación circular: audit-log importa `authenticateUser` de este archivo.
 // No molesta porque ninguno de los dos usa al otro mientras se carga el módulo,
@@ -564,123 +563,6 @@ export async function switchDatabase(): Promise<void> {
   // ejecute siempre — también tras un error — y el usuario no se quede en una
   // página autenticada (mismo patrón que logoutUser).
   redirect('/');
-}
-
-export async function switchTenant(targetTenantSlug: string): Promise<{
-  success: boolean;
-  error?: string;
-}> {
-  try {
-    // 1. Verify current user is authenticated
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('access-token')?.value;
-
-    if (!accessToken) {
-      redirect('/login');
-    }
-
-    const currentPayload = await verifyToken(accessToken);
-    if (!currentPayload) {
-      redirect('/login');
-    }
-
-    // 2. Find the target tenant
-    const targetTenant = await prisma.tenant.findUnique({
-      where: { slug: targetTenantSlug as TenantId },
-    });
-
-    if (!targetTenant) {
-      return { success: false, error: 'Organización no encontrada' };
-    }
-
-    // 3. Check if current tenant is the same
-    if (currentPayload.tenantId === targetTenantSlug) {
-      return { success: false, error: 'Ya estás en esta organización' };
-    }
-
-    // 4. Look up user by email in the target tenant
-    const userInTarget = await prisma.user.findUnique({
-      where: {
-        email_tenantId: {
-          email: currentPayload.email,
-          tenantId: targetTenant.id,
-        },
-      },
-      include: {
-        role: {
-          include: {
-            permissions: {
-              include: {
-                permission: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!userInTarget) {
-      return {
-        success: false,
-        error: 'No tienes cuenta en esta organización',
-      };
-    }
-
-    // Block tenant switch if user must change password
-    if ((userInTarget as Record<string, unknown>).mustChangePassword) {
-      return {
-        success: false,
-        error: 'Debe establecer una nueva contraseña antes de continuar.',
-      };
-    }
-
-    // 5. Generate new tokens for the target tenant
-    const permissions = userInTarget.role.permissions.map(
-      (rp) => rp.permission.name,
-    );
-
-    const accessTokenNew = await createAccessToken({
-      id: userInTarget.id,
-      name: userInTarget.name,
-      email: userInTarget.email,
-      roleId: userInTarget.role.id,
-      roleName: userInTarget.role.name,
-      permissions,
-      tenantId: targetTenantSlug,
-      tenantName: targetTenant.name,
-      lastLogin: new Date(),
-      tokenVersion: userInTarget.tokenVersion,
-    });
-
-    const refreshTokenNew = await createRefreshToken({
-      userId: userInTarget.id,
-      tenantId: targetTenantSlug,
-      tokenVersion: userInTarget.tokenVersion,
-    });
-
-    // 6. Set new auth cookies
-    await setAuthCookies(accessTokenNew, refreshTokenNew);
-
-    // 7. Update last login
-    await prisma.user.update({
-      where: { id: userInTarget.id },
-      data: { lastLogin: new Date() },
-    });
-
-    revalidateTag('auth');
-    redirect('/dashboard');
-  } catch (error) {
-    // redirect() señala la redirección lanzando un error por diseño: debe
-    // propagarse. Se reconoce por su digest, no por el message.
-    if (isNextRedirectError(error)) {
-      throw error;
-    }
-    logger.error('Error switching tenant', error);
-    return {
-      success: false,
-      error: 'Error al cambiar de organización',
-    };
-  }
 }
 
 export async function registerUser(input: unknown): Promise<RegisterResult> {
