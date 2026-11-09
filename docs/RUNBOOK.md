@@ -435,6 +435,42 @@ Qué hacer:
    master (`npm test`): agregar un año no debería cambiar ningún documento de
    un expediente ya radicado, porque el año sale de su fecha de radicación.
 
+### 7.2 El seed (`npm run db:seed`) nunca va contra producción
+
+El seed crea 2 centros con 5 usuarios demo cada uno
+(`beatriz.malavera`, `sofia.torres`, `maximiliano.jaramillo`,
+`carlos.rodriguez`, `maria.gonzalez` `@insolventic.com`), roles, permisos y
+casos de ejemplo. Es para bases **de prueba**.
+
+**Por qué hay guarda.** Hasta 1.0.0-rc.2 el seed les ponía a esos usuarios la
+contraseña literal `123456` (bcrypt de costo 10), el repositorio es público, y
+el seed llegó a correr contra la base de producción: quedaron cuentas reales
+con una contraseña publicada. Los hashes `$2b$10$` en `User.password` son la
+huella de eso —la aplicación hashea con costo 12—, y limpiar esas cuentas es
+una tarea manual del dueño, aparte de este arreglo.
+
+**Qué hace hoy** (`src/prisma/seed-guard.ts`, probado en
+`tests/unit/config/seed-guard.test.ts`):
+
+- **Aborta antes de escribir** si `DATABASE_URL` o `DIRECT_URL` no apuntan a
+  `localhost`/`127.0.0.1`/`::1` con un nombre de base que contenga `e2e`,
+  `test` o `smoke` (el mismo criterio que `tests/db/db-guard.ts`). Ojo:
+  `prisma.config.ts` carga el `.env`, así que en una máquina con el `.env` de
+  Vercel un `npm run db:seed` "suelto" apuntaba a Neon. `npm run db:reset:seed`
+  evalúa la misma guarda **antes** de borrar.
+- **No hay contraseña literal.** Usa `SEED_PASSWORD` (mínimo 12 caracteres) y,
+  si falta, genera una aleatoria y la imprime **una sola vez** en la salida.
+  Costo 12. Solo afecta a los usuarios que el seed **crea**: los que ya existen
+  no se tocan (`upsert` con `update: {}`).
+- **Opt-in para otra base**: `SEED_PERMITIR_BASE_REAL=1`. Solo si de verdad
+  hace falta poblar una base que no es de prueba local. En ese caso las cuentas
+  quedan con `mustChangePassword: true`: el login las rechaza hasta que su
+  dueño fije una contraseña propia por "¿Olvidaste tu contraseña?". En una base
+  de prueba local quedan en `false`, porque los E2E entran con ellas.
+
+**Nunca** usar el opt-in contra la base de producción: los centros reales no
+necesitan usuarios demo ni casos de ejemplo.
+
 ---
 
 ## 8. Referencias

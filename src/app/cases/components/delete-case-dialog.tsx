@@ -35,9 +35,9 @@ export function DeleteCaseDialog({
 }: Readonly<DeleteCaseDialogProps>) {
   const [isPending, startTransition] = useTransition();
 
-  // GC-M6: confirmación escrita. El borrado es físico, en cascada e
-  // irreversible, así que no alcanza con un botón "Eliminar": hay que teclear
-  // el número del caso. La comprobación de verdad la hace el servidor
+  // GC-M6: confirmación escrita. Desde el soft-delete el caso va a la papelera
+  // y se puede restaurar, pero desaparece de la vista de todo el centro, así
+  // que se conserva la fricción: hay que teclear el número del caso. La comprobación de verdad la hace el servidor
   // (`deleteCaseSchema` + `deleteCase`); esto es la fricción que evita el
   // click por inercia, y el motivo por el que el botón arranca deshabilitado.
   const [confirmacion, setConfirmacion] = useState('');
@@ -61,8 +61,8 @@ export function DeleteCaseDialog({
       });
 
       if (success) {
-        toast.success('Caso eliminado exitosamente', {
-          description: `El caso ${caseData.caseNumber} ha sido eliminado correctamente`,
+        toast.success('Caso enviado a la papelera', {
+          description: `El caso ${caseData.caseNumber} se puede restaurar desde la papelera.`,
         });
         setConfirmacion('');
         onOpenChange(false);
@@ -86,7 +86,7 @@ export function DeleteCaseDialog({
             <DialogTitle>Eliminar Caso</DialogTitle>
           </div>
           <DialogDescription>
-            ¿Está seguro de que desea eliminar el caso {caseData.caseNumber}?
+            El caso {caseData.caseNumber} se moverá a la papelera.
           </DialogDescription>
         </DialogHeader>
 
@@ -113,9 +113,11 @@ export function DeleteCaseDialog({
 
           {(hasDocuments || hasAssets || hasDebts) && (
             <div className="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-950">
-              <h4 className="font-medium text-yellow-900">Advertencia</h4>
+              <h4 className="font-medium text-yellow-900">
+                Información asociada
+              </h4>
               <p className="mt-1 text-sm text-yellow-700">
-                Este caso tiene información asociada que también será eliminada:
+                Se oculta junto con el caso y vuelve si se restaura:
               </p>
               <ul className="mt-2 space-y-1 text-sm text-yellow-700">
                 {hasDocuments && (
@@ -129,9 +131,9 @@ export function DeleteCaseDialog({
 
           <div className="bg-muted rounded-lg p-4">
             <p className="text-muted-foreground text-sm">
-              <strong>Nota:</strong> Esta acción no se puede deshacer. Una vez
-              eliminado, toda la información del caso se perderá
-              permanentemente.
+              <strong>Nota:</strong> El caso deja de aparecer en listados,
+              búsquedas, reportes, alertas y documentos. Se puede restaurar
+              desde la papelera de Gestión de Casos.
             </p>
           </div>
 

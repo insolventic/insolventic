@@ -4,7 +4,28 @@ import bcrypt from 'bcrypt';
 import prisma from '@/lib/prisma';
 import type { TenantId } from '@/lib/prisma';
 
-async function seedTenant(tenantSlug: TenantId, tenantName: string) {
+import {
+  assertSeedPuedeCorrer,
+  resolverContrasenaSeed,
+  SEED_BCRYPT_COST,
+  SEED_PASSWORD_VAR,
+} from './seed-guard';
+
+/**
+ * Credenciales de los usuarios demo, resueltas UNA vez por corrida (ver
+ * `seed-guard.ts`): sin contraseña literal, costo 12 y `mustChangePassword`
+ * en toda base que no sea de prueba local.
+ */
+interface SeedCredentials {
+  hashedPassword: string;
+  mustChangePassword: boolean;
+}
+
+async function seedTenant(
+  tenantSlug: TenantId,
+  tenantName: string,
+  credentials: SeedCredentials,
+) {
   console.log(`Seeding tenant: ${tenantSlug}`);
 
   // Create or get tenant
@@ -22,7 +43,7 @@ async function seedTenant(tenantSlug: TenantId, tenantName: string) {
 
   const roles = await createRoles(permissions, prisma, tenant.id);
 
-  const users = await createUsers(roles, prisma, tenant.id);
+  const users = await createUsers(roles, prisma, tenant.id, credentials);
 
   const creditors = await createCreditors(prisma, tenant.id);
 
@@ -35,7 +56,34 @@ async function seedTenant(tenantSlug: TenantId, tenantName: string) {
   console.log(`Tenant ${tenantSlug} seeded successfully`);
 }
 
-export async function main() {
+export async function main(env: NodeJS.ProcessEnv = process.env) {
+  // Antes de tocar la base: aborta si el destino no es una base de prueba
+  // local (salvo opt-in explícito).
+  const destino = assertSeedPuedeCorrer(env);
+  const { password, generada } = resolverContrasenaSeed(env);
+
+  const credentials: SeedCredentials = {
+    hashedPassword: await bcrypt.hash(password, SEED_BCRYPT_COST),
+    // En una base de prueba local los tests E2E tienen que poder entrar con
+    // los usuarios demo; en cualquier otra, la cuenta queda bloqueada hasta
+    // que su dueño fije una contraseña propia por el flujo de recuperación.
+    mustChangePassword: !destino.esBaseDePrueba,
+  };
+
+  if (!destino.esBaseDePrueba) {
+    console.warn(
+      `ATENCIÓN: seed contra una base que no es de prueba local (${destino.motivo}). ` +
+        'Los usuarios demo que se creen quedan con mustChangePassword: true.',
+    );
+  }
+  if (generada) {
+    // Se imprime una sola vez y no se guarda en ningún lado.
+    console.log(
+      `${SEED_PASSWORD_VAR} no estaba definida; contraseña generada para los ` +
+        `usuarios demo que se creen en esta corrida: ${password}`,
+    );
+  }
+
   const tenants: Array<{ slug: TenantId; name: string }> = [
     { slug: 'armonia', name: 'Armonia' },
     { slug: 'constructores-paz', name: 'Constructores de Paz' },
@@ -43,7 +91,7 @@ export async function main() {
 
   for (const tenant of tenants) {
     try {
-      await seedTenant(tenant.slug, tenant.name);
+      await seedTenant(tenant.slug, tenant.name, credentials);
     } catch (error) {
       console.error(`Error seeding tenant ${tenant.slug}:`, error);
     }
@@ -98,6 +146,10 @@ async function createPermissions(prisma: PrismaClient, tenantId: string) {
     },
     {
       name: 'Eliminar casos',
+      category: 'Casos',
+    },
+    {
+      name: 'Eliminar casos definitivamente',
       category: 'Casos',
     },
     {
@@ -241,6 +293,7 @@ async function createRoles(
     'Crear casos',
     'Editar casos',
     'Eliminar casos',
+    'Eliminar casos definitivamente',
     'Ver acreedores',
     'Crear acreedores',
     'Editar acreedores',
@@ -543,9 +596,8 @@ async function createUsers(
   roles: Roles,
   prisma: PrismaClient,
   tenantId: string,
+  { hashedPassword, mustChangePassword }: SeedCredentials,
 ) {
-  const hashedPassword = await bcrypt.hash('123456', 10);
-
   const beatriz = await prisma.user.upsert({
     where: {
       email_tenantId: {
@@ -558,6 +610,7 @@ async function createUsers(
       name: 'Beatriz Helena Malavera López',
       email: 'beatriz.malavera@insolventic.com',
       password: hashedPassword,
+      mustChangePassword,
       lastLogin: new Date('2025-01-29T08:30:00'),
       professionalCard: '194.548',
       phone: '3101234567',
@@ -580,6 +633,7 @@ async function createUsers(
       name: 'Sofía Alejandra Torres Ramírez',
       email: 'sofia.torres@insolventic.com',
       password: hashedPassword,
+      mustChangePassword,
       lastLogin: new Date('2025-01-29T09:15:00'),
       professionalCard: '198.765',
       phone: '3187654321',
@@ -602,6 +656,7 @@ async function createUsers(
       name: 'Maximiliano Jaramillo Jaramillo',
       email: 'maximiliano.jaramillo@insolventic.com',
       password: hashedPassword,
+      mustChangePassword,
       lastLogin: new Date('2025-01-29T07:45:00'),
       professionalCard: '156.789',
       phone: '3202345678',
@@ -624,6 +679,7 @@ async function createUsers(
       name: 'Carlos Andrés Rodríguez',
       email: 'carlos.rodriguez@insolventic.com',
       password: hashedPassword,
+      mustChangePassword,
       lastLogin: new Date('2025-01-28T16:20:00'),
       professionalCard: 'N/A',
       phone: '3153456789',
@@ -646,6 +702,7 @@ async function createUsers(
       name: 'María Fernanda González',
       email: 'maria.gonzalez@insolventic.com',
       password: hashedPassword,
+      mustChangePassword,
       lastLogin: new Date('2025-01-25T14:15:00'),
       professionalCard: 'N/A',
       phone: '3164567890',

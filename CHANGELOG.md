@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Papelera de casos.** Eliminar un caso ya no lo borra: lo manda a una papelera, desde donde se puede restaurar tal como estaba. Mientras está en la papelera no aparece en listados, búsquedas, reportes, alertas, pagos ni documentos, y no se puede modificar. La papelera la ve quien puede eliminar casos.
+- **Eliminación definitiva** desde la papelera, con un permiso nuevo ("Eliminar casos definitivamente") que se asigna solo al rol Administrador. Pide escribir el número del caso y queda en la auditoría. Existe para poder cumplir una solicitud de supresión de datos.
+
+### Changed
+
+- **Eliminar un deudor ya no borra sus casos.** Antes se llevaba todos sus expedientes sin la confirmación ni la auditoría de eliminar un caso; ahora se niega si el deudor tiene casos, incluidos los de la papelera.
+- La auditoría distingue "Restauración" y "Eliminación definitiva".
+
+## [1.0.0-rc.2] - 2026-11-08
+
+### Seguridad
+
+- **La pantalla de Usuarios enviaba al navegador el hash de la contraseña de todos los usuarios del centro.** Ya no sale del servidor. (#172)
+- **Los avisos de expediente de la campana llegaban a todo el centro.** Ahora llegan solo a quien puede ver ese expediente: un abogado ya no recibe avisos de casos que no tiene asignados. (#169)
+- Se elimina el cambio de centro sin contraseña: con permiso para editar usuarios, alguien podía ponerse el correo de un usuario de otro centro y entrar a ese centro. "Cambiar Organización" sigue funcionando igual, pidiendo la clave de la cuenta destino. (#176)
+- Editar un usuario ya no cambia su contraseña por esa vía; para eso están "Cambiar contraseña" y el restablecimiento por correo. (#175)
+- Controles de centro que faltaban: no se puede asignar a un caso un deudor de otro centro (#168), crear un usuario con un rol de otro centro (#170), ni dar a un rol permisos de otro centro (#179).
+- Lo que le pasa a una cuenta (alta, baja, cierre de sesiones, cambio y restablecimiento de contraseña) queda en el registro de auditoría antes de responder; antes algunas de esas entradas se podían perder. (#173)
+- Lo mismo para contactos, acreedores, deudores, documentos, pagos y roles: sus cambios quedan en el registro de auditoría antes de responder, y no se pierden si la función termina antes de escribirlo. (#177)
+
+### Fixed
+
+- **Documentos del caso y comprobantes de pago: límite real de 4 MB por archivo.** La pantalla prometía 10 MB, pero un archivo de más de unos 3 MB hacía fallar el alta o la edición entera con un error de la plataforma, sin decir qué archivo era. Ahora el límite se avisa al elegir el archivo, los documentos se suben de a uno y, si alguno falla, el caso queda guardado y el aviso dice cuál no se subió y por qué. Vale para el alta y la edición de casos, el seguimiento de pagos del caso y "Registrar pago" en Reportes. (#182)
+- Los comprobantes de pago quedaban en Drive en una carpeta con el primer carácter del nombre esperado; ahora quedan en `{número del caso}/Comprobantes/`. (#178)
+- **Editar un caso de insolvencia fallaba con un error de base de datos** por las fechas de cesación de pagos, de inicio de pago propuesto y de radicación. (#183)
+- **Una sola fuente para el salario mínimo (SMMLV) y los umbrales de cuantía.** El formulario de alta, el servidor y los documentos usaban tres valores distintos y podían contradecirse sobre el mismo expediente (por ejemplo, exigir apoderado en pantalla y no en el servidor, o imprimir $1.300.000 como salario mínimo). Ahora el año del SMMLV sale de la fecha de radicación del expediente. (#154)
+- **Los formularios ya no muestran errores antes de que el usuario haga algo.** Al trabajar en "Crear nuevo caso" podían aparecer avisos en rojo —"La deuda total es requerida", el ícono de error en "1. Solicitante" y el mensaje "Campos incompletos"— sin que nadie hubiera intentado guardar. Ahora un error aparece solo cuando el usuario sale de un campo, pulsa "Siguiente" o pulsa "Crear" / "Guardar". Se corrigen en concreto (#151):
+  - El botón para crear un deudor nuevo desde el formulario del caso, además de abrir su ventana, intentaba guardar el caso a la vez. En la edición de un caso podía llegar a guardarlo.
+  - "Siguiente" en la penúltima pestaña intentaba crear el caso y devolvía al usuario a la primera pestaña con errores. En Conciliación y Acuerdo de apoyo eso impedía llegar a la última pestaña con "Siguiente".
+  - El formulario de Acuerdo de apoyo exigía una "deuda total" que no tenía dónde escribirse, y por eso no dejaba crear el caso.
+  - Las ventanas de nuevo deudor, nuevo acreedor, nuevo usuario, nuevo rol y edición de deudor o de rol volvían a abrirse con los errores —y los cambios descartados— de la vez anterior.
+  - La ventana de registrar un pago podía abrirse con un mensaje de error que no le correspondía.
+- Cuando la generación de documentos falla en parte, el sistema dice cuáles documentos no pudo generar (#163), y los errores de Google Drive conservan su causa para que el reintento decida bien (#162).
+- La tarea diaria de alertas tiene un tiempo máximo declarado (#155), acota sus búsquedas y libera las generaciones de documentos que quedaron colgadas (#161).
+
+### Changed
+
+- El listado de casos se pagina en el servidor: ya no se cargan todos los casos para mostrar una página. (#159)
+- La sincronización de documentos con Drive se hace por lotes y no fila por fila. (#160)
+
+### Observabilidad
+
+- Aviso cuando la aplicación deja de responder o la tarea diaria no corre (monitor de `/api/health` cada 30 minutos y monitor de cron en Sentry). (#165)
+- Los errores de correo y de generación de PDF, y las trazas del cierre de sesión por inactividad, pasan por el logger con redacción de datos personales. (#164, #156)
+
+### Interno
+
+- Documentación y handover al día: README, runbook y CLAUDE.md. (#152, #153, #157, #158)
+- Hook `commit-msg` que rechaza trailers de atribución de herramientas, y lint en 0 warnings tras borrar dos scripts huérfanos. (#150, #166)
+
 ## [1.0.0-rc.1] - 2026-10-18
 
 ### Changed
@@ -29,12 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Totales de bienes de la "Solicitud de Insolvencia" (`TOTAL_INMUEBLES`, `TOTAL_MUEBLES`, `TOTAL_BIENES` y los `MUEBLE_*_VALOR`)**: `mapAssets` sumaba los `Prisma.Decimal` de los activos con `+`, y `Decimal.valueOf()` devuelve un string, así que concatenaba en vez de sumar (un inmueble de $100M sin muebles salía como $1.000M; con más activos, cifras de 15 dígitos). Afectaba a todo documento generado por la ruta automática (creación de caso, generación inicial), que pasa la fila de Prisma sin convertir. Ahora cada sumando pasa por `Number()`. Test de regresión con `Prisma.Decimal` real y comparación de la salida completa del mapper entre `Decimal` y `number`.
 - Los totales de ingresos y deudas del formulario de creación de casos podían mostrar "NaN" (un error en pantalla, no un número) cuando el monto se escribía con coma decimal en vez de punto. (#144)
 - Se corrige un error que impedía generar los documentos de un caso, en los dos centros. (#146)
-- **Los formularios ya no muestran errores antes de que el usuario haga algo.** Al trabajar en "Crear nuevo caso" podían aparecer avisos en rojo —"La deuda total es requerida", el ícono de error en "1. Solicitante" y el mensaje "Campos incompletos"— sin que nadie hubiera intentado guardar. Ahora un error aparece solo cuando el usuario sale de un campo, pulsa "Siguiente" o pulsa "Crear" / "Guardar". Se corrigen en concreto:
-  - El botón para crear un deudor nuevo desde el formulario del caso, además de abrir su ventana, intentaba guardar el caso a la vez. En la edición de un caso podía llegar a guardarlo.
-  - "Siguiente" en la penúltima pestaña intentaba crear el caso y devolvía al usuario a la primera pestaña con errores. En Conciliación y Acuerdo de apoyo eso impedía llegar a la última pestaña con "Siguiente".
-  - El formulario de Acuerdo de apoyo exigía una "deuda total" que no tenía dónde escribirse, y por eso no dejaba crear el caso.
-  - Las ventanas de nuevo deudor, nuevo acreedor, nuevo usuario, nuevo rol y edición de deudor o de rol volvían a abrirse con los errores —y los cambios descartados— de la vez anterior.
-  - La ventana de registrar un pago podía abrirse con un mensaje de error que no le correspondía.
 
 ### Changed
 

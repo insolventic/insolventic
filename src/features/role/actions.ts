@@ -82,6 +82,7 @@ export async function createRole(input: unknown): Promise<{
 
     const permissionRecords = await prisma.permission.findMany({
       where: {
+        tenantId,
         name: {
           in: permissions,
         },
@@ -126,7 +127,7 @@ export async function createRole(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'role',
       entityId: newRole.id,
@@ -199,6 +200,7 @@ export async function updateRole(input: unknown): Promise<{
 
       const permissionRecords = await prisma.permission.findMany({
         where: {
+          tenantId,
           name: {
             in: permissions,
           },
@@ -247,7 +249,7 @@ export async function updateRole(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'role',
       entityId: roleWithRelations!.id,
@@ -351,7 +353,7 @@ export async function deleteRole(id: string): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'role',
       entityId: roleToDelete.id,

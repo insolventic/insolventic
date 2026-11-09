@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
+import { CASO_ACTIVO } from '@/lib/papelera';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
@@ -270,6 +271,7 @@ export async function getCreditorById(id: string): Promise<{
         where: {
           creditorId: creditor.id,
           case: {
+            ...CASO_ACTIVO,
             operatorId: user.id,
             tenantId,
           },
@@ -305,6 +307,7 @@ export async function getCreditorById(id: string): Promise<{
           where: {
             creditorId: creditor.id,
             case: {
+              ...CASO_ACTIVO,
               debtorId: userDebtor.id,
               tenantId,
             },
@@ -390,7 +393,7 @@ export async function createCreditor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'creditor',
       entityId: creditor.id,
@@ -470,7 +473,7 @@ export async function updateCreditor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'creditor',
       entityId: updatedCreditor.id,
@@ -550,7 +553,7 @@ export async function deleteCreditor(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'creditor',
       entityId: deletedCreditor.id,

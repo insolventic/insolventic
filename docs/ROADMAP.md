@@ -13,7 +13,7 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
 ## Fase 3 (Q3, ~32h)
 
-- [ ] Soft-delete para expedientes legales (borrado físico→lógico, capacidad de recuperación; hoy `deleteCase` borra en cascada) — ~20h
+- [x] ~~Soft-delete para expedientes legales~~ → 🟢 **Hecho el 2026-11-08**: papelera con restauración, borrado definitivo solo para Administrador, filtro en la extensión de `src/lib/prisma.ts` y `deleteDebtor` sin cascada sobre expedientes. Detalle: `docs/DECISIONES.md` §2026-11-08. Queda pendiente borrar la carpeta de Drive al purgar (GC-M6).
 - [ ] Auditoría de accesibilidad (19 refs `aria-*` en todo el proyecto → pasada semántica en las 5 pantallas núcleo) — ~6h
 - [ ] **Cerrar la deriva entre el historial de migraciones y `schema.prisma`** — ~6h · 🔴 **bloqueado: necesita acceso a Neon + decidir el camino**
 

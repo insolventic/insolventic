@@ -1,19 +1,20 @@
 /**
- * GC-M6 (mitigación interina): `deleteCase` sigue siendo un borrado físico en
- * cascada, pero ahora exige confirmación escrita y deja el audit log ANTES de
- * destruir la fila.
+ * GC-M6: `deleteCase` manda el caso a la papelera (soft-delete, 2026-11-08) y
+ * conserva las salvaguardas de la mitigación interina: confirmación escrita y
+ * audit log ANTES de marcar la fila. El borrado físico es `purgeCase`
+ * (`tests/unit/cases/papelera-actions.test.ts`).
  *
- * Los tres modos de falla que esto atrapa:
+ * Los modos de falla que esto atrapa:
  *
  *  1. Invocar la action sin pasar por el diálogo. Si la confirmación viviera
  *     solo en el componente, bastaría llamar `deleteCase({ id })`.
  *  2. Confirmar con un número cualquiera. La comparación tiene que ser contra
  *     el valor de la BASE, no contra otro campo del mismo payload.
- *  3. Perder el registro. Si el audit log se escribe después del borrado (o
- *     sin `await`, como estaba), un expediente legal puede quedar destruido
+ *  3. Perder el registro: un expediente que desaparece de la vista del centro
  *     sin rastro de quién lo hizo.
+ *  4. Volver a borrar de verdad: `deleteCase` ya no abre transacción ni llama
+ *     a ningún `delete`.
  */
-
 process.env.JWT_SECRET = 'test-secret-key-for-unit-tests-only';
 
 jest.mock('next/headers', () => require('../../__mocks__/next-headers'));
@@ -48,7 +49,12 @@ jest.mock('@/features/document/generate-documents', () => ({
   generateDocumentsForFailure: jest.fn().mockResolvedValue([]),
 }));
 
-import { TENANT, PERMISSIONS, ADMIN_USER, CASE_DATA } from '../../helpers/fixtures';
+import {
+  TENANT,
+  PERMISSIONS,
+  ADMIN_USER,
+  CASE_DATA,
+} from '../../helpers/fixtures';
 import { deleteCase } from '@/features/case/actions';
 
 const CASE_NUMBER = 'INSOL-000042';
@@ -96,32 +102,14 @@ function mockLookups() {
     .mockResolvedValueOnce(SNAPSHOT);
 }
 
-function mockTransaction() {
-  mockPrisma.$transaction.mockImplementation(async (fn: unknown) =>
-    typeof fn === 'function'
-      ? (fn as (tx: unknown) => unknown)({
-          document: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          debt: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          asset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          legalProcess: {
-            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-          },
-          libranza: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          suspendedService: {
-            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-          },
-          dependent: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-          case: {
-            delete: jest.fn().mockResolvedValue({
-              ...CASE_DATA,
-              id: CASE_ID,
-              caseNumber: CASE_NUMBER,
-              debtorName: SNAPSHOT.debtorName,
-            }),
-          },
-        })
-      : undefined,
-  );
+/** El `update` que manda el caso a la papelera. */
+function mockMarcado() {
+  mockPrisma.case.update.mockResolvedValue({
+    ...CASE_DATA,
+    id: CASE_ID,
+    caseNumber: CASE_NUMBER,
+    debtorName: SNAPSHOT.debtorName,
+  });
 }
 
 describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () => {
@@ -142,7 +130,7 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       const result = await deleteCase({ id: CASE_ID } as never);
 
       expect(result.success).toBe(false);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
       expect(mockCreateAuditLog).not.toHaveBeenCalled();
     });
 
@@ -156,17 +144,20 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
 
       expect(result.success).toBe(false);
       expect(result.error).toContain(CASE_NUMBER);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
       expect(mockCreateAuditLog).not.toHaveBeenCalled();
     });
 
     it('con una cadena vacía, el schema la rechaza antes de consultar', async () => {
       mockLookups();
 
-      const result = await deleteCase({ id: CASE_ID, confirmCaseNumber: '   ' });
+      const result = await deleteCase({
+        id: CASE_ID,
+        confirmCaseNumber: '   ',
+      });
 
       expect(result.success).toBe(false);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
     });
 
     it('se compara contra el número de la BASE, no contra el payload', async () => {
@@ -181,12 +172,12 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       });
 
       expect(result.success).toBe(false);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
     });
 
-    it('con el número CORRECTO, borra', async () => {
+    it('con el número CORRECTO, lo manda a la papelera', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
 
       const result = await deleteCase({
         id: CASE_ID,
@@ -194,12 +185,12 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       });
 
       expect(result.success).toBe(true);
-      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockPrisma.case.update).toHaveBeenCalled();
     });
 
     it('acepta el número con espacios alrededor (se recorta)', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
 
       const result = await deleteCase({
         id: CASE_ID,
@@ -211,44 +202,31 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
   });
 
   describe('el audit log va ANTES del borrado y se espera', () => {
-    it('se escribe con await antes de la transacción', async () => {
+    it('se escribe con await antes de marcar la fila', async () => {
       mockLookups();
       const orden: string[] = [];
       mockCreateAuditLog.mockImplementation(async () => {
         orden.push('audit');
         return { ok: true };
       });
-      mockPrisma.$transaction.mockImplementation(async (fn: unknown) => {
-        orden.push('delete');
-        return typeof fn === 'function'
-          ? (fn as (tx: unknown) => unknown)({
-              document: { deleteMany: jest.fn() },
-              debt: { deleteMany: jest.fn() },
-              asset: { deleteMany: jest.fn() },
-              legalProcess: { deleteMany: jest.fn() },
-              libranza: { deleteMany: jest.fn() },
-              suspendedService: { deleteMany: jest.fn() },
-              dependent: { deleteMany: jest.fn() },
-              case: {
-                delete: jest.fn().mockResolvedValue({
-                  ...CASE_DATA,
-                  id: CASE_ID,
-                  caseNumber: CASE_NUMBER,
-                }),
-              },
-            })
-          : undefined;
+      mockPrisma.case.update.mockImplementation(async () => {
+        orden.push('papelera');
+        return {
+          ...CASE_DATA,
+          id: CASE_ID,
+          caseNumber: CASE_NUMBER,
+        };
       });
 
       await deleteCase({ id: CASE_ID, confirmCaseNumber: CASE_NUMBER });
 
       // Este es el assert que importa: el orden.
-      expect(orden).toEqual(['audit', 'delete']);
+      expect(orden).toEqual(['audit', 'papelera']);
     });
 
-    it('si el audit log NO queda escrito, NO se borra el expediente', async () => {
+    it('si el audit log NO queda escrito, NO se manda a la papelera', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
       mockCreateAuditLog.mockResolvedValue({ ok: false });
 
       const result = await deleteCase({
@@ -257,13 +235,13 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       });
 
       expect(result.success).toBe(false);
-      // Un expediente legal no se destruye sin registro.
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      // Un expediente no desaparece de la vista del centro sin registro.
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
     });
 
-    it('si el audit log LANZA, tampoco se borra', async () => {
+    it('si el audit log LANZA, tampoco se manda a la papelera', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
       mockCreateAuditLog.mockRejectedValue(new Error('auditoria caida'));
 
       const result = await deleteCase({
@@ -272,12 +250,12 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       });
 
       expect(result.success).toBe(false);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
     });
 
     it('el snapshot lleva número, tipo, fase y conteos de lo que se pierde', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
 
       await deleteCase({ id: CASE_ID, confirmCaseNumber: CASE_NUMBER });
 
@@ -296,7 +274,7 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
 
     it('el snapshot NO lleva datos personales del deudor', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
 
       await deleteCase({ id: CASE_ID, confirmCaseNumber: CASE_NUMBER });
 
@@ -322,7 +300,7 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
 
     it('registra que la carpeta de Drive NO se borró (el pendiente de GC-M6)', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
 
       await deleteCase({ id: CASE_ID, confirmCaseNumber: CASE_NUMBER });
 
@@ -333,7 +311,7 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
 
     it('no se escribe un SEGUNDO audit log después del borrado', async () => {
       mockLookups();
-      mockTransaction();
+      mockMarcado();
 
       await deleteCase({ id: CASE_ID, confirmCaseNumber: CASE_NUMBER });
 
@@ -391,8 +369,53 @@ describe('deleteCase — confirmación escrita y auditoría previa (GC-M6)', () 
       });
 
       expect(result.success).toBe(false);
-      expect(result.error).toMatch(/No tienes permisos para acceder a este caso/);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(result.error).toMatch(
+        /No tienes permisos para acceder a este caso/,
+      );
+      expect(mockPrisma.case.update).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('deleteCase — papelera, no borrado físico', () => {
+  beforeEach(() => {
+    resetAllMocks();
+    mockAuthenticateUser.mockReset();
+    mockCreateAuditLog.mockReset();
+    mockCreateAuditLog.mockResolvedValue({ ok: true });
+    jest.clearAllMocks();
+    signInAdmin();
+  });
+
+  it('marca deletedAt y quién lo eliminó, sin transacción ni delete', async () => {
+    mockLookups();
+    mockMarcado();
+
+    const result = await deleteCase({
+      id: CASE_ID,
+      confirmCaseNumber: CASE_NUMBER,
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    expect(mockPrisma.case.delete).not.toHaveBeenCalled();
+    expect(mockPrisma.case.deleteMany).not.toHaveBeenCalled();
+
+    const args = mockPrisma.case.update.mock.calls[0][0];
+    expect(args.where).toEqual({ id: CASE_ID, tenantId: TENANT.id });
+    expect(args.data.deletedAt).toBeInstanceOf(Date);
+    expect(args.data.deletedById).toBe(ADMIN_USER.id);
+    expect(args.data.deletedByName).toBe(ADMIN_USER.name);
+  });
+
+  it('el registro de auditoría dice que fue a la papelera', async () => {
+    mockLookups();
+    mockMarcado();
+
+    await deleteCase({ id: CASE_ID, confirmCaseNumber: CASE_NUMBER });
+
+    const registro = mockCreateAuditLog.mock.calls[0][0];
+    expect(registro.action).toBe('deleted');
+    expect(registro.metadata.papelera).toBe(true);
   });
 });
