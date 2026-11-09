@@ -10,6 +10,10 @@ import { randomUUID } from 'crypto';
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
 import { P } from '@/lib/permissions';
+// Importación circular: audit-log importa `authenticateUser` de este archivo.
+// No molesta porque ninguno de los dos usa al otro mientras se carga el módulo,
+// solo dentro de sus funciones.
+import { createAuditLog } from '@/features/audit-log/actions';
 import { seedRequestContextFromHeaders } from '@/lib/request-context';
 import { headers } from 'next/headers';
 import {
@@ -894,6 +898,29 @@ export async function resetPassword(
       },
     });
 
+    // Justo después del update: lo que venga puede fallar, y la contraseña ya
+    // cambió. Si el registro no se escribe, el reseteo sigue: recuperar el acceso
+    // a una cuenta no puede depender de la auditoría (la constancia queda en el
+    // log, ver `createAuditLog`).
+    await createAuditLog({
+      action: 'updated',
+      entityType: 'user',
+      entityId: user.id,
+      entityName: user.name,
+      // No hay sesión. El actor es el dueño de la cuenta, pero lo único
+      // comprobado es que alguien tenía el enlace: de ahí `via`.
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId: tenant.id,
+      metadata: {
+        changedFields: 'password, mustChangePassword, tokenVersion',
+        via: 'enlace por correo, sin sesión',
+      },
+    });
+
     // Mark token as used
     await prisma.passwordResetToken.update({
       where: { token },
@@ -975,6 +1002,7 @@ export async function changePassword(input: unknown): Promise<{
         id: true,
         email: true,
         name: true,
+        professionalCard: true,
         password: true,
       },
     });
@@ -1021,6 +1049,24 @@ export async function changePassword(input: unknown): Promise<{
         password: hashedNewPassword,
         lastLogin: new Date(), // Update last login to current time
         tokenVersion: { increment: 1 },
+      },
+    });
+
+    // Justo después del update, por lo mismo que en `resetPassword`.
+    await createAuditLog({
+      action: 'updated',
+      entityType: 'user',
+      entityId: user.id,
+      entityName: user.name,
+      actor: {
+        userId: user.id,
+        userName: user.name,
+        userCedula: user.professionalCard,
+      },
+      tenantId: tenant.id,
+      metadata: {
+        changedFields: 'password, lastLogin, tokenVersion',
+        via: 'sesión propia',
       },
     });
 

@@ -52,6 +52,10 @@ export interface AuditActorInfo {
  * `void` se convertiría en una unhandled rejection. Devolver un resultado deja
  * que cada llamador decida — `deleteCase` aborta el borrado si la auditoría no
  * quedó; una alta de deuda sigue adelante y deja constancia en el log.
+ *
+ * Esa constancia es el `logger.error` de abajo, y por eso lleva actor, centro y
+ * campos: si el insert falla, es el único lugar donde queda quién hizo qué. Quien
+ * sigue adelante no necesita registrar nada más.
  */
 export async function createAuditLog(params: {
   action: AuditAction;
@@ -121,6 +125,9 @@ export async function createAuditLog(params: {
       entityType,
       entityId,
       auditedAction: action,
+      userId: actor.userId,
+      tenantId,
+      changedFields: metadata?.changedFields,
     });
     return { ok: false as const };
   }
