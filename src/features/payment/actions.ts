@@ -7,6 +7,7 @@ import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
+import { montoNumerico } from '@/features/case/monto-schemas';
 import {
   checkRateLimit,
   getRateLimitKey,
@@ -364,7 +365,7 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
 
 const markPaymentPaidInput = z.object({
   paymentId: z.string(),
-  amount: z.number().positive().optional(),
+  amount: montoNumerico().positive('El monto debe ser mayor a 0').optional(),
   paymentMethod: z.string().optional(),
   observations: z.string().optional(),
   receipt: z.instanceof(File).optional(),
@@ -469,7 +470,7 @@ export async function markPaymentPaid(
 
 const registerPaymentInput = z.object({
   caseId: z.string(),
-  amount: z.number().positive(),
+  amount: montoNumerico().positive('El monto debe ser mayor a 0'),
   paymentDate: z.string(),
   paymentMethod: z.string().optional(),
   observations: z.string().optional(),

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { montoNumerico } from '@/features/case/monto-schemas';
 
 const decimalToNumber = z.any().transform((val) => {
   if (val && typeof val === 'object' && 'toNumber' in val) {
@@ -103,9 +104,9 @@ export const createDebtorSchema = debtorSchema
     _count: true,
   })
   .extend({
-    totalDebt: z.coerce.number().default(0),
+    totalDebt: z.coerce.number().pipe(montoNumerico()).default(0),
     activeCases: z.coerce.number().default(0),
-    monthlyIncome: z.coerce.number().default(0),
+    monthlyIncome: z.coerce.number().pipe(montoNumerico()).default(0),
     birthDate: z.date().optional(),
     maritalStatus: z.string().optional(),
     monthlyExpenses: decimalToNumber.optional(),
@@ -121,7 +122,7 @@ export const createDebtorSchema = debtorSchema
     accountType: z.string().optional(),
     description: z.string().optional(),
     otherIncomeDescription: z.string().optional(),
-    otherIncomeAmount: z.coerce.number().optional(),
+    otherIncomeAmount: z.coerce.number().pipe(montoNumerico()).optional(),
     hasEmployerCertification: z.boolean().default(false),
   });
 
@@ -142,7 +143,7 @@ export const updateDebtorSchema = debtorSchema
     id: z.string(),
     birthDate: z.date().optional(),
     maritalStatus: z.string().optional(),
-    monthlyExpenses: z.coerce.number().optional(),
+    monthlyExpenses: z.coerce.number().pipe(montoNumerico()).optional(),
     dependents: z.coerce
       .number()
       .min(0, 'El número de dependientes debe ser positivo')
@@ -155,7 +156,7 @@ export const updateDebtorSchema = debtorSchema
     accountType: z.string().optional(),
     description: z.string().optional(),
     otherIncomeDescription: z.string().optional(),
-    otherIncomeAmount: z.coerce.number().optional(),
+    otherIncomeAmount: z.coerce.number().pipe(montoNumerico()).optional(),
     hasEmployerCertification: z.boolean().optional(),
   });
 

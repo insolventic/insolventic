@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 import { CASE_PHASE_VALUES } from '@/lib/case-phases';
 import { requiresOtherDetail } from '@/features/case/proceso-judicial-tipos';
-import { parsearMonto } from './monto';
 
 /**
  * Fase del expediente restringida a las fases conocidas (C-1).
@@ -49,20 +48,22 @@ const decimalToNumber = z.any().transform((val) => {
  * `montoOpcional()` para los campos que pueden quedar vacíos; `montoRequerido`
  * para los que no.
  */
-const entradaDeMonto = z.union([
-  z.string(),
-  z.number(),
-  z.null(),
-  z.undefined(),
-]);
-
-export const montoOpcional = () =>
-  entradaDeMonto.transform(parsearMonto).pipe(z.number().min(0).optional());
-
-export const montoRequerido = (mensaje: string) =>
-  entradaDeMonto
-    .transform(parsearMonto)
-    .pipe(z.number({ message: mensaje }).min(0, mensaje));
+// Desde F4/F5 (auditoría 2026-10-27) las dos viven en `monto-schemas.ts`,
+// junto con el tope de 10^15 y el rechazo de negativos que comparten con
+// los montos que el schema guarda como string (`montoTexto`) y los que ya
+// llegan como número (`montoNumerico`).
+export {
+  montoOpcional,
+  montoRequerido,
+  montoTexto,
+  montoNumerico,
+} from './monto-schemas';
+import {
+  montoNumerico,
+  montoOpcional,
+  montoRequerido,
+  montoTexto,
+} from './monto-schemas';
 
 // ---------------------------------------------------------------------------
 // Fechas HISTÓRICAS del formulario de conciliación (C-1a, auditoría 2026-10-12)
@@ -356,7 +357,7 @@ export const debtSchema = z.object({
   id: z.string().optional(),
   creditor: z.string().min(1, 'El acreedor es requerido'),
   creditorId: z.string().optional(), // Optional - not used in detailed form
-  amount: z.string().optional(), // Optional - using capitalAmount/interestAmount instead
+  amount: montoTexto().optional(), // Optional - using capitalAmount/interestAmount instead
   type: z.string().min(1, 'El tipo de deuda es requerido'),
   interestRate: z.string().min(1, 'La tasa de interés es requerida'),
 
@@ -364,8 +365,8 @@ export const debtSchema = z.object({
   creditorAddress: z.string().optional(),
   creditorCity: z.string().optional(),
   creditorEmail: z.string().optional(),
-  capitalAmount: z.string().optional(),
-  interestAmount: z.string().optional(),
+  capitalAmount: montoTexto().optional(),
+  interestAmount: montoTexto().optional(),
   isDeferred: z.boolean().default(false),
   documentType: z.string().optional(),
   grantDate: z.string().optional(),
@@ -418,7 +419,7 @@ export const assetSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'El nombre del bien es requerido'),
   type: z.string().min(1, 'El tipo de bien es requerido'),
-  value: z.string().min(1, 'El valor es requerido'),
+  value: montoTexto({ requerido: 'El valor es requerido' }),
   description: z.string().optional(),
 
   // Real Estate specific fields
@@ -440,7 +441,7 @@ export const assetSchema = z.object({
   licensePlate: z.string().optional(),
   transitAuthority: z.string().optional(),
   guaranteeInFavorOf: z.string().optional(),
-  guaranteeAmount: z.string().optional(),
+  guaranteeAmount: montoTexto().optional(),
   material: z.string().optional(),
 });
 export const libranzaSchema = z.object({
@@ -449,7 +450,7 @@ export const libranzaSchema = z.object({
   payerAddress: z.string().optional(),
   payerEmail: z.string().optional(),
   payerPhone: z.string().optional(),
-  deductedAmount: z.string().min(1, 'La suma descontada es requerida'),
+  deductedAmount: montoTexto({ requerido: 'La suma descontada es requerida' }),
   productAndCreditor: z.string().optional(),
 });
 
@@ -460,7 +461,7 @@ export const suspendedServiceSchema = z.object({
   email: z.string().optional(),
   phone: z.string().optional(),
   suspendedProduct: z.string().optional(),
-  amountOwed: z.string().min(1, 'El valor adeudado es requerido'),
+  amountOwed: montoTexto({ requerido: 'El valor adeudado es requerido' }),
 });
 
 export const dependentSchema = z.object({
@@ -1893,7 +1894,7 @@ export type UpdateCaseData = z.infer<typeof updateCaseSchema>;
 export const addDebtToCaseSchema = z.object({
   caseId: z.string().min(1, 'El ID del caso es requerido'),
   creditorId: z.string().min(1, 'El ID del acreedor es requerido'),
-  amount: z.string().min(1, 'El monto es requerido'),
+  amount: montoTexto({ requerido: 'El monto es requerido' }),
   type: z.string().min(1, 'El tipo de deuda es requerido'),
   interestRate: z.string().min(1, 'La tasa de interés es requerida'),
 
@@ -1905,8 +1906,8 @@ export const addDebtToCaseSchema = z.object({
   creditorAddress: z.string().optional(),
   creditorCity: z.string().optional(),
   creditorEmail: z.string().optional(),
-  capitalAmount: z.string().optional(),
-  interestAmount: z.string().optional(),
+  capitalAmount: montoTexto().optional(),
+  interestAmount: montoTexto().optional(),
   isDeferred: z.boolean().optional(),
   documentType: z.string().optional(),
   grantDate: z.string().optional(),
@@ -1972,7 +1973,7 @@ export const addLibranzaToCaseSchema = z.object({
   payerAddress: z.string().optional(),
   payerEmail: z.string().optional(),
   payerPhone: z.string().optional(),
-  deductedAmount: z.string().min(1, 'La suma descontada es requerida'),
+  deductedAmount: montoTexto({ requerido: 'La suma descontada es requerida' }),
   productAndCreditor: z.string().optional(),
 });
 
@@ -2003,7 +2004,7 @@ export const addSuspendedServiceToCaseSchema = z.object({
   address: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
-  amountOwed: z.string().min(1, 'La suma adeudada es requerida'),
+  amountOwed: montoTexto({ requerido: 'La suma adeudada es requerida' }),
   serviceType: z.string().optional(),
 });
 
@@ -2034,7 +2035,7 @@ export const addAssetToCaseSchema = z.object({
   caseId: z.string().min(1, 'El ID del caso es requerido'),
   name: z.string().min(1, 'El nombre del bien es requerido'),
   type: z.string().min(1, 'El tipo de bien es requerido'),
-  value: z.string().min(1, 'El valor es requerido'),
+  value: montoTexto({ requerido: 'El valor es requerido' }),
   description: z.string().optional(),
   propertyType: z.string().optional(),
   address: z.string().optional(),
@@ -2052,7 +2053,7 @@ export const addAssetToCaseSchema = z.object({
   licensePlate: z.string().optional(),
   transitAuthority: z.string().optional(),
   guaranteeInFavorOf: z.string().optional(),
-  guaranteeAmount: z.string().optional(),
+  guaranteeAmount: montoTexto().optional(),
   material: z.string().optional(),
 });
 
@@ -2242,8 +2243,8 @@ export const newDebtorFormSchema = z.object({
   address: z.string(),
   city: z.string(),
   department: z.string(),
-  monthlyIncome: z.number(),
-  monthlyExpenses: z.number(),
+  monthlyIncome: montoNumerico(),
+  monthlyExpenses: montoNumerico(),
 });
 export type DebtData = z.infer<typeof debtSchema>;
 export type AssetData = z.infer<typeof assetSchema>;
