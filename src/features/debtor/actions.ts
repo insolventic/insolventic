@@ -10,6 +10,7 @@ import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
+import { excesoDeLongitud } from '@/lib/longitud-texto';
 
 import {
   createDebtorSchema,
@@ -285,6 +286,10 @@ export async function createDebtor(input: unknown): Promise<{
     // Validate input
     const validatedInput = createDebtorSchema.parse(input);
 
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
+
     const debtor = await prisma.debtor.create({
       data: {
         ...validatedInput,
@@ -380,16 +385,15 @@ export async function updateDebtor(input: unknown): Promise<{
     const validatedInput = updateDebtorSchema.parse(input);
     const { id, ...rest } = validatedInput;
 
-    // F3: el formato del teléfono se exige solo si cambió respecto del
-    // guardado, para no bloquear la edición de registros viejos.
-    if (rest.phone !== undefined) {
-      const guardado = await prisma.debtor.findFirst({
-        where: { id, tenantId },
-        select: { phone: true },
-      });
-      const problema = problemaDeTelefonoSiCambio(rest.phone, guardado?.phone);
-      if (problema) return { success: false, error: problema };
-    }
+    // F2 y F3: los textos y el teléfono se validan solo si cambiaron respecto
+    // del guardado, para no bloquear la edición de registros viejos.
+    const guardado = await prisma.debtor.findFirst({
+      where: { id, tenantId },
+    });
+    const problema =
+      problemaDeTelefonoSiCambio(rest.phone, guardado?.phone) ??
+      excesoDeLongitud(rest, guardado ?? undefined);
+    if (problema) return { success: false, error: problema };
 
     const updatedDebtor = await prisma.debtor.update({
       where: {

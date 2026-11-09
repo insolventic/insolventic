@@ -8,6 +8,7 @@ import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
+import { excesoDeLongitud } from '@/lib/longitud-texto';
 
 import {
   createCreditorSchema,
@@ -360,6 +361,10 @@ export async function createCreditor(input: unknown): Promise<{
     // Validate input
     const validatedInput = createCreditorSchema.parse(input);
 
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
+
     const creditor = await prisma.creditor.create({
       data: {
         ...validatedInput,
@@ -439,16 +444,15 @@ export async function updateCreditor(input: unknown): Promise<{
     const validatedInput = updateCreditorSchema.parse(input);
     const { id, ...rest } = validatedInput;
 
-    // F3: el formato del teléfono se exige solo si cambió respecto del
-    // guardado, para no bloquear la edición de registros viejos.
-    if (rest.phone !== undefined) {
-      const guardado = await prisma.creditor.findFirst({
-        where: { id, tenantId },
-        select: { phone: true },
-      });
-      const problema = problemaDeTelefonoSiCambio(rest.phone, guardado?.phone);
-      if (problema) return { success: false, error: problema };
-    }
+    // F2 y F3: los textos y el teléfono se validan solo si cambiaron respecto
+    // del guardado, para no bloquear la edición de registros viejos.
+    const guardado = await prisma.creditor.findFirst({
+      where: { id, tenantId },
+    });
+    const problema =
+      problemaDeTelefonoSiCambio(rest.phone, guardado?.phone) ??
+      excesoDeLongitud(rest, guardado ?? undefined);
+    if (problema) return { success: false, error: problema };
 
     const updatedCreditor = await prisma.creditor.update({
       where: {

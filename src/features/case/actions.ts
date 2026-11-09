@@ -78,6 +78,7 @@ import {
   requiresOtherDetail,
   tipoProcesoLabel,
 } from '@/features/case/proceso-judicial-tipos';
+import { excesoDeLongitud } from '@/lib/longitud-texto';
 import {
   buildApoderadosCreate,
   mirrorPrincipalApoderado,
@@ -472,6 +473,10 @@ export async function createCase(
     }
 
     const validatedInput = createCaseFormSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
 
     // GC-M2 — el operador se escribia con un `connect` a secas, y el `connect`
     // de Prisma solo exige que el id exista: bastaba mandar el id de un usuario
@@ -1160,6 +1165,11 @@ export async function updateCase(
         );
       }
 
+      // F2: longitud máxima, solo de los textos que cambian respecto de lo
+      // guardado (`current` trae exactamente las columnas que se escriben).
+      const excesoTexto = excesoDeLongitud(camposEnviados, current);
+      if (excesoTexto) throw new Error(excesoTexto);
+
       // C-2: mismas reglas de negocio que en creación, en modo 'update' (solo
       // se evalúa lo que trae el payload; una edición parcial no debe fallar
       // por campos que ni siquiera toca).
@@ -1338,6 +1348,10 @@ export async function addDebtToCase(
     }
 
     const validatedInput = addDebtToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       creditorId,
@@ -1597,6 +1611,10 @@ export async function addLibranzaToCase(
     }
 
     const validatedInput = addLibranzaToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       payerName,
@@ -1754,6 +1772,10 @@ export async function addSuspendedServiceToCase(
     }
 
     const validatedInput = addSuspendedServiceToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       creditorName,
@@ -1917,6 +1939,10 @@ export async function addAssetToCase(
     }
 
     const validatedInput = addAssetToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       name,
@@ -2136,6 +2162,10 @@ export async function addDependentToCase(
     }
 
     const validatedInput = addDependentToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const { caseId, name, age, relationship } = validatedInput;
 
     // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
@@ -2287,6 +2317,10 @@ export async function addApoderadoToCase(
     }
 
     const validatedInput = addApoderadoToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       nombreCompleto,

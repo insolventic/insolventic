@@ -272,6 +272,33 @@ describe('Integration: Case Creation Flow', () => {
     });
   });
 
+  describe('Longitud máxima de textos (F2)', () => {
+    it('un alta con un acreedor de nombre demasiado largo no crea el caso', async () => {
+      mockAuthenticateUser.mockResolvedValue({
+        user: {
+          id: ADMIN_USER.id,
+          name: ADMIN_USER.name,
+          email: ADMIN_USER.email,
+          permissions: [PERMISSIONS.CREATE_CASES, PERMISSIONS.VIEW_ALL_CASES],
+        },
+        tenantId: TENANT.id,
+      });
+      mockPrisma.case.findFirst.mockResolvedValue(null);
+      mockPrisma.case.count.mockResolvedValue(0);
+      mockPrisma.debtor.findUnique.mockResolvedValue(DEBTOR);
+
+      const result = await createCase({
+        ...VALID_CASE_PAYLOAD,
+        operatorId: ADMIN_USER.id,
+        otherCauseDetail: 'A'.repeat(10_001),
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/«otherCauseDetail»/);
+      expect(mockPrisma.case.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Tenant isolation', () => {
     it('should only return cases from the authenticated tenant', async () => {
       mockAuthenticateUser.mockResolvedValue({

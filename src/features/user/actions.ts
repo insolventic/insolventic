@@ -14,6 +14,7 @@ import { logger } from '@/lib/logger';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
+import { excesoDeLongitud } from '@/lib/longitud-texto';
 
 import {
   createUserSchema,
@@ -175,6 +176,10 @@ export async function createUser(input: unknown): Promise<{
 
     // Validate input
     const validatedInput = createUserSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const { roleId, ...rest } = validatedInput;
 
     // Validate role belongs to the same tenant
@@ -393,11 +398,10 @@ export async function updateUser(input: unknown): Promise<{
     });
     if (!anterior) return { success: false, error: 'Usuario no encontrado' };
 
-    // F3: el formato del teléfono se exige solo si cambió.
-    const problemaTelefono = problemaDeTelefonoSiCambio(
-      validatedInput.phone,
-      anterior.phone,
-    );
+    // F2 y F3: el teléfono y los textos se validan solo si cambiaron.
+    const problemaTelefono =
+      problemaDeTelefonoSiCambio(validatedInput.phone, anterior.phone) ??
+      excesoDeLongitud(validatedInput, anterior);
     if (problemaTelefono) return { success: false, error: problemaTelefono };
 
     const updatedUser = await prisma.user.update({
@@ -683,19 +687,21 @@ export async function updateProfile(input: unknown): Promise<{
 
     const validatedInput = profileSchema.parse(input);
 
-    // F3: el formato del teléfono se exige solo si cambió respecto del
-    // guardado, para no bloquear la edición de registros viejos.
-    if (validatedInput.phone !== undefined) {
-      const guardado = await prisma.user.findFirst({
-        where: { id: user.id, tenantId },
-        select: { phone: true },
-      });
-      const problema = problemaDeTelefonoSiCambio(
-        validatedInput.phone,
-        guardado?.phone,
-      );
-      if (problema) return { success: false, error: problema };
-    }
+    // F2 y F3: los textos y el teléfono se validan solo si cambiaron respecto
+    // del guardado, para no bloquear la edición de registros viejos.
+    const guardado = await prisma.user.findFirst({
+      where: { id: user.id, tenantId },
+      select: {
+        name: true,
+        phone: true,
+        address: true,
+        professionalCard: true,
+      },
+    });
+    const problema =
+      problemaDeTelefonoSiCambio(validatedInput.phone, guardado?.phone) ??
+      excesoDeLongitud(validatedInput, guardado ?? undefined);
+    if (problema) return { success: false, error: problema };
 
     const updatedUser = await prisma.user.update({
       where: {
