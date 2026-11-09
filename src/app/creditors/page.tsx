@@ -50,6 +50,8 @@ export default async function CreditorsPage() {
         <DashboardHeader />
 
         <main className="container mx-auto px-4 py-6">
+          {/* Sin título visible: el <h1> es para lectores de pantalla (A3). */}
+          <h1 className="sr-only">Acreedores</h1>
           <CreditorManagement creditors={creditors || []} />
         </main>
       </div>
