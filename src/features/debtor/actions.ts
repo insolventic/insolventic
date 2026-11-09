@@ -12,6 +12,7 @@ import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   createDebtorSchema,
@@ -173,8 +174,11 @@ export async function getAllDebtors(): Promise<{
     console.error('Error in getAllDebtors:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener deudores',
+      error: mensajeDeError(
+        error,
+        'Error al obtener deudores',
+        'getAllDebtors',
+      ),
     };
   }
 }
@@ -265,7 +269,7 @@ export async function getDebtorById(id: string): Promise<{
     console.error('Error in getDebtorById:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener deudor',
+      error: mensajeDeError(error, 'Error al obtener deudor', 'getDebtorById'),
     };
   }
 }
@@ -364,7 +368,7 @@ export async function createDebtor(input: unknown): Promise<{
 
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear deudor',
+      error: mensajeDeError(error, 'Error al crear deudor', 'createDebtor'),
     };
   }
 }
@@ -441,8 +445,11 @@ export async function updateDebtor(input: unknown): Promise<{
     console.error('Error in updateDebtor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar deudor',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar deudor',
+        'updateDebtor',
+      ),
     };
   }
 }
@@ -531,8 +538,7 @@ export async function deleteDebtor(id: string): Promise<{
     console.error('Error in deleteDebtor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al eliminar deudor',
+      error: mensajeDeError(error, 'Error al eliminar deudor', 'deleteDebtor'),
     };
   }
 }

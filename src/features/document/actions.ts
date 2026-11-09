@@ -30,6 +30,7 @@ import {
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 import type { DocumentTemplate } from './templates-config';
 
 import {
@@ -920,8 +921,12 @@ export async function planBatchGeneration(input: {
     });
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : 'Error planificando el lote',
+      message: mensajeDeError(
+        error,
+        'Error planificando el lote',
+        'planBatchGeneration',
+        { registrado: true },
+      ),
       data: null,
     };
   }
@@ -1619,10 +1624,11 @@ export async function batchGenerateDocuments(input: {
 
     return {
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : 'Error en la generación por lotes',
+      message: mensajeDeError(
+        error,
+        'Error en la generación por lotes',
+        'batchGenerateDocuments',
+      ),
       data: null,
     };
   }

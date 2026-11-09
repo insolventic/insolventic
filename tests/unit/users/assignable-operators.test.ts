@@ -188,6 +188,7 @@ describe('fallos', () => {
     const r = await getAssignableOperators();
 
     expect(r.success).toBe(false);
-    expect(r.error).toBe('conexión caída');
+    // N6: el detalle de un fallo de base no llega al cliente.
+    expect(r.error).toBe('Error al obtener usuarios');
   });
 });

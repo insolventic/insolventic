@@ -7,6 +7,7 @@ import { authenticateUser } from '@/features/auth/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   contactSchema,
@@ -54,8 +55,11 @@ export async function getAllContacts(): Promise<{
     console.error('Error fetching contacts:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener contactos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener contactos',
+        'getAllContacts',
+      ),
     };
   }
 }
@@ -99,8 +103,11 @@ export async function getContactById(id: string): Promise<{
     console.error('Error fetching contact:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener contacto',
+      error: mensajeDeError(
+        error,
+        'Error al obtener contacto',
+        'getContactById',
+      ),
     };
   }
 }
@@ -154,7 +161,11 @@ export async function addContactToCreditor(input: unknown): Promise<{
     console.error('Error creating contact:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear contacto',
+      error: mensajeDeError(
+        error,
+        'Error al crear contacto',
+        'addContactToCreditor',
+      ),
     };
   }
 }
@@ -220,8 +231,11 @@ export async function updateContact(input: unknown): Promise<{
     console.error('Error updating contact:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar contacto',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar contacto',
+        'updateContact',
+      ),
     };
   }
 }
@@ -274,8 +288,11 @@ export async function deleteContact(input: unknown): Promise<{
     console.error('Error deleting contact:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al eliminar contacto',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar contacto',
+        'deleteContact',
+      ),
     };
   }
 }

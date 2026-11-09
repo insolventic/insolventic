@@ -28,6 +28,7 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { logger } from '@/lib/logger';
 import { soloPapelera } from '@/lib/papelera';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   assertCaseAccessOnRow,
@@ -85,10 +86,6 @@ async function cargarDeLaPapelera(params: {
   // propios expedientes no ve ni restaura los de otro.
   await assertCaseAccessOnRow({ caseRow: fila, user, tenantId });
   return fila;
-}
-
-function mensajeDeError(error: unknown, porDefecto: string): string {
-  return error instanceof Error ? error.message : porDefecto;
 }
 
 export async function getDeletedCases(): Promise<{

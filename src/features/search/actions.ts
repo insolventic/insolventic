@@ -9,6 +9,7 @@ import {
   caseWhereFromVisibility,
   type CaseVisibility,
 } from '@/features/case/case-access';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 /**
  * Búsqueda global (la barra del encabezado).
@@ -207,7 +208,9 @@ export async function globalSearch(query: string): Promise<{
     logger.error('Global search failed', error, { action: 'globalSearch' });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error en la búsqueda',
+      error: mensajeDeError(error, 'Error en la búsqueda', 'globalSearch', {
+        registrado: true,
+      }),
     };
   }
 }

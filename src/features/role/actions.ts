@@ -7,6 +7,7 @@ import { authenticateUser } from '@/features/auth/actions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import { createRoleSchema, updateRoleSchema, roleSchema } from './schemas';
 import type { Role } from './schemas';
@@ -52,7 +53,7 @@ export async function getAllRoles(): Promise<{
     console.error('Error fetching roles:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener roles',
+      error: mensajeDeError(error, 'Error al obtener roles', 'getAllRoles'),
     };
   }
 }
@@ -157,7 +158,7 @@ export async function createRole(input: unknown): Promise<{
     console.error('Error creating role:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear rol',
+      error: mensajeDeError(error, 'Error al crear rol', 'createRole'),
     };
   }
 }
@@ -279,7 +280,7 @@ export async function updateRole(input: unknown): Promise<{
     console.error('Error updating role:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al actualizar rol',
+      error: mensajeDeError(error, 'Error al actualizar rol', 'updateRole'),
     };
   }
 }
@@ -381,7 +382,7 @@ export async function deleteRole(id: string): Promise<{
     console.error('Error deleting role:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al eliminar rol',
+      error: mensajeDeError(error, 'Error al eliminar rol', 'deleteRole'),
     };
   }
 }

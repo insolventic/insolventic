@@ -54,11 +54,15 @@ function esErrorDeValidacion(error: unknown): error is z.ZodError {
 
 /**
  * El mensaje para el cliente. `accion` identifica el sitio en el log.
+ *
+ * `registrado: true` cuando el `catch` ya mandó el error a `logger.error`
+ * con su propio contexto: registrarlo otra vez duplicaría el evento en Sentry.
  */
 export function mensajeDeError(
   error: unknown,
   generico: string,
   accion = 'server-action',
+  opciones: { registrado?: boolean } = {},
 ): string {
   if (esErrorDeNegocio(error)) return error.message;
 
@@ -66,6 +70,6 @@ export function mensajeDeError(
     return error.issues[0]?.message ?? generico;
   }
 
-  logger.error(generico, error, { action: accion });
+  if (!opciones.registrado) logger.error(generico, error, { action: accion });
   return generico;
 }

@@ -139,11 +139,18 @@ describe('comprobante de pago en Drive', () => {
     },
   );
 
-  // Lo que ve el usuario cuando Drive rechaza la subida: el mensaje en el
-  // diálogo, y el pago sin registrar.
+  // Lo que ve el usuario cuando Drive rechaza la subida: el mensaje genérico
+  // de la acción, y el pago sin registrar. Desde N6 un fallo de red no llega
+  // al cliente: el detalle queda en el log (logger.error → Sentry).
+  const GENERICO: Record<string, string> = {
+    markPaymentPaid: 'Error al registrar pago',
+    registerPayment: 'Error al registrar el pago',
+    uploadPaymentReceipt: 'Error al subir comprobante',
+  };
+
   it.each(acciones)(
-    '%s devuelve el error de Drive y no toca el pago si la subida falla',
-    async (_nombre, accion) => {
+    '%s devuelve el genérico y no toca el pago si la subida falla',
+    async (nombre, accion) => {
       mockUploadFile.mockRejectedValue(
         new Error('Error al subir archivo a Google Drive'),
       );
@@ -152,7 +159,7 @@ describe('comprobante de pago en Drive', () => {
 
       expect(resultado).toEqual({
         success: false,
-        error: 'Error al subir archivo a Google Drive',
+        error: GENERICO[nombre],
       });
       expect(mockPaymentUpdate).not.toHaveBeenCalled();
       expect(mockPaymentCreate).not.toHaveBeenCalled();

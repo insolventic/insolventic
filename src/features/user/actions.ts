@@ -16,6 +16,7 @@ import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   createUserSchema,
@@ -86,8 +87,12 @@ export async function getAssignableOperators(): Promise<{
     });
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener usuarios',
+      error: mensajeDeError(
+        error,
+        'Error al obtener usuarios',
+        'getAssignableOperators',
+        { registrado: true },
+      ),
     };
   }
 }
@@ -156,8 +161,7 @@ export async function getAllUsers(): Promise<{
     console.error('Error fetching users:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener usuarios',
+      error: mensajeDeError(error, 'Error al obtener usuarios', 'getAllUsers'),
     };
   }
 }
@@ -272,7 +276,7 @@ export async function createUser(input: unknown): Promise<{
     console.error('Error creating user:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear usuario',
+      error: mensajeDeError(error, 'Error al crear usuario', 'createUser'),
     };
   }
 }
@@ -481,8 +485,7 @@ export async function updateUser(input: unknown): Promise<{
     console.error('Error updating user:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar usuario',
+      error: mensajeDeError(error, 'Error al actualizar usuario', 'updateUser'),
     };
   }
 }
@@ -552,8 +555,7 @@ export async function deleteUser(id: string): Promise<{
     console.error('Error deleting user:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al eliminar usuario',
+      error: mensajeDeError(error, 'Error al eliminar usuario', 'deleteUser'),
     };
   }
 }
@@ -609,10 +611,11 @@ export async function revokeUserSessions(userId: string): Promise<{
     });
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al revocar las sesiones del usuario',
+      error: mensajeDeError(
+        error,
+        'Error al revocar las sesiones del usuario',
+        'revokeUserSessions',
+      ),
     };
   }
 }
@@ -663,7 +666,7 @@ export async function getProfile(): Promise<{
     console.error('Error getting profile:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener perfil',
+      error: mensajeDeError(error, 'Error al obtener perfil', 'getProfile'),
     };
   }
 }
@@ -723,8 +726,11 @@ export async function updateProfile(input: unknown): Promise<{
     console.error('Error updating profile:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar perfil',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar perfil',
+        'updateProfile',
+      ),
     };
   }
 }

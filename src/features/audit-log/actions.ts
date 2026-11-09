@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { logger } from '@/lib/logger';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -248,10 +249,11 @@ export async function getAuditLogs(
     console.error('Error getting audit logs:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener registros de auditoría',
+      error: mensajeDeError(
+        error,
+        'Error al obtener registros de auditoría',
+        'getAuditLogs',
+      ),
     };
   }
 }
@@ -376,8 +378,11 @@ export async function exportAuditLogToExcel(
     console.error('Error exporting audit log:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al exportar auditoría',
+      error: mensajeDeError(
+        error,
+        'Error al exportar auditoría',
+        'exportAuditLogToExcel',
+      ),
     };
   }
 }

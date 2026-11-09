@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 import { getAllPermissionsSchema } from './schemas';
 import type { Permission } from './schemas';
 
@@ -36,8 +37,11 @@ export async function getAllPermissions(): Promise<{
     console.error('Error fetching permissions:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener permisos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener permisos',
+        'getAllPermissions',
+      ),
     };
   }
 }

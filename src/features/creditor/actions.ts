@@ -10,6 +10,7 @@ import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   createCreditorSchema,
@@ -203,8 +204,11 @@ export async function getAllCreditors(): Promise<{
     console.error('Error fetching creditors:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener acreedores',
+      error: mensajeDeError(
+        error,
+        'Error al obtener acreedores',
+        'getAllCreditors',
+      ),
     };
   }
 }
@@ -340,8 +344,11 @@ export async function getCreditorById(id: string): Promise<{
     console.error('Error fetching creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al obtener acreedor',
+        'getCreditorById',
+      ),
     };
   }
 }
@@ -422,8 +429,11 @@ export async function createCreditor(input: unknown): Promise<{
     console.error('Error creating creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al crear el acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al crear el acreedor',
+        'createCreditor',
+      ),
     };
   }
 }
@@ -512,10 +522,11 @@ export async function updateCreditor(input: unknown): Promise<{
     console.error('Error updating creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al actualizar el acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar el acreedor',
+        'updateCreditor',
+      ),
     };
   }
 }
@@ -592,10 +603,11 @@ export async function deleteCreditor(input: unknown): Promise<{
     console.error('Error deleting creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar el acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar el acreedor',
+        'deleteCreditor',
+      ),
     };
   }
 }

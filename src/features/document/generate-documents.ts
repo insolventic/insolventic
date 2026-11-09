@@ -10,6 +10,7 @@ import { isRetryableDriveError } from '@/lib/drive-errors';
 import { logger } from '@/lib/logger';
 import { htmlToPdf, batchHtmlToPdf } from '@/lib/html-to-pdf';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 import {
   mapCaseToPlaceholders,
   buildTemplateContext,
@@ -540,7 +541,12 @@ async function generateDocument(
       googleDriveId: '',
       googleDriveUrl: '',
       status: 'error',
-      error: error instanceof Error ? error.message : 'Error desconocido',
+      error: mensajeDeError(
+        error,
+        'No se pudo generar el documento',
+        'generateDocument',
+        { registrado: true },
+      ),
     };
   }
 }
@@ -630,7 +636,11 @@ async function prepareDocument(
       googleDriveId: '',
       googleDriveUrl: '',
       status: 'error',
-      error: error instanceof Error ? error.message : 'Error desconocido',
+      error: mensajeDeError(
+        error,
+        'No se pudo generar el documento',
+        'prepareDocument',
+      ),
     };
   }
 
@@ -762,7 +772,12 @@ async function uploadGeneratedDocument(
       googleDriveId: '',
       googleDriveUrl: '',
       status: 'error',
-      error: error instanceof Error ? error.message : 'Error desconocido',
+      error: mensajeDeError(
+        error,
+        'No se pudo generar el documento',
+        'uploadGeneratedDocument',
+        { registrado: true },
+      ),
     };
   }
 }
@@ -966,7 +981,12 @@ export async function generateDocumentsForNewCase(
         googleDriveId: '',
         googleDriveUrl: '',
         status: 'error',
-        error: error instanceof Error ? error.message : 'Error generando Excel',
+        error: mensajeDeError(
+          error,
+          'Error generando Excel',
+          'generateDocumentsForNewCase',
+          { registrado: true },
+        ),
       });
     }
   }

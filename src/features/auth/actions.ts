@@ -33,6 +33,7 @@ import {
   clearAuthCookies,
 } from '@/lib/auth';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   loginSchema,
@@ -1105,8 +1106,12 @@ export async function changePassword(input: unknown): Promise<{
     logger.error('Error in changePassword', error);
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : 'Error al cambiar contraseña',
+      message: mensajeDeError(
+        error,
+        'Error al cambiar contraseña',
+        'changePassword',
+        { registrado: true },
+      ),
     };
   }
 }

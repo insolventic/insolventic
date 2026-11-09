@@ -13,6 +13,7 @@ import {
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -214,10 +215,11 @@ export async function getPaymentSchedule(caseId: string): Promise<{
     console.error('Error getting payment schedule:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener cronograma de pagos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener cronograma de pagos',
+        'getPaymentSchedule',
+      ),
     };
   }
 }
@@ -351,10 +353,11 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
     console.error('Error generating payment schedule:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al generar cronograma de pagos',
+      error: mensajeDeError(
+        error,
+        'Error al generar cronograma de pagos',
+        'generatePaymentSchedule',
+      ),
     };
   }
 }
@@ -459,7 +462,11 @@ export async function markPaymentPaid(
     console.error('Error marking payment paid:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al registrar pago',
+      error: mensajeDeError(
+        error,
+        'Error al registrar pago',
+        'markPaymentPaid',
+      ),
     };
   }
 }
@@ -571,8 +578,11 @@ export async function registerPayment(
     console.error('Error registering payment:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al registrar el pago',
+      error: mensajeDeError(
+        error,
+        'Error al registrar el pago',
+        'registerPayment',
+      ),
     };
   }
 }
@@ -651,8 +661,11 @@ export async function uploadPaymentReceipt(
     console.error('Error uploading receipt:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al subir comprobante',
+      error: mensajeDeError(
+        error,
+        'Error al subir comprobante',
+        'uploadPaymentReceipt',
+      ),
     };
   }
 }
@@ -1293,7 +1306,11 @@ export async function exportPaymentTrackingToExcel(
     console.error('Error exporting payment tracking:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al exportar pagos',
+      error: mensajeDeError(
+        error,
+        'Error al exportar pagos',
+        'exportPaymentTrackingToExcel',
+      ),
     };
   }
 }

@@ -80,6 +80,7 @@ import {
 } from '@/features/case/proceso-judicial-tipos';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
 import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 import {
   buildApoderadosCreate,
   mirrorPrincipalApoderado,
@@ -275,7 +276,9 @@ export async function getAllCases(params?: GetAllCasesParams): Promise<{
     });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener casos',
+      error: mensajeDeError(error, 'Error al obtener casos', 'getAllCases', {
+        registrado: true,
+      }),
     };
   }
 }
@@ -339,7 +342,12 @@ export async function getCasesForSelector(): Promise<{
     });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener casos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener casos',
+        'getCasesForSelector',
+        { registrado: true },
+      ),
     };
   }
 }
@@ -439,8 +447,7 @@ export async function getCaseById(id: string): Promise<{
     console.error('Error getting case by ID:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener el caso',
+      error: mensajeDeError(error, 'Error al obtener el caso', 'getCaseById'),
     };
   }
 }
@@ -1004,7 +1011,7 @@ export async function createCase(
     console.error('Error creating case:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear el caso',
+      error: mensajeDeError(error, 'Error al crear el caso', 'createCase'),
     };
   }
 }
@@ -1328,8 +1335,7 @@ export async function updateCase(
     console.error('Error updating case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar el caso',
+      error: mensajeDeError(error, 'Error al actualizar el caso', 'updateCase'),
     };
   }
 }
@@ -1491,10 +1497,11 @@ export async function addDebtToCase(
     console.error('Error adding debt to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar deuda al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar deuda al caso',
+        'addDebtToCase',
+      ),
     };
   }
 }
@@ -1589,10 +1596,11 @@ export async function removeDebtFromCase(
     console.error('Error removing debt from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar deuda del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar deuda del caso',
+        'removeDebtFromCase',
+      ),
     };
   }
 }
@@ -1675,10 +1683,11 @@ export async function addLibranzaToCase(
     console.error('Error adding libranza to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar libranza al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar libranza al caso',
+        'addLibranzaToCase',
+      ),
     };
   }
 }
@@ -1750,10 +1759,11 @@ export async function removeLibranzaFromCase(
     console.error('Error removing libranza from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar libranza del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar libranza del caso',
+        'removeLibranzaFromCase',
+      ),
     };
   }
 }
@@ -1839,10 +1849,11 @@ export async function addSuspendedServiceToCase(
     console.error('Error adding suspended service to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar servicio suspendido al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar servicio suspendido al caso',
+        'addSuspendedServiceToCase',
+      ),
     };
   }
 }
@@ -1917,10 +1928,11 @@ export async function removeSuspendedServiceFromCase(
     console.error('Error removing suspended service from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar servicio suspendido del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar servicio suspendido del caso',
+        'removeSuspendedServiceFromCase',
+      ),
     };
   }
 }
@@ -2053,10 +2065,11 @@ export async function addAssetToCase(
     console.error('Error adding asset to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar bien al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar bien al caso',
+        'addAssetToCase',
+      ),
     };
   }
 }
@@ -2140,10 +2153,11 @@ export async function removeAssetFromCase(
     console.error('Error removing asset from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar bien del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar bien del caso',
+        'removeAssetFromCase',
+      ),
     };
   }
 }
@@ -2212,10 +2226,11 @@ export async function addDependentToCase(
     console.error('Error adding dependent to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar dependiente al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar dependiente al caso',
+        'addDependentToCase',
+      ),
     };
   }
 }
@@ -2284,10 +2299,11 @@ export async function removeDependentFromCase(
     console.error('Error removing dependent from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar dependiente del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar dependiente del caso',
+        'removeDependentFromCase',
+      ),
     };
   }
 }
@@ -2398,10 +2414,11 @@ export async function addApoderadoToCase(
     });
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar apoderado al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar apoderado al caso',
+        'addApoderadoToCase',
+      ),
     };
   }
 }
@@ -2478,10 +2495,11 @@ export async function removeApoderadoFromCase(
     });
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar apoderado del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar apoderado del caso',
+        'removeApoderadoFromCase',
+      ),
     };
   }
 }
@@ -2659,8 +2677,7 @@ export async function deleteCase(
     console.error('Error deleting case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al eliminar el caso',
+      error: mensajeDeError(error, 'Error al eliminar el caso', 'deleteCase'),
     };
   }
 }
@@ -2776,10 +2793,11 @@ export async function getCaseStats(): Promise<{
     console.error('Error getting case stats:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener estadísticas de casos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener estadísticas de casos',
+        'getCaseStats',
+      ),
     };
   }
 }
@@ -2974,10 +2992,11 @@ export async function getDashboardStats(): Promise<{
     console.error('Error getting dashboard stats:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener estadísticas del dashboard',
+      error: mensajeDeError(
+        error,
+        'Error al obtener estadísticas del dashboard',
+        'getDashboardStats',
+      ),
     };
   }
 }
@@ -3229,10 +3248,11 @@ export async function updateCasePhase(input: {
     console.error('Error updating case phase:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al actualizar la fase del caso',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar la fase del caso',
+        'updateCasePhase',
+      ),
     };
   }
 }
