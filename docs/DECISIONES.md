@@ -33,6 +33,19 @@ El tope medido es menor que los 4.500.000 de leer "4,5 MB" en decimal, así que 
 
 **Cómo decidir:** revisión pendiente en `docs/ROADMAP.md`, Quick Win 10.
 
+## 2026-11-05 — Cambio de centro: solo por el login
+
+**Diagnóstico:** `switchTenant` elegía la cuenta destino solo por el correo del token, y `updateUser` deja poner en la propia cuenta un correo que existe en otro centro, porque la unicidad es por centro. Con `P.EDITAR_USUARIOS` del centro A se podía entrar a la cuenta de un usuario del centro B sin su clave. Confirmado contra Postgres real en `tests/db/switch-tenant-correo-ajeno.db.test.ts`.
+
+**Decisión:** eliminar la action. Ninguna pantalla la llamaba: "Cambiar Organización" usa `switchDatabase`, que cierra la sesión y lleva al login. Quien tiene cuenta en dos centros cambia entrando con la clave de la cuenta destino.
+
+**Descartado:**
+
+- Pedir la clave de destino dentro de `switchTenant`: exigía una pantalla nueva y mantener una segunda puerta de login para un flujo que ya existe.
+- Un vínculo explícito entre cuentas: exigía migración y definir quién lo aprueba y cómo se prueba que ambas cuentas son de la misma persona.
+
+**Non-goal:** cambiar de centro sin volver a poner la clave. Si algún día hace falta, se construye con alguna de esas dos opciones; nunca a partir del correo del token, porque el usuario puede editarlo.
+
 ## 2026-11-05 — Documentos del caso: un archivo por llamada y el mismo límite que los comprobantes
 
 **Diagnóstico:** la UI y el esquema prometían 10 MB por archivo, pero `uploadCaseDocuments` recibía todos los archivos del caso en una sola server action y en base64. Reproducido contra `next dev`: un lote de 2 + 1 MB pasa, 2 + 2 MB rechaza la promesa con `Body exceeded 4.25mb limit`, y un solo archivo de 3,5 MB también, porque en base64 ocupa 4,89 MB. El caso ya estaba creado cuando la subida fallaba, y al editar el fallo era silencioso.
