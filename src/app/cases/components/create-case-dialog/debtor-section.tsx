@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/form';
 import { useFormContext } from 'react-hook-form';
 import type { DebtorOption } from '@/features/case/schemas';
+import { formatAmount, formatCurrency } from '@/lib/utils';
 
 import {
   CAUSAS_INSOLVENCIA,
@@ -198,7 +199,7 @@ export function DebtorSection({
                         Ingresos Mensuales
                       </p>
                       <p className="text-base font-semibold text-green-600 dark:text-green-400">
-                        ${selectedDebtor.monthlyIncome.toLocaleString('es-CO')}
+                        {formatCurrency(selectedDebtor.monthlyIncome)}
                       </p>
                     </div>
                   </div>
@@ -209,8 +210,7 @@ export function DebtorSection({
                         Gastos Mensuales
                       </p>
                       <p className="text-base font-semibold text-red-600">
-                        $
-                        {selectedDebtor.monthlyExpenses.toLocaleString('es-CO')}
+                        ${formatAmount(selectedDebtor.monthlyExpenses)}
                       </p>
                     </div>
                   </div>
@@ -234,11 +234,7 @@ export function DebtorSection({
                     </span>
                     <Input
                       type="text"
-                      value={
-                        field.value
-                          ? Number(field.value).toLocaleString('es-CO')
-                          : '0'
-                      }
+                      value={field.value ? formatAmount(field.value) : '0'}
                       readOnly
                       disabled
                       placeholder="Se calcula de los acreedores"
