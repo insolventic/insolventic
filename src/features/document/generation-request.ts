@@ -11,6 +11,7 @@
 
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 import { Prisma } from '@prisma/client';
 import type { GeneratedDocument } from './generate-documents';
 
@@ -159,7 +160,7 @@ export async function claimGenerationRequest(params: {
 
   // Dos colisiones seguidas con locks que desaparecen: estado inconsistente
   // transitorio; el cliente puede reintentar.
-  throw new Error(
+  throw new ErrorDeNegocio(
     'No se pudo obtener el lock de generación; intente nuevamente',
   );
 }

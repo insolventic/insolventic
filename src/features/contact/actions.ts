@@ -6,6 +6,7 @@ import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 
 import {
   contactSchema,
@@ -29,7 +30,7 @@ export async function getAllContacts(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     const contacts = await prisma.contact.findMany({
@@ -69,7 +70,7 @@ export async function getContactById(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     // Validate input
@@ -86,7 +87,7 @@ export async function getContactById(id: string): Promise<{
     });
 
     if (!contact) {
-      throw new Error('Contacto no encontrado');
+      throw new ErrorDeNegocio('Contacto no encontrado');
     }
 
     const validated = contactWithCreditorSchema.parse(contact);
@@ -114,7 +115,7 @@ export async function addContactToCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.CREAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Crear acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear acreedores');
     }
 
     // Validate input
@@ -168,7 +169,7 @@ export async function updateContact(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Editar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar acreedores');
     }
 
     // Validate input
@@ -235,7 +236,7 @@ export async function deleteContact(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Eliminar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar acreedores');
     }
 
     // Validate input

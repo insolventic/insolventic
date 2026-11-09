@@ -6,6 +6,7 @@ import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 
 import { createRoleSchema, updateRoleSchema, roleSchema } from './schemas';
 import type { Role } from './schemas';
@@ -20,7 +21,7 @@ export async function getAllRoles(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ROLES)) {
-      throw new Error('No tiene permisos para: Ver roles');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver roles');
     }
 
     const roles = await prisma.role.findMany({
@@ -66,7 +67,7 @@ export async function createRole(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.CREAR_ROLES)) {
-      throw new Error('No tiene permisos para: Crear roles');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear roles');
     }
 
     // Validate input
@@ -171,7 +172,7 @@ export async function updateRole(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_ROLES)) {
-      throw new Error('No tiene permisos para: Editar roles');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar roles');
     }
 
     // Validate input
@@ -179,7 +180,7 @@ export async function updateRole(input: unknown): Promise<{
     const { id, permissions, ...roleData } = validatedInput;
 
     if (!id) {
-      throw new Error('Role ID is required');
+      throw new ErrorDeNegocio('El ID del rol es requerido');
     }
 
     await prisma.role.update({
@@ -293,7 +294,7 @@ export async function deleteRole(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_ROLES)) {
-      throw new Error('No tiene permisos para: Eliminar roles');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar roles');
     }
 
     const usersWithRole = await prisma.user.count({
@@ -304,7 +305,7 @@ export async function deleteRole(id: string): Promise<{
     });
 
     if (usersWithRole > 0) {
-      throw new Error(
+      throw new ErrorDeNegocio(
         'No se puede eliminar el rol porque tiene usuarios asignados',
       );
     }
@@ -325,7 +326,7 @@ export async function deleteRole(id: string): Promise<{
     });
 
     if (!roleToDelete) {
-      throw new Error('Rol no encontrado');
+      throw new ErrorDeNegocio('Rol no encontrado');
     }
 
     await prisma.role.delete({

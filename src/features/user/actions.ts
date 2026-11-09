@@ -15,6 +15,7 @@ import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 
 import {
   createUserSchema,
@@ -101,7 +102,7 @@ export async function getAllUsers(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_USUARIOS)) {
-      throw new Error('No tiene permisos para: Ver usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver usuarios');
     }
 
     const users = await prisma.user.findMany({
@@ -171,7 +172,7 @@ export async function createUser(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.CREAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Crear usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear usuarios');
     }
 
     // Validate input
@@ -362,7 +363,7 @@ export async function updateUser(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Editar usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar usuarios');
     }
 
     // Antes de parsear: Zod descarta las claves que no conoce, y la llamada
@@ -496,7 +497,7 @@ export async function deleteUser(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Eliminar usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar usuarios');
     }
 
     // Prevent self-deletion
@@ -577,7 +578,7 @@ export async function revokeUserSessions(userId: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     if (!user.permissions.includes(P.EDITAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Editar usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar usuarios');
     }
 
     // El `where` compuesto (id + tenantId) es lo que impide revocar las

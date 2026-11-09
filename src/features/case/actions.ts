@@ -79,6 +79,7 @@ import {
   tipoProcesoLabel,
 } from '@/features/case/proceso-judicial-tipos';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 import {
   buildApoderadosCreate,
   mirrorPrincipalApoderado,
@@ -1152,7 +1153,7 @@ export async function updateCase(
         },
       });
       if (!current) {
-        throw new Error('Caso no encontrado');
+        throw new ErrorDeNegocio('Caso no encontrado');
       }
 
       // Optimistic lock check: if caller sends version, it must match current DB version
@@ -1160,7 +1161,7 @@ export async function updateCase(
         validatedInput.version !== undefined &&
         current.version !== validatedInput.version
       ) {
-        throw new Error(
+        throw new ErrorDeNegocio(
           'Este caso fue modificado por otro usuario. Recargue la página e intente de nuevo.',
         );
       }
@@ -1168,7 +1169,7 @@ export async function updateCase(
       // F2: longitud máxima, solo de los textos que cambian respecto de lo
       // guardado (`current` trae exactamente las columnas que se escriben).
       const excesoTexto = excesoDeLongitud(camposEnviados, current);
-      if (excesoTexto) throw new Error(excesoTexto);
+      if (excesoTexto) throw new ErrorDeNegocio(excesoTexto);
 
       // C-2: mismas reglas de negocio que en creación, en modo 'update' (solo
       // se evalúa lo que trae el payload; una edición parcial no debe fallar
@@ -1186,7 +1187,7 @@ export async function updateCase(
         }),
       });
       if (!rulesCheck.isValid) {
-        throw new Error(
+        throw new ErrorDeNegocio(
           `El expediente no cumple las reglas del trámite: ${formatValidationErrors(rulesCheck)}`,
         );
       }
@@ -1202,10 +1203,10 @@ export async function updateCase(
           safeRestUpdate.phase as string,
         );
         if (!check.valid) {
-          throw new Error(check.reason);
+          throw new ErrorDeNegocio(check.reason);
         }
         if (!check.isNoop) {
-          throw new Error(
+          throw new ErrorDeNegocio(
             'El cambio de fase no puede hacerse desde la edición del caso. Use la acción "Cambiar fase" para que se registren la auditoría y la documentación asociadas.',
           );
         }

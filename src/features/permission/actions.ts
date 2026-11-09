@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 import { getAllPermissionsSchema } from './schemas';
 import type { Permission } from './schemas';
 
@@ -16,7 +17,7 @@ export async function getAllPermissions(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ROLES)) {
-      throw new Error('No tiene permisos para: Ver roles');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver roles');
     }
 
     const permissions = await prisma.permission.findMany({

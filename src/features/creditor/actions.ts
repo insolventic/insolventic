@@ -9,6 +9,7 @@ import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 
 import {
   createCreditorSchema,
@@ -36,7 +37,7 @@ export async function getAllCreditors(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     // Check user permissions to determine case visibility scope
@@ -218,7 +219,7 @@ export async function getCreditorById(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     // Validate input
@@ -334,7 +335,7 @@ export async function getCreditorById(id: string): Promise<{
     }
 
     // User doesn't have permission to view this creditor
-    throw new Error('No tienes permisos para ver este acreedor');
+    throw new ErrorDeNegocio('No tienes permisos para ver este acreedor');
   } catch (error) {
     console.error('Error fetching creditor:', error);
     return {
@@ -355,7 +356,7 @@ export async function createCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.CREAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Crear acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear acreedores');
     }
 
     // Validate input
@@ -437,7 +438,7 @@ export async function updateCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Editar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar acreedores');
     }
 
     // Validate input
@@ -529,7 +530,7 @@ export async function deleteCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Eliminar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar acreedores');
     }
 
     // Validate input

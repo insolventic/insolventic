@@ -11,6 +11,7 @@ import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 import { excesoDeLongitud } from '@/lib/longitud-texto';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 
 import {
   createDebtorSchema,
@@ -34,7 +35,7 @@ export async function getAllDebtors(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_DEUDORES)) {
-      throw new Error('No tiene permisos para: Ver deudores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver deudores');
     }
 
     // Build where clause for cases based on user permissions
@@ -188,7 +189,7 @@ export async function getDebtorById(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_DEUDORES)) {
-      throw new Error('No tiene permisos para: Ver deudores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver deudores');
     }
 
     // Validate input
@@ -222,7 +223,7 @@ export async function getDebtorById(id: string): Promise<{
     });
 
     if (!debtor) {
-      throw new Error('Deudor no encontrado');
+      throw new ErrorDeNegocio('Deudor no encontrado');
     }
 
     // Check user permissions to determine if they can view this debtor
@@ -259,7 +260,7 @@ export async function getDebtorById(id: string): Promise<{
     }
 
     // User doesn't have permission to view this debtor
-    throw new Error('No tienes permisos para ver este deudor');
+    throw new ErrorDeNegocio('No tienes permisos para ver este deudor');
   } catch (error) {
     console.error('Error in getDebtorById:', error);
     return {
@@ -280,7 +281,7 @@ export async function createDebtor(input: unknown): Promise<{
     // Check permission - using authenticateUser's user object
     const { user } = await authenticateUser();
     if (!user.permissions.includes(P.CREAR_DEUDORES)) {
-      throw new Error('No tiene permisos para: Crear deudores');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear deudores');
     }
 
     // Validate input
@@ -378,7 +379,7 @@ export async function updateDebtor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_DEUDORES)) {
-      throw new Error('No tiene permisos para: Editar deudores');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar deudores');
     }
 
     // Validate input
@@ -456,7 +457,7 @@ export async function deleteDebtor(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_DEUDORES)) {
-      throw new Error('No tiene permisos para: Eliminar deudores');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar deudores');
     }
 
     // Validate input

@@ -29,6 +29,7 @@ import {
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 import type { DocumentTemplate } from './templates-config';
 
 import {
@@ -982,7 +983,7 @@ export async function batchGenerateDocuments(input: {
     const caseData = await fetchCaseForGeneration(caseId, tenantId);
 
     if (!caseData) {
-      throw new Error('Caso no encontrado');
+      throw new ErrorDeNegocio('Caso no encontrado');
     }
 
     // GD-M4 — esta era la quinta copia a mano de la regla de visibilidad por
@@ -1046,7 +1047,7 @@ export async function batchGenerateDocuments(input: {
     });
 
     if (templatesToProcess.length === 0) {
-      throw new Error('No se encontraron plantillas para procesar');
+      throw new ErrorDeNegocio('No se encontraron plantillas para procesar');
     }
 
     // Map case data to placeholders
