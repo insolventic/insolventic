@@ -1,4 +1,5 @@
 import { main as seedMain } from './seed';
+import { assertSeedPuedeCorrer, resolverContrasenaSeed } from './seed-guard';
 import prisma from '@/lib/prisma';
 import type { TenantId } from '@/lib/prisma';
 
@@ -81,6 +82,15 @@ async function main() {
   const tenantId = tenantArg
     ? (tenantArg.split('=')[1] as TenantId)
     : undefined;
+
+  // `--seed` corre el seed DESPUÉS de borrar. Su guarda (seed-guard.ts) se
+  // evalúa acá, antes del borrado: si no, contra una base real el reset la
+  // vaciaría y recién entonces el seed abortaría, dejándola vacía. Lo mismo
+  // con una SEED_PASSWORD demasiado corta (el generador de acá no se usa).
+  if (process.argv.includes('--seed')) {
+    assertSeedPuedeCorrer();
+    resolverContrasenaSeed(process.env, () => 'validación previa');
+  }
 
   try {
     await resetDatabase(tenantId);
