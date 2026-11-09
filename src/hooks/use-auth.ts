@@ -7,7 +7,6 @@ import {
   validateSession,
   logoutUser,
   switchDatabase,
-  switchTenant,
 } from '@/features/auth/actions';
 import type { ValidateSessionResult } from '@/features/auth/schemas';
 import { logger } from '@/lib/logger';
@@ -21,9 +20,6 @@ interface UseAuthReturn {
   isLoading: boolean;
   logout: () => Promise<void>;
   switchDatabase: () => Promise<void>;
-  switchTenant: (
-    targetTenantSlug: string,
-  ) => Promise<{ success: boolean; error?: string }>;
   checkPermission: (permission: string) => boolean;
   hasAnyPermission: (permissions: string[]) => boolean;
   hasAllPermissions: (permissions: string[]) => boolean;
@@ -188,7 +184,7 @@ export function useAuth(): UseAuthReturn {
       if (isNextRedirectError(error)) {
         // switchDatabase termina en redirect('/') en el servidor y Next rechaza
         // la promesa de la action con un error de redirección: es el camino
-        // normal, no un fallo (mismo criterio que logout y switchTenant).
+        // normal, no un fallo (mismo criterio que logout).
         logger.debug('Switch database redirect triggered (expected behavior)', {
           action: 'switchDatabase',
         });
@@ -202,42 +198,6 @@ export function useAuth(): UseAuthReturn {
       router.push('/');
     }
   }, [router]);
-
-  const switchTenantHandler = useCallback(
-    async (targetTenantSlug: string) => {
-      try {
-        const result = await switchTenant(targetTenantSlug);
-        if (!result.success) {
-          return result;
-        }
-        // If successful, the server action will redirect to /dashboard
-        // This line is unlikely to be reached due to the redirect
-        await refreshSession();
-        return result;
-      } catch (error) {
-        if (isNextRedirectError(error)) {
-          // El cambio exitoso termina en redirect('/dashboard') en el servidor y
-          // Next rechaza la promesa de la action con un error de redirección:
-          // es el camino normal. (También redirige a /login si la sesión ya no
-          // es válida.) En ambos casos Next navega.
-          logger.debug('Tenant switch redirect triggered (expected behavior)', {
-            action: 'switchTenant',
-          });
-          return { success: true };
-        }
-        // Cualquier otra excepción (red caída, 5xx, server action inexistente
-        // tras un deploy…) es un fallo real: NO puede reportarse como éxito o
-        // el usuario cree que cambió de centro cuando no lo hizo. Los fallos de
-        // negocio ya vuelven como { success: false } sin lanzar.
-        logger.error('Switch tenant error', error, {
-          action: 'switchTenant',
-          targetTenantSlug,
-        });
-        return { success: false, error: 'Error al cambiar de organización' };
-      }
-    },
-    [refreshSession],
-  );
 
   const checkPermission = useCallback(
     (permission: string): boolean => {
@@ -273,7 +233,6 @@ export function useAuth(): UseAuthReturn {
     isLoading,
     logout,
     switchDatabase: switchDatabaseHandler,
-    switchTenant: switchTenantHandler,
     checkPermission,
     hasAnyPermission,
     hasAllPermissions,

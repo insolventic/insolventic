@@ -49,6 +49,11 @@ import {
   type Payment,
 } from '@/features/payment/actions';
 import { PAYMENT_METHODS } from '@/features/payment/constants';
+import {
+  errorDeTamanoDeArchivo,
+  errorDeTamanoTrasRechazo,
+  MAX_ARCHIVO_MB,
+} from '@/lib/limite-archivos';
 
 interface PaymentTrackingSectionProps {
   caseData: CaseWithRelations;
@@ -179,35 +184,23 @@ export function PaymentTrackingSection({
     setShowPaymentDialog(true);
   };
 
-  const readFileAsBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Strip the data URL prefix: "data:...;base64,"
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+  // El error vive en el diálogo, junto al campo: se limpia al abrir y al cerrar.
+  const handleReceiptSelected = (file: File, input: HTMLInputElement) => {
+    const errorDeTamano = errorDeTamanoDeArchivo(file.size);
+    setPaymentError(errorDeTamano);
+    if (errorDeTamano) {
+      // Vacío para que volver a elegir el mismo archivo dispare `change`.
+      input.value = '';
+      return;
+    }
+    setReceiptFile(file);
+  };
 
   const handleSubmitPayment = async () => {
     setSubmitting(true);
     setPaymentError(null);
     try {
-      let receipt:
-        | { fileName: string; mimeType: string; dataBase64: string }
-        | undefined;
-
-      if (receiptFile) {
-        const dataBase64 = await readFileAsBase64(receiptFile);
-        receipt = {
-          fileName: receiptFile.name,
-          mimeType: receiptFile.type,
-          dataBase64,
-        };
-      }
+      const receipt = receiptFile ?? undefined;
 
       let result: { success: boolean; error?: string };
 
@@ -239,8 +232,16 @@ export function PaymentTrackingSection({
       } else {
         setPaymentError(result.error || 'Error al registrar pago');
       }
-    } catch {
-      setPaymentError('Error al registrar pago');
+    } catch (error) {
+      // Un cuerpo rechazado por la plataforma llega como error genérico.
+      const errorDeTamano =
+        receiptFile &&
+        errorDeTamanoTrasRechazo(error, new Blob([receiptFile]).size);
+      setPaymentError(
+        errorDeTamano
+          ? `${receiptFile.name}: ${errorDeTamano}`
+          : 'Error al registrar pago',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -328,7 +329,7 @@ export function PaymentTrackingSection({
             observations={observations}
             setObservations={setObservations}
             receiptFile={receiptFile}
-            setReceiptFile={setReceiptFile}
+            onReceiptSelected={handleReceiptSelected}
             fileInputRef={fileInputRef}
             submitting={submitting}
             error={paymentError}
@@ -498,7 +499,7 @@ export function PaymentTrackingSection({
         observations={observations}
         setObservations={setObservations}
         receiptFile={receiptFile}
-        setReceiptFile={setReceiptFile}
+        onReceiptSelected={handleReceiptSelected}
         fileInputRef={fileInputRef}
         submitting={submitting}
         error={paymentError}
@@ -525,7 +526,7 @@ function PaymentDialog({
   observations,
   setObservations,
   receiptFile,
-  setReceiptFile,
+  onReceiptSelected,
   fileInputRef,
   submitting,
   error,
@@ -543,7 +544,7 @@ function PaymentDialog({
   observations: string;
   setObservations: (v: string) => void;
   receiptFile: File | null;
-  setReceiptFile: (v: File | null) => void;
+  onReceiptSelected: (file: File, input: HTMLInputElement) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   submitting: boolean;
   error: string | null;
@@ -647,18 +648,12 @@ function PaymentDialog({
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    if (file.size > 10 * 1024 * 1024) {
-                      alert('El archivo no puede superar los 10MB');
-                      return;
-                    }
-                    setReceiptFile(file);
-                  }
+                  if (file) onReceiptSelected(file, e.target);
                 }}
               />
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              PDF, JPG o PNG. Máximo 10MB.
+              PDF, JPG o PNG. Máximo {MAX_ARCHIVO_MB} MB.
             </p>
           </div>
 

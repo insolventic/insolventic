@@ -217,7 +217,7 @@ export async function createUser(input: unknown): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'created',
       entityType: 'user',
       entityId: createdUser.id,
@@ -270,6 +270,17 @@ export async function createUser(input: unknown): Promise<{
   }
 }
 
+const CONTRASENA_NO_EDITABLE =
+  'La contraseña no se cambia al editar un usuario. Cada usuario la cambia desde su perfil o con «¿Olvidó su contraseña?» al iniciar sesión.';
+
+function traeContrasena(input: unknown): boolean {
+  return (
+    typeof input === 'object' &&
+    input !== null &&
+    (input as { password?: unknown }).password !== undefined
+  );
+}
+
 export async function updateUser(input: unknown): Promise<{
   success: boolean;
   data?: UserSummaryData;
@@ -283,13 +294,15 @@ export async function updateUser(input: unknown): Promise<{
       throw new Error('No tiene permisos para: Editar usuarios');
     }
 
+    // Antes de parsear: Zod descarta las claves que no conoce, y la llamada
+    // devolvería `success` sin haber cambiado la contraseña.
+    if (traeContrasena(input)) {
+      return { success: false, error: CONTRASENA_NO_EDITABLE };
+    }
+
     // Validate input
     const validatedInput = updateUserSchema.parse(input);
-    const { id, roleId, password, ...rest } = validatedInput;
-
-    const hashedPassword = password
-      ? await bcrypt.hash(password, 10)
-      : undefined;
+    const { id, roleId, ...rest } = validatedInput;
 
     // Validate role belongs to the same tenant
     if (roleId) {
@@ -306,7 +319,6 @@ export async function updateUser(input: unknown): Promise<{
       },
       data: {
         ...rest,
-        ...(hashedPassword && { password: hashedPassword }),
         ...(roleId && { role: { connect: { id: roleId } } }),
       },
     });
@@ -400,7 +412,7 @@ export async function deleteUser(id: string): Promise<{
       },
     );
 
-    createAuditLog({
+    await createAuditLog({
       action: 'deleted',
       entityType: 'user',
       entityId: deletedUser.id,
@@ -458,7 +470,7 @@ export async function revokeUserSessions(userId: string): Promise<{
       data: { tokenVersion: { increment: 1 } },
     });
 
-    createAuditLog({
+    await createAuditLog({
       action: 'updated',
       entityType: 'user',
       entityId: target.id,

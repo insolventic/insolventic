@@ -13,8 +13,6 @@
 jest.mock('next/headers', () => require('../__mocks__/next-headers'));
 jest.mock('next/cache', () => require('../__mocks__/next-cache'));
 
-import bcrypt from 'bcrypt';
-
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { getAllRoles } from '@/features/role/actions';
@@ -157,7 +155,7 @@ describe('lo que se deriva del resumen de usuario', () => {
   });
 });
 
-describe('updateUser conserva su comportamiento', () => {
+describe('updateUser y la contraseña', () => {
   it('sin contraseña en el payload no la toca, y no la devuelve', async () => {
     const result = await updateUser(datosDeEdicion(otroUsuarioId));
 
@@ -166,18 +164,14 @@ describe('updateUser conserva su comportamiento', () => {
     await expect(hashGuardado(otroUsuarioId)).resolves.toBe(HASH_OTRO);
   });
 
-  it('con contraseña en el payload la guarda hasheada, y no la devuelve', async () => {
+  it('con contraseña en el payload devuelve error y no la cambia', async () => {
     const result = await updateUser({
       ...datosDeEdicion(otroUsuarioId),
       password: 'clave-nueva-de-prueba',
     });
 
-    expect(result.success).toBe(true);
-    expect(result.data).not.toHaveProperty('password');
-    const guardado = await hashGuardado(otroUsuarioId);
-    expect(guardado).not.toBe('clave-nueva-de-prueba');
-    await expect(
-      bcrypt.compare('clave-nueva-de-prueba', guardado!),
-    ).resolves.toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.data).toBeUndefined();
+    await expect(hashGuardado(otroUsuarioId)).resolves.toBe(HASH_OTRO);
   });
 });

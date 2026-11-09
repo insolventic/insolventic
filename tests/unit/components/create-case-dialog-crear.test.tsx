@@ -72,7 +72,7 @@ jest.mock('@/features/user/actions', () => ({
   }),
 }));
 jest.mock('@/features/document/actions', () => ({
-  uploadCaseDocuments: (...args: unknown[]) => mockUploadCaseDocuments(...args),
+  uploadCaseDocument: (...args: unknown[]) => mockUploadCaseDocuments(...args),
 }));
 
 jest.mock('@/components/ui/dialog', () => {
@@ -249,4 +249,77 @@ describe('CreateCaseDialog — "Crear Caso" con los datos completos crea', () =>
       ).toHaveLength(0);
     },
   );
+});
+
+describe('CreateCaseDialog — documentos adjuntos', () => {
+  /** Llena y envía una insolvencia con los 3 documentos obligatorios. */
+  async function crearConDocumentos() {
+    const onCaseCreated = jest.fn();
+    render(
+      <CreateCaseDialog
+        open
+        onOpenChange={() => {}}
+        onCaseCreated={onCaseCreated}
+        initialType="INSOLVENCY"
+      />,
+    );
+    await waitFor(() => selectCon('deudor-1'));
+    await waitFor(() => selectCon('operador-1'));
+    await elegir('deudor-1');
+    await elegir('operador-1');
+    while (screen.queryByRole('button', { name: 'Siguiente' })) {
+      await pulsar('Siguiente');
+    }
+    const inputs = Array.from(
+      document.querySelectorAll<HTMLInputElement>('input[type="file"]'),
+    ).slice(0, 3);
+    for (const [i, input] of inputs.entries()) {
+      await act(async () => {
+        fireEvent.change(input, {
+          target: {
+            files: [
+              new File(['%PDF'], `doc-${i}.pdf`, { type: 'application/pdf' }),
+            ],
+          },
+        });
+      });
+    }
+    await pulsar('Crear Caso');
+    await waitFor(() => expect(onCaseCreated).toHaveBeenCalled());
+  }
+
+  it('sube cada archivo en su propia llamada, como File', async () => {
+    await crearConDocumentos();
+
+    expect(mockUploadCaseDocuments).toHaveBeenCalledTimes(3);
+    for (const [arg] of mockUploadCaseDocuments.mock.calls) {
+      expect(arg.caseId).toBe('caso-nuevo');
+      expect(arg.file).toBeInstanceOf(File);
+    }
+    expect(mockToast.success).toHaveBeenCalledWith(
+      'Caso creado y 3 documento(s) subido(s) exitosamente',
+    );
+    expect(mockToast.warning).not.toHaveBeenCalled();
+  });
+
+  it('si uno falla, sube los demás, conserva el caso y dice cuál falló y por qué', async () => {
+    mockUploadCaseDocuments
+      .mockResolvedValueOnce({ success: true })
+      .mockResolvedValueOnce({
+        success: false,
+        error: 'No se pudo guardar el archivo.',
+      })
+      .mockResolvedValueOnce({ success: true });
+
+    await crearConDocumentos();
+
+    expect(mockUploadCaseDocuments).toHaveBeenCalledTimes(3);
+    expect(mockToast.success).not.toHaveBeenCalled();
+    const [titulo, opciones] = mockToast.warning.mock.calls[0];
+    expect(titulo).toBe('Caso creado, pero 1 de 3 documentos no se subieron');
+    render(<>{opciones.description}</>);
+    expect(screen.getByText(/doc-1\.pdf/)).toHaveTextContent(
+      'doc-1.pdf: No se pudo guardar el archivo.',
+    );
+  });
 });
