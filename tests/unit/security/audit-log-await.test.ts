@@ -89,6 +89,39 @@ describe('createAuditLog — espera el insert (GC-M4, parte a)', () => {
       }),
     ).resolves.toEqual({ ok: false });
   });
+
+  // El cambio de correo guarda las dos direcciones en `metadata`. Van a la tabla
+  // de auditoría, no a Sentry ni a la consola.
+  it('un fallo del insert no lleva las direcciones de correo al logger', async () => {
+    const { createAuditLog } = await import('@/features/audit-log/actions');
+    const { logger } = await import('@/lib/logger');
+    const registrarError = jest
+      .spyOn(logger, 'error')
+      .mockImplementation(() => {});
+
+    mockPrisma.auditLog.create.mockRejectedValue(new Error('BD caída'));
+
+    await createAuditLog({
+      action: 'updated',
+      entityType: 'user',
+      entityId: 'user-1',
+      entityName: 'Natalia',
+      actor: { userId: 'u', userName: 'U', userCedula: 'TP' },
+      tenantId: TENANT.id,
+      metadata: {
+        changedFields: 'email',
+        previousEmail: 'anterior@centroejemplo.test',
+        newEmail: 'nuevo@centroejemplo.test',
+      },
+    });
+
+    expect(registrarError).toHaveBeenCalledTimes(1);
+    const registrado = JSON.stringify(registrarError.mock.calls[0]);
+    expect(registrado).not.toContain('anterior@centroejemplo.test');
+    expect(registrado).not.toContain('nuevo@centroejemplo.test');
+
+    registrarError.mockRestore();
+  });
 });
 
 describe('updateCase — el registro dice qué cambió (GC-M4, parte b)', () => {
