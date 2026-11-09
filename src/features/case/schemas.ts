@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import '@/lib/zod-es';
 
 import { CASE_PHASE_VALUES } from '@/lib/case-phases';
 import { requiresOtherDetail } from '@/features/case/proceso-judicial-tipos';

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import '@/lib/zod-es';
 import { telefonoNuevo } from '@/lib/telefono';
 
 /**

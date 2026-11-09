@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import '@/lib/zod-es';
 import { montoNumerico } from '@/features/case/monto-schemas';
 import { telefonoNuevo } from '@/lib/telefono';
 
