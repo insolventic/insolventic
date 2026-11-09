@@ -13,6 +13,7 @@ import { logger } from '@/lib/logger';
 
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 
 import {
   createUserSchema,
@@ -392,6 +393,13 @@ export async function updateUser(input: unknown): Promise<{
     });
     if (!anterior) return { success: false, error: 'Usuario no encontrado' };
 
+    // F3: el formato del teléfono se exige solo si cambió.
+    const problemaTelefono = problemaDeTelefonoSiCambio(
+      validatedInput.phone,
+      anterior.phone,
+    );
+    if (problemaTelefono) return { success: false, error: problemaTelefono };
+
     const updatedUser = await prisma.user.update({
       where: {
         id,
@@ -674,6 +682,20 @@ export async function updateProfile(input: unknown): Promise<{
     });
 
     const validatedInput = profileSchema.parse(input);
+
+    // F3: el formato del teléfono se exige solo si cambió respecto del
+    // guardado, para no bloquear la edición de registros viejos.
+    if (validatedInput.phone !== undefined) {
+      const guardado = await prisma.user.findFirst({
+        where: { id: user.id, tenantId },
+        select: { phone: true },
+      });
+      const problema = problemaDeTelefonoSiCambio(
+        validatedInput.phone,
+        guardado?.phone,
+      );
+      if (problema) return { success: false, error: problema };
+    }
 
     const updatedUser = await prisma.user.update({
       where: {

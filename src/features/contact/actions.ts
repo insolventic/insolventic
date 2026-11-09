@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 
 import {
   contactSchema,
@@ -173,6 +174,17 @@ export async function updateContact(input: unknown): Promise<{
     // Validate input
     const validatedInput = updateContactSchema.parse(input);
     const { id, ...data } = validatedInput;
+
+    // F3: el formato del teléfono se exige solo si cambió respecto del
+    // guardado, para no bloquear la edición de registros viejos.
+    if (data.phone !== undefined) {
+      const guardado = await prisma.contact.findFirst({
+        where: { id, tenantId },
+        select: { phone: true },
+      });
+      const problema = problemaDeTelefonoSiCambio(data.phone, guardado?.phone);
+      if (problema) return { success: false, error: problema };
+    }
 
     const contact = await prisma.contact.update({
       where: {

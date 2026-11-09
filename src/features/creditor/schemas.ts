@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { telefonoNuevo } from '@/lib/telefono';
 
 const decimalToNumber = z.any().transform((val) => {
   if (val && typeof val === 'object' && 'toNumber' in val) {
@@ -97,6 +98,8 @@ export const createCreditorSchema = creditorSchema
     _count: true,
   })
   .extend({
+    // F3: el formato solo en el alta; el schema base también lee de la base.
+    phone: telefonoNuevo(),
     city: z.string().optional(),
     department: z.string().optional(),
     website: z.string().optional(),

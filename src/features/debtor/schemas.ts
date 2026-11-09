@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { montoNumerico } from '@/features/case/monto-schemas';
+import { telefonoNuevo } from '@/lib/telefono';
 
 const decimalToNumber = z.any().transform((val) => {
   if (val && typeof val === 'object' && 'toNumber' in val) {
@@ -104,6 +105,8 @@ export const createDebtorSchema = debtorSchema
     _count: true,
   })
   .extend({
+    // F3: el formato solo en el alta; debtorSchema también lee de la base.
+    phone: telefonoNuevo(),
     totalDebt: z.coerce.number().pipe(montoNumerico()).default(0),
     activeCases: z.coerce.number().default(0),
     monthlyIncome: z.coerce.number().pipe(montoNumerico()).default(0),

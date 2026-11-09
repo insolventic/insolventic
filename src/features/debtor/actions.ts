@@ -9,6 +9,7 @@ import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
 
 import {
   createDebtorSchema,
@@ -378,6 +379,17 @@ export async function updateDebtor(input: unknown): Promise<{
     // Validate input
     const validatedInput = updateDebtorSchema.parse(input);
     const { id, ...rest } = validatedInput;
+
+    // F3: el formato del teléfono se exige solo si cambió respecto del
+    // guardado, para no bloquear la edición de registros viejos.
+    if (rest.phone !== undefined) {
+      const guardado = await prisma.debtor.findFirst({
+        where: { id, tenantId },
+        select: { phone: true },
+      });
+      const problema = problemaDeTelefonoSiCambio(rest.phone, guardado?.phone);
+      if (problema) return { success: false, error: problema };
+    }
 
     const updatedDebtor = await prisma.debtor.update({
       where: {
