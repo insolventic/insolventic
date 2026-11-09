@@ -1,19 +1,31 @@
 'use client';
 
-import { Clock, Video, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarClock, Clock, Video, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { HearingDialog } from '@/components/hearings/hearing-dialog';
+import { useAuth } from '@/hooks/use-auth';
 import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
+import { formatDateColombia } from '@/lib/date-colombia';
+import { P } from '@/lib/permissions';
 import type { Hearing } from '@/features/calendar/actions';
 
 interface HearingCardProps {
   hearing: Hearing;
+  onChanged?: () => void;
 }
 
-export function HearingCard({ hearing }: Readonly<HearingCardProps>) {
-  const dateStr = new Date(hearing.date).toLocaleDateString('es-CO', {
+export function HearingCard({
+  hearing,
+  onChanged,
+}: Readonly<HearingCardProps>) {
+  const { checkPermission } = useAuth();
+  const [showDialog, setShowDialog] = useState(false);
+
+  const dateStr = formatDateColombia(hearing.date, {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -42,7 +54,7 @@ export function HearingCard({ hearing }: Readonly<HearingCardProps>) {
         </Badge>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {hearing.zoomLink && (
           <Button variant="outline" size="sm" asChild>
             <a
@@ -56,12 +68,35 @@ export function HearingCard({ hearing }: Readonly<HearingCardProps>) {
           </Button>
         )}
         <Button variant="ghost" size="sm" asChild>
-          <Link href={`/cases`}>
+          <Link
+            href={`/cases?search=${encodeURIComponent(hearing.caseNumber)}`}
+          >
             <FileText className="mr-1 h-3 w-3" />
             Ver caso
           </Link>
         </Button>
+        {checkPermission(P.EDITAR_CASOS) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDialog(true)}
+          >
+            <CalendarClock className="mr-1 h-3 w-3" />
+            Reprogramar
+          </Button>
+        )}
       </div>
+
+      <HearingDialog
+        open={showDialog}
+        onOpenChange={setShowDialog}
+        caseId={hearing.id}
+        caseNumber={hearing.caseNumber}
+        version={hearing.version}
+        audiencia={{ fecha: hearing.date, hora: hearing.time }}
+        onSaved={onChanged}
+      />
     </div>
   );
 }

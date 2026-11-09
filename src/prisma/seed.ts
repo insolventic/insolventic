@@ -355,6 +355,7 @@ async function createRoles(
   });
 
   const operatorPermissions = [
+    'Ver calendario',
     'Ver casos',
     'Ver todos los casos',
     'Crear casos',
@@ -408,6 +409,7 @@ async function createRoles(
   });
 
   const lawyerPermissions = [
+    'Ver calendario',
     'Ver casos',
     'Ver casos propios',
     'Crear casos',

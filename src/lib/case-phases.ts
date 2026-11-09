@@ -173,6 +173,21 @@ export const PHASE_TRANSITIONS: Record<string, string[]> = {
 
 export const PHASES_REQUIRING_SUBTYPE = ['Fracaso', 'Desistimiento'] as const;
 
+/** La fase que afirma que hay una audiencia por delante. */
+export const HEARING_SCHEDULED_PHASE = 'Audiencia programada';
+
+/** A esta fase vuelve un caso cuando se le cancela la audiencia. */
+export const PHASE_AFTER_HEARING_CANCELLED = 'En negociación';
+
+/** Fases en que el trámite ya terminó: no tiene audiencias por delante. */
+export const CLOSED_PHASES: readonly string[] = [
+  'Terminado',
+  'Fracaso',
+  'Rechazo',
+  'Retiro',
+  'Desistimiento',
+];
+
 export function phaseRequiresSubtype(
   phase: string | null | undefined,
 ): boolean {

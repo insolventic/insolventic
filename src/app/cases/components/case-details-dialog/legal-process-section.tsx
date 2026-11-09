@@ -5,6 +5,11 @@ import { Separator } from '@/components/ui/separator';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { tipoProcesoLabel } from '@/features/case/proceso-judicial-tipos';
+import {
+  audienciaVigente,
+  formatearAudiencia,
+  primeraAudiencia,
+} from '@/features/calendar/audiencia';
 
 interface LegalProcessSectionProps {
   caseData: CaseWithRelations;
@@ -88,12 +93,22 @@ export function LegalProcessSection({
             </div>
             <div>
               <p className="text-muted-foreground text-sm font-medium">
+                Audiencia Vigente
+              </p>
+              <p className="text-sm">
+                {formatearAudiencia(audienciaVigente(caseData)) || 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-sm font-medium">
                 Primera Audiencia
               </p>
               <p className="text-sm">
-                {caseData?.firstHearingDate
-                  ? `${new Date(caseData.firstHearingDate).toLocaleDateString('es-CO')} ${caseData.firstHearingTime ? `a las ${caseData.firstHearingTime}` : ''}`
-                  : 'N/A'}
+                {formatearAudiencia(
+                  caseData?.firstHearingDate
+                    ? primeraAudiencia(caseData)
+                    : null,
+                ) || 'N/A'}
               </p>
             </div>
             <div>

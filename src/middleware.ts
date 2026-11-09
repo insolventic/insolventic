@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-import { getRoutePermissions } from '@/lib/permissions';
+import { MODULES, canEnterModule } from '@/lib/permissions';
 import { newRequestId } from '@/lib/request-id';
 
 // Validado en el primer uso, no en el import — mismo patrón que auth.ts y
@@ -134,10 +134,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Route-level permission checks — derived from centralized MODULES config
-  const routePermissions = getRoutePermissions();
-
-  for (const [route, permission] of Object.entries(routePermissions)) {
-    if (pathname.startsWith(route) && !user.permissions.includes(permission)) {
+  for (const modulo of Object.values(MODULES)) {
+    if (
+      pathname.startsWith(modulo.route) &&
+      !canEnterModule(modulo, user.permissions)
+    ) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }

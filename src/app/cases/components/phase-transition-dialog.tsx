@@ -27,6 +27,7 @@ import {
   getPhaseBadgeClass,
   getPhaseLabel,
   getValidTransitions,
+  HEARING_SCHEDULED_PHASE,
   phaseRequiresSubtype,
 } from '@/lib/case-phases';
 import { getFailureTypes } from '@/features/document/templates-config';
@@ -38,6 +39,8 @@ interface PhaseTransitionDialogProps {
   caseId: string;
   caseNumber: string;
   currentPhase: string | null;
+  /** `false` deshabilita "Audiencia programada". El servidor lo exige igual. */
+  audienciaPendiente?: boolean;
   onPhaseChanged?: () => void;
 }
 
@@ -68,6 +71,7 @@ export function PhaseTransitionDialog({
   caseId,
   caseNumber,
   currentPhase,
+  audienciaPendiente,
   onPhaseChanged,
 }: Readonly<PhaseTransitionDialogProps>) {
   const [loading, setLoading] = useState(false);
@@ -80,6 +84,9 @@ export function PhaseTransitionDialog({
   const phase = currentPhase ?? 'Inicial';
   const validTransitions = getValidTransitions(phase);
   const subtypeOptions = subtypeOptionsFor(pendingTarget);
+  const faltaAudiencia =
+    audienciaPendiente === false &&
+    validTransitions.includes(HEARING_SCHEDULED_PHASE);
 
   const resetPendingState = () => {
     setPendingTarget(null);
@@ -221,7 +228,10 @@ export function PhaseTransitionDialog({
                       key={target}
                       variant="outline"
                       className="justify-between"
-                      disabled={loading}
+                      disabled={
+                        loading ||
+                        (faltaAudiencia && target === HEARING_SCHEDULED_PHASE)
+                      }
                       onClick={() => handleSelectTarget(target)}
                     >
                       <span className="flex items-center gap-2">
@@ -239,6 +249,12 @@ export function PhaseTransitionDialog({
                     </Button>
                   ))}
                 </div>
+                {faltaAudiencia && (
+                  <p className="text-muted-foreground text-sm">
+                    Para pasar a &quot;{HEARING_SCHEDULED_PHASE}&quot; primero
+                    programe la audiencia con el botón de calendario del caso.
+                  </p>
+                )}
               </div>
             ) : (
               <p className="text-muted-foreground text-sm">
