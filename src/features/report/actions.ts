@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 import prisma from '@/lib/prisma';
+import { CASO_ACTIVO } from '@/lib/papelera';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import {
@@ -212,7 +213,7 @@ export async function getFinancialReport() {
     // Get individual debts with creditor info
     // El scope va dentro de `case`: una deuda es visible si su expediente lo es.
     const debts = await prisma.debt.findMany({
-      where: { case: { tenantId, ...caseScope } },
+      where: { case: { tenantId, ...caseScope, ...CASO_ACTIVO } },
       include: {
         creditor: { select: { name: true, nit: true, type: true } },
         case: { select: { type: true } },

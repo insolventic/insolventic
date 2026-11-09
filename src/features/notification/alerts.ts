@@ -29,6 +29,7 @@ import {
 } from '@/features/calendar/audiencia';
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { CASO_ACTIVO } from '@/lib/papelera';
 
 const HEARING_LOOKAHEAD_HOURS = Number(
   process.env.ALERTS_HEARING_LOOKAHEAD_HOURS ?? 48,
@@ -272,6 +273,8 @@ export async function scanOverduePayments(
     const overdue = await prisma.payment.findMany({
       where: {
         tenantId,
+        // Papelera: no se avisa de cuotas vencidas de un caso eliminado.
+        case: CASO_ACTIVO,
         dueDate: { lt: now },
         status: { in: ['pendiente', 'parcial'] },
       },

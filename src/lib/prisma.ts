@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
+import { conFiltroDePapelera } from './papelera';
+
 type TenantId = 'armonia' | 'constructores-paz';
 
 interface TenantConfig {
@@ -14,7 +16,7 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-const prisma =
+const base =
   globalForPrisma.prisma ??
   new PrismaClient({
     log:
@@ -23,7 +25,26 @@ const prisma =
         : ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = base;
+
+/**
+ * Papelera de expedientes: toda operación sobre `Case` que no nombre
+ * `deletedAt` en su `where` recibe `deletedAt: null`. Ver `./papelera.ts`.
+ * Aplica también dentro de `$transaction(async (tx) => …)`.
+ *
+ * El cast a `PrismaClient` es deliberado: una extensión de `query` no cambia
+ * la forma de los resultados, y sin el cast el tipo extendido no encaja en
+ * las firmas que reciben `PrismaClient` o `Prisma.TransactionClient`.
+ */
+const prisma = base.$extends({
+  query: {
+    case: {
+      $allOperations({ operation, args, query }) {
+        return query(conFiltroDePapelera(operation, args));
+      },
+    },
+  },
+}) as unknown as PrismaClient;
 
 // Tenant configurations for UI and metadata
 const tenantConfigs: TenantConfig[] = [

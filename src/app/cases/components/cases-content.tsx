@@ -6,6 +6,7 @@ import {
   Handshake,
   HeartHandshake,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
@@ -52,6 +53,7 @@ import { CaseTable } from './case-table';
 import { CreateCaseDialog } from './create-case-dialog';
 import { DeleteCaseDialog } from './delete-case-dialog';
 import { EditCaseDialog } from './edit-case-dialog';
+import { PapeleraDialog } from './papelera-dialog';
 import { PhaseTransitionDialog } from './phase-transition-dialog';
 
 import { CASES_PAGE_SIZE_OPTIONS } from '@/features/case/schemas';
@@ -113,6 +115,12 @@ export function CasesContent({
 
   const { checkPermission } = useAuth();
   const canCreateCases = checkPermission(P.CREAR_CASOS);
+  // Papelera: verla y restaurar usa el mismo permiso que manda a la papelera.
+  const puedeVerPapelera = checkPermission(P.ELIMINAR_CASOS);
+  const puedeEliminarDefinitivamente = checkPermission(
+    P.ELIMINAR_CASOS_DEFINITIVAMENTE,
+  );
+  const [showPapelera, setShowPapelera] = useState(false);
   const [loadingCaseDetails, setLoadingCaseDetails] = useState(false);
 
   /**
@@ -255,38 +263,50 @@ export function CasesContent({
                 apoyo
               </p>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button disabled={!canCreateCases}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Crear nuevo caso
-                  <ChevronDown className="ml-2 h-4 w-4" />
+            <div className="flex items-center gap-2">
+              {puedeVerPapelera && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowPapelera(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Papelera
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem
-                  onClick={() => openCreateDialog('INSOLVENCY')}
-                  className="cursor-pointer"
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  Insolvencia
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => openCreateDialog('CONCILIATION')}
-                  className="cursor-pointer"
-                >
-                  <Handshake className="mr-2 h-4 w-4" />
-                  Conciliación
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => openCreateDialog('SUPPORT_AGREEMENT')}
-                  className="cursor-pointer"
-                >
-                  <HeartHandshake className="mr-2 h-4 w-4" />
-                  Acuerdos de apoyo
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button disabled={!canCreateCases}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Crear nuevo caso
+                    <ChevronDown className="ml-2 h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={() => openCreateDialog('INSOLVENCY')}
+                    className="cursor-pointer"
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    Insolvencia
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => openCreateDialog('CONCILIATION')}
+                    className="cursor-pointer"
+                  >
+                    <Handshake className="mr-2 h-4 w-4" />
+                    Conciliación
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => openCreateDialog('SUPPORT_AGREEMENT')}
+                    className="cursor-pointer"
+                  >
+                    <HeartHandshake className="mr-2 h-4 w-4" />
+                    Acuerdos de apoyo
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           <CaseStats stats={stats} />
@@ -350,6 +370,14 @@ export function CasesContent({
           onOpenChange={setShowDetailsDialog}
           case={selectedCaseWithRelations}
           loading={loadingCaseDetails}
+        />
+      )}
+
+      {puedeVerPapelera && (
+        <PapeleraDialog
+          open={showPapelera}
+          onOpenChange={setShowPapelera}
+          puedeEliminarDefinitivamente={puedeEliminarDefinitivamente}
         />
       )}
 

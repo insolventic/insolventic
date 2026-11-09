@@ -114,8 +114,9 @@ npx prisma generate
 # 5. Aplicar migraciones (base vacía o ya migrada)
 npm run db:migrate        # prisma migrate dev
 
-# 6. Seed inicial (roles, permisos, usuarios admin)
-npx tsx src/prisma/seed.ts
+# 6. Seed de datos demo — SOLO contra una base de prueba local
+#    (localhost y nombre con e2e/test/smoke; si no, aborta). Ver docs/RUNBOOK.md §7.2
+SEED_PASSWORD=una-contrasena-local-larga npm run db:seed
 
 # 7. Arrancar dev server
 npm run dev
@@ -131,14 +132,15 @@ Aplicación disponible en `http://localhost:3000`.
 > detalle y su test están en `CLAUDE.md` § Trampas y `docs/ROADMAP.md` §
 > Fase 3.
 
-### Cuentas por defecto (seed)
+### Cuentas demo (seed)
 
-| Email                  | Rol           | Tenant               |
-| ---------------------- | ------------- | -------------------- |
-| `admin@armonia.com`    | Administrador | Armonía              |
-| `admin@construpaz.com` | Administrador | Constructores de Paz |
+El seed crea en cada centro (Armonía y Constructores de Paz) cinco usuarios
+`@insolventic.com`: `beatriz.malavera` (Administrador), `sofia.torres`,
+`maximiliano.jaramillo`, `carlos.rodriguez` y `maria.gonzalez`.
 
-> La primera contraseña fuerza `mustChangePassword: true`. Revisa `src/prisma/seed.ts` para valores concretos.
+> No hay contraseña por defecto: es la de `SEED_PASSWORD`, o una aleatoria que
+> el seed imprime una vez si no se define. El seed solo corre contra una base de
+> prueba local; el porqué y el opt-in están en `docs/RUNBOOK.md` §7.2.
 
 ---
 
@@ -206,7 +208,7 @@ npm run test:e2e          # Playwright E2E
 npm run test:e2e:ui       # Playwright UI mode
 ```
 
-**Estado actual:** `164 suites / 2184 tests ✅` — medido en `dev` el 2026-10-29.
+**Estado actual:** `180 suites / 2435 tests ✅` — medido el 2026-11-09 con la papelera de casos.
 
 > Este número lo vigila un test (`tests/unit/docs/conteo-de-tests.test.ts`):
 > falla si el conteo documentado aquí, en `docs/TESTS.md` o en `CLAUDE.md` se

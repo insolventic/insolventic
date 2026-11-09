@@ -506,6 +506,40 @@ describe('todas las lecturas dicen lo mismo', () => {
   });
 });
 
+describe('casos en la papelera', () => {
+  // La extensión de `src/lib/prisma.ts` filtra `deletedAt` en toda consulta de
+  // primer nivel sobre Case. Esto fija que el flujo de audiencias la respeta.
+  it('no aparecen en el calendario, no generan alertas y no se programan', async () => {
+    const manana = mediodia(dias(1));
+    const caso = await crearCaso(centro, { hearingDate: manana });
+    await prisma.case.update({
+      where: { id: caso.id },
+      data: { deletedAt: new Date(), deletedByName: 'Prueba' },
+    });
+    como(centro);
+
+    const mes = await getHearings({
+      month: manana.getUTCMonth() + 1,
+      year: manana.getUTCFullYear(),
+    });
+    await scanUpcomingHearings(prisma as never, centro.tenantId);
+    const programar = await programarAudiencia({
+      caseId: caso.id,
+      fecha: dias(10),
+      hora: '10:00',
+    });
+    const cancelar = await cancelarAudiencia({ caseId: caso.id });
+
+    expect(mes.data?.some((h) => h.id === caso.id)).toBe(false);
+    const avisos = await prisma.notification.count({
+      where: { caseId: caso.id, type: 'hearing_upcoming' },
+    });
+    expect(avisos).toBe(0);
+    expect(programar).toEqual({ success: false, error: 'Caso no encontrado' });
+    expect(cancelar).toEqual({ success: false, error: 'Caso no encontrado' });
+  });
+});
+
 describe('casos cerrados', () => {
   const FASES_CERRADAS = [
     'Terminado',

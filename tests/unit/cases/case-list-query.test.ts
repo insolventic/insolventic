@@ -213,7 +213,7 @@ describe('CASE_LIST_COLUMNS', () => {
 });
 
 describe('deleteCase — lectura acotada + visibilidad por fila', () => {
-  it('lee solo las tres columnas del guard (no la fila) y sigue borrando en transacción', async () => {
+  it('lee solo las tres columnas del guard (no la fila) y manda el caso a la papelera', async () => {
     asAdmin();
     // GC-A1: el `select` pasó de `{ id: true }` a las tres columnas que pide
     // `assertCaseAccess`. La intención original de este test —no traer la fila
@@ -235,24 +235,10 @@ describe('deleteCase — lectura acotada + visibilidad por fila', () => {
         driveFolderId: null,
         _count: { documents: 0, debts: 0, assets: 0, dependents: 0 },
       });
-    mockPrisma.$transaction.mockImplementation(async (fn: Function) =>
-      fn({
-        document: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-        debt: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-        asset: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-        legalProcess: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-        libranza: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-        suspendedService: {
-          deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-        },
-        dependent: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
-        case: {
-          delete: jest
-            .fn()
-            .mockResolvedValue({ ...CASE_DATA, debtorName: 'Test' }),
-        },
-      }),
-    );
+    mockPrisma.case.update.mockResolvedValue({
+      ...CASE_DATA,
+      debtorName: 'Test',
+    });
 
     const result = await deleteCase({
       id: 'case-1',
@@ -266,7 +252,8 @@ describe('deleteCase — lectura acotada + visibilidad por fila', () => {
         select: { id: true, operatorId: true, debtorId: true },
       }),
     );
-    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    // Papelera: se marca con un `update`, ya no hay transacción de borrado.
+    expect(mockPrisma.case.update).toHaveBeenCalled();
   });
 
   it('un caso inexistente sigue devolviendo error', async () => {
@@ -279,7 +266,7 @@ describe('deleteCase — lectura acotada + visibilidad por fila', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    expect(mockPrisma.case.update).not.toHaveBeenCalled();
   });
 });
 /**

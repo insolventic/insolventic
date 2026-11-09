@@ -26,6 +26,7 @@ import {
 // `new Date()` ancla a medianoche UTC y por tanto se imprimen un día antes en
 // hora de Colombia. `parseDateOnly` las ancla al mediodía UTC.
 import { parseDateOnly } from '@/lib/date-colombia';
+import { CASO_ACTIVO, incluyendoPapelera } from '@/lib/papelera';
 import { parseTasaInteres, parseFechaCredito } from './datos-desconocidos';
 import { filasApoderadoDesdeFormulario } from './apoderado-acreedor';
 // GC-A1: el permiso (`EDITAR_CASOS`) dice QUÉ puede hacer el rol; esto dice
@@ -554,8 +555,15 @@ export async function createCase(
             : 'INSOL';
 
       // Last case of the SAME prefix — sequences are independent per service.
+      // `incluyendoPapelera`: el número de un caso en la papelera sigue
+      // ocupado (único `[caseNumber, tenantId]`). Sin esto, si el último caso
+      // está en la papelera la extensión lo ocultaría y se repetiría su número.
       const lastCase = await prisma.case.findFirst({
-        where: { tenantId, caseNumber: { startsWith: `${prefix}-` } },
+        where: {
+          tenantId,
+          caseNumber: { startsWith: `${prefix}-` },
+          ...incluyendoPapelera,
+        },
         orderBy: { createdDate: 'desc' },
         select: { caseNumber: true },
       });
@@ -2472,23 +2480,20 @@ export async function deleteCase(
     const { id, confirmCaseNumber } = validatedInput;
 
     // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí.
-    // En un borrado físico e irreversible la visibilidad por fila importa más
-    // que en cualquier otra mutación.
+    // Un caso que ya está en la papelera responde "no encontrado": la
+    // extensión de Prisma lo oculta también para el guard.
     await assertCaseAccess({ caseId: id, user, tenantId });
 
     // ---------------------------------------------------------------------
-    // GC-M6 — mitigación interina mientras no exista el soft-delete.
+    // GC-M6 — eliminar manda el caso a la papelera (soft-delete, 2026-11-08).
     //
-    // El borrado sigue siendo físico y en cascada (el soft-delete es Fase 3
-    // del roadmap, ~20 h, y toca el schema). Lo que se añade acá son las tres
-    // cosas que se pueden hacer sin tocar el schema:
+    // Se conservan las tres salvaguardas de la mitigación interina, porque
+    // sacar un expediente de la vista de todo el centro sigue siendo serio:
     //
     //   1. La confirmación escrita, verificada CONTRA LA BASE (no contra lo
-    //      que mandó el cliente): el número tiene que ser el del expediente
-    //      que se va a borrar.
-    //   2. El audit log ANTES de borrar, con un snapshot de lo que se pierde.
-    //   3. El conteo de lo que se va en cascada, para que quede registrado
-    //      cuánto se destruyó.
+    //      que mandó el cliente): el número tiene que ser el del expediente.
+    //   2. El audit log ANTES de marcarlo, y si no queda escrito no se marca.
+    //   3. Los conteos de lo que cuelga del caso, para el registro.
     // ---------------------------------------------------------------------
     const snapshot = await prisma.case.findUnique({
       where: { id, tenantId },
@@ -2557,13 +2562,16 @@ export async function deleteCase(
         driveFolderId: snapshot.driveFolderId,
         driveFolderDeleted: false,
         confirmedByTypingCaseNumber: true,
+        // Desde el soft-delete: el caso va a la papelera y se puede
+        // restaurar. El borrado físico deja su propio registro `purged`.
+        papelera: true,
       },
     });
 
-    // GC-M4 + GC-M6: si la auditoría no quedó escrita, NO se borra. Es la
-    // única mutación donde se toma esta decisión, y es por lo que destruye:
-    // un expediente legal eliminado sin registro de quién lo hizo no se puede
-    // reconstruir ni explicar. En las demás actions un fallo de auditoría se
+    // GC-M4 + GC-M6: si la auditoría no quedó escrita, NO se manda a la
+    // papelera. Es de las pocas mutaciones donde se toma esta decisión (la
+    // otra es `purgeCase`): un expediente que desaparece de la vista de todo
+    // el centro sin registro de quién lo hizo no se puede explicar. En las demás actions un fallo de auditoría se
     // reporta y la operación sigue (ver el docblock de `createAuditLog`).
     if (!registro.ok) {
       return {
@@ -2573,40 +2581,36 @@ export async function deleteCase(
       };
     }
 
-    // Delete the case and all related records in a transaction
-    // Models without onDelete:Cascade must be deleted manually first
-    const deletedCase = await prisma.$transaction(async (tx) => {
-      // 1. Delete related records that don't have onDelete: Cascade
-      // Include tenantId for defense-in-depth (CUIDs are globally unique, but belt+suspenders)
-      await tx.document.deleteMany({ where: { caseId: id, tenantId } });
-      await tx.debt.deleteMany({ where: { caseId: id, tenantId } });
-      await tx.asset.deleteMany({ where: { caseId: id, tenantId } });
-      await tx.legalProcess.deleteMany({ where: { caseId: id, tenantId } });
-      await tx.libranza.deleteMany({ where: { caseId: id, tenantId } });
-      await tx.suspendedService.deleteMany({ where: { caseId: id, tenantId } });
-      await tx.dependent.deleteMany({ where: { caseId: id, tenantId } });
-
-      // 2. Delete the case (Apoderado, Notification, DocumentGenerationRequest, Payment cascade automatically)
-      return tx.case.delete({
-        where: {
-          id,
-          tenantId,
-        },
-      });
+    // Papelera (soft-delete, 2026-11-08): el caso NO se borra. Se marca y la
+    // extensión de `src/lib/prisma.ts` lo oculta de toda consulta sobre Case
+    // que no pida la papelera. Deudas, documentos, pagos y la carpeta de Drive
+    // quedan intactos, así que restaurar (`restoreCase`) lo devuelve entero.
+    // El borrado físico ahora vive en `purgeCase`, solo desde la papelera.
+    // El `where` sin `deletedAt` hace que la extensión agregue `deletedAt:
+    // null`: si otro usuario lo mandó a la papelera entre la lectura de arriba
+    // y esta línea, el update falla en vez de pisar quién lo eliminó.
+    const deletedCase = await prisma.case.update({
+      where: { id, tenantId },
+      data: {
+        deletedAt: new Date(),
+        deletedById: user.id,
+        deletedByName: user.name,
+      },
     });
 
     revalidateTag('cases');
 
-    // Create notification WITHOUT caseId reference (case no longer exists)
+    // Sin caseId: un aviso atado al caso quedaría oculto o llevaría a un caso
+    // que ya no se ve. El nombre va en el texto.
     await createNotificationForAction(
       'case_deleted',
       `${deletedCase.caseNumber} - ${deletedCase.debtorName}`,
       prisma,
       tenantId,
-      undefined, // No entityId since case is deleted
-      undefined, // No caseId since case is deleted
+      undefined,
+      undefined,
       // Sin caseId no hay fila que consultar: los destinatarios salen de la que
-      // devolvió el borrado, o el aviso no llegaría a los roles acotados.
+      // devolvió el update, o el aviso no llegaría a los roles acotados.
       await findUserIdsWhoCanSeeCase(deletedCase, tenantId),
       {
         name: user.name,
@@ -2616,9 +2620,9 @@ export async function deleteCase(
       },
     );
 
-    // GC-M6: el audit log de este borrado ya quedó escrito ARRIBA, antes de
-    // destruir la fila y con el snapshot de lo que se perdía. No se duplica
-    // acá: un segundo registro del mismo evento ensucia el histórico.
+    // GC-M6: el audit log ya quedó escrito ARRIBA, antes de marcar la fila.
+    // No se duplica acá: un segundo registro del mismo evento ensucia el
+    // histórico.
 
     const result = caseSummarySchema.parse(deletedCase);
     return { success: true, data: result };
@@ -2870,6 +2874,7 @@ export async function getDashboardStats(): Promise<{
       prisma.payment.count({
         where: {
           tenantId,
+          case: CASO_ACTIVO,
           status: 'pendiente',
           dueDate: { lt: now },
         },

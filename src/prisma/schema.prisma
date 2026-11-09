@@ -473,6 +473,18 @@ model Case {
   ciudadRadicacion         String?   @map("ciudad_radicacion")
 
   // ============================================================
+  // Papelera (soft-delete). `deleteCase` ya no borra: marca estas
+  // columnas y el caso desaparece de toda la app. La extensión de
+  // `src/lib/prisma.ts` agrega `deletedAt: null` a cada consulta sobre
+  // Case que no nombre `deletedAt`; ver `src/lib/papelera.ts`.
+  // Quién lo eliminó se guarda como texto, no como relación: un usuario
+  // borrado después no debe arrastrar ni bloquear el registro.
+  // ============================================================
+  deletedAt     DateTime? @map("deleted_at")
+  deletedById   String?   @map("deleted_by_id")
+  deletedByName String?   @map("deleted_by_name")
+
+  // ============================================================
   // Relations
   // ============================================================
   assets             Asset[]
@@ -491,6 +503,7 @@ model Case {
   generationRequests DocumentGenerationRequest[]
 
   @@unique([caseNumber, tenantId])
+  @@index([tenantId, deletedAt])
 }
 
 model Document {

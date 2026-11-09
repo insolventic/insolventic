@@ -30,6 +30,10 @@ export const P = {
   CREAR_CASOS: 'Crear casos',
   EDITAR_CASOS: 'Editar casos',
   ELIMINAR_CASOS: 'Eliminar casos',
+  // Borrado físico desde la papelera. Solo Administrador (migración
+  // 20261109000000_case_papelera). `ELIMINAR_CASOS` manda a la papelera y
+  // restaura; este destruye.
+  ELIMINAR_CASOS_DEFINITIVAMENTE: 'Eliminar casos definitivamente',
   VER_TODOS_CASOS: 'Ver todos los casos',
   VER_CASOS_PROPIOS: 'Ver casos propios',
   VER_CASOS_CLIENTE: 'Ver casos como cliente',
@@ -99,6 +103,7 @@ export const MODULES = {
       P.CREAR_CASOS,
       P.EDITAR_CASOS,
       P.ELIMINAR_CASOS,
+      P.ELIMINAR_CASOS_DEFINITIVAMENTE,
       P.VER_TODOS_CASOS,
       P.VER_CASOS_PROPIOS,
       P.VER_CASOS_CLIENTE,

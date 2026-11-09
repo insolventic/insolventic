@@ -1,8 +1,8 @@
 # Plan y Reporte de Pruebas — INSOLVENTIC
 
-> Estado: **164 suites / 2184 tests ✅** (medido en `dev` el 2026-10-29 con `npx jest --ci`; excluye `tests/db` y `tests/e2e`, que corren aparte). El conteo lo vigila `tests/unit/docs/conteo-de-tests.test.ts`: falla si esta cifra, la del README o la de `CLAUDE.md` se despegan de la realidad o entre sí. Antes de ese test las tres decían números distintos y ninguno era el correcto — este documento afirmaba 27 suites / 447 tests, de agosto de 2026.
+> Estado: **180 suites / 2435 tests ✅** (medido el 2026-11-09, con la papelera de casos, con `npx jest --ci`; excluye `tests/db` y `tests/e2e`, que corren aparte). El conteo lo vigila `tests/unit/docs/conteo-de-tests.test.ts`: falla si esta cifra, la del README o la de `CLAUDE.md` se despegan de la realidad o entre sí. Antes de ese test las tres decían números distintos y ninguno era el correcto — este documento afirmaba 27 suites / 447 tests, de agosto de 2026.
 >
-> ⚠️ **El inventario de la sección 3 cubre 27 de esas 164 suites**: las que existían cuando se escribió, en agosto de 2026 (y esas 27 hoy tienen 511 casos, no 447). No es el inventario completo del proyecto, es la lista de las suites del núcleo; reconstruirlo entero es trabajo propio, y no está hecho.
+> ⚠️ **El inventario de la sección 3 cubre 27 de esas 180 suites**: las que existían cuando se escribió, en agosto de 2026 (y esas 27 hoy tienen 511 casos, no 447). No es el inventario completo del proyecto, es la lista de las suites del núcleo; reconstruirlo entero es trabajo propio, y no está hecho.
 >
 > ⚠️ **La sección 4 (Cobertura funcional) tampoco se re-verificó** — son afirmaciones semánticas sobre qué prueba cada suite, y confirmarlas requiere leer el contenido de las suites, no solo sus rutas. Tratarla como orientativa hasta una revisión dedicada.
 >
@@ -62,6 +62,29 @@ docker rm -f insolventic-smoke-pg      # al terminar
 ```
 
 **Seguridad (importante).** Estos tests crean y borran filas. `tests/db/db-guard.ts` (probada en `tests/unit/config/db-guard.test.ts`) aborta el runner, antes de importar Prisma, si `DATABASE_URL`/`DIRECT_URL`: (1) no está definida —no hay fallback al `.env`, que en `pr.yml` es el de Vercel con la URL real de Neon—; (2) no apunta a `localhost`/`127.0.0.1`/`::1`; o (3) la base no tiene `e2e`, `test` o `smoke` en el nombre. Cada corrida crea su propio tenant y lo borra al terminar (no depende del seed).
+
+### 2.1.1 El seed de fixtures de los E2E (`npm run db:seed`)
+
+Los E2E de Playwright sí dependen del seed: entran como
+`beatriz.malavera@insolventic.com`. El seed **no tiene contraseña literal**
+(`src/prisma/seed-guard.ts`; detalle y motivo en `docs/RUNBOOK.md` §7.2):
+
+- Hashea `SEED_PASSWORD` (mínimo 12 caracteres) con costo 12; si falta, genera
+  una aleatoria y la imprime una vez.
+- `tests/e2e/helpers.ts` entra con `E2E_PASSWORD` o, si no está, con la misma
+  `SEED_PASSWORD`. `e2e.yml` define `SEED_PASSWORD` en el `env` del job, así
+  que el paso del seed y el de Playwright usan la misma.
+- Aborta si `DATABASE_URL`/`DIRECT_URL` no son una base de prueba local (mismo
+  criterio que `db-guard.ts`). El Postgres de `e2e.yml`
+  (`localhost:5432/insolventic_e2e`) y el contenedor de §2.1 lo cumplen.
+
+En local, con el contenedor de §2.1 levantado:
+
+```bash
+export SEED_PASSWORD=una-contrasena-local-larga
+npm run db:seed
+npm run test:e2e
+```
 
 ### 2.2 Verificación de punta a punta: formulario → BD → documento
 
