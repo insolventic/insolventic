@@ -31,6 +31,7 @@ import {
 } from '@/features/case/validation-rules';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
 import { errorDeTamanoDeArchivo, MAX_ARCHIVO_MB } from '@/lib/limite-archivos';
+import { registrarRechazoPorTamano } from '@/lib/rechazo-tamano';
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
@@ -228,7 +229,10 @@ export function DocumentsSection({
     }
     for (const f of fileArray) {
       const errorDeTamano = errorDeTamanoDeArchivo(f.size);
-      if (errorDeTamano) toast.error(`${f.name}: ${errorDeTamano}`);
+      if (errorDeTamano) {
+        registrarRechazoPorTamano('documento-caso', f);
+        toast.error(`${f.name}: ${errorDeTamano}`);
+      }
     }
 
     const validFiles = fileArray.filter(

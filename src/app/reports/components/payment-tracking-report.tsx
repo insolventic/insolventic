@@ -59,6 +59,7 @@ import {
   errorDeTamanoTrasRechazo,
   MAX_ARCHIVO_MB,
 } from '@/lib/limite-archivos';
+import { registrarRechazoPorTamano } from '@/lib/rechazo-tamano';
 import type {
   PaymentTrackingData,
   PaymentWithRelations,
@@ -983,6 +984,7 @@ function RegisterPaymentDialog({
       const errorDeTamano =
         receiptFile &&
         errorDeTamanoTrasRechazo(error, new Blob([receiptFile]).size);
+      if (errorDeTamano) registrarRechazoPorTamano('comprobante', receiptFile);
       setError(
         errorDeTamano
           ? `${receiptFile.name}: ${errorDeTamano}`
@@ -1188,6 +1190,7 @@ function RegisterPaymentDialog({
                   const errorDeTamano = errorDeTamanoDeArchivo(file.size);
                   setError(errorDeTamano ?? '');
                   if (errorDeTamano) {
+                    registrarRechazoPorTamano('comprobante', file);
                     // Vacío para que volver a elegir el mismo archivo dispare `change`.
                     e.target.value = '';
                     return;

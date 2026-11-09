@@ -23,6 +23,37 @@ Historial de decisiones técnicas por iteración de trabajo. Material de consult
 
 **Non-goals:** borrar la carpeta de Drive al purgar (sigue pendiente GC-M6; el registro guarda `driveFolderId`), soft-delete de otros modelos, y recortar quién tiene `Eliminar casos` (decisión del 2026-10-17, que ahora es menos crítica porque eliminar es reversible).
 
+## 2026-11-05 — ¿Alcanzan 4 MB? Drive no lo puede responder; se mide hacia adelante
+
+**Por qué no se midió Drive:** lo que hay guardado no dice cuánto pesa lo que la gente quiere subir, solo lo que cupo.
+
+- Antes de este límite no había `bodySizeLimit`, así que Next cortaba el cuerpo en 1 MB: por la app solo entraban archivos de hasta unos 760 KB. Lo que pase de eso en Drive se subió a mano.
+- Los comprobantes fallan desde el 2026-03-24 (`e777c30`): `uploadReceiptToDrive` recibía como carpeta el primer carácter del id. Lo corrige `#178`. Por la app no debería haber ninguno en Drive.
+
+Cualquier porcentaje "sobre 4 MB" calculado con esos datos saldría cerca de cero por construcción, y se leería como evidencia a favor de 4 MB sin serlo. Por eso no se tocó producción.
+
+**Decisión:** registrar cada archivo rechazado por tamaño (`registrarRechazoPorTamano`, `src/lib/rechazo-tamano.ts`) y decidir con esa cifra. Sale el origen, un intervalo y una categoría de tipo, de listas cerradas. No sale el nombre del archivo, ni el peso exacto, ni nada del caso.
+
+- **El contador es el issue de Sentry.** El repo no tiene otra forma de contar eventos. Cada combinación es un mensaje fijo, Sentry agrupa por mensaje, y el número de eventos del issue es la cuenta.
+- **Va en `warn` aunque sea un evento esperado.** El rechazo ocurre en el navegador: en `info` no saldría de la consola del usuario. Y va en el mensaje porque `logger.warn` no le pasa el contexto a Sentry.
+- **`scrubSentryEvent` les quita la URL, las migas de pan, el usuario, los tags, los contextos y la ruta.** El SDK los agrega por su cuenta y pueden traer datos del expediente. Comprobado con el SDK real contra un receptor local: el evento de rechazo sale solo con mensaje, nivel y metadatos del SDK, y uno de control desde la misma página sí llevaba URL y migas con esos datos.
+- **Solo se registra lo que ve el usuario:** el rechazo al elegir el archivo y el corte de la plataforma tras enviarlo (`errorDeTamanoTrasRechazo`), en los dos diálogos de pago, la pestaña de documentos y `subirDocumentosDelCaso`. La validación del servidor no registra, para no contar dos veces: a ella solo se llega saltándose la UI.
+
+**Qué no cuenta:** quien ni lo intenta porque la pantalla ya dice "Máximo 4 MB", y quien comprime y vuelve a subir (cuenta el primer intento).
+
+**`bodySizeLimit` frente a los topes:**
+
+| Cifra                      | Bytes            | Fuente                                                                                                                                                                        | Estado                                                                                          |
+| -------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Archivo máximo (4 MB)      | 4.194.304        | `MAX_ARCHIVO_BYTES`                                                                                                                                                           | Comprobado en `next dev`: pasa con 2.000 caracteres más en el formulario                        |
+| Sobrecosto multipart       | 442 más el texto | Medido con `FormData` en Node                                                                                                                                                 | Medido en local                                                                                 |
+| `bodySizeLimit` (`4.25mb`) | 4.456.448        | `next.config.ts`, leído con `bytes` como Next                                                                                                                                 | Comprobado en `next dev`: 4,25 MB exactos se rechazan, 3 KB menos pasan                         |
+| Tope de Vercel             | 4.493.312        | Preview de `#180`, bisección con `curl` (detalle en `#182`). La [documentación](https://vercel.com/docs/functions/limitations) dice 4,5 MB y `413 FUNCTION_PAYLOAD_TOO_LARGE` | Medido una vez, sin sesión y con un id de acción falso. Con una cookie de 4 KB baja a 4.490.297 |
+
+El tope medido es menor que los 4.500.000 de leer "4,5 MB" en decimal, así que esa lectura no es la más estricta. `bodySizeLimit` queda 33.849 bytes por debajo del tope con esa cookie, y el cuerpo de un `File` de 4 MB (4.194.627 bytes) unos 295 KB por debajo. **Sin verificar:** una subida completa con sesión en un despliegue, y que `NEXT_PUBLIC_SENTRY_DSN` esté definido en producción, sin lo cual el registro no llega a Sentry.
+
+**Cómo decidir:** revisión pendiente en `docs/ROADMAP.md`, Quick Win 10.
+
 ## 2026-11-05 — Cambio de centro: solo por el login
 
 **Diagnóstico:** `switchTenant` elegía la cuenta destino solo por el correo del token, y `updateUser` deja poner en la propia cuenta un correo que existe en otro centro, porque la unicidad es por centro. Con `P.EDITAR_USUARIOS` del centro A se podía entrar a la cuenta de un usuario del centro B sin su clave. Confirmado contra Postgres real en `tests/db/switch-tenant-correo-ajeno.db.test.ts`.
