@@ -1546,7 +1546,7 @@ export async function batchGenerateDocuments(input: {
     revalidatePath('/documents');
 
     if (successfulDocuments > 0) {
-      createAuditLog({
+      await createAuditLog({
         action: 'created',
         entityType: 'document',
         entityId: caseData.id,

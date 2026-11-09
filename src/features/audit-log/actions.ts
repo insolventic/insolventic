@@ -28,7 +28,7 @@ export interface AuditActorInfo {
 }
 
 // ---------------------------------------------------------------------------
-// Core: createAuditLog (non-blocking, fire-and-forget)
+// Core: createAuditLog (espera el insert, nunca lanza)
 // ---------------------------------------------------------------------------
 
 /**
@@ -47,9 +47,9 @@ export interface AuditActorInfo {
  * silenciosa — el peor modo de falla posible para una tabla de auditoría.
  *
  * Ahora SE ESPERA el insert. Lo que NO cambia es que nunca lanza: devuelve
- * `{ ok: false }`. El motivo es concreto: hay 8 módulos más que la invocan
- * como `void createAuditLog(...)`, y si empezara a rechazar, cada uno de esos
- * `void` se convertiría en una unhandled rejection. Devolver un resultado deja
+ * `{ ok: false }`. El motivo es concreto: cuando se la llama, la mutación ya
+ * ocurrió, y si rechazara, la acción respondería error por un cambio que sí
+ * quedó hecho. Devolver un resultado deja
  * que cada llamador decida — `deleteCase` aborta el borrado si la auditoría no
  * quedó; una alta de deuda sigue adelante y deja constancia en el log.
  *
