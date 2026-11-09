@@ -61,7 +61,7 @@ jest.mock('@/features/user/actions', () => ({
     .mockResolvedValue({ success: true, data: [] }),
 }));
 jest.mock('@/features/document/actions', () => ({
-  uploadCaseDocuments: jest.fn(),
+  uploadCaseDocument: jest.fn(),
 }));
 
 // Dialog sin portal ni animaciones: solo renderiza si open=true.
