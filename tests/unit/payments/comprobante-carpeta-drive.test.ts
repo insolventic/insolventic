@@ -44,8 +44,11 @@ jest.mock('@/features/audit-log/actions', () => ({
 
 const mockCreateFolderHierarchy = jest.fn();
 const mockUploadFile = jest.fn();
+const mockFindOrCreateCaseFolder = jest.fn();
 jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
+    findOrCreateCaseFolder: (...a: unknown[]) =>
+      mockFindOrCreateCaseFolder(...a),
     createFolderHierarchy: (...a: unknown[]) => mockCreateFolderHierarchy(...a),
     uploadFile: (...a: unknown[]) => mockUploadFile(...a),
     getFileUrl: (id: string) => `https://drive.google.com/file/d/${id}/view`,
@@ -139,30 +142,54 @@ describe('comprobante de pago en Drive', () => {
     },
   );
 
-  // Lo que ve el usuario cuando Drive rechaza la subida: el mensaje genérico
-  // de la acción, y el pago sin registrar. Desde N6 un fallo de red no llega
-  // al cliente: el detalle queda en el log (logger.error → Sentry).
-  const GENERICO: Record<string, string> = {
-    markPaymentPaid: 'Error al registrar pago',
-    registerPayment: 'Error al registrar el pago',
-    uploadPaymentReceipt: 'Error al subir comprobante',
-  };
+  // Lo que ve el usuario cuando Drive falla con el comprobante: un mensaje
+  // fijo que dice qué pasó, sin el detalle interno, y el pago sin registrar
+  // (la subida va antes de escribir el pago). El fallo original viaja como
+  // `cause`; google-drive.ts ya lo registró con logger.error → Sentry.
+  const MENSAJE =
+    'No se pudo subir el comprobante a Google Drive. Intente nuevamente.';
+  const DETALLE_INTERNO = 'fetch failed: ECONNRESET www.googleapis.com:443';
 
-  it.each(acciones)(
-    '%s devuelve el genérico y no toca el pago si la subida falla',
-    async (nombre, accion) => {
-      mockUploadFile.mockRejectedValue(
-        new Error('Error al subir archivo a Google Drive'),
-      );
+  const fallos = [
+    [
+      'la subida del archivo',
+      () => mockUploadFile.mockRejectedValue(new Error(DETALLE_INTERNO)),
+    ],
+    [
+      'la carpeta Comprobantes',
+      () =>
+        mockCreateFolderHierarchy.mockRejectedValue(new Error(DETALLE_INTERNO)),
+    ],
+    [
+      'la carpeta del caso',
+      () => {
+        mockCaseFindUnique.mockResolvedValue({
+          id: 'caso-1',
+          caseNumber: 'C-1',
+          debtorName: 'Deudor',
+          debtorId: 'deudor-1',
+          driveFolderId: null,
+        });
+        mockFindOrCreateCaseFolder.mockRejectedValue(
+          new Error(DETALLE_INTERNO),
+        );
+      },
+    ],
+  ] as const;
 
-      const resultado = await accion();
+  describe.each(acciones)('%s, si Drive falla', (_nombre, accion) => {
+    it.each(fallos)(
+      'en %s: mensaje fijo, sin detalle y sin tocar el pago',
+      async (_paso, provocarFallo) => {
+        provocarFallo();
 
-      expect(resultado).toEqual({
-        success: false,
-        error: GENERICO[nombre],
-      });
-      expect(mockPaymentUpdate).not.toHaveBeenCalled();
-      expect(mockPaymentCreate).not.toHaveBeenCalled();
-    },
-  );
+        const resultado = await accion();
+
+        expect(resultado).toEqual({ success: false, error: MENSAJE });
+        expect(JSON.stringify(resultado)).not.toContain('ECONNRESET');
+        expect(mockPaymentUpdate).not.toHaveBeenCalled();
+        expect(mockPaymentCreate).not.toHaveBeenCalled();
+      },
+    );
+  });
 });

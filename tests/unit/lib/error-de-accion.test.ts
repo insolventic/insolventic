@@ -110,6 +110,15 @@ describe('esErrorDeNegocio', () => {
     expect(esErrorDeNegocio(new Error('x'))).toBe(false);
   });
 
+  it('conserva la causa técnica sin mostrarla', () => {
+    const causa = new TypeError('fetch failed: ECONNRESET');
+    const e = new ErrorDeNegocio('No se pudo subir el comprobante', {
+      cause: causa,
+    });
+    expect(e.cause).toBe(causa);
+    expect(mensajeDeError(e, GENERICO)).toBe('No se pudo subir el comprobante');
+  });
+
   it('CaseAccessError es un error de negocio: su mensaje llega al cliente', () => {
     const e = new CaseAccessError('forbidden');
     expect(esErrorDeNegocio(e)).toBe(true);

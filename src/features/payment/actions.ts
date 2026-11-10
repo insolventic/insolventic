@@ -13,7 +13,7 @@ import {
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
-import { mensajeDeError } from '@/lib/error-de-accion';
+import { ErrorDeNegocio, mensajeDeError } from '@/lib/error-de-accion';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -135,6 +135,28 @@ function validateReceiptFile(file: File): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
+/**
+ * Lo que ve el usuario si Drive falla con el comprobante. Es veraz en las tres
+ * rutas que suben uno (`markPaymentPaid`, `registerPayment`,
+ * `uploadPaymentReceipt`): la subida va ANTES de escribir el pago, así que un
+ * fallo de Drive no deja nada registrado y reintentar es lo correcto.
+ */
+const MENSAJE_COMPROBANTE_DRIVE =
+  'No se pudo subir el comprobante a Google Drive. Intente nuevamente.';
+
+/**
+ * Una llamada a Drive del flujo del comprobante. El fallo original va como
+ * `cause`; el detalle ya lo registró `google-drive.ts` (`errorDeDrive` →
+ * `logger.error` → Sentry), así que aquí no se vuelve a registrar.
+ */
+async function pasoEnDrive<T>(paso: () => Promise<T>): Promise<T> {
+  try {
+    return await paso();
+  } catch (error) {
+    throw new ErrorDeNegocio(MENSAJE_COMPROBANTE_DRIVE, { cause: error });
+  }
+}
+
 async function uploadReceiptToDrive(
   caseId: string,
   tenantId: string,
@@ -155,9 +177,11 @@ async function uploadReceiptToDrive(
 
   if (!caseFolderId) {
     const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-    const folder = await googleDriveService.findOrCreateCaseFolder(
-      caseData?.caseNumber ?? caseId,
-      rootFolderId,
+    const folder = await pasoEnDrive(() =>
+      googleDriveService.findOrCreateCaseFolder(
+        caseData?.caseNumber ?? caseId,
+        rootFolderId,
+      ),
     );
     caseFolderId = folder;
     await prisma.case.update({
@@ -166,18 +190,20 @@ async function uploadReceiptToDrive(
     });
   }
 
-  const comprobantesFolderId = await googleDriveService.createFolderHierarchy(
-    ['Comprobantes'],
-    caseFolderId,
+  const carpetaDelCaso = caseFolderId;
+  const comprobantesFolderId = await pasoEnDrive(() =>
+    googleDriveService.createFolderHierarchy(['Comprobantes'], carpetaDelCaso),
   );
 
   const sanitizedName = sanitizeFileName(file.name);
   const buffer = Buffer.from(await file.arrayBuffer());
-  const fileId = await googleDriveService.uploadFile(
-    sanitizedName,
-    buffer,
-    file.type,
-    comprobantesFolderId,
+  const fileId = await pasoEnDrive(() =>
+    googleDriveService.uploadFile(
+      sanitizedName,
+      buffer,
+      file.type,
+      comprobantesFolderId,
+    ),
   );
   const fileUrl = googleDriveService.getFileUrl(fileId);
 

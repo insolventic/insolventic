@@ -26,8 +26,9 @@ import { logger } from '@/lib/logger';
 import './zod-es';
 
 export class ErrorDeNegocio extends Error {
-  constructor(mensaje: string) {
-    super(mensaje);
+  /** `cause`: el fallo técnico que originó el mensaje, para el log. */
+  constructor(mensaje: string, opciones?: ErrorOptions) {
+    super(mensaje, opciones);
     this.name = 'ErrorDeNegocio';
   }
 }
