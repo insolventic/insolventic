@@ -82,7 +82,7 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
    - Al mergear el PR de abajo con `--delete-branch`, GitHub **no retargetea** al de arriba: lo **cierra**. Y un PR cerrado no se puede reabrir ni cambiar de base si su base ya no existe (`Cannot change the base branch of a closed pull request`). Se recupera recreando la rama borrada, reabriendo y retargeteando — o, mejor, **retargeteando el PR de arriba a `dev` ANTES** de mergear el de abajo.
    - Cambiar la base **no** vuelve a disparar los workflows: eso emite `pull_request: edited`, y el set por defecto es `opened, synchronize, reopened`. Lo que sí dispara es un push a la rama — y después de un squash merge hay que rebasear igual, porque el stack conserva los commits del padre y el diff los muestra de nuevo. Un `git rebase --onto origin/dev <viejo-tip-del-padre>` + `push --force-with-lease` resuelve las dos cosas de una.
 
-9. **Los 2 campos de dinero fuera del formulario maestro siguen sin separador de miles** — ~2h
+9. ~~**Los 2 campos de dinero fuera del formulario maestro siguen sin separador de miles**~~ → 🟢 **Resuelto el 2026-11-09** (`fix/auditoria-formato-validacion`): los dos usan `MoneyInputField` y `parsearMonto`. Se conserva el detalle de abajo como historia.
 
    Quedaron fuera del alcance de `#136`, que normalizó los 27 del formulario maestro (wizard + pestañas de edición). Los dos son montos de pago:
 

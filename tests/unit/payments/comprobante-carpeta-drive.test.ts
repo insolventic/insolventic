@@ -44,8 +44,11 @@ jest.mock('@/features/audit-log/actions', () => ({
 
 const mockCreateFolderHierarchy = jest.fn();
 const mockUploadFile = jest.fn();
+const mockFindOrCreateCaseFolder = jest.fn();
 jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
+    findOrCreateCaseFolder: (...a: unknown[]) =>
+      mockFindOrCreateCaseFolder(...a),
     createFolderHierarchy: (...a: unknown[]) => mockCreateFolderHierarchy(...a),
     uploadFile: (...a: unknown[]) => mockUploadFile(...a),
     getFileUrl: (id: string) => `https://drive.google.com/file/d/${id}/view`,
@@ -139,23 +142,54 @@ describe('comprobante de pago en Drive', () => {
     },
   );
 
-  // Lo que ve el usuario cuando Drive rechaza la subida: el mensaje en el
-  // diálogo, y el pago sin registrar.
-  it.each(acciones)(
-    '%s devuelve el error de Drive y no toca el pago si la subida falla',
-    async (_nombre, accion) => {
-      mockUploadFile.mockRejectedValue(
-        new Error('Error al subir archivo a Google Drive'),
-      );
+  // Lo que ve el usuario cuando Drive falla con el comprobante: un mensaje
+  // fijo que dice qué pasó, sin el detalle interno, y el pago sin registrar
+  // (la subida va antes de escribir el pago). El fallo original viaja como
+  // `cause`; google-drive.ts ya lo registró con logger.error → Sentry.
+  const MENSAJE =
+    'No se pudo subir el comprobante a Google Drive. Intente nuevamente.';
+  const DETALLE_INTERNO = 'fetch failed: ECONNRESET www.googleapis.com:443';
 
-      const resultado = await accion();
+  const fallos = [
+    [
+      'la subida del archivo',
+      () => mockUploadFile.mockRejectedValue(new Error(DETALLE_INTERNO)),
+    ],
+    [
+      'la carpeta Comprobantes',
+      () =>
+        mockCreateFolderHierarchy.mockRejectedValue(new Error(DETALLE_INTERNO)),
+    ],
+    [
+      'la carpeta del caso',
+      () => {
+        mockCaseFindUnique.mockResolvedValue({
+          id: 'caso-1',
+          caseNumber: 'C-1',
+          debtorName: 'Deudor',
+          debtorId: 'deudor-1',
+          driveFolderId: null,
+        });
+        mockFindOrCreateCaseFolder.mockRejectedValue(
+          new Error(DETALLE_INTERNO),
+        );
+      },
+    ],
+  ] as const;
 
-      expect(resultado).toEqual({
-        success: false,
-        error: 'Error al subir archivo a Google Drive',
-      });
-      expect(mockPaymentUpdate).not.toHaveBeenCalled();
-      expect(mockPaymentCreate).not.toHaveBeenCalled();
-    },
-  );
+  describe.each(acciones)('%s, si Drive falla', (_nombre, accion) => {
+    it.each(fallos)(
+      'en %s: mensaje fijo, sin detalle y sin tocar el pago',
+      async (_paso, provocarFallo) => {
+        provocarFallo();
+
+        const resultado = await accion();
+
+        expect(resultado).toEqual({ success: false, error: MENSAJE });
+        expect(JSON.stringify(resultado)).not.toContain('ECONNRESET');
+        expect(mockPaymentUpdate).not.toHaveBeenCalled();
+        expect(mockPaymentCreate).not.toHaveBeenCalled();
+      },
+    );
+  });
 });

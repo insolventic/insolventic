@@ -7,6 +7,10 @@ import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
+import { excesoDeLongitud } from '@/lib/longitud-texto';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   createCreditorSchema,
@@ -34,7 +38,7 @@ export async function getAllCreditors(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     // Check user permissions to determine case visibility scope
@@ -200,8 +204,11 @@ export async function getAllCreditors(): Promise<{
     console.error('Error fetching creditors:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener acreedores',
+      error: mensajeDeError(
+        error,
+        'Error al obtener acreedores',
+        'getAllCreditors',
+      ),
     };
   }
 }
@@ -216,7 +223,7 @@ export async function getCreditorById(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     // Validate input
@@ -332,13 +339,16 @@ export async function getCreditorById(id: string): Promise<{
     }
 
     // User doesn't have permission to view this creditor
-    throw new Error('No tienes permisos para ver este acreedor');
+    throw new ErrorDeNegocio('No tienes permisos para ver este acreedor');
   } catch (error) {
     console.error('Error fetching creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al obtener acreedor',
+        'getCreditorById',
+      ),
     };
   }
 }
@@ -353,11 +363,15 @@ export async function createCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.CREAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Crear acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear acreedores');
     }
 
     // Validate input
     const validatedInput = createCreditorSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
 
     const creditor = await prisma.creditor.create({
       data: {
@@ -415,8 +429,11 @@ export async function createCreditor(input: unknown): Promise<{
     console.error('Error creating creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al crear el acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al crear el acreedor',
+        'createCreditor',
+      ),
     };
   }
 }
@@ -431,12 +448,22 @@ export async function updateCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Editar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar acreedores');
     }
 
     // Validate input
     const validatedInput = updateCreditorSchema.parse(input);
     const { id, ...rest } = validatedInput;
+
+    // F2 y F3: los textos y el teléfono se validan solo si cambiaron respecto
+    // del guardado, para no bloquear la edición de registros viejos.
+    const guardado = await prisma.creditor.findFirst({
+      where: { id, tenantId },
+    });
+    const problema =
+      problemaDeTelefonoSiCambio(rest.phone, guardado?.phone) ??
+      excesoDeLongitud(rest, guardado ?? undefined);
+    if (problema) return { success: false, error: problema };
 
     const updatedCreditor = await prisma.creditor.update({
       where: {
@@ -495,10 +522,11 @@ export async function updateCreditor(input: unknown): Promise<{
     console.error('Error updating creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al actualizar el acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar el acreedor',
+        'updateCreditor',
+      ),
     };
   }
 }
@@ -513,7 +541,7 @@ export async function deleteCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Eliminar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar acreedores');
     }
 
     // Validate input
@@ -575,10 +603,11 @@ export async function deleteCreditor(input: unknown): Promise<{
     console.error('Error deleting creditor:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar el acreedor',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar el acreedor',
+        'deleteCreditor',
+      ),
     };
   }
 }

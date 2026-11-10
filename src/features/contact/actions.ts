@@ -5,6 +5,9 @@ import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
 import { authenticateUser } from '@/features/auth/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   contactSchema,
@@ -28,7 +31,7 @@ export async function getAllContacts(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     const contacts = await prisma.contact.findMany({
@@ -52,8 +55,11 @@ export async function getAllContacts(): Promise<{
     console.error('Error fetching contacts:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener contactos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener contactos',
+        'getAllContacts',
+      ),
     };
   }
 }
@@ -68,7 +74,7 @@ export async function getContactById(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Ver acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver acreedores');
     }
 
     // Validate input
@@ -85,7 +91,7 @@ export async function getContactById(id: string): Promise<{
     });
 
     if (!contact) {
-      throw new Error('Contacto no encontrado');
+      throw new ErrorDeNegocio('Contacto no encontrado');
     }
 
     const validated = contactWithCreditorSchema.parse(contact);
@@ -97,8 +103,11 @@ export async function getContactById(id: string): Promise<{
     console.error('Error fetching contact:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener contacto',
+      error: mensajeDeError(
+        error,
+        'Error al obtener contacto',
+        'getContactById',
+      ),
     };
   }
 }
@@ -113,7 +122,7 @@ export async function addContactToCreditor(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.CREAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Crear acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear acreedores');
     }
 
     // Validate input
@@ -152,7 +161,11 @@ export async function addContactToCreditor(input: unknown): Promise<{
     console.error('Error creating contact:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear contacto',
+      error: mensajeDeError(
+        error,
+        'Error al crear contacto',
+        'addContactToCreditor',
+      ),
     };
   }
 }
@@ -167,12 +180,23 @@ export async function updateContact(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Editar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar acreedores');
     }
 
     // Validate input
     const validatedInput = updateContactSchema.parse(input);
     const { id, ...data } = validatedInput;
+
+    // F3: el formato del teléfono se exige solo si cambió respecto del
+    // guardado, para no bloquear la edición de registros viejos.
+    if (data.phone !== undefined) {
+      const guardado = await prisma.contact.findFirst({
+        where: { id, tenantId },
+        select: { phone: true },
+      });
+      const problema = problemaDeTelefonoSiCambio(data.phone, guardado?.phone);
+      if (problema) return { success: false, error: problema };
+    }
 
     const contact = await prisma.contact.update({
       where: {
@@ -207,8 +231,11 @@ export async function updateContact(input: unknown): Promise<{
     console.error('Error updating contact:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar contacto',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar contacto',
+        'updateContact',
+      ),
     };
   }
 }
@@ -223,7 +250,7 @@ export async function deleteContact(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_ACREEDORES)) {
-      throw new Error('No tiene permisos para: Eliminar acreedores');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar acreedores');
     }
 
     // Validate input
@@ -261,8 +288,11 @@ export async function deleteContact(input: unknown): Promise<{
     console.error('Error deleting contact:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al eliminar contacto',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar contacto',
+        'deleteContact',
+      ),
     };
   }
 }

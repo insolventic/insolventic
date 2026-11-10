@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
 
+import { formatCurrency } from '@/lib/utils';
 import { addDebtToCase, removeDebtFromCase } from '@/features/case/actions';
 import {
   addDebtToCaseSchema,
@@ -202,7 +203,7 @@ export function DebtsTab({ caseId, creditors }: Readonly<DebtsTabProps>) {
                 <div>
                   <p className="text-muted-foreground">Monto</p>
                   <p className="font-medium">
-                    ${Number(debt.amount).toLocaleString('es-CO')}
+                    {formatCurrency(Number(debt.amount))}
                   </p>
                 </div>
                 <div>
@@ -327,7 +328,12 @@ export function DebtsTab({ caseId, creditors }: Readonly<DebtsTabProps>) {
                 <Label htmlFor="amount">
                   Monto <span className="text-red-500">*</span>
                 </Label>
-                <MoneyInput name="amount" control={newDebtForm.control} id="amount" placeholder="0" />
+                <MoneyInput
+                  name="amount"
+                  control={newDebtForm.control}
+                  id="amount"
+                  placeholder="0"
+                />
                 {newDebtForm.formState.errors.amount && (
                   <p className="text-destructive text-sm">
                     {newDebtForm.formState.errors.amount.message}
@@ -337,12 +343,22 @@ export function DebtsTab({ caseId, creditors }: Readonly<DebtsTabProps>) {
 
               <div className="space-y-2">
                 <Label htmlFor="capitalAmount">Cuantía - Capital</Label>
-                <MoneyInput name="capitalAmount" control={newDebtForm.control} id="capitalAmount" placeholder="0" />
+                <MoneyInput
+                  name="capitalAmount"
+                  control={newDebtForm.control}
+                  id="capitalAmount"
+                  placeholder="0"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="interestAmount">Cuantía - Intereses</Label>
-                <MoneyInput name="interestAmount" control={newDebtForm.control} id="interestAmount" placeholder="0" />
+                <MoneyInput
+                  name="interestAmount"
+                  control={newDebtForm.control}
+                  id="interestAmount"
+                  placeholder="0"
+                />
               </div>
 
               <div className="space-y-2">

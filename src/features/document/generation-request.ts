@@ -11,6 +11,8 @@
 
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 import { Prisma } from '@prisma/client';
 import type { GeneratedDocument } from './generate-documents';
 
@@ -159,7 +161,7 @@ export async function claimGenerationRequest(params: {
 
   // Dos colisiones seguidas con locks que desaparecen: estado inconsistente
   // transitorio; el cliente puede reintentar.
-  throw new Error(
+  throw new ErrorDeNegocio(
     'No se pudo obtener el lock de generación; intente nuevamente',
   );
 }
@@ -264,8 +266,11 @@ export async function failGenerationRequest(
   id: string,
   error: unknown,
 ): Promise<void> {
-  const message = (
-    error instanceof Error ? error.message : 'Error desconocido'
+  const message = mensajeDeError(
+    error,
+    'No se pudieron generar los documentos',
+    'failGenerationRequest',
+    { registrado: true },
   ).substring(0, 500);
 
   await prisma.documentGenerationRequest.update({

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import '@/lib/zod-es';
+import { telefonoNuevo } from '@/lib/telefono';
 
 const roleForUserSchema = z.object({
   id: z.string(),
@@ -52,14 +54,17 @@ export const userOutputSchema = userSchema.pick({
 
 export type User = z.infer<typeof userOutputSchema>;
 
-export const createUserSchema = userSchema.omit({
-  id: true,
-  role: true,
-  lastLogin: true,
-  createdDate: true,
-  assignedCases: true,
-  password: true,
-});
+export const createUserSchema = userSchema
+  .omit({
+    id: true,
+    role: true,
+    lastLogin: true,
+    createdDate: true,
+    assignedCases: true,
+    password: true,
+  })
+  // F3: el formato solo en el alta; userSchema también lee de la base.
+  .extend({ phone: telefonoNuevo() });
 
 export type CreateUserData = z.infer<typeof createUserSchema>;
 

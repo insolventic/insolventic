@@ -19,6 +19,7 @@ import {
   resolveCaseVisibility,
   caseWhereOrNothing,
 } from '@/features/case/case-access';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -170,10 +171,11 @@ export async function getCaseStatusReport(
     console.error('Error getting case status report:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener reporte de estado',
+      error: mensajeDeError(
+        error,
+        'Error al obtener reporte de estado',
+        'getCaseStatusReport',
+      ),
     };
   }
 }
@@ -305,10 +307,11 @@ export async function getFinancialReport() {
     console.error('Error getting financial report:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener reporte financiero',
+      error: mensajeDeError(
+        error,
+        'Error al obtener reporte financiero',
+        'getFinancialReport',
+      ),
     };
   }
 }
@@ -472,7 +475,11 @@ export async function exportCasesToExcel(
     console.error('Error exporting cases:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al exportar casos',
+      error: mensajeDeError(
+        error,
+        'Error al exportar casos',
+        'exportCasesToExcel',
+      ),
     };
   }
 }

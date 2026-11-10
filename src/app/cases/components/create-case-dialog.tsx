@@ -378,11 +378,17 @@ export function CreateCaseDialog({
         riskCenterCommunication: false,
         // Applicant scope and income
         applicantScope: [],
-        monthlyIncome: 0,
-        monthlyExpenses: 0,
-        otherIncomeDescription: '',
-        otherIncomeAmount: 0,
-        hasEmployerCertification: false,
+        // Ingresos y gastos son campos del DEUDOR: createCase los escribe en
+        // su ficha, no en el caso. El asistente de alta no los muestra (solo
+        // la edición, en IncomeSection), así que un valor por defecto acá se
+        // enviaba siempre y pisaba la ficha con 0, '' o false al crear
+        // cualquier caso. undefined = "no capturado": la ficha queda como
+        // estaba (F6, auditoría 2026-10-27).
+        monthlyIncome: undefined,
+        monthlyExpenses: undefined,
+        otherIncomeDescription: undefined,
+        otherIncomeAmount: undefined,
+        hasEmployerCertification: undefined,
         libranzas: [],
         suspendedServices: [],
         dependents: [],
@@ -754,10 +760,11 @@ export function CreateCaseDialog({
       '';
 
     // --- SYNC: Ingresos Tab 9 → legacy Tab 6 (si no fueron llenados en Tab 6) ---
-    const syncedIncome =
-      data.ingresoPrincipalMensual || data.monthlyIncome || 0;
-    const syncedExpenses =
-      data.totalGastosMensuales || data.monthlyExpenses || 0;
+    // `??` y no `||`: un 0 escrito a mano es un dato ("no tiene ingresos"),
+    // y sin dato en ninguna de las dos pestañas se manda undefined, que deja
+    // la ficha del deudor como estaba en vez de ponerle 0.
+    const syncedIncome = data.ingresoPrincipalMensual ?? data.monthlyIncome;
+    const syncedExpenses = data.totalGastosMensuales ?? data.monthlyExpenses;
 
     // Send ALL form data to the server action, including arrays and formulario definitivo fields.
     // Spread validated data first, then override computed fields + synced values.

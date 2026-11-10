@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MoneyInputField } from '@/components/ui/money-input';
+import { parsearMonto } from '@/features/case/monto';
 import {
   Select,
   SelectContent,
@@ -209,7 +211,7 @@ export function PaymentTrackingSection({
       if (isManualPayment) {
         result = await registerPayment({
           caseId: caseData.id,
-          amount: parseFloat(paymentAmount),
+          amount: parsearMonto(paymentAmount) ?? 0,
           paymentDate,
           paymentMethod: paymentMethod || undefined,
           observations: observations || undefined,
@@ -218,7 +220,7 @@ export function PaymentTrackingSection({
       } else if (selectedPayment) {
         result = await markPaymentPaid({
           paymentId: selectedPayment.id,
-          amount: parseFloat(paymentAmount) || undefined,
+          amount: parsearMonto(paymentAmount) || undefined,
           paymentMethod: paymentMethod || undefined,
           observations: observations || undefined,
           receipt,
@@ -572,13 +574,16 @@ function PaymentDialog({
             <label className="mb-1 block text-sm font-medium">
               Monto <span className="text-red-500">*</span>
             </label>
-            <Input
-              type="number"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
+            <MoneyInputField
+              aria-label="Monto"
               placeholder="0"
-              min="0"
-              step="1"
+              field={{
+                name: 'paymentAmount',
+                value: paymentAmount,
+                onChange: (v) => setPaymentAmount(String(v ?? '')),
+                onBlur: () => {},
+                ref: null,
+              }}
             />
           </div>
 
@@ -675,9 +680,7 @@ function PaymentDialog({
           </Button>
           <Button
             onClick={onSubmit}
-            disabled={
-              submitting || !paymentAmount || parseFloat(paymentAmount) <= 0
-            }
+            disabled={submitting || !((parsearMonto(paymentAmount) ?? 0) > 0)}
           >
             {submitting ? 'Registrando...' : 'Registrar Pago'}
           </Button>

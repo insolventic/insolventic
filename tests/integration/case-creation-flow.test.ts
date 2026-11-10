@@ -53,11 +53,7 @@ import {
   PERMISSIONS,
 } from '../helpers/fixtures';
 
-import {
-  createCase,
-  getAllCases,
-  getCaseById,
-} from '@/features/case/actions';
+import { createCase, getAllCases, getCaseById } from '@/features/case/actions';
 
 /**
  * Payload mínimo que SÍ satisface las reglas de negocio del trámite de
@@ -230,6 +226,75 @@ describe('Integration: Case Creation Flow', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('permisos');
+      expect(mockPrisma.case.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Ficha del deudor (F6)', () => {
+    // createCase escribe ingresos, gastos y certificación laboral en la ficha
+    // del DEUDOR. Si el alta no los captura, la ficha no se toca: antes el
+    // schema ponía hasEmployerCertification en false por defecto, y el
+    // formulario mandaba 0 en ingresos y gastos.
+    it('un alta sin datos de ingresos no escribe esos campos en el deudor', async () => {
+      mockAuthenticateUser.mockResolvedValue({
+        user: {
+          id: ADMIN_USER.id,
+          name: ADMIN_USER.name,
+          email: ADMIN_USER.email,
+          permissions: [PERMISSIONS.CREATE_CASES, PERMISSIONS.VIEW_ALL_CASES],
+        },
+        tenantId: TENANT.id,
+      });
+      mockPrisma.case.findFirst.mockResolvedValue(null);
+      mockPrisma.case.count.mockResolvedValue(0);
+      mockPrisma.debtor.findUnique.mockResolvedValue(DEBTOR);
+      mockPrisma.debtor.update.mockResolvedValue(DEBTOR);
+      mockPrisma.case.create.mockResolvedValue({ ...CASE_DATA, id: 'nuevo' });
+
+      const result = await createCase({
+        ...VALID_CASE_PAYLOAD,
+        operatorId: ADMIN_USER.id,
+      });
+
+      expect(result.success).toBe(true);
+      const escrito = mockPrisma.debtor.update.mock.calls
+        .map(([arg]) => (arg as { data: Record<string, unknown> }).data)
+        .reduce((acc, data) => ({ ...acc, ...data }), {});
+      for (const campo of [
+        'monthlyIncome',
+        'monthlyExpenses',
+        'otherIncomeDescription',
+        'otherIncomeAmount',
+        'hasEmployerCertification',
+      ]) {
+        expect(escrito).not.toHaveProperty(campo);
+      }
+    });
+  });
+
+  describe('Longitud máxima de textos (F2)', () => {
+    it('un alta con un acreedor de nombre demasiado largo no crea el caso', async () => {
+      mockAuthenticateUser.mockResolvedValue({
+        user: {
+          id: ADMIN_USER.id,
+          name: ADMIN_USER.name,
+          email: ADMIN_USER.email,
+          permissions: [PERMISSIONS.CREATE_CASES, PERMISSIONS.VIEW_ALL_CASES],
+        },
+        tenantId: TENANT.id,
+      });
+      mockPrisma.case.findFirst.mockResolvedValue(null);
+      mockPrisma.case.count.mockResolvedValue(0);
+      mockPrisma.debtor.findUnique.mockResolvedValue(DEBTOR);
+
+      const result = await createCase({
+        ...VALID_CASE_PAYLOAD,
+        operatorId: ADMIN_USER.id,
+        otherCauseDetail: 'A'.repeat(10_001),
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/«otherCauseDetail»/);
       expect(mockPrisma.case.create).not.toHaveBeenCalled();
     });
   });

@@ -13,6 +13,10 @@ import { logger } from '@/lib/logger';
 
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { problemaDeTelefonoSiCambio } from '@/lib/telefono';
+import { excesoDeLongitud } from '@/lib/longitud-texto';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   createUserSchema,
@@ -83,8 +87,12 @@ export async function getAssignableOperators(): Promise<{
     });
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener usuarios',
+      error: mensajeDeError(
+        error,
+        'Error al obtener usuarios',
+        'getAssignableOperators',
+        { registrado: true },
+      ),
     };
   }
 }
@@ -99,7 +107,7 @@ export async function getAllUsers(): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.VER_USUARIOS)) {
-      throw new Error('No tiene permisos para: Ver usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Ver usuarios');
     }
 
     const users = await prisma.user.findMany({
@@ -153,8 +161,7 @@ export async function getAllUsers(): Promise<{
     console.error('Error fetching users:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener usuarios',
+      error: mensajeDeError(error, 'Error al obtener usuarios', 'getAllUsers'),
     };
   }
 }
@@ -169,11 +176,15 @@ export async function createUser(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.CREAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Crear usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Crear usuarios');
     }
 
     // Validate input
     const validatedInput = createUserSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const { roleId, ...rest } = validatedInput;
 
     // Validate role belongs to the same tenant
@@ -265,7 +276,7 @@ export async function createUser(input: unknown): Promise<{
     console.error('Error creating user:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear usuario',
+      error: mensajeDeError(error, 'Error al crear usuario', 'createUser'),
     };
   }
 }
@@ -356,7 +367,7 @@ export async function updateUser(input: unknown): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Editar usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar usuarios');
     }
 
     // Antes de parsear: Zod descarta las claves que no conoce, y la llamada
@@ -391,6 +402,12 @@ export async function updateUser(input: unknown): Promise<{
       },
     });
     if (!anterior) return { success: false, error: 'Usuario no encontrado' };
+
+    // F2 y F3: el teléfono y los textos se validan solo si cambiaron.
+    const problemaTelefono =
+      problemaDeTelefonoSiCambio(validatedInput.phone, anterior.phone) ??
+      excesoDeLongitud(validatedInput, anterior);
+    if (problemaTelefono) return { success: false, error: problemaTelefono };
 
     const updatedUser = await prisma.user.update({
       where: {
@@ -468,8 +485,7 @@ export async function updateUser(input: unknown): Promise<{
     console.error('Error updating user:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar usuario',
+      error: mensajeDeError(error, 'Error al actualizar usuario', 'updateUser'),
     };
   }
 }
@@ -484,7 +500,7 @@ export async function deleteUser(id: string): Promise<{
 
     // Check permission
     if (!user.permissions.includes(P.ELIMINAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Eliminar usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Eliminar usuarios');
     }
 
     // Prevent self-deletion
@@ -539,8 +555,7 @@ export async function deleteUser(id: string): Promise<{
     console.error('Error deleting user:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al eliminar usuario',
+      error: mensajeDeError(error, 'Error al eliminar usuario', 'deleteUser'),
     };
   }
 }
@@ -565,7 +580,7 @@ export async function revokeUserSessions(userId: string): Promise<{
     const { user, tenantId } = await authenticateUser();
 
     if (!user.permissions.includes(P.EDITAR_USUARIOS)) {
-      throw new Error('No tiene permisos para: Editar usuarios');
+      throw new ErrorDeNegocio('No tiene permisos para: Editar usuarios');
     }
 
     // El `where` compuesto (id + tenantId) es lo que impide revocar las
@@ -596,10 +611,11 @@ export async function revokeUserSessions(userId: string): Promise<{
     });
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al revocar las sesiones del usuario',
+      error: mensajeDeError(
+        error,
+        'Error al revocar las sesiones del usuario',
+        'revokeUserSessions',
+      ),
     };
   }
 }
@@ -650,7 +666,7 @@ export async function getProfile(): Promise<{
     console.error('Error getting profile:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener perfil',
+      error: mensajeDeError(error, 'Error al obtener perfil', 'getProfile'),
     };
   }
 }
@@ -675,6 +691,22 @@ export async function updateProfile(input: unknown): Promise<{
 
     const validatedInput = profileSchema.parse(input);
 
+    // F2 y F3: los textos y el teléfono se validan solo si cambiaron respecto
+    // del guardado, para no bloquear la edición de registros viejos.
+    const guardado = await prisma.user.findFirst({
+      where: { id: user.id, tenantId },
+      select: {
+        name: true,
+        phone: true,
+        address: true,
+        professionalCard: true,
+      },
+    });
+    const problema =
+      problemaDeTelefonoSiCambio(validatedInput.phone, guardado?.phone) ??
+      excesoDeLongitud(validatedInput, guardado ?? undefined);
+    if (problema) return { success: false, error: problema };
+
     const updatedUser = await prisma.user.update({
       where: {
         id: user.id,
@@ -694,8 +726,11 @@ export async function updateProfile(input: unknown): Promise<{
     console.error('Error updating profile:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar perfil',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar perfil',
+        'updateProfile',
+      ),
     };
   }
 }

@@ -78,6 +78,9 @@ import {
   requiresOtherDetail,
   tipoProcesoLabel,
 } from '@/features/case/proceso-judicial-tipos';
+import { excesoDeLongitud } from '@/lib/longitud-texto';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 import {
   buildApoderadosCreate,
   mirrorPrincipalApoderado,
@@ -273,7 +276,9 @@ export async function getAllCases(params?: GetAllCasesParams): Promise<{
     });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener casos',
+      error: mensajeDeError(error, 'Error al obtener casos', 'getAllCases', {
+        registrado: true,
+      }),
     };
   }
 }
@@ -337,7 +342,12 @@ export async function getCasesForSelector(): Promise<{
     });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al obtener casos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener casos',
+        'getCasesForSelector',
+        { registrado: true },
+      ),
     };
   }
 }
@@ -437,8 +447,7 @@ export async function getCaseById(id: string): Promise<{
     console.error('Error getting case by ID:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener el caso',
+      error: mensajeDeError(error, 'Error al obtener el caso', 'getCaseById'),
     };
   }
 }
@@ -472,6 +481,10 @@ export async function createCase(
     }
 
     const validatedInput = createCaseFormSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
 
     // GC-M2 — el operador se escribia con un `connect` a secas, y el `connect`
     // de Prisma solo exige que el id exista: bastaba mandar el id de un usuario
@@ -998,7 +1011,7 @@ export async function createCase(
     console.error('Error creating case:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear el caso',
+      error: mensajeDeError(error, 'Error al crear el caso', 'createCase'),
     };
   }
 }
@@ -1147,7 +1160,7 @@ export async function updateCase(
         },
       });
       if (!current) {
-        throw new Error('Caso no encontrado');
+        throw new ErrorDeNegocio('Caso no encontrado');
       }
 
       // Optimistic lock check: if caller sends version, it must match current DB version
@@ -1155,10 +1168,15 @@ export async function updateCase(
         validatedInput.version !== undefined &&
         current.version !== validatedInput.version
       ) {
-        throw new Error(
+        throw new ErrorDeNegocio(
           'Este caso fue modificado por otro usuario. Recargue la página e intente de nuevo.',
         );
       }
+
+      // F2: longitud máxima, solo de los textos que cambian respecto de lo
+      // guardado (`current` trae exactamente las columnas que se escriben).
+      const excesoTexto = excesoDeLongitud(camposEnviados, current);
+      if (excesoTexto) throw new ErrorDeNegocio(excesoTexto);
 
       // C-2: mismas reglas de negocio que en creación, en modo 'update' (solo
       // se evalúa lo que trae el payload; una edición parcial no debe fallar
@@ -1176,7 +1194,7 @@ export async function updateCase(
         }),
       });
       if (!rulesCheck.isValid) {
-        throw new Error(
+        throw new ErrorDeNegocio(
           `El expediente no cumple las reglas del trámite: ${formatValidationErrors(rulesCheck)}`,
         );
       }
@@ -1192,10 +1210,10 @@ export async function updateCase(
           safeRestUpdate.phase as string,
         );
         if (!check.valid) {
-          throw new Error(check.reason);
+          throw new ErrorDeNegocio(check.reason);
         }
         if (!check.isNoop) {
-          throw new Error(
+          throw new ErrorDeNegocio(
             'El cambio de fase no puede hacerse desde la edición del caso. Use la acción "Cambiar fase" para que se registren la auditoría y la documentación asociadas.',
           );
         }
@@ -1317,8 +1335,7 @@ export async function updateCase(
     console.error('Error updating case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar el caso',
+      error: mensajeDeError(error, 'Error al actualizar el caso', 'updateCase'),
     };
   }
 }
@@ -1338,6 +1355,10 @@ export async function addDebtToCase(
     }
 
     const validatedInput = addDebtToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       creditorId,
@@ -1476,10 +1497,11 @@ export async function addDebtToCase(
     console.error('Error adding debt to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar deuda al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar deuda al caso',
+        'addDebtToCase',
+      ),
     };
   }
 }
@@ -1574,10 +1596,11 @@ export async function removeDebtFromCase(
     console.error('Error removing debt from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar deuda del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar deuda del caso',
+        'removeDebtFromCase',
+      ),
     };
   }
 }
@@ -1597,6 +1620,10 @@ export async function addLibranzaToCase(
     }
 
     const validatedInput = addLibranzaToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       payerName,
@@ -1656,10 +1683,11 @@ export async function addLibranzaToCase(
     console.error('Error adding libranza to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar libranza al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar libranza al caso',
+        'addLibranzaToCase',
+      ),
     };
   }
 }
@@ -1731,10 +1759,11 @@ export async function removeLibranzaFromCase(
     console.error('Error removing libranza from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar libranza del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar libranza del caso',
+        'removeLibranzaFromCase',
+      ),
     };
   }
 }
@@ -1754,6 +1783,10 @@ export async function addSuspendedServiceToCase(
     }
 
     const validatedInput = addSuspendedServiceToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       creditorName,
@@ -1816,10 +1849,11 @@ export async function addSuspendedServiceToCase(
     console.error('Error adding suspended service to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar servicio suspendido al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar servicio suspendido al caso',
+        'addSuspendedServiceToCase',
+      ),
     };
   }
 }
@@ -1894,10 +1928,11 @@ export async function removeSuspendedServiceFromCase(
     console.error('Error removing suspended service from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar servicio suspendido del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar servicio suspendido del caso',
+        'removeSuspendedServiceFromCase',
+      ),
     };
   }
 }
@@ -1917,6 +1952,10 @@ export async function addAssetToCase(
     }
 
     const validatedInput = addAssetToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       name,
@@ -2026,10 +2065,11 @@ export async function addAssetToCase(
     console.error('Error adding asset to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar bien al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar bien al caso',
+        'addAssetToCase',
+      ),
     };
   }
 }
@@ -2113,10 +2153,11 @@ export async function removeAssetFromCase(
     console.error('Error removing asset from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar bien del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar bien del caso',
+        'removeAssetFromCase',
+      ),
     };
   }
 }
@@ -2136,6 +2177,10 @@ export async function addDependentToCase(
     }
 
     const validatedInput = addDependentToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const { caseId, name, age, relationship } = validatedInput;
 
     // GC-A1 — el guard reemplaza al `findUnique` de existencia que había aquí:
@@ -2181,10 +2226,11 @@ export async function addDependentToCase(
     console.error('Error adding dependent to case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar dependiente al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar dependiente al caso',
+        'addDependentToCase',
+      ),
     };
   }
 }
@@ -2253,10 +2299,11 @@ export async function removeDependentFromCase(
     console.error('Error removing dependent from case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar dependiente del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar dependiente del caso',
+        'removeDependentFromCase',
+      ),
     };
   }
 }
@@ -2287,6 +2334,10 @@ export async function addApoderadoToCase(
     }
 
     const validatedInput = addApoderadoToCaseSchema.parse(input);
+
+    // F2: longitud máxima de los textos (src/lib/longitud-texto.ts).
+    const excesoTexto = excesoDeLongitud(validatedInput);
+    if (excesoTexto) return { success: false, error: excesoTexto };
     const {
       caseId,
       nombreCompleto,
@@ -2363,10 +2414,11 @@ export async function addApoderadoToCase(
     });
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al agregar apoderado al caso',
+      error: mensajeDeError(
+        error,
+        'Error al agregar apoderado al caso',
+        'addApoderadoToCase',
+      ),
     };
   }
 }
@@ -2443,10 +2495,11 @@ export async function removeApoderadoFromCase(
     });
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar apoderado del caso',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar apoderado del caso',
+        'removeApoderadoFromCase',
+      ),
     };
   }
 }
@@ -2624,8 +2677,7 @@ export async function deleteCase(
     console.error('Error deleting case:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al eliminar el caso',
+      error: mensajeDeError(error, 'Error al eliminar el caso', 'deleteCase'),
     };
   }
 }
@@ -2741,10 +2793,11 @@ export async function getCaseStats(): Promise<{
     console.error('Error getting case stats:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener estadísticas de casos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener estadísticas de casos',
+        'getCaseStats',
+      ),
     };
   }
 }
@@ -2939,10 +2992,11 @@ export async function getDashboardStats(): Promise<{
     console.error('Error getting dashboard stats:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener estadísticas del dashboard',
+      error: mensajeDeError(
+        error,
+        'Error al obtener estadísticas del dashboard',
+        'getDashboardStats',
+      ),
     };
   }
 }
@@ -3194,10 +3248,11 @@ export async function updateCasePhase(input: {
     console.error('Error updating case phase:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al actualizar la fase del caso',
+      error: mensajeDeError(
+        error,
+        'Error al actualizar la fase del caso',
+        'updateCasePhase',
+      ),
     };
   }
 }

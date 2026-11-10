@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import '@/lib/zod-es';
 
 export const permissionSchema = z.object({
   id: z.string(),
