@@ -15,7 +15,7 @@ Sistema web full-stack de gestión de expedientes de insolvencia (proyecto de te
 
 ```bash
 npm run dev            # dev server (turbopack)
-npm test               # suite completa (195 suites / 2575 tests — medido el 2026-11-09 tras la tanda de auditoría; excluye tests/db y tests/e2e)
+npm test               # suite completa (196 suites / 2588 tests — medido el 2026-11-10 tras el pulido de entrega y la tanda de auditoría; excluye tests/db y tests/e2e)
 npx tsc --noEmit       # type-check
 npm run lint           # eslint
 npm run db:migrate     # prisma migrate dev

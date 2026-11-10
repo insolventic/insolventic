@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Seguridad
 
 - **Un error interno ya no llega a la pantalla.** Cuando algo fallaba por dentro (la base de datos, la red, Google Drive), el aviso mostraba el detalle técnico del fallo; y un dato inválido devolvía la lista completa de errores de validación, en inglés. Ahora el aviso dice qué operación falló, el detalle queda en el registro de errores, y los avisos de validación salen en español, uno a la vez. Los mensajes pensados para el usuario (permisos, "no encontrado", el motivo de un cambio de fase no permitido) siguen igual.
+- Dependencias al día dentro de sus versiones: `next` 15.5.29 y `@sentry/nextjs` 10.78, que cierran las dos vulnerabilidades críticas de `npm audit`. Las que quedan piden un cambio de versión mayor (`prisma` 7, `puppeteer-core` 25, `next` 16, `nodemailer` 10) y van aparte.
+- `zod` queda fijado en 4.1.12 exacto: 4.6 cambia cómo se validan los campos opcionales con preprocess y `updateCase` empieza a rechazar ediciones válidas (58 tests en rojo). Subirlo es un cambio propio, no una actualización de rutina.
 
 ### Fixed
 
@@ -31,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Los montos de la interfaz salen sin decimales (antes, por ejemplo, `$8.916.666,667` en "Promedio por Caso").
 - Tildes que faltaban en el formulario de datos previo a la generación (radicación, designación, aceptación, aprobación, Admisión).
 - Accesibilidad: el buscador de casos y la deuda total del asistente tienen nombre para lectores de pantalla, y cada pantalla tiene un solo título principal.
+- **Un caso con una fase antigua ya no queda sin salida.** Se mostraba como «Inicial» y a la vez decía «No hay transiciones disponibles»; ahora ofrece las mismas transiciones que «Inicial», que son las que el servidor ya aceptaba.
+- El detalle del caso se titula con el número del expediente y no con su identificador interno.
 
 ## [1.0.0-rc.2] - 2026-11-08
 

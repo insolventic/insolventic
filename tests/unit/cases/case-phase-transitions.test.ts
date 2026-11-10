@@ -45,6 +45,8 @@ import {
   CASE_PHASE_VALUES,
   INITIAL_CASE_PHASE,
   getPackageForPhase,
+  getPhaseLabel,
+  getValidTransitions,
   isKnownPhase,
   validatePhaseTransition,
 } from '@/lib/case-phases';
@@ -213,6 +215,33 @@ describe('validatePhaseTransition — guard puro (C-1)', () => {
       );
       expect(validatePhaseTransition('FaseInventada', 'Admisión').valid).toBe(
         true,
+      );
+    });
+
+    // N1 (auditoría 2026-10-27): el cliente buscaba el valor crudo en
+    // PHASE_TRANSITIONS y una fase legacy daba []. El diálogo decía «Inicial»
+    // y «No hay transiciones disponibles» a la vez, aunque el servidor sí
+    // aceptaba mover el caso. Las tres vistas tienen que coincidir.
+    it.each(['Documentos pendientes', 'Cerrado', 'FaseInventada'])(
+      'una fase legacy "%s" ofrece en el cliente lo mismo que acepta el servidor',
+      (legacy) => {
+        expect(getPhaseLabel(legacy)).toBe('Inicial');
+        expect(getValidTransitions(legacy)).toEqual(
+          getValidTransitions(INITIAL_CASE_PHASE),
+        );
+        expect(getValidTransitions(legacy).length).toBeGreaterThan(0);
+        for (const next of getValidTransitions(legacy)) {
+          expect(validatePhaseTransition(legacy, next).valid).toBe(true);
+        }
+      },
+    );
+
+    it('una fase conocida sigue usando sus propias transiciones', () => {
+      expect(getValidTransitions('En negociación')).toContain(
+        'Audiencia programada',
+      );
+      expect(getValidTransitions(null)).toEqual(
+        getValidTransitions(INITIAL_CASE_PHASE),
       );
     });
   });

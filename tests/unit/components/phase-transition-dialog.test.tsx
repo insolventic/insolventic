@@ -153,6 +153,17 @@ describe('PhaseTransitionDialog', () => {
       expect(screen.getByText('Fracaso')).toBeInTheDocument();
     });
 
+    it('un caso con fase legacy no queda sin salida (N1)', () => {
+      // 'Documentos pendientes' no está en CASE_PHASES: lo escribía el seed.
+      // Antes el diálogo decía «No hay transiciones disponibles».
+      renderDialog({ currentPhase: 'Documentos pendientes' });
+
+      expect(screen.getByText('Admisión')).toBeInTheDocument();
+      expect(
+        screen.queryByText(/No hay transiciones disponibles/i),
+      ).not.toBeInTheDocument();
+    });
+
     it('confirma de un clic una transición que no requiere subtipo', async () => {
       renderDialog({ currentPhase: 'En negociación' });
 

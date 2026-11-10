@@ -26,6 +26,11 @@ const eslintConfig = [
       // ("npm run lint debe quedar en 0 warnings") sin que nadie lo haya
       // tocado. Esto lo evita de antemano (H-8).
       'docs/**',
+      // .claude/ (ignorado en git) guarda los worktrees locales del agente,
+      // cada uno con su propio checkout y su .next/. Sin esto `npm run lint`
+      // los recorre todos: con 20 worktrees se quedo sin memoria (exit 134)
+      // y, con mas heap, reporto 86.985 problemas que no son de este arbol.
+      '.claude/**',
     ],
   },
   {
