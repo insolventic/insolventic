@@ -57,6 +57,35 @@ export { buildConciliationContext } from './placeholders/conciliacion';
 // Type for the mapped placeholders
 export type PlaceholderMap = Record<string, string>;
 
+// ---------------------------------------------------------------------------
+// Blancos para llenar a mano
+// ---------------------------------------------------------------------------
+//
+// Un placeholder MANUAL es un dato que el sistema NO tiene porque se dicta en
+// la audiencia o lo escribe el operador sobre el papel. Emitirlo como `''` no
+// lo deja "pendiente": lo borra. La frase se cierra sobre la nada y el
+// documento sale con un hueco mudo —«se cede el uso de la palabra a  se
+// verifican las pruebas .»— indistinguible de uno completo, que es justo lo
+// que `renderDocumentHtml` existe para evitar (auditoría 2026-10-27).
+//
+// La convención ya estaba en el archivo (`DIA_ACUERDO`, `MES_ACUERDO`,
+// `FECHA_CONTROL_LEGALIDAD`, `LUGAR_CONTROL_LEGALIDAD`); lo que faltaba era
+// aplicarla a los ocho que seguían en `''`. Se nombran para que el próximo
+// placeholder manual no tenga que elegir un ancho a ojo.
+//
+// Los cuatro anchos son los que `validatePlaceholderCoverage` ya reconoce en
+// `emptyIndicators`: un ancho nuevo contaría como "campo lleno" y subiría
+// falsamente el porcentaje de cobertura del documento.
+
+/** Un día, un número corto. */
+const BLANCO_CORTO = '____';
+/** Un mes escrito con letras. */
+const BLANCO_MES = '____________';
+/** Una hora: deja la separación de horas y minutos puesta. */
+const BLANCO_HORA = '____:____';
+/** Un nombre, una descripción, un hecho. */
+const BLANCO_LARGO = '________________________________';
+
 // Map check list variables (SI/NO validations)
 function mapCheckList(caseData: CaseWithRelations): PlaceholderMap {
   const debtor = caseData.debtor;
@@ -517,10 +546,11 @@ export function mapCaseToPlaceholders(
     NOMBRE_MES: getMonthName(nowColombia()),
     NUMERO_DIAS: '20', // Default days for verification
 
-    // Next hearing placeholders
-    DIA_PROXIMA: '',
-    MES_PROXIMA: '',
-    HORA_PROXIMA: '',
+    // Next hearing placeholders — MANUAL: los fija el operador al suspender la
+    // audiencia, así que salen como blanco para llenar a mano, no vacíos.
+    DIA_PROXIMA: BLANCO_CORTO,
+    MES_PROXIMA: BLANCO_MES,
+    HORA_PROXIMA: BLANCO_HORA,
 
     // Zoom
     ZOOM_ID: caseData.zoomMeetingId || '',
@@ -620,8 +650,10 @@ export function mapCaseToPlaceholders(
       caseData.apoderados?.[0]?.tarjetaProfesional ||
       caseData.apoderadoTarjetaProfesional ||
       '',
-    NOMBRE_PERSONA: '',
-    DESCRIPCION_PRUEBAS: '',
+    // MANUAL: quién toma la palabra y qué pruebas se verifican se dictan en la
+    // audiencia; van como blanco para llenar a mano.
+    NOMBRE_PERSONA: BLANCO_LARGO,
+    DESCRIPCION_PRUEBAS: BLANCO_LARGO,
 
     // Agreement specific - MANUAL: Solo mostrar si ya fueron ingresadas
     DIA_ACEPTACION: caseData.admissionDate
@@ -701,9 +733,9 @@ export function mapCaseToPlaceholders(
     // Control de Legalidad - MANUAL
     FECHA_CONTROL_LEGALIDAD: '________________', // MANUAL
     LUGAR_CONTROL_LEGALIDAD: '________________________________', // MANUAL
-    HECHO_1: '', // MANUAL - durante audiencia
-    HECHO_2: '', // MANUAL - durante audiencia
-    HECHO_3: '', // MANUAL - durante audiencia
+    HECHO_1: BLANCO_LARGO, // MANUAL - durante audiencia
+    HECHO_2: BLANCO_LARGO, // MANUAL - durante audiencia
+    HECHO_3: BLANCO_LARGO, // MANUAL - durante audiencia
 
     // Sentido del Voto - MANUAL (formulario independiente para acreedores)
     VOTACION: '', // MANUAL - SI/NO
