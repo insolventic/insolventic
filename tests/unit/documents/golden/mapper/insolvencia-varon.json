@@ -349,7 +349,7 @@
   "PROP_EXTRAORDINARIA_NO": "X",
   "PROP_EXTRAORDINARIA_SI": "",
   "PROP_EXTRA_FECHA": "extraordinaryPaymentDate",
-  "PROP_EXTRA_MES": "Invalid Date",
+  "PROP_EXTRA_MES": "extraordinaryPaymentDate",
   "PROP_FLUJO_NO": "",
   "PROP_FLUJO_SI": "X",
   "PROP_GARANTIAS_NO": "",
