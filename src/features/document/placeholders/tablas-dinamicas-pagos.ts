@@ -22,6 +22,8 @@ import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { getDebtClass } from '../../case/validation-rules';
 import { escapePlaceholder } from './escape';
+import { parseDateOnly } from '@/lib/date-colombia';
+
 import { formatCurrency, getMonthName, boolToSiNo } from './format';
 import {
   generateCalificacionGraduacionTable,
@@ -120,6 +122,37 @@ export function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
   };
 }
 
+/**
+ * Mes de la cuota extraordinaria, a partir de un campo de TEXTO LIBRE.
+ *
+ * `Case.extraordinaryPaymentDate` es `String?`, no `DateTime?`: el formulario
+ * lo captura con un input de texto y el operador escribe ahí lo que
+ * corresponda al acuerdo, que muchas veces no es una fecha — «Diciembre de
+ * cada año» es el valor que el propio asistente propone al rellenar datos.
+ *
+ * Antes esto hacía `getMonthName(new Date(valor))` sin red: cualquier texto
+ * que `Date` no supiera parsear daba `Invalid Date`, y esas dos palabras
+ * salían impresas tal cual en la tabla de la propuesta de pago de la Solicitud
+ * de Insolvencia, junto a la fecha (N-doc, auditoría 2026-10-27).
+ *
+ * Ahora:
+ *  - vacío → vacío, como antes;
+ *  - fecha que se puede parsear → el mes, formateado en español;
+ *  - cualquier otro texto → el texto tal cual, que es lo que el operador
+ *    escribió y lo único honesto que se puede imprimir.
+ *
+ * Se parsea con `parseDateOnly` y no con `new Date` por lo mismo que el resto
+ * del módulo: ancla las fechas sin hora al mediodía UTC para que no se
+ * impriman un día antes en hora de Colombia.
+ */
+export function mesDelPagoExtraordinario(
+  valor: string | null | undefined,
+): string {
+  if (!valor || !valor.trim()) return '';
+  const fecha = parseDateOnly(valor);
+  return fecha ? getMonthName(fecha) : valor;
+}
+
 // Map payment proposal
 export function mapPaymentProposal(
   caseData: CaseWithRelations,
@@ -206,9 +239,9 @@ export function mapPaymentProposal(
     PROP_EXTRAORDINARIA_SI: caseData.extraordinaryPayment ? 'X' : '',
     PROP_EXTRAORDINARIA_NO: !caseData.extraordinaryPayment ? 'X' : '',
     PROP_EXTRA_FECHA: caseData.extraordinaryPaymentDate || '',
-    PROP_EXTRA_MES: caseData.extraordinaryPaymentDate
-      ? getMonthName(new Date(caseData.extraordinaryPaymentDate))
-      : '',
+    PROP_EXTRA_MES: mesDelPagoExtraordinario(
+      caseData.extraordinaryPaymentDate,
+    ),
 
     // Interest rate offered (placeholder - needs to be calculated based on business rules)
     PROP_TASA_MENSUAL: '0%',
