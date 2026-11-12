@@ -1,3 +1,4 @@
+import { assertResetPuedeCorrer } from './reset-guard';
 import { main as seedMain } from './seed';
 import { assertSeedPuedeCorrer, resolverContrasenaSeed } from './seed-guard';
 import prisma from '@/lib/prisma';
@@ -77,6 +78,11 @@ async function resetDatabase(tenantId?: TenantId) {
 }
 
 async function main() {
+  // Antes de cualquier consulta: el reset borra, y solo contra una base de
+  // prueba local (reset-guard.ts). Vale también para `--tenant=`, que borra
+  // un centro entero.
+  assertResetPuedeCorrer();
+
   // Check if a specific tenant is requested
   const tenantArg = process.argv.find((arg) => arg.startsWith('--tenant='));
   const tenantId = tenantArg
