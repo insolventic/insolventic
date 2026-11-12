@@ -3,13 +3,11 @@
 import { revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import bcrypt from 'bcrypt';
-import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
-import { P } from '@/lib/permissions';
 // Importación circular: audit-log importa `authenticateUser` de este archivo.
 // No molesta porque ninguno de los dos usa al otro mientras se carga el módulo,
 // solo dentro de sus funciones.
@@ -36,14 +34,12 @@ import {
 import {
   loginSchema,
   validateSessionResultSchema,
-  registerSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
   type AuthResult,
   type ValidateSessionResult,
   type PermissionCheck,
-  type RegisterResult,
   type PasswordResetResult,
 } from './schemas';
 
@@ -563,148 +559,6 @@ export async function switchDatabase(): Promise<void> {
   // ejecute siempre — también tras un error — y el usuario no se quede en una
   // página autenticada (mismo patrón que logoutUser).
   redirect('/');
-}
-
-export async function registerUser(input: unknown): Promise<RegisterResult> {
-  try {
-    // C-2 (auditoría 2026-08-25): el registro público está cerrado. Sin
-    // verificación de email, cualquiera podía registrarse con el correo de
-    // un deudor real y acceder a su expediente vía el modo cliente. Solo
-    // una sesión con permiso de crear usuarios puede invocar esta action.
-    try {
-      await requireActionPermission(P.CREAR_USUARIOS);
-    } catch {
-      logger.warn('Public registration attempt blocked', {
-        action: 'registerUser',
-      });
-      return {
-        success: false,
-        message:
-          'El registro público está deshabilitado. Solicite su cuenta al administrador de su centro de conciliación.',
-      };
-    }
-
-    const ip = await getClientIp();
-    const rateLimitResult = await checkRateLimit(
-      getRateLimitKey('register', ip),
-      RATE_LIMIT_CONFIGS.register,
-    );
-    if (!rateLimitResult.allowed) {
-      const minutesRemaining = Math.ceil(rateLimitResult.resetInMs / 60000);
-      return {
-        success: false,
-        message: `Demasiados intentos de registro. Intente nuevamente en ${minutesRemaining} minutos.`,
-      };
-    }
-    const validatedInput = registerSchema.parse(input);
-    const {
-      name,
-      email,
-      password,
-      phone,
-      address,
-      professionalCard,
-      tenantId,
-    } = validatedInput;
-    const tenantIdValue = tenantId as TenantId;
-
-    // Get tenant information
-    const tenant = await prisma.tenant.findUnique({
-      where: { slug: tenantIdValue },
-    });
-
-    if (!tenant) {
-      return {
-        success: false,
-        message: 'Tenant no encontrado.',
-      };
-    }
-
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email_tenantId: {
-          email,
-          tenantId: tenant.id,
-        },
-      },
-    });
-
-    if (existingUser) {
-      return {
-        success: false,
-        message: 'Ya existe un usuario con este correo electrónico.',
-      };
-    }
-
-    // Get default role (assuming there's a basic user role)
-    const defaultRole = await prisma.role.findFirst({
-      where: {
-        name: 'Usuario',
-        tenantId: tenant.id,
-      }, // Adjust this to your default role name
-    });
-
-    if (!defaultRole) {
-      return {
-        success: false,
-        message:
-          'No se encontró el rol por defecto. Contacte al administrador.',
-      };
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Create user
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        phone,
-        address,
-        professionalCard,
-        roleId: defaultRole.id,
-        tenantId: tenant.id,
-      },
-    });
-
-    // Send welcome email
-    try {
-      await emailService.sendWelcomeEmail(
-        newUser.email,
-        newUser.name,
-        tenantIdValue,
-      );
-    } catch (error) {
-      logger.error('Failed to send welcome email', error);
-      // Don't fail registration if email fails
-    }
-
-    return {
-      success: true,
-      message: 'Usuario registrado exitosamente. Puede iniciar sesión ahora.',
-      user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-      },
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const messages = error.issues.map((i) => i.message);
-      return {
-        success: false,
-        message: messages.join('. '),
-      };
-    }
-    logger.error('Registration error', error);
-    return {
-      success: false,
-      message: 'Error interno del servidor. Intente nuevamente.',
-    };
-  }
 }
 
 export async function forgotPassword(
