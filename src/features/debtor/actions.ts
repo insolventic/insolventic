@@ -9,6 +9,11 @@ import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import {
+  mismoValor,
+  resumirCambios,
+  selectDeCamposEnviados,
+} from '@/features/case/audit-diff';
 
 import {
   createDebtorSchema,
@@ -362,6 +367,15 @@ export async function createDebtor(input: unknown): Promise<{
   }
 }
 
+/**
+ * Columnas de `Debtor` que `updateDebtor` puede escribir: las claves de su
+ * schema de entrada, que son las que llegan a `data`. Filtra el `select` del
+ * diff para que una clave ajena al modelo no rompa la consulta.
+ */
+const COLUMNAS_EDITABLES_DEBTOR: ReadonlySet<string> = new Set(
+  Object.keys(updateDebtorSchema.shape).filter((k) => k !== 'id'),
+);
+
 export async function updateDebtor(input: unknown): Promise<{
   success: boolean;
   data?: DebtorSummaryData;
@@ -378,6 +392,22 @@ export async function updateDebtor(input: unknown): Promise<{
     // Validate input
     const validatedInput = updateDebtorSchema.parse(input);
     const { id, ...rest } = validatedInput;
+
+    // Lo que había antes, solo de las columnas que el payload trae (el
+    // formulario reenvía todas, cambiadas o no). `email` va siempre: es el
+    // dato del que depende el alcance "cliente" de `case-access`, y un cambio
+    // suyo tiene que quedar con las dos direcciones.
+    const antes = await prisma.debtor.findFirst({
+      where: { id, tenantId },
+      select: {
+        ...selectDeCamposEnviados(rest, COLUMNAS_EDITABLES_DEBTOR),
+        id: true,
+        email: true,
+      },
+    });
+    if (!antes) {
+      return { success: false, error: 'Deudor no encontrado' };
+    }
 
     const updatedDebtor = await prisma.debtor.update({
       where: {
@@ -416,6 +446,20 @@ export async function updateDebtor(input: unknown): Promise<{
         userCedula: user.professionalCard,
       },
       tenantId,
+      // Mismo formato que la auditoría de casos (`resumirCambios`: nombres de
+      // los campos cambiados y conteos) y que la de usuarios (las dos
+      // direcciones cuando cambia el correo). Del resto de campos se guarda
+      // el nombre y no el valor: son datos personales del deudor (cédula,
+      // ingresos, dirección), y el audit log no debe duplicarlos — el mismo
+      // criterio de `CAMPOS_CON_VALOR_AUDITABLE` en `case/audit-diff.ts`.
+      metadata: {
+        ...resumirCambios(antes, rest),
+        ...(rest.email !== undefined &&
+          !mismoValor(antes.email, rest.email) && {
+            previousEmail: antes.email,
+            newEmail: updatedDebtor.email,
+          }),
+      },
     });
 
     const validated = debtorSummarySchema.parse(updatedDebtor);
