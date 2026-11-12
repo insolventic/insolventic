@@ -4,6 +4,15 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { CASO_ACTIVO } from '@/lib/papelera';
 import { authenticateUser } from '@/features/auth/actions';
+import {
+  assertCaseAccess,
+  assertCaseAccessOnRow,
+  caseWhereFromVisibility,
+  caseWhereOrNothing,
+  isCaseAccessError,
+  resolveCaseVisibility,
+  type CaseAccessUser,
+} from '@/features/case/case-access';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
@@ -81,6 +90,112 @@ export type PaymentTrackingData = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/*
+ * VISIBILIDAD POR EXPEDIENTE. Un pago es del expediente al que pertenece, así
+ * que quién lo ve o lo toca lo decide la misma regla que decide quién ve el
+ * expediente: `case-access.ts` (ver todos / ver propios / ver como cliente).
+ * Antes este módulo solo filtraba por `tenantId` y, en algunos listados, por
+ * `operatorId` escrito a mano: el rol cliente listaba los pagos y los casos de
+ * todo el centro, y `getPaymentHistory` dejaba pasar a cualquier cliente a
+ * cualquier expediente.
+ *
+ *   - Las actions que reciben un id de caso o de pago verifican la fila con
+ *     `assertCaseAccess` / `assertCaseAccessOnRow` ANTES de leer o escribir.
+ *   - Las que listan o suman acotan `case` con `filtroDeCasoVisible`.
+ */
+
+/**
+ * El `where` sobre la relación `case` de `Payment` que deja solo los pagos de
+ * expedientes visibles para el usuario y fuera de la papelera.
+ *
+ * Va dentro de `case` porque es una lectura anidada: la extensión de Prisma
+ * que filtra la papelera solo actúa sobre las consultas de primer nivel sobre
+ * `Case`. Para `none` devuelve un filtro que no coincide con ninguna fila, así
+ * que los totales salen en cero en vez de sumar todo el centro.
+ */
+async function filtroDeCasoVisible(
+  user: CaseAccessUser,
+  tenantId: string,
+): Promise<Record<string, unknown>> {
+  const visibilidad = await resolveCaseVisibility(user, tenantId);
+  return { ...CASO_ACTIVO, ...caseWhereOrNothing(visibilidad) };
+}
+
+/** Respuesta de una action ante un acceso denegado: esperado, sin Sentry. */
+function respuestaDeAccesoDenegado(
+  error: unknown,
+): { success: false; error: string } | null {
+  return isCaseAccessError(error)
+    ? { success: false, error: error.message }
+    : null;
+}
+
+const trackingFiltersSchema = z.object({
+  status: z.string().optional(),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  hasReceipt: z.enum(['yes', 'no', 'all']).optional(),
+  search: z.string().optional(),
+});
+
+/**
+ * El `where` del reporte de seguimiento de pagos. Uno solo para el reporte y
+ * su exportación a Excel: antes eran dos copias "sincronizadas a propósito",
+ * y las dos tenían el mismo hueco de visibilidad.
+ */
+async function whereDelReporteDePagos(
+  validated: z.infer<typeof trackingFiltersSchema>,
+  user: CaseAccessUser,
+  tenantId: string,
+): Promise<Record<string, unknown>> {
+  const where: Record<string, unknown> = { tenantId };
+
+  if (validated.status && validated.status !== 'all') {
+    where.status = validated.status;
+  }
+
+  if (validated.dateFrom || validated.dateTo) {
+    const paymentDateFilter: Record<string, Date> = {};
+    if (validated.dateFrom)
+      paymentDateFilter.gte = new Date(validated.dateFrom);
+    if (validated.dateTo) {
+      const endDate = new Date(validated.dateTo);
+      endDate.setHours(23, 59, 59, 999);
+      paymentDateFilter.lte = endDate;
+    }
+    where.paymentDate = paymentDateFilter;
+  }
+
+  if (validated.hasReceipt === 'yes') {
+    where.receiptFileId = { not: null };
+  } else if (validated.hasReceipt === 'no') {
+    where.receiptFileId = null;
+  }
+
+  if (validated.search) {
+    where.OR = [
+      {
+        case: {
+          caseNumber: { contains: validated.search, mode: 'insensitive' },
+        },
+      },
+      {
+        case: {
+          debtorName: { contains: validated.search, mode: 'insensitive' },
+        },
+      },
+      {
+        debtor: { name: { contains: validated.search, mode: 'insensitive' } },
+      },
+    ];
+  }
+
+  // Papelera + visibilidad por expediente, en la relación `case`.
+  where.case = await filtroDeCasoVisible(user, tenantId);
+
+  return where;
+}
 
 function sanitizeFileName(fileName: string): string {
   let sanitized = fileName.replace(/[\\/\0]/g, '');
@@ -202,6 +317,8 @@ export async function getPaymentSchedule(caseId: string): Promise<{
       return { success: false, error: 'No tienes permisos' };
     }
 
+    await assertCaseAccess({ caseId, user, tenantId });
+
     const payments = await prisma.payment.findMany({
       where: { caseId, tenantId, case: CASO_ACTIVO },
       orderBy: [{ paymentNumber: 'asc' }, { createdAt: 'asc' }],
@@ -210,6 +327,8 @@ export async function getPaymentSchedule(caseId: string): Promise<{
     const parsed = payments.map((p) => paymentSchema.parse(p));
     return { success: true, data: parsed };
   } catch (error) {
+    const denegado = respuestaDeAccesoDenegado(error);
+    if (denegado) return denegado;
     console.error('Error getting payment schedule:', error);
     return {
       success: false,
@@ -244,6 +363,7 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
         caseNumber: true,
         debtorName: true,
         debtorId: true,
+        operatorId: true,
         totalDebt: true,
         propuestaPlazoMeses: true,
         propuestaPeriodicidadPago: true,
@@ -255,6 +375,8 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
     }
+
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
     if (!caseData.debtorId) {
       return { success: false, error: 'El caso no tiene un deudor asignado' };
@@ -347,6 +469,8 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
     const parsed = payments.map((p) => paymentSchema.parse(p));
     return { success: true, data: parsed };
   } catch (error) {
+    const denegado = respuestaDeAccesoDenegado(error);
+    if (denegado) return denegado;
     console.error('Error generating payment schedule:', error);
     return {
       success: false,
@@ -391,13 +515,24 @@ export async function markPaymentPaid(
     const payment = await prisma.payment.findUnique({
       where: { id: validated.paymentId, tenantId, case: CASO_ACTIVO },
       include: {
-        case: { select: { caseNumber: true, debtorName: true, id: true } },
+        case: {
+          select: {
+            caseNumber: true,
+            debtorName: true,
+            id: true,
+            operatorId: true,
+            debtorId: true,
+          },
+        },
       },
     });
 
     if (!payment) {
       return { success: false, error: 'Pago no encontrado' };
     }
+
+    // Antes de subir el comprobante o escribir: el pago es del expediente.
+    await assertCaseAccessOnRow({ caseRow: payment.case, user, tenantId });
 
     // Upload receipt if provided
     let receiptData: {
@@ -455,6 +590,8 @@ export async function markPaymentPaid(
 
     return { success: true };
   } catch (error) {
+    const denegado = respuestaDeAccesoDenegado(error);
+    if (denegado) return denegado;
     console.error('Error marking payment paid:', error);
     return {
       success: false,
@@ -500,12 +637,15 @@ export async function registerPayment(
         caseNumber: true,
         debtorName: true,
         debtorId: true,
+        operatorId: true,
       },
     });
 
     if (!caseData) {
       return { success: false, error: 'Caso no encontrado' };
     }
+
+    await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
     if (!caseData.debtorId) {
       return { success: false, error: 'El caso no tiene un deudor asignado' };
@@ -567,6 +707,8 @@ export async function registerPayment(
 
     return { success: true };
   } catch (error) {
+    const denegado = respuestaDeAccesoDenegado(error);
+    if (denegado) return denegado;
     console.error('Error registering payment:', error);
     return {
       success: false,
@@ -608,13 +750,22 @@ export async function uploadPaymentReceipt(
     const payment = await prisma.payment.findUnique({
       where: { id: validated.paymentId, tenantId, case: CASO_ACTIVO },
       include: {
-        case: { select: { caseNumber: true, debtorName: true } },
+        case: {
+          select: {
+            caseNumber: true,
+            debtorName: true,
+            operatorId: true,
+            debtorId: true,
+          },
+        },
       },
     });
 
     if (!payment) {
       return { success: false, error: 'Pago no encontrado' };
     }
+
+    await assertCaseAccessOnRow({ caseRow: payment.case, user, tenantId });
 
     const receiptData = await uploadReceiptToDrive(
       payment.caseId,
@@ -647,6 +798,8 @@ export async function uploadPaymentReceipt(
 
     return { success: true };
   } catch (error) {
+    const denegado = respuestaDeAccesoDenegado(error);
+    if (denegado) return denegado;
     console.error('Error uploading receipt:', error);
     return {
       success: false,
@@ -676,23 +829,10 @@ export async function getPaymentHistory(caseId: string): Promise<{
       return { success: false, error: 'No tienes permisos' };
     }
 
-    // Ownership check: users with VER_CASOS_PROPIOS can only see their own cases
-    if (!user.permissions.includes(P.VER_TODOS_CASOS)) {
-      const caseCheck = await prisma.case.findUnique({
-        where: { id: caseId, tenantId },
-        select: { operatorId: true, debtorId: true },
-      });
-      if (!caseCheck) return { success: false, error: 'Caso no encontrado' };
-
-      const isOperator =
-        user.permissions.includes(P.VER_CASOS_PROPIOS) &&
-        caseCheck.operatorId === user.id;
-      const isClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
-
-      if (!isOperator && !isClient) {
-        return { success: false, error: 'No tienes acceso a este caso' };
-      }
-    }
+    // La regla de `case-access`. La copia a mano que había acá dejaba pasar a
+    // cualquier cliente a cualquier expediente: miraba si tenía el permiso
+    // `Ver casos como cliente`, no si el expediente era suyo.
+    await assertCaseAccess({ caseId, user, tenantId });
 
     const caseData = await prisma.case.findUnique({
       where: { id: caseId, tenantId },
@@ -734,6 +874,8 @@ export async function getPaymentHistory(caseId: string): Promise<{
       data: { payments: mapped, totalObligation, totalPaid },
     };
   } catch (error) {
+    const denegado = respuestaDeAccesoDenegado(error);
+    if (denegado) return denegado;
     console.error('Error getting payment history:', error);
     return {
       success: false,
@@ -745,14 +887,6 @@ export async function getPaymentHistory(caseId: string): Promise<{
 // ---------------------------------------------------------------------------
 // getPaymentTrackingReport (for reports module)
 // ---------------------------------------------------------------------------
-
-const trackingFiltersSchema = z.object({
-  status: z.string().optional(),
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-  hasReceipt: z.enum(['yes', 'no', 'all']).optional(),
-  search: z.string().optional(),
-});
 
 export async function getPaymentTrackingReport(
   filters: z.infer<typeof trackingFiltersSchema>,
@@ -769,60 +903,7 @@ export async function getPaymentTrackingReport(
       return { success: false, error: 'No tienes permisos' };
     }
 
-    // Build where clause
-    const where: Record<string, unknown> = { tenantId };
-
-    if (validated.status && validated.status !== 'all') {
-      where.status = validated.status;
-    }
-
-    if (validated.dateFrom || validated.dateTo) {
-      const paymentDateFilter: Record<string, Date> = {};
-      if (validated.dateFrom)
-        paymentDateFilter.gte = new Date(validated.dateFrom);
-      if (validated.dateTo) {
-        const endDate = new Date(validated.dateTo);
-        endDate.setHours(23, 59, 59, 999);
-        paymentDateFilter.lte = endDate;
-      }
-      where.paymentDate = paymentDateFilter;
-    }
-
-    if (validated.hasReceipt === 'yes') {
-      where.receiptFileId = { not: null };
-    } else if (validated.hasReceipt === 'no') {
-      where.receiptFileId = null;
-    }
-
-    if (validated.search) {
-      where.OR = [
-        {
-          case: {
-            caseNumber: { contains: validated.search, mode: 'insensitive' },
-          },
-        },
-        {
-          case: {
-            debtorName: { contains: validated.search, mode: 'insensitive' },
-          },
-        },
-        {
-          debtor: { name: { contains: validated.search, mode: 'insensitive' } },
-        },
-      ];
-    }
-
-    // Papelera: los pagos de un caso eliminado no se listan ni se suman. Va
-    // dentro de `case` porque la extensión de Prisma solo filtra las consultas
-    // de primer nivel sobre Case.
-    where.case = { ...(where.case as object), ...CASO_ACTIVO };
-
-    // Visibility scoping
-    if (user.permissions.includes(P.VER_TODOS_CASOS)) {
-      // Can see all
-    } else if (user.permissions.includes(P.VER_CASOS_PROPIOS)) {
-      where.case = { ...(where.case as object), operatorId: user.id };
-    }
+    const where = await whereDelReporteDePagos(validated, user, tenantId);
 
     const payments = await prisma.payment.findMany({
       where,
@@ -914,7 +995,7 @@ export async function getOverduePayments(): Promise<{
     const count = await prisma.payment.count({
       where: {
         tenantId,
-        case: CASO_ACTIVO,
+        case: await filtroDeCasoVisible(user, tenantId),
         status: 'pendiente',
         dueDate: { lt: new Date() },
       },
@@ -950,17 +1031,14 @@ export async function getCasesForPayment(): Promise<{
       return { success: false, error: 'No tienes permisos' };
     }
 
-    const where: Record<string, unknown> = { tenantId };
-
-    // Visibility scoping
-    if (user.permissions.includes(P.VER_TODOS_CASOS)) {
-      // Can see all
-    } else if (user.permissions.includes(P.VER_CASOS_PROPIOS)) {
-      where.operatorId = user.id;
-    }
+    // Listado: `null` es "no ver nada" y se corta antes de consultar.
+    const alcance = caseWhereFromVisibility(
+      await resolveCaseVisibility(user, tenantId),
+    );
+    if (!alcance) return { success: true, data: [] };
 
     const cases = await prisma.case.findMany({
-      where,
+      where: { tenantId, ...alcance },
       select: {
         id: true,
         caseNumber: true,
@@ -1019,17 +1097,16 @@ export async function getCasePaymentSummaries(): Promise<{
       return { success: false, error: 'No tienes permisos' };
     }
 
-    const where: Record<string, unknown> = { tenantId };
-    if (user.permissions.includes(P.VER_TODOS_CASOS)) {
-      // all
-    } else if (user.permissions.includes(P.VER_CASOS_PROPIOS)) {
-      where.operatorId = user.id;
-    }
+    const alcance = caseWhereFromVisibility(
+      await resolveCaseVisibility(user, tenantId),
+    );
+    if (!alcance) return { success: true, data: [] };
 
     // Get cases that have payments
     const casesWithPayments = await prisma.case.findMany({
       where: {
-        ...where,
+        tenantId,
+        ...alcance,
         payments: { some: {} },
       },
       select: {
@@ -1129,60 +1206,8 @@ export async function exportPaymentTrackingToExcel(
       };
     }
 
-    // Build the same where clause as the report (kept in sync deliberately)
-    const where: Record<string, unknown> = { tenantId };
-
-    if (validated.status && validated.status !== 'all') {
-      where.status = validated.status;
-    }
-
-    if (validated.dateFrom || validated.dateTo) {
-      const paymentDateFilter: Record<string, Date> = {};
-      if (validated.dateFrom)
-        paymentDateFilter.gte = new Date(validated.dateFrom);
-      if (validated.dateTo) {
-        const endDate = new Date(validated.dateTo);
-        endDate.setHours(23, 59, 59, 999);
-        paymentDateFilter.lte = endDate;
-      }
-      where.paymentDate = paymentDateFilter;
-    }
-
-    if (validated.hasReceipt === 'yes') {
-      where.receiptFileId = { not: null };
-    } else if (validated.hasReceipt === 'no') {
-      where.receiptFileId = null;
-    }
-
-    if (validated.search) {
-      where.OR = [
-        {
-          case: {
-            caseNumber: { contains: validated.search, mode: 'insensitive' },
-          },
-        },
-        {
-          case: {
-            debtorName: { contains: validated.search, mode: 'insensitive' },
-          },
-        },
-        {
-          debtor: { name: { contains: validated.search, mode: 'insensitive' } },
-        },
-      ];
-    }
-
-    // Papelera: los pagos de un caso eliminado no se listan ni se suman. Va
-    // dentro de `case` porque la extensión de Prisma solo filtra las consultas
-    // de primer nivel sobre Case.
-    where.case = { ...(where.case as object), ...CASO_ACTIVO };
-
-    // Visibility scoping
-    if (user.permissions.includes(P.VER_TODOS_CASOS)) {
-      // full visibility
-    } else if (user.permissions.includes(P.VER_CASOS_PROPIOS)) {
-      where.case = { ...(where.case as object), operatorId: user.id };
-    }
+    // El mismo `where` que el reporte, incluida la visibilidad.
+    const where = await whereDelReporteDePagos(validated, user, tenantId);
 
     const payments = await prisma.payment.findMany({
       where,
@@ -1289,6 +1314,8 @@ export async function exportPaymentTrackingToExcel(
 
     return { success: true, data: base64 };
   } catch (error) {
+    const denegado = respuestaDeAccesoDenegado(error);
+    if (denegado) return denegado;
     console.error('Error exporting payment tracking:', error);
     return {
       success: false,

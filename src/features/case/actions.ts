@@ -2766,43 +2766,12 @@ export async function getDashboardStats(): Promise<{
       return { success: false, error: 'No tienes permisos para ver casos' };
     }
 
-    // Build where clause based on visibility permissions
-    let whereClause: {
-      operatorId?: string;
-      debtorId?: string;
-      tenantId: string;
-    } = { tenantId };
-
-    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
-    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
-    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
-
-    if (canViewAllCases) {
-      // No additional filtering
-    } else if (canViewOwnCases) {
-      whereClause = { ...whereClause, operatorId: user.id };
-    } else if (canViewAsClient) {
-      const userDebtor = await prisma.debtor.findFirst({
-        where: { email: user.email, tenantId },
-        select: { id: true },
-      });
-      if (userDebtor) {
-        whereClause = { ...whereClause, debtorId: userDebtor.id };
-      } else {
-        const emptyStats = dashboardStatsSchema.parse({
-          totalCases: 0,
-          casesThisMonth: 0,
-          upcomingHearings: 0,
-          totalDebt: null,
-          totalCreditors: null,
-          casesByPhase: [],
-          casesByType: [],
-          casesOverTime: [],
-          overduePayments: 0,
-        });
-        return { success: true, data: emptyStats };
-      }
-    } else {
+    // La regla de `case-access` (antes, una copia a mano de la misma
+    // precedencia). `null` es "no ve ningún expediente": estadísticas en cero.
+    const alcance = caseWhereFromVisibility(
+      await resolveCaseVisibility(user, tenantId),
+    );
+    if (!alcance) {
       const emptyStats = dashboardStatsSchema.parse({
         totalCases: 0,
         casesThisMonth: 0,
@@ -2816,6 +2785,7 @@ export async function getDashboardStats(): Promise<{
       });
       return { success: true, data: emptyStats };
     }
+    const whereClause = { tenantId, ...alcance };
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -2868,10 +2838,15 @@ export async function getDashboardStats(): Promise<{
         where: { ...whereClause, createdDate: { gte: sixMonthsAgo } },
         select: { createdDate: true },
       }),
+      // Los pagos vencidos, con el mismo alcance que el resto del tablero.
+      // Antes contaba los de todo el centro: un abogado o un cliente veía el
+      // número de cuotas vencidas de expedientes que no le tocan. La
+      // visibilidad va en la relación `case` (lectura anidada: la extensión
+      // de papelera no la cubre), como en `payment/actions.ts`.
       prisma.payment.count({
         where: {
           tenantId,
-          case: CASO_ACTIVO,
+          case: { ...CASO_ACTIVO, ...alcance },
           status: 'pendiente',
           dueDate: { lt: now },
         },

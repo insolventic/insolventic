@@ -471,6 +471,13 @@ una tarea manual del dueño, aparte de este arreglo.
 **Nunca** usar el opt-in contra la base de producción: los centros reales no
 necesitan usuarios demo ni casos de ejemplo.
 
+**`npm run db:reset` (y `db:reset:seed`) tiene su propia guarda**
+(`src/prisma/reset-guard.ts`, probada en `tests/unit/config/reset-guard.test.ts`):
+el mismo criterio de destino, evaluado antes de la primera consulta, también
+con `--tenant=`. A diferencia del seed **no tiene opt-in**: borrar no tiene
+mitigación, así que fuera de una base de prueba local se niega siempre, aunque
+esté `SEED_PERMITIR_BASE_REAL=1`.
+
 ---
 
 ## 8. Referencias

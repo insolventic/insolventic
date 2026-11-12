@@ -121,7 +121,9 @@ describe('límite de tamaño del comprobante', () => {
         id: 'user-1',
         name: 'Operador',
         professionalCard: '123',
-        permissions: [P.REGISTRAR_PAGOS],
+        // Con alcance: desde N-B-01 las actions de pagos aplican la visibilidad
+        // por expediente de `case-access`, y sin alcance no se ve ningún caso.
+        permissions: [P.REGISTRAR_PAGOS, P.VER_TODOS_CASOS],
       },
       tenantId: 'tenant-1',
     });

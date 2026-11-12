@@ -84,6 +84,8 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
 9. **Los 2 campos de dinero fuera del formulario maestro siguen sin separador de miles** — ~2h
 
+   ✅ **Cerrado el 2026-11-12** (`fix/pagos-reglas-montos-acceso`): los dos usan `MoneyInputField` y envían `parsearMonto(...)`; la acción sigue recibiendo `amount: number`. Tests: `tests/unit/components/pagos-monto-separador.test.tsx`. Lo de abajo queda como registro.
+
    Quedaron fuera del alcance de `#136`, que normalizó los 27 del formulario maestro (wizard + pestañas de edición). Los dos son montos de pago:
 
    | Dónde                                              | Etiqueta       | Qué hace                    |
