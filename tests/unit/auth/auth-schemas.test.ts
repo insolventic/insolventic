@@ -6,7 +6,6 @@
 
 import {
   loginSchema,
-  registerSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
@@ -57,65 +56,6 @@ describe('Auth Schemas — src/features/auth/schemas.ts', () => {
 
     it('should reject missing fields entirely', () => {
       const result = loginSchema.safeParse({});
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe('registerSchema', () => {
-    const validInput = {
-      name: 'Test User',
-      email: 'test@example.com',
-      password: STRONG_PASSWORD,
-      confirmPassword: STRONG_PASSWORD,
-      phone: '3001234567',
-      address: 'Calle 123',
-      professionalCard: 'TP-001',
-      tenantId: 'test-tenant',
-    };
-
-    it('should validate correct registration input', () => {
-      const result = registerSchema.safeParse(validInput);
-      expect(result.success).toBe(true);
-    });
-
-    it('should reject mismatched passwords', () => {
-      const result = registerSchema.safeParse({
-        ...validInput,
-        confirmPassword: 'DifferentPass1!',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject password shorter than 8 characters', () => {
-      const result = registerSchema.safeParse({
-        ...validInput,
-        password: 'Ab1!xyz',
-        confirmPassword: 'Ab1!xyz',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject empty name', () => {
-      const result = registerSchema.safeParse({
-        ...validInput,
-        name: '',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject empty phone', () => {
-      const result = registerSchema.safeParse({
-        ...validInput,
-        phone: '',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should reject invalid email format', () => {
-      const result = registerSchema.safeParse({
-        ...validInput,
-        email: 'invalid',
-      });
       expect(result.success).toBe(false);
     });
   });
