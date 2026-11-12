@@ -149,6 +149,6 @@ describe('PaymentTrackingSection — diálogo de registrar pago', () => {
     await abrirPagoManual();
 
     expect(erroresEnElDialogo()).toEqual([]);
-    expect(screen.getByPlaceholderText('0')).toHaveValue(null);
+    expect(screen.getByPlaceholderText('0')).toHaveValue('');
   });
 });
