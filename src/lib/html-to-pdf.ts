@@ -150,6 +150,11 @@ function isFullHtmlDocument(html: string): boolean {
  * Replaces <link rel="stylesheet" href="..."> with <style> blocks
  * and <img src="..."> with base64 data URIs.
  *
+ * Solo lee archivos bajo `templates/` (ver el bloque de confinamiento abajo).
+ * Un ref que resuelve fuera, con esquema (`file:`, `http:`…) o por un symlink
+ * que escapa no se lee: la etiqueta se quita y el rechazo se registra como
+ * error. Los `data:` se dejan como están.
+ *
  * @param html - The HTML content
  * @param assetsBaseDir - Absolute path used to resolve root-relative refs ("/CSS/...")
  * @param docDir - Absolute path of the source HTML's own directory, used to
@@ -163,6 +168,108 @@ export async function inlineAssets(
   const fs = await import('fs');
   const pathModule = await import('path');
   const relativeBase = docDir || assetsBaseDir;
+
+  // CONFINAMIENTO (N-A2-01). Todo asset legítimo vive bajo `templates/`
+  // (incluido `templates/branding/`), y nada fuera de ahí se lee. Antes un
+  // `<img src="../../.env">` que llegara al HTML —por un campo de usuario sin
+  // escapar— se leía del disco y se incrustaba en el PDF en base64.
+  //
+  // No se rechaza `..` a secas: las plantillas de conciliación usan
+  // `../CSS/...` legítimamente. Lo que se exige es que la ruta RESUELTA quede
+  // dentro de la raíz, primero en forma léxica y después con `realpath`, para
+  // que un symlink dentro de `templates/` no apunte afuera.
+  const raizPlantillas = pathModule.resolve(process.cwd(), 'templates');
+  let raizReal: string | null = null;
+  const raizPlantillasReal = (): string => {
+    if (raizReal === null) {
+      try {
+        raizReal = fs.realpathSync(raizPlantillas);
+      } catch {
+        // Sin `templates/` en disco no hay nada que se pueda leer.
+        raizReal = raizPlantillas;
+      }
+    }
+    return raizReal;
+  };
+
+  const estaDentro = (raiz: string, destino: string): boolean => {
+    const rel = pathModule.relative(raiz, destino);
+    return (
+      rel !== '' &&
+      !pathModule.isAbsolute(rel) &&
+      rel.split(pathModule.sep)[0] !== '..'
+    );
+  };
+
+  /**
+   * Resuelve un ref con `resolver` y decide si se puede leer.
+   *
+   * - `permitido` con `existe: false`: está dentro de la raíz pero no hay
+   *   archivo; se deja el warn de siempre ("no se encontró").
+   * - `rechazado`: no se lee ni se incrusta; el llamador quita la etiqueta y
+   *   lo registra como error.
+   */
+  type Resolucion =
+    | { tipo: 'permitido'; ruta: string; existe: boolean }
+    | { tipo: 'rechazado'; motivo: string };
+
+  const resolverConfinado = (
+    ref: string,
+    resolver: (ref: string) => string,
+  ): Resolucion => {
+    // `\` y NUL no aparecen en ninguna plantilla; con `\` entran las rutas de
+    // Windows (`C:\...`, `\\servidor\...`), que no tienen nada que hacer acá.
+    if (ref.includes('\0') || ref.includes('\\')) {
+      return { tipo: 'rechazado', motivo: 'caracteres no permitidos' };
+    }
+    // `file:`, `http:`, `javascript:`… y `//host/...` (protocolo relativo).
+    // Los `data:` no llegan hasta acá: el llamador los deja pasar antes.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(ref) || ref.startsWith('//')) {
+      return { tipo: 'rechazado', motivo: 'esquema no permitido' };
+    }
+
+    const ruta = pathModule.resolve(resolver(ref));
+    if (!estaDentro(raizPlantillas, ruta)) {
+      return { tipo: 'rechazado', motivo: 'ruta fuera de templates/' };
+    }
+    if (!fs.existsSync(ruta)) {
+      return { tipo: 'permitido', ruta, existe: false };
+    }
+
+    let real: string;
+    try {
+      real = fs.realpathSync(ruta);
+    } catch {
+      return { tipo: 'rechazado', motivo: 'no se pudo resolver la ruta real' };
+    }
+    if (!estaDentro(raizPlantillasReal(), real)) {
+      return {
+        tipo: 'rechazado',
+        motivo: 'enlace simbólico fuera de templates/',
+      };
+    }
+    return { tipo: 'permitido', ruta: real, existe: true };
+  };
+
+  const registrarRechazo = (
+    tipoAsset: 'css' | 'css-import' | 'imagen',
+    ref: string,
+    motivo: string,
+  ) => {
+    // `error` y no `warn`: una plantilla del repo nunca produce esto, así que
+    // un rechazo es HTML que no salió de una plantilla —un intento, o un
+    // escapado roto— y tiene que llegar a Sentry.
+    logger.error(
+      'Se rechazó un asset del documento: no se lee ni se incrusta',
+      undefined,
+      {
+        action: 'pdf.inline-assets',
+        tipoAsset,
+        motivo,
+        ref: ref.slice(0, 200),
+      },
+    );
+  };
 
   const resolveAssetPath = (ref: string): string => {
     // `/branding/...` es el único prefijo compartido por los tres tipos de
@@ -201,10 +308,16 @@ export async function inlineAssets(
 
     // Root-relative ("/CSS/...") resolves against assetsBaseDir;
     // relative ("./CSS/...", "../CSS/...") against the document's own dir.
-    const cssPath = resolveAssetPath(href);
+    const resolucionCss = resolverConfinado(href, resolveAssetPath);
+    if (resolucionCss.tipo === 'rechazado') {
+      registrarRechazo('css', href, resolucionCss.motivo);
+      result = result.replace(fullTag, '');
+      continue;
+    }
+    const cssPath = resolucionCss.ruta;
 
     try {
-      if (fs.existsSync(cssPath)) {
+      if (resolucionCss.existe) {
         let cssContent = fs.readFileSync(cssPath, 'utf-8');
         // Resolve @import statements within CSS files
         const cssDir = pathModule.dirname(cssPath);
@@ -212,9 +325,17 @@ export async function inlineAssets(
         const importMatches = [...cssContent.matchAll(importRegex)];
         for (const importMatch of importMatches) {
           const importUrl = importMatch[1];
-          const importPath = pathModule.resolve(cssDir, importUrl);
+          const resolucionImport = resolverConfinado(importUrl, (ref) =>
+            pathModule.resolve(cssDir, ref),
+          );
+          if (resolucionImport.tipo === 'rechazado') {
+            registrarRechazo('css-import', importUrl, resolucionImport.motivo);
+            cssContent = cssContent.replace(importMatch[0], '');
+            continue;
+          }
+          const importPath = resolucionImport.ruta;
           try {
-            if (fs.existsSync(importPath)) {
+            if (resolucionImport.existe) {
               const importedCss = fs.readFileSync(importPath, 'utf-8');
               cssContent = cssContent.replace(importMatch[0], importedCss);
             } else {
@@ -263,10 +384,18 @@ export async function inlineAssets(
     // Skip already-inlined data URIs
     if (src.startsWith('data:')) continue;
 
-    const imgPath = resolveAssetPath(src);
+    const resolucionImg = resolverConfinado(src, resolveAssetPath);
+    if (resolucionImg.tipo === 'rechazado') {
+      registrarRechazo('imagen', src, resolucionImg.motivo);
+      // Se quita la etiqueta entera: dejarla con el `src` original le pasaría
+      // la ruta a Chromium (o al conversor DOCX) para que la intente él.
+      result = result.replace(fullTag, '');
+      continue;
+    }
+    const imgPath = resolucionImg.ruta;
 
     try {
-      if (fs.existsSync(imgPath)) {
+      if (resolucionImg.existe) {
         const imgBuffer = fs.readFileSync(imgPath);
         const base64 = imgBuffer.toString('base64');
         const mimeType = getMimeType(imgPath);
