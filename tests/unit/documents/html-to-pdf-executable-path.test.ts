@@ -52,6 +52,9 @@ describe('htmlToPdf — ejecutable de Chromium', () => {
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockLaunch.mockResolvedValue({
       newPage: async () => ({
+        setJavaScriptEnabled: async () => undefined,
+        setRequestInterception: async () => undefined,
+        on: () => undefined,
         setContent: async () => undefined,
         pdf: async () => Buffer.from('%PDF-fake'),
       }),
