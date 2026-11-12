@@ -474,6 +474,98 @@ function prepareHtml(html: string): string {
 </html>`;
 }
 
+/** Tope de `setContent`: todo está incrustado, no hay nada que esperar de la red. */
+export const SET_CONTENT_TIMEOUT_MS = 30_000;
+
+/**
+ * Tope explícito de `page.pdf()`. Sin él, una página que no termina de
+ * imprimir deja colgada la función serverless hasta el límite de Vercel, y el
+ * error que llega no dice qué paso se trabó.
+ */
+export const PDF_TIMEOUT_MS = 60_000;
+
+/** Lo único que la página puede pedir: los assets ya incrustados y el blanco inicial. */
+export function esPeticionPermitida(url: string): boolean {
+  return url.startsWith('data:') || url === 'about:blank';
+}
+
+type PaginaPdf = Awaited<
+  ReturnType<Awaited<ReturnType<typeof puppeteer.launch>>['newPage']>
+>;
+
+/**
+ * Renderiza el HTML ya incrustado a PDF en una página SIN JavaScript y SIN red
+ * (N-A2-02).
+ *
+ * El HTML de un documento mezcla la plantilla con datos de usuario. El
+ * escapado y el confinamiento de `inlineAssets` son las defensas principales;
+ * esto es la capa de abajo, por si algo se les escapa:
+ *  - sin JavaScript, un `<script>` o un `onload=` que llegara al HTML no corre;
+ *  - con la interceptación, toda petición que no sea `data:` o `about:blank` se
+ *    aborta: ni `file://`, ni `http(s)://`, ni la red interna del servidor.
+ *
+ * Ninguna plantilla necesita ninguna de las dos cosas: no hay `<script>` ni
+ * recursos remotos en `templates/`, y CSS e imágenes llegan como `<style>` y
+ * `data:` desde `inlineAssets`.
+ */
+async function renderizarPdfAislado(
+  page: PaginaPdf,
+  html: string,
+  options: PDFOptions,
+): Promise<Buffer> {
+  await page.setJavaScriptEnabled(false);
+  await page.setRequestInterception(true);
+  page.on('request', (request) => {
+    const url = request.url();
+    if (esPeticionPermitida(url)) {
+      void request.continue();
+      return;
+    }
+    logger.warn('Se bloqueó una petición de red durante el render a PDF', {
+      action: 'pdf.render',
+      url: url.slice(0, 200),
+    });
+    void request.abort('blockedbyclient');
+  });
+
+  // domcontentloaded: todo está incrustado, no hay nada más que cargar.
+  await page.setContent(html, {
+    waitUntil: 'domcontentloaded',
+    timeout: SET_CONTENT_TIMEOUT_MS,
+  });
+
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+  const limite = new Promise<never>((_, reject) => {
+    temporizador = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `La conversión a PDF superó el límite de ${PDF_TIMEOUT_MS / 1000} s`,
+          ),
+        ),
+      PDF_TIMEOUT_MS,
+    );
+  });
+
+  try {
+    const pdfBuffer = await Promise.race([
+      page.pdf({
+        format: options.format,
+        margin: options.margin,
+        printBackground: options.printBackground,
+        displayHeaderFooter: options.displayHeaderFooter,
+        headerTemplate: options.headerTemplate,
+        footerTemplate: options.footerTemplate,
+        timeout: PDF_TIMEOUT_MS,
+      }),
+      limite,
+    ]);
+    return Buffer.from(pdfBuffer);
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
+
 /**
  * Convert HTML string to PDF buffer (single document).
  * If assetsBaseDir is provided, CSS and images are inlined before rendering.
@@ -510,22 +602,7 @@ export async function htmlToPdf(
 
     const page = await browser.newPage();
 
-    // Use domcontentloaded since all CSS/images are inlined by inlineAssets
-    await page.setContent(processedHtml, {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000,
-    });
-
-    const pdfBuffer = await page.pdf({
-      format: mergedOptions.format,
-      margin: mergedOptions.margin,
-      printBackground: mergedOptions.printBackground,
-      displayHeaderFooter: mergedOptions.displayHeaderFooter,
-      headerTemplate: mergedOptions.headerTemplate,
-      footerTemplate: mergedOptions.footerTemplate,
-    });
-
-    return Buffer.from(pdfBuffer);
+    return await renderizarPdfAislado(page, processedHtml, mergedOptions);
   } catch (error) {
     logger.error('Falló la generación de un PDF', error, {
       action: 'pdf.single',
@@ -618,24 +695,15 @@ export async function batchHtmlToPdf(
 
         page = await browser.newPage();
 
-        // Use domcontentloaded since all CSS/images are inlined by inlineAssets
-        await page.setContent(processedHtml, {
-          waitUntil: 'domcontentloaded',
-          timeout: 30000,
-        });
-
-        const pdfBuffer = await page.pdf({
-          format: mergedOptions.format,
-          margin: mergedOptions.margin,
-          printBackground: mergedOptions.printBackground,
-          displayHeaderFooter: mergedOptions.displayHeaderFooter,
-          headerTemplate: mergedOptions.headerTemplate,
-          footerTemplate: mergedOptions.footerTemplate,
-        });
+        const pdfBuffer = await renderizarPdfAislado(
+          page,
+          processedHtml,
+          mergedOptions,
+        );
 
         results.ok.push({
           filename: doc.filename.replace(/\.html$/, '.pdf'),
-          buffer: Buffer.from(pdfBuffer),
+          buffer: pdfBuffer,
         });
 
         await page.close();
