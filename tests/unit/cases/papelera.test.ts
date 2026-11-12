@@ -146,9 +146,17 @@ describe('guardas — que el filtro siga aplicándose', () => {
   it('los listados de pagos y las alertas filtran el caso activo', () => {
     // Son las lecturas de todo el centro sobre un modelo hijo; las acotadas a
     // un caso pasan antes por una lectura de Case, que sí filtra la extensión.
-    expect(leer('src/features/payment/actions.ts')).toMatch(
-      /where\.case = \{ \.\.\.\(where\.case as object\), \.\.\.CASO_ACTIVO \}/,
+    // Pagos: el filtro de papelera viaja junto con la visibilidad por
+    // expediente en `filtroDeCasoVisible` (N-B-01), que usan el reporte, la
+    // exportación y el conteo de vencidos.
+    const pagos = leer('src/features/payment/actions.ts');
+    expect(pagos).toMatch(
+      /return \{ \.\.\.CASO_ACTIVO, \.\.\.caseWhereOrNothing\(visibilidad\) \}/,
     );
+    expect(pagos).toMatch(
+      /where\.case = await filtroDeCasoVisible\(user, tenantId\)/,
+    );
+    expect(pagos).toMatch(/case: await filtroDeCasoVisible\(user, tenantId\)/);
     expect(leer('src/features/notification/alerts.ts')).toMatch(
       /case: CASO_ACTIVO/,
     );
