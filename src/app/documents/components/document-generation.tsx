@@ -60,6 +60,13 @@ import {
   ALL_TEMPLATES,
   getPackageInfo,
 } from '@/features/document/templates-config';
+import {
+  avisoDeGeneracion,
+  estadoDeGeneracion,
+  resumirGeneracion,
+  tituloDeGeneracion,
+  type EstadoDeGeneracion,
+} from '@/features/document/resumen-generacion';
 
 /**
  * Revisión de PR #140: los conteos eran literales escritos a mano (49, 27...)
@@ -272,8 +279,14 @@ export function DocumentGeneration({
     setPendingRetry(null);
     onDocumentsGenerated();
     if (accumulated) {
-      toast.success(
-        `${accumulated.successfulDocuments} documentos generados exitosamente`,
+      // Antes era siempre toast.success, también con 0 de 8.
+      const aviso = avisoDeGeneracion(
+        resumirGeneracion(accumulated.documents),
+        'documentos',
+      );
+      toast[aviso.tipo](
+        aviso.titulo,
+        aviso.descripcion ? { description: aviso.descripcion } : undefined,
       );
     }
   }
@@ -375,6 +388,43 @@ export function DocumentGeneration({
   const incompleteDocs = generationResult?.documents.filter(
     (d) => d.status === 'skipped',
   );
+  // El encabezado del resultado sale del conteo del servidor, no de si hubo
+  // fallos: con 0 de 8 decía "Generación Completada", y con omitidos por
+  // datos incompletos (sin fallos técnicos) se pintaba en verde.
+  const estadoResultado: EstadoDeGeneracion | null = generationResult
+    ? estadoDeGeneracion({
+        total: generationResult.totalDocuments,
+        generados: generationResult.successfulDocuments,
+        fallidos: generationResult.failedDocuments,
+        omitidos: generationResult.skippedDocuments ?? 0,
+      })
+    : null;
+  const tonoResultado = {
+    completa: {
+      caja: 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950',
+      icono: 'text-green-700',
+      titulo: 'text-green-800',
+      texto: 'text-green-700',
+    },
+    parcial: {
+      caja: 'border-amber-200 bg-amber-50',
+      icono: 'text-amber-700',
+      titulo: 'text-amber-800',
+      texto: 'text-amber-700',
+    },
+    fallida: {
+      caja: 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950',
+      icono: 'text-red-700',
+      titulo: 'text-red-800',
+      texto: 'text-red-700',
+    },
+  }[estadoResultado ?? 'completa'];
+  const IconoResultado =
+    estadoResultado === 'fallida'
+      ? XCircle
+      : estadoResultado === 'parcial'
+        ? AlertCircle
+        : Check;
 
   return (
     <Card className="mb-6">
@@ -613,32 +663,16 @@ export function DocumentGeneration({
           <div className="space-y-3">
             {/* Summary */}
             <div
-              className={cn(
-                'rounded-lg border p-4',
-                generationResult.failedDocuments > 0
-                  ? 'border-amber-200 bg-amber-50'
-                  : 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950',
-              )}
+              className={cn('rounded-lg border p-4', tonoResultado.caja)}
+              data-estado={estadoResultado ?? undefined}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Check
-                    className={cn(
-                      'h-5 w-5',
-                      generationResult.failedDocuments > 0
-                        ? 'text-amber-700'
-                        : 'text-green-700',
-                    )}
+                  <IconoResultado
+                    className={cn('h-5 w-5', tonoResultado.icono)}
                   />
-                  <h3
-                    className={cn(
-                      'font-semibold',
-                      generationResult.failedDocuments > 0
-                        ? 'text-amber-800'
-                        : 'text-green-800',
-                    )}
-                  >
-                    Generación Completada
+                  <h3 className={cn('font-semibold', tonoResultado.titulo)}>
+                    {tituloDeGeneracion(estadoResultado ?? 'completa')}
                   </h3>
                 </div>
 
@@ -657,14 +691,7 @@ export function DocumentGeneration({
                 )}
               </div>
 
-              <p
-                className={cn(
-                  'mt-2 text-sm',
-                  generationResult.failedDocuments > 0
-                    ? 'text-amber-700'
-                    : 'text-green-700',
-                )}
-              >
+              <p className={cn('mt-2 text-sm', tonoResultado.texto)}>
                 Se generaron{' '}
                 <strong>{generationResult.successfulDocuments}</strong> de{' '}
                 <strong>{generationResult.totalDocuments}</strong> documentos
@@ -673,6 +700,13 @@ export function DocumentGeneration({
                   <span className="text-red-600">
                     {' '}
                     {generationResult.failedDocuments} documento(s) fallaron.
+                  </span>
+                )}
+                {(generationResult.skippedDocuments ?? 0) > 0 && (
+                  <span>
+                    {' '}
+                    {generationResult.skippedDocuments} no se generaron por
+                    datos incompletos.
                   </span>
                 )}
               </p>

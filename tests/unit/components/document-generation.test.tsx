@@ -19,6 +19,7 @@ const mockToast = {
   success: jest.fn(),
   error: jest.fn(),
   info: jest.fn(),
+  warning: jest.fn(),
 };
 jest.mock('sonner', () => ({
   toast: mockToast,
@@ -847,7 +848,8 @@ describe('DocumentGeneration', () => {
 
       await waitFor(() => {
         expect(mockToast.success).toHaveBeenCalledWith(
-          expect.stringContaining('documentos generados exitosamente'),
+          expect.stringMatching(/^Se generaron \d+ documentos$/),
+          undefined,
         );
       });
     });
@@ -1057,6 +1059,76 @@ describe('DocumentGeneration', () => {
           screen.getByText(/1 documento\(s\) fallaron/),
         ).toBeInTheDocument();
       });
+    });
+
+    // Lo que se vio en producción: 0 de 8 bajo el título "Generación
+    // Completada" y un toast de éxito.
+    it('con 0 de N generados no dice "Generación Completada" ni avisa éxito', async () => {
+      mockBatchGenerateDocuments.mockResolvedValue({
+        ...MOCK_GENERATION_RESULT,
+        data: {
+          ...MOCK_GENERATION_RESULT.data,
+          documents: MOCK_GENERATION_RESULT.data.documents.map((d) => ({
+            ...d,
+            status: 'error' as const,
+            documentUrl: '',
+            error: 'La plantilla "X" no está disponible en el servidor',
+          })),
+          successfulDocuments: 0,
+          failedDocuments: 3,
+        },
+      });
+
+      render(
+        <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
+      );
+      await waitFor(() => {
+        expect(screen.getByText('INS-2025-001')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getAllByTestId('command-item')[0]);
+      fireEvent.click(
+        screen.getByText('Generar Documentos').closest('button')!,
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByText('Ningún Documento Generado'),
+        ).toBeInTheDocument();
+      });
+      expect(
+        screen.queryByText('Generación Completada'),
+      ).not.toBeInTheDocument();
+      expect(mockToast.success).not.toHaveBeenCalled();
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'No se generó ningún documento (3 documentos)',
+        expect.objectContaining({
+          description: expect.stringContaining('3 con error'),
+        }),
+      );
+    });
+
+    it('con fallos parciales titula "Generación Incompleta" y avisa con warning', async () => {
+      mockBatchGenerateDocuments.mockResolvedValue(MOCK_GENERATION_RESULT);
+
+      render(
+        <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
+      );
+      await waitFor(() => {
+        expect(screen.getByText('INS-2025-001')).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getAllByTestId('command-item')[0]);
+      fireEvent.click(
+        screen.getByText('Generar Documentos').closest('button')!,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Generación Incompleta')).toBeInTheDocument();
+      });
+      expect(mockToast.success).not.toHaveBeenCalled();
+      expect(mockToast.warning).toHaveBeenCalledWith(
+        'Se generaron 2 de 3 documentos',
+        expect.anything(),
+      );
     });
 
     it('clears generation result when case changes', async () => {
