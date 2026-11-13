@@ -142,6 +142,10 @@ describe('batchGenerateDocuments — troceo en tandas (GD-A1)', () => {
       caseNumber: 'INSOL-000001',
       debtorName: 'Juan Pérez',
       type: 'INSOLVENCY',
+      // Carpeta v0 ya guardada: resolveCaseFolder la devuelve tal cual, sin
+      // ir a Drive, que es lo que estos tests asumían de la ruta vieja.
+      driveFolderId: 'case-folder-id',
+      layoutVersion: 0,
       operatorId: ADMIN_USER.id,
       debtorId: 'debtor-1',
       tenantId: TENANT_ID,

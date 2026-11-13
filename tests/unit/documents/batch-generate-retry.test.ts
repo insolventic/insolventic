@@ -116,6 +116,10 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
       caseNumber: 'INSOL-000001',
       debtorName: 'Juan Pérez',
       type: 'INSOLVENCY',
+      // Carpeta v0 ya guardada: resolveCaseFolder la devuelve tal cual, sin
+      // ir a Drive, que es lo que estos tests asumían de la ruta vieja.
+      driveFolderId: 'case-folder-id',
+      layoutVersion: 0,
       operatorId: ADMIN_USER.id,
       debtorId: 'debtor-1',
       tenantId: TENANT_ID,
@@ -217,9 +221,19 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
   });
 
   it('si no se puede resolver la carpeta del caso, ningún documento queda como generado', async () => {
+    // Caso sin carpeta guardada: resolveCaseFolder tiene que crearla, y Drive
+    // la rechaza.
+    const fila = await mockPrisma.case.findUnique();
+    mockPrisma.case.findUnique.mockResolvedValue({
+      ...fila,
+      driveFolderId: null,
+    });
     const { googleDriveService } = jest.requireMock('@/lib/google-drive');
-    googleDriveService.findOrCreateCaseFolder.mockRejectedValueOnce(
-      new Error('Drive: 403 insufficientPermissions'),
+    // Con status 403: no se reintenta (los temporizadores son falsos aquí).
+    googleDriveService.createFolderHierarchy.mockRejectedValueOnce(
+      Object.assign(new Error('Drive: 403 insufficientPermissions'), {
+        status: 403,
+      }),
     );
 
     const result = await batchGenerateDocuments({

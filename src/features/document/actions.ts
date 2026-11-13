@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
@@ -43,6 +42,7 @@ import {
 import { asCaseWithRelations, fetchCaseForGeneration } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
 import { prepareTemplate, variantDisplayName } from './prepare-template';
+import { resolveCaseFolder } from './case-folder';
 
 export async function getTemplatesFromDatabase() {
   try {
@@ -1139,28 +1139,33 @@ export async function batchGenerateDocuments(input: {
     // on the case query above. The resolveCenterFolderName function uses the
     // authoritative tenant→center mapping, so the folder is always correct.
 
-    // Create case folder in Google Drive for storage
+    // La carpeta del caso la decide resolveCaseFolder: la guardada en
+    // driveFolderId, o la v1 nueva. Antes /documents usaba SIEMPRE la ruta v0
+    // (documentos-generados/{centro}/{N°}) aunque el caso tuviera otra
+    // carpeta guardada, y el expediente quedaba repartido en dos.
     let caseFolderId = '';
     let caseFolderUrl = '';
+    let layoutVersion = 0;
     /** Por qué no hay carpeta, para decirlo en cada documento que no se sube. */
     let errorDeCarpeta = '';
 
     try {
-      const caseFolder = await createCaseFolderInGoogleDrive(
-        caseData.caseNumber,
-        centerFolderName,
-        prisma,
-        tenantId,
-      );
-      caseFolderId = caseFolder.id;
-      caseFolderUrl = caseFolder.webViewLink;
+      const carpeta = await resolveCaseFolder(caseData.id, tenantId);
+      caseFolderId = carpeta.folderId;
+      layoutVersion = carpeta.layoutVersion;
+      const { googleDriveService } = await import('@/lib/google-drive');
+      caseFolderUrl = googleDriveService.getFolderUrl(caseFolderId);
 
-      // Persist folder ID on the case so subsequent operations find it
-      if (caseFolderId && !caseData.driveFolderId) {
-        await prisma.case.update({
-          where: { id: caseData.id, tenantId },
-          data: { driveFolderId: caseFolderId },
-        });
+      // La fila de la carpeta en el índice de la pestaña Drive de /documents
+      // solo existió para las carpetas v0 (documentos-generados/...), que es lo
+      // único que esa pestaña recorre. Se conserva para ellas.
+      if (layoutVersion < 1) {
+        await registrarCarpetaV0EnIndice(
+          caseFolderId,
+          caseData.caseNumber,
+          centerFolderName,
+          tenantId,
+        );
       }
     } catch (driveError) {
       // Se sigue con el lote para que cada documento diga por qué no se
@@ -1459,11 +1464,17 @@ export async function batchGenerateDocuments(input: {
           // subcarpeta no lleva reintento propio, degrada a la carpeta
           // del caso si falla (find-or-create en el siguiente intento
           // la reconstruye; no vale la pena bloquear la subida por esto).
+          // En un caso v1 los generados van dentro de 01-Generados, como en
+          // la ruta automática; un caso v0 conserva su estructura.
+          const rutaDestino =
+            layoutVersion >= 1
+              ? ['01-Generados', ...htmlDoc.template.folderPath]
+              : htmlDoc.template.folderPath;
           let targetFolderId = caseFolderId;
-          if (htmlDoc.template.folderPath.length > 0) {
+          if (rutaDestino.length > 0) {
             try {
               targetFolderId = await googleDriveService.createFolderHierarchy(
-                htmlDoc.template.folderPath,
+                rutaDestino,
                 caseFolderId,
               );
             } catch (folderError) {
@@ -1471,7 +1482,7 @@ export async function batchGenerateDocuments(input: {
                 'Error creating Drive subfolder, falling back to case folder',
                 {
                   action: 'batch-generate-documents',
-                  folderPath: htmlDoc.template.folderPath.join('/'),
+                  folderPath: rutaDestino.join('/'),
                   reason:
                     folderError instanceof Error
                       ? folderError.message
@@ -1782,8 +1793,6 @@ export async function uploadCaseDocument(input: {
         caseNumber: true,
         id: true,
         centroConciliacionNombre: true,
-        driveFolderId: true,
-        layoutVersion: true,
       },
     });
 
@@ -1803,33 +1812,17 @@ export async function uploadCaseDocument(input: {
     // on the case query above. The resolveCenterFolderName function uses the
     // authoritative tenant→center mapping, so the folder is always correct.
 
-    let caseFolderId: string;
-
-    if (caseData.layoutVersion >= 1 && caseData.driveFolderId) {
-      // Layout v1: use the persisted case folder (sectioned hierarchy already exists)
-      caseFolderId = caseData.driveFolderId;
-    } else {
-      // Legacy v0: ensure documentos-generados/{center}/{caseNumber}/
-      const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
-      const centerFolderId = await googleDriveService.createFolderHierarchy(
-        [centerFolderName],
-        docGenFolderId,
-      );
-      caseFolderId = await googleDriveService.findOrCreateCaseFolder(
-        caseData.caseNumber,
-        centerFolderId,
-      );
-      if (!caseData.driveFolderId) {
-        await prisma.case.update({
-          where: { id: caseId, tenantId },
-          data: { driveFolderId: caseFolderId },
-        });
-      }
-    }
+    // La carpeta del caso la decide resolveCaseFolder. Antes, sin carpeta v1
+    // guardada, se recalculaba la ruta v0 por nombre y se guardaba: en el alta
+    // los adjuntos llegaban antes que el job de generación, creaban la v0, y
+    // el job guardaba encima la v1. Ahora quien llega primero crea la v1 con
+    // su layoutVersion y el otro la usa.
+    const carpeta = await resolveCaseFolder(caseId, tenantId);
+    const caseFolderId = carpeta.folderId;
 
     // Adjuntos subfolder name depends on layout version
     const adjuntosFolderName =
-      caseData.layoutVersion >= 1 ? '02-Adjuntos' : 'Adjuntos';
+      carpeta.layoutVersion >= 1 ? '02-Adjuntos' : 'Adjuntos';
     const adjuntosFolderId = await googleDriveService.createFolderHierarchy(
       [adjuntosFolderName],
       caseFolderId,
@@ -1949,48 +1942,28 @@ async function findOrCreateDocumentosGeneradosFolder(): Promise<string> {
 }
 
 /**
- * Creates (or finds) the case folder inside the center's subfolder.
- * Structure: documentos-generados/{centerFolderName}/{caseNumber}/
+ * Fila de la carpeta de un caso v0 en el índice de la pestaña Drive de
+ * `/documents` (`DocumentFromDrive`). La creaba `createCaseFolderInGoogleDrive`,
+ * que ya no existe: la carpeta la decide `resolveCaseFolder`.
  *
- * @param caseNumber - The case number (e.g., "CON-2024-001")
- * @param centerFolderName - The center folder name (e.g., "Armonia", "Construpaz")
- * @param prisma - Prisma client
- * @param tenantId - Tenant ID for DB records
+ * Solo para carpetas v0, las que viven bajo `documentos-generados/{centro}`, que
+ * es lo único que esa pestaña recorre. `parentFolderId` no se toca al actualizar
+ * (lo dejó la sincronización o la creación original); al crear queda vacío,
+ * porque el id de la carpeta del centro ya no se calcula aquí.
  */
-async function createCaseFolderInGoogleDrive(
+async function registrarCarpetaV0EnIndice(
+  caseFolderId: string,
   caseNumber: string,
   centerFolderName: string,
-  prisma: PrismaClient,
   tenantId: string,
-) {
-  const { googleDriveService } = await import('@/lib/google-drive');
-
-  // 1. Get or create "documentos-generados"
-  const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
-
-  // 2. Get or create center subfolder: documentos-generados/{centerFolderName}/
-  const centerFolderId = await googleDriveService.createFolderHierarchy(
-    [centerFolderName],
-    docGenFolderId,
-  );
-
-  // 3. Get or create case folder: documentos-generados/{centerFolderName}/{caseNumber}/
-  const caseFolderId = await googleDriveService.findOrCreateCaseFolder(
-    caseNumber,
-    centerFolderId,
-  );
-
+): Promise<void> {
   await prisma.documentFromDrive.upsert({
     where: {
-      googleDriveId_tenantId: {
-        googleDriveId: caseFolderId,
-        tenantId,
-      },
+      googleDriveId_tenantId: { googleDriveId: caseFolderId, tenantId },
     },
     update: {
       fileName: caseNumber,
       folderPath: [centerFolderName],
-      parentFolderId: centerFolderId,
       updatedAt: new Date(),
     },
     create: {
@@ -1998,19 +1971,13 @@ async function createCaseFolderInGoogleDrive(
       fileName: caseNumber,
       mimeType: 'application/vnd.google-apps.folder',
       folderPath: [centerFolderName],
-      parentFolderId: centerFolderId,
+      parentFolderId: null,
       isFolder: true,
       tenantId,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
   });
-
-  return {
-    id: caseFolderId,
-    name: caseNumber,
-    webViewLink: googleDriveService.getFolderUrl(caseFolderId),
-  };
 }
 
 // Old DOCX/Google Drive pipeline functions removed (processTemplateForCase,
