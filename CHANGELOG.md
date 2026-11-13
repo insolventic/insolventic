@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **La generación de documentos fallaba en producción con "No se pudo leer la plantilla".** Las plantillas, sus estilos, imágenes y membretes no viajaban al servidor de Vercel; ahora se incluyen en el despliegue. En local funcionaba porque el repositorio está en disco. (#191)
+- Un fallo al leer una plantilla registra el código del error, la ruta, la plantilla y el expediente, y la pantalla dice qué plantilla falló y por qué. (#191)
+- **Un documento que no llega a Google Drive ya no aparece como generado.** Si falla la carpeta del caso o la subida, el documento queda como error con su motivo. Gestión de Casos y Gestión de Documentos cuentan generados y fallidos por separado, nombran los que no se generaron, y "Generación Completada" solo aparece si se generó todo. (#191)
+- **El logo del membrete se limita por alto.** El logo cuadrado de Armonía ocupaba más de media primera hoja y agregaba una página en varias plantillas; ahora queda en 100 px de alto respetando la proporción, en las 63 plantillas y para los dos centros. El de Constructores de Paz no cambia. Restablecimiento de Servicios imprimía el logo a tamaño natural y reducía la página entera; también queda corregido. (#191)
+
 ## [1.0.0-rc.2] - 2026-11-08
 
 ### Seguridad
