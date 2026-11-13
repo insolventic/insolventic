@@ -66,24 +66,39 @@ table th {
   margin-bottom: 20px;
 }
 
-.logo-section .logo {
-  max-width: 380px;
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-}
-
 /* Alias para checklist que usa otra clase */
 .header-logo {
   text-align: center;
   margin-bottom: 20px;
 }
 
-.header-logo .logo-institucional {
-  max-width: 380px;
-  width: 100%;
+/* ---- MEMBRETE: tamaño del logo del encabezado ----
+   Un solo punto para las tres variantes del encabezado de insolvencia
+   (.logo-section .logo, .header-logo .logo-institucional del Check List y
+   .encabezado .logo-principal de las remisiones al juzgado).
+
+   El alto manda y el ancho sigue la proporción de la imagen: cada centro
+   tiene un logo distinto (Constructores de Paz es apaisado, ~4,5:1; Armonía
+   es cuadrado). Fijar solo el ancho, como se hacía, dejaba el logo cuadrado
+   en 380 x 380 px: más de media hoja y una página de más.
+
+   Con estos topes el apaisado no cambia (lo sigue limitando el ancho: 380 px
+   de ancho, ~85 px de alto; 260 px en las remisiones) y el cuadrado queda en
+   100 x 100 px. La misma regla está en
+   conciliation/CSS/styles-conciliacion-base.css y, porque su hoja no recibe
+   esta base, en styles-restablecimiento-servicios.css. */
+.logo-section .logo,
+.header-logo .logo-institucional,
+.encabezado .logo-principal {
+  width: auto;
   height: auto;
+  max-width: 380px;
+  max-height: 100px;
   object-fit: contain;
+}
+
+.encabezado .logo-principal {
+  max-width: 260px;
 }
 
 /* ---- CUADROS / INFO-TABLE (Deudor, Cédula, Trámite) ---- */

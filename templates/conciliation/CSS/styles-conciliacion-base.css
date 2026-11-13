@@ -65,10 +65,15 @@ table th {
   margin-bottom: 20px;
 }
 
+/* ---- MEMBRETE: tamaño del logo del encabezado ----
+   Misma regla que insolvency/CSS/styles-base.css (ver el porqué allí): el
+   alto manda y el ancho sigue la proporción del logo de cada centro. Cubre
+   conciliación y acuerdos de apoyo, que importan esta base. */
 .logo-section .logo {
-  max-width: 380px;
-  width: 100%;
+  width: auto;
   height: auto;
+  max-width: 380px;
+  max-height: 100px;
   object-fit: contain;
 }
 
