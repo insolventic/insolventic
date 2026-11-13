@@ -421,6 +421,7 @@ async function generateDocument(
       placeholders,
       buildTemplateContext(caseData),
       SIN_VARIANTE,
+      { caseId: caseData.id },
     );
     const { html: filledHtml, unresolved } = coverage;
 
@@ -619,6 +620,7 @@ async function prepareDocument(
       placeholders,
       extraContext,
       variant,
+      { caseId: caseData.id },
     );
   } catch (error) {
     return {
@@ -1152,6 +1154,7 @@ export async function previewDocument(
     mapCaseToPlaceholders(caseData),
     buildTemplateContext(caseData),
     SIN_VARIANTE,
+    { caseId: caseData.id },
   );
 
   // C-3: mismo bloqueo que en la generación por lotes — regenerar no puede

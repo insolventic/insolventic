@@ -82,25 +82,91 @@ export function variantDisplayName(
   return variant.label ? `${template.name} — ${variant.label}` : template.name;
 }
 
+/** Datos del expediente para ubicar un fallo de lectura en los logs. */
+export interface ContextoDePlantilla {
+  caseId?: string;
+}
+
+/**
+ * La plantilla no se pudo leer del disco.
+ *
+ * Conserva lo que hace falta para diagnosticar sin reproducir: el código del
+ * sistema (`ENOENT` cuando el archivo no está en el bundle o el disco), la
+ * ruta relativa que se intentó, la plantilla y el expediente. El mensaje es el
+ * que llega a la UI, así que nombra la plantilla y dice qué hacer.
+ */
+export class PlantillaNoDisponibleError extends Error {
+  readonly code: string | undefined;
+  readonly templatePath: string;
+  readonly templateId: string;
+  readonly caseId: string | undefined;
+
+  constructor(
+    template: DocumentTemplate,
+    templatePath: string,
+    code: string | undefined,
+    caseId: string | undefined,
+    cause: unknown,
+  ) {
+    const motivo =
+      code === 'ENOENT'
+        ? 'no está disponible en el servidor'
+        : 'no se pudo leer en el servidor';
+    super(
+      `La plantilla "${template.name}" ${motivo} (${templatePath}${code ? `, ${code}` : ''}). ` +
+        'El documento no se generó; avise al administrador del sistema.',
+      { cause },
+    );
+    this.name = 'PlantillaNoDisponibleError';
+    this.code = code;
+    this.templatePath = templatePath;
+    this.templateId = template.id;
+    this.caseId = caseId;
+  }
+}
+
+function codigoDeError(error: unknown): string | undefined {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'string' ? code : undefined;
+}
+
 /**
  * Lee la plantilla del disco.
  *
  * Las dos rutas resolvían la misma ruta de la misma forma
  * (`path.join(process.cwd(), getTemplatePath(template))`), una con un helper
  * privado y la otra a mano.
+ *
+ * En Vercel la ruta solo existe porque `next.config.ts` incluye `templates/`
+ * en el bundle (`outputFileTracingIncludes`): @vercel/nft no sigue una ruta
+ * armada en runtime. Un `ENOENT` acá en producción casi siempre es eso.
  */
 export async function readTemplateFile(
   template: DocumentTemplate,
+  contexto: ContextoDePlantilla = {},
 ): Promise<string> {
   const templatePath = getTemplatePath(template);
+  const resolvedPath = path.join(process.cwd(), templatePath);
   try {
-    return await fs.readFile(path.join(process.cwd(), templatePath), 'utf-8');
+    return await fs.readFile(resolvedPath, 'utf-8');
   } catch (error) {
+    const code = codigoDeError(error);
     logger.error('Error reading template', error, {
       action: 'prepare-template',
+      code,
       templatePath,
+      resolvedPath,
+      templateId: template.id,
+      templateName: template.name,
+      caseId: contexto.caseId,
     });
-    throw new Error(`No se pudo leer la plantilla: ${templatePath}`);
+    throw new PlantillaNoDisponibleError(
+      template,
+      templatePath,
+      code,
+      contexto.caseId,
+      error,
+    );
   }
 }
 
@@ -120,8 +186,9 @@ export async function prepareTemplate(
   placeholders: Record<string, string>,
   extraContext: Record<string, unknown> | undefined,
   variant: TemplateVariant,
+  contexto: ContextoDePlantilla = {},
 ): Promise<PreparedTemplate> {
-  const htmlContent = await readTemplateFile(template);
+  const htmlContent = await readTemplateFile(template, contexto);
 
   const variantPlaceholders =
     Object.keys(variant.overlay).length > 0
