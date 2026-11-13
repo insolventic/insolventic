@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Un expediente ya no queda con documentos repartidos en dos carpetas de Google Drive.** `/documents` subía siempre a la carpeta antigua (`documentos-generados/{centro}/{N°}`) aunque el caso tuviera otra guardada, y en el alta los adjuntos creaban esa carpeta antigua antes de que la generación guardara la nueva encima. Ahora todo lo que se genera o se adjunta a un caso, desde cualquier módulo, va a la carpeta guardada del caso; si no tiene, se crea una sola vez. Los casos antiguos conservan su carpeta: no se mueve ni se borra nada en Drive. Los comprobantes de pago quedan para un cambio aparte.
+- Regenerar un documento y generar los de admisión, acuerdo o fracaso ya no fallan con «El caso no tiene una carpeta de Google Drive asociada»: la carpeta se crea. El cambio de fase tampoco se salta la generación por esa causa.
 - **La generación de documentos fallaba en producción con "No se pudo leer la plantilla".** Las plantillas, sus estilos, imágenes y membretes no viajaban al servidor de Vercel; ahora se incluyen en el despliegue. En local funcionaba porque el repositorio está en disco. (#191)
 - Un fallo al leer una plantilla registra el código del error, la ruta, la plantilla y el expediente, y la pantalla dice qué plantilla falló y por qué. (#191)
 - **Un documento que no llega a Google Drive ya no aparece como generado.** Si falla la carpeta del caso o la subida, el documento queda como error con su motivo. Gestión de Casos y Gestión de Documentos cuentan generados y fallidos por separado, nombran los que no se generaron, y "Generación Completada" solo aparece si se generó todo. (#191)
