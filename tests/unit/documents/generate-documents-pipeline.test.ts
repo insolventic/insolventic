@@ -193,6 +193,21 @@ describe('generateFromTemplates — pipeline en 3 fases (P1)', () => {
     expect(mockUploadFile).toHaveBeenCalledTimes(6);
     expect(mockCreateFolderHierarchy).toHaveBeenCalledTimes(1);
   });
+
+  // Antes un documento sin carpeta donde subirse salía como 'success' con
+  // googleDriveUrl vacío: generado para la UI, ausente en Drive.
+  it('sin carpeta del caso, los documentos que había que subir quedan como error', async () => {
+    const caseData = makeCase({ type: 'INSOLVENCY' });
+    const result = await generateDocumentsForAdmission(caseData as never, '');
+
+    expect(result.filter((d) => d.status === 'success')).toHaveLength(0);
+    const errores = result.filter((d) => d.status === 'error');
+    expect(errores).toHaveLength(6);
+    expect(
+      errores.every((d) => d.error?.startsWith('No se subió a Google Drive')),
+    ).toBe(true);
+    expect(mockUploadFile).not.toHaveBeenCalled();
+  });
 });
 
 /**
