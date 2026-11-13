@@ -1225,6 +1225,7 @@ export async function batchGenerateDocuments(input: {
           placeholders,
           batchExtraCtx,
           variant,
+          { caseId: caseData.id },
         );
 
         // C-3: esta ruta —la que más usan los operadores desde /documents— no
@@ -1273,10 +1274,20 @@ export async function batchGenerateDocuments(input: {
           displayName,
         });
       } catch (readError) {
-        console.error(
-          `[batchGenerateDocuments] FAILED to read template ${template.name} from ${getTemplatePath(template)}:`,
-          readError,
-        );
+        // Un fallo de lectura ya quedo en el log, con codigo y expediente,
+        // dentro de readTemplateFile. Aca solo falta lo que no es lectura.
+        // Por nombre y no por instanceof: los tests mockean el modulo.
+        if (
+          !(readError instanceof Error) ||
+          readError.name !== 'PlantillaNoDisponibleError'
+        ) {
+          logger.error('Error preparing template', readError, {
+            action: 'batch-generate-documents',
+            caseId: caseData.id,
+            templateId: template.id,
+            templatePath: getTemplatePath(template),
+          });
+        }
         documents.push({
           templateId: template.id,
           templateName: displayName,
