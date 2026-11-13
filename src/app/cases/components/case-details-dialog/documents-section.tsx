@@ -27,6 +27,11 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  avisoDeGeneracion,
+  resumirGeneracion,
+  type ResultadoDeDocumento,
+} from '@/features/document/resumen-generacion';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { PreGenerationForm } from './pre-generation-form';
@@ -68,6 +73,31 @@ const FAILURE_TYPES = [
   { id: 'vencimiento-terminos', name: 'Fracaso por Vencimiento de Términos' },
 ];
 
+/**
+ * Avisa el resultado de una etapa contando éxitos y fallos por separado.
+ *
+ * Antes el aviso era siempre `toast.success` con `documents.length`, que
+ * incluye los fallidos: con todas las plantillas caídas decía "Se generaron
+ * 6 documentos" y el error quedaba solo en el servidor.
+ */
+function avisarResultado(
+  documentos: ReadonlyArray<ResultadoDeDocumento> | undefined,
+  etapa: string,
+) {
+  const aviso = avisoDeGeneracion(resumirGeneracion(documentos ?? []), etapa);
+  toast[aviso.tipo](
+    aviso.titulo,
+    aviso.descripcion
+      ? {
+          description: (
+            <span className="whitespace-pre-line">{aviso.descripcion}</span>
+          ),
+          duration: 15000,
+        }
+      : undefined,
+  );
+}
+
 export function DocumentsSection({
   caseData,
   onDocumentsGenerated,
@@ -89,9 +119,7 @@ export function DocumentsSection({
     try {
       const result = await generateInitialDocuments(caseData.id);
       if (result.success) {
-        toast.success(
-          `Se generaron ${result.data?.documents.length || 0} documentos iniciales`,
-        );
+        avisarResultado(result.data?.documents, 'documentos iniciales');
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
@@ -125,9 +153,7 @@ export function DocumentsSection({
     try {
       const result = await generateAdmissionDocuments(caseData.id);
       if (result.success) {
-        toast.success(
-          `Se generaron ${result.data?.length || 0} documentos de admisión`,
-        );
+        avisarResultado(result.data, 'documentos de admisión');
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
@@ -159,9 +185,7 @@ export function DocumentsSection({
     try {
       const result = await generateAgreementDocuments(caseData.id);
       if (result.success) {
-        toast.success(
-          `Se generaron ${result.data?.length || 0} documentos de acuerdo`,
-        );
+        avisarResultado(result.data, 'documentos de acuerdo');
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
@@ -192,9 +216,7 @@ export function DocumentsSection({
         selectedFailureType,
       );
       if (result.success) {
-        toast.success(
-          `Se generaron ${result.data?.length || 0} documentos de fracaso`,
-        );
+        avisarResultado(result.data, 'documentos de fracaso');
         onDocumentsGenerated?.();
       } else {
         toast.error(result.error || 'Error al generar documentos');
