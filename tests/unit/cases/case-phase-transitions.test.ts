@@ -40,6 +40,13 @@ jest.mock('@/features/audit-log/actions', () => ({
 jest.mock('@/features/payment/actions', () => ({
   generatePaymentSchedule: jest.fn().mockResolvedValue({ success: true }),
 }));
+// La carpeta del caso la decide resolveCaseFolder (probado aparte en
+// tests/unit/documents/case-folder.test.ts). Aquí: la guardada si el caso la
+// tiene; si no, una creada.
+const mockResolveCaseFolder = jest.fn();
+jest.mock('@/features/document/case-folder', () => ({
+  resolveCaseFolder: (...args: unknown[]) => mockResolveCaseFolder(...args),
+}));
 
 import {
   CASE_PHASE_VALUES,
@@ -582,6 +589,12 @@ describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.
     mockAuthenticateUser.mockReset();
     jest.clearAllMocks();
     authAsAdmin();
+    mockResolveCaseFolder.mockImplementation(async () => {
+      const fila = await mockPrisma.case.findUnique();
+      return fila?.driveFolderId
+        ? { folderId: fila.driveFolderId, layoutVersion: 1, creada: false }
+        : { folderId: 'carpeta-creada', layoutVersion: 1, creada: true };
+    });
   });
 
   const caseWithFolder = (
@@ -649,7 +662,7 @@ describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.
     );
   });
 
-  it('no genera documentos si el caso no tiene carpeta de Drive', async () => {
+  it('sin carpeta de Drive, la crea con resolveCaseFolder y genera en ella (antes se saltaba la generación)', async () => {
     mockPrisma.case.findUnique.mockResolvedValue(
       caseWithFolder('Inicial', { driveFolderId: null }),
     );
@@ -663,6 +676,31 @@ describe('updateCasePhase — generación de documentos con lock (Fase 2 paso 2.
     });
 
     expect(result.success).toBe(true);
+    expect(mockResolveCaseFolder).toHaveBeenCalledWith('case-1', TENANT.id);
+    expect(generateDocumentsForAdmission).toHaveBeenCalledWith(
+      expect.objectContaining({ layoutVersion: 1 }),
+      'carpeta-creada',
+    );
+  });
+
+  it('si Drive falla al crear la carpeta, el cambio de fase igual se guarda y no se genera nada', async () => {
+    mockPrisma.case.findUnique.mockResolvedValue(
+      caseWithFolder('Inicial', { driveFolderId: null }),
+    );
+    mockResolveCaseFolder.mockRejectedValueOnce(new Error('Drive caído'));
+    const {
+      generateDocumentsForAdmission,
+    } = require('@/features/document/generate-documents');
+
+    const result = await updateCasePhase({
+      caseId: 'case-1',
+      newPhase: 'Admisión',
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockPrisma.case.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { phase: 'Admisión' } }),
+    );
     expect(generateDocumentsForAdmission).not.toHaveBeenCalled();
   });
 

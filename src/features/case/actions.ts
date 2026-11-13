@@ -62,6 +62,7 @@ import {
   generateDocumentsForFailure,
 } from '@/features/document/generate-documents';
 import { isValidFailureType } from '@/features/document/templates-config';
+import { resolveCaseFolder } from '@/features/document/case-folder';
 import {
   fetchCaseForGeneration,
   asCaseWithRelations,
@@ -3108,9 +3109,10 @@ export async function updateCasePhase(input: {
     if (PHASES_WITH_DOCUMENTS.includes(newPhase)) {
       const fullCase = await fetchCaseForGeneration(caseId, tenantId);
 
-      if (fullCase?.driveFolderId) {
-        const caseForDocs = asCaseWithRelations(fullCase);
-        const folderId = fullCase.driveFolderId;
+      // Antes, sin driveFolderId la generación se saltaba en silencio. Ahora la
+      // carpeta se crea con resolveCaseFolder, dentro del try de abajo: un
+      // fallo de Drive no revierte el cambio de fase, que ya se guardó.
+      if (fullCase) {
         const kind: GenerationKind =
           newPhase === 'Admisión'
             ? 'ADMISSION'
@@ -3119,6 +3121,10 @@ export async function updateCasePhase(input: {
               : 'FAILURE';
 
         try {
+          const carpeta = await resolveCaseFolder(caseId, tenantId);
+          fullCase.layoutVersion = carpeta.layoutVersion;
+          const caseForDocs = asCaseWithRelations(fullCase);
+          const folderId = carpeta.folderId;
           const lock = await runWithGenerationLock(
             { tenantId, caseId, kind, userId: user.id },
             async () => {

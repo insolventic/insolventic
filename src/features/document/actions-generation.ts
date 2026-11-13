@@ -20,6 +20,7 @@ import {
   type GeneratedDocument,
 } from './generate-documents';
 import { getAllTemplates } from './templates-config';
+import { resolveCaseFolder } from './case-folder';
 import {
   asCaseWithRelations,
   fetchCaseForGeneration,
@@ -132,17 +133,15 @@ export async function regenerateCaseDocument(input: {
     // una segunda consulta.
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
-    if (!caseData.driveFolderId) {
-      return {
-        success: false,
-        error: 'El caso no tiene una carpeta de Google Drive asociada',
-      };
-    }
+    // Sin carpeta, se crea (resolveCaseFolder) en vez de rechazar la
+    // generación. El layout guardado decide si se anida en 01-Generados.
+    const carpeta = await resolveCaseFolder(caseId, tenantId);
+    caseData.layoutVersion = carpeta.layoutVersion;
 
     const result = await regenerateDocument(
       asCaseWithRelations(caseData),
       templateId,
-      caseData.driveFolderId,
+      carpeta.folderId,
     );
 
     if (result.status === 'success' && result.googleDriveId) {
@@ -312,14 +311,11 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
     // una segunda consulta.
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
-    if (!caseData.driveFolderId) {
-      return {
-        success: false,
-        error: 'El caso no tiene una carpeta de Google Drive asociada',
-      };
-    }
-
-    const driveFolderId = caseData.driveFolderId;
+    // Sin carpeta, se crea (resolveCaseFolder) en vez de rechazar la
+    // generación. El layout guardado decide si se anida en 01-Generados.
+    const carpeta = await resolveCaseFolder(caseId, tenantId);
+    caseData.layoutVersion = carpeta.layoutVersion;
+    const driveFolderId = carpeta.folderId;
     const lock = await runWithGenerationLock(
       { tenantId, caseId, kind: 'ADMISSION', userId: user.id },
       async () => {
@@ -382,14 +378,11 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
     // una segunda consulta.
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
-    if (!caseData.driveFolderId) {
-      return {
-        success: false,
-        error: 'El caso no tiene una carpeta de Google Drive asociada',
-      };
-    }
-
-    const driveFolderId = caseData.driveFolderId;
+    // Sin carpeta, se crea (resolveCaseFolder) en vez de rechazar la
+    // generación. El layout guardado decide si se anida en 01-Generados.
+    const carpeta = await resolveCaseFolder(caseId, tenantId);
+    caseData.layoutVersion = carpeta.layoutVersion;
+    const driveFolderId = carpeta.folderId;
     const lock = await runWithGenerationLock(
       { tenantId, caseId, kind: 'AGREEMENT', userId: user.id },
       async () => {
@@ -455,14 +448,11 @@ export async function generateFailureDocuments(
     // una segunda consulta.
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
-    if (!caseData.driveFolderId) {
-      return {
-        success: false,
-        error: 'El caso no tiene una carpeta de Google Drive asociada',
-      };
-    }
-
-    const driveFolderId = caseData.driveFolderId;
+    // Sin carpeta, se crea (resolveCaseFolder) en vez de rechazar la
+    // generación. El layout guardado decide si se anida en 01-Generados.
+    const carpeta = await resolveCaseFolder(caseId, tenantId);
+    caseData.layoutVersion = carpeta.layoutVersion;
+    const driveFolderId = carpeta.folderId;
     const lock = await runWithGenerationLock(
       { tenantId, caseId, kind: 'FAILURE', userId: user.id },
       async () => {
