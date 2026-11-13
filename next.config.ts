@@ -25,6 +25,24 @@ const nextConfig: NextConfig = {
   // resolve it from node_modules at runtime instead of trying to trace it.
   serverExternalPackages: ['@opentelemetry/api'],
 
+  // Las plantillas de documentos (HTML, CSS, imágenes y membretes por centro)
+  // se leen del disco en runtime con rutas que se arman a partir del catálogo
+  // (`path.join(process.cwd(), getTemplatePath(t))`, html-to-pdf.ts para los
+  // assets). @vercel/nft no puede seguir una ruta dinámica, así que sin esta
+  // inclusión `templates/` no viaja en ninguna función serverless: en local
+  // funciona porque el repo está en disco, y en Vercel cada lectura da ENOENT
+  // ("No se pudo leer la plantilla").
+  //
+  // Se incluye en todas las rutas ('/**') y no solo en /documents y /cases:
+  // las server actions de generación se empaquetan en cada página que las
+  // importa, y una ruta olvidada fallaría solo en producción. El costo es el
+  // tamaño de la carpeta (~3 MB) por función.
+  //
+  // Lo fija tests/unit/documents/plantillas-en-bundle.test.ts.
+  outputFileTracingIncludes: {
+    '/**': ['./templates/**/*'],
+  },
+
   // Cuerpo máximo de una server action. Next corta en 1 MB si no se dice nada,
   // y los comprobantes de pago y los documentos del caso viajan en una server
   // action (hasta 4 MB por archivo, ver MAX_ARCHIVO_MB). Subirlo más no sirve:
