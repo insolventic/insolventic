@@ -1390,6 +1390,14 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Phase 3: Upload to Google Drive and save to DB
+    //
+    // Destino ya resuelto por ruta, para todo el lote. Muchas plantillas
+    // comparten ruta (en un caso v1, todas las de `folderPath: []` van a
+    // `01-Generados`) y con PDF y DOCX cada plantilla sube dos veces: sin esto
+    // cada subida repetía la búsqueda en Drive. Mismo patrón que
+    // `subfolderCache` en la ruta automática (generate-documents.ts). Un fallo
+    // no se guarda: el siguiente documento vuelve a intentar la ruta.
+    const destinoPorRuta = new Map<string, string>();
     for (const htmlDoc of htmlDocuments) {
       // Gather generated file variants for this template
       const variants: Array<{ ext: string; buffer: Buffer; mimeType: string }> =
@@ -1470,13 +1478,15 @@ export async function batchGenerateDocuments(input: {
             layoutVersion >= 1
               ? ['01-Generados', ...htmlDoc.template.folderPath]
               : htmlDoc.template.folderPath;
-          let targetFolderId = caseFolderId;
-          if (rutaDestino.length > 0) {
+          const claveDeRuta = rutaDestino.join('/');
+          let targetFolderId = destinoPorRuta.get(claveDeRuta) ?? caseFolderId;
+          if (rutaDestino.length > 0 && !destinoPorRuta.has(claveDeRuta)) {
             try {
               targetFolderId = await googleDriveService.createFolderHierarchy(
                 rutaDestino,
                 caseFolderId,
               );
+              destinoPorRuta.set(claveDeRuta, targetFolderId);
             } catch (folderError) {
               logger.warn(
                 'Error creating Drive subfolder, falling back to case folder',

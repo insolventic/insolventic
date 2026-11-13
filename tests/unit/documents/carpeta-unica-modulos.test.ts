@@ -325,3 +325,107 @@ describe('una sola carpeta por caso, desde cualquier módulo', () => {
     );
   });
 });
+
+describe('/documents resuelve cada ruta de destino una sola vez por lote', () => {
+  /** Un PDF por cada HTML pedido, para que el lote llegue a la subida. */
+  function pdfParaCadaPlantilla() {
+    const { batchHtmlToPdf } = jest.requireMock('@/lib/html-to-pdf');
+    batchHtmlToPdf.mockImplementation(
+      async (docs: Array<{ filename: string }>) => ({
+        ok: docs.map((d) => ({
+          filename: d.filename.replace(/\.html$/, '.pdf'),
+          buffer: Buffer.from('pdf'),
+        })),
+        failed: [],
+      }),
+    );
+  }
+
+  /** Llamadas a createFolderHierarchy bajo la carpeta del caso (no la raíz). */
+  function busquedasDeSubcarpeta(): string[] {
+    return mockCreateFolderHierarchy.mock.calls
+      .filter(([, padre]) => padre !== 'raiz-de-drive')
+      .map(([ruta]) => (ruta as string[]).join('/'));
+  }
+
+  // Las cuatro con `folderPath: []` en templates-config.ts.
+  const CON_RUTA_VACIA = [
+    'solicitud-insolvencia',
+    'certificado-ingresos',
+    'declaracion-juramentada-domicilio',
+    'inadmision',
+  ];
+
+  it('caso v1: N plantillas con folderPath [] buscan 01-Generados una sola vez y suben todas ahí', async () => {
+    fila = { driveFolderId: 'carpeta-v1', layoutVersion: 1 };
+    pdfParaCadaPlantilla();
+
+    await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: CON_RUTA_VACIA,
+      outputFormat: 'pdf',
+    });
+
+    expect(busquedasDeSubcarpeta()).toEqual(['01-Generados']);
+    expect(mockUploadDocumentToCase).toHaveBeenCalledTimes(
+      CON_RUTA_VACIA.length,
+    );
+    for (const [, , destino] of mockUploadDocumentToCase.mock.calls) {
+      expect(destino).toBe('carpeta-v1/01-Generados');
+    }
+  });
+
+  it('una ruta distinta se resuelve aparte, también una sola vez', async () => {
+    fila = { driveFolderId: 'carpeta-v1', layoutVersion: 1 };
+    pdfParaCadaPlantilla();
+
+    await batchGenerateDocuments({
+      caseId: 'case-1',
+      // cyg-tramite va a ['Formatos Para Audiencias'].
+      templateIds: [...CON_RUTA_VACIA, 'cyg-tramite'],
+      outputFormat: 'pdf',
+    });
+
+    expect(busquedasDeSubcarpeta().sort()).toEqual([
+      '01-Generados',
+      '01-Generados/Formatos Para Audiencias',
+    ]);
+  });
+
+  it('caso v0 con folderPath []: sube a la carpeta del caso sin buscar subcarpetas', async () => {
+    fila = { driveFolderId: 'carpeta-v0', layoutVersion: 0 };
+    pdfParaCadaPlantilla();
+
+    await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: CON_RUTA_VACIA,
+      outputFormat: 'pdf',
+    });
+
+    expect(busquedasDeSubcarpeta()).toEqual([]);
+    for (const [, , destino] of mockUploadDocumentToCase.mock.calls) {
+      expect(destino).toBe('carpeta-v0');
+    }
+  });
+
+  it('si la búsqueda falla no se guarda: el documento siguiente la reintenta', async () => {
+    fila = { driveFolderId: 'carpeta-v1', layoutVersion: 1 };
+    pdfParaCadaPlantilla();
+    mockCreateFolderHierarchy.mockRejectedValueOnce(new Error('Drive 503'));
+
+    await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: CON_RUTA_VACIA,
+      outputFormat: 'pdf',
+    });
+
+    expect(busquedasDeSubcarpeta()).toEqual(['01-Generados', '01-Generados']);
+    const destinos = mockUploadDocumentToCase.mock.calls.map(([, , d]) => d);
+    // El primero cayó a la carpeta del caso (fallback de siempre); los demás,
+    // a la subcarpeta resuelta en el reintento.
+    expect(destinos[0]).toBe('carpeta-v1');
+    expect(destinos.slice(1)).toEqual(
+      Array(CON_RUTA_VACIA.length - 1).fill('carpeta-v1/01-Generados'),
+    );
+  });
+});
