@@ -494,7 +494,15 @@ async function generateDocument(
     let googleDriveId = '';
     let googleDriveUrl = '';
 
-    if (options.uploadToGoogleDrive && caseFolderId) {
+    // Si había que subirlo y no hay carpeta, el documento no está en Drive:
+    // es un error, no un 'success' con URL vacía.
+    if (options.uploadToGoogleDrive && !caseFolderId) {
+      throw new Error(
+        'No se subió a Google Drive: el caso no tiene carpeta en Drive.',
+      );
+    }
+
+    if (options.uploadToGoogleDrive) {
       // Create subfolder if template has folder path
       const targetFolderId = await createDocumentSubfolder(
         caseFolderId,
@@ -714,7 +722,15 @@ async function uploadGeneratedDocument(
     let googleDriveId = '';
     let googleDriveUrl = '';
 
-    if (options.uploadToGoogleDrive && caseFolderId) {
+    // Si había que subirlo y no hay carpeta, el documento no está en Drive:
+    // es un error, no un 'success' con URL vacía.
+    if (options.uploadToGoogleDrive && !caseFolderId) {
+      throw new Error(
+        'No se subió a Google Drive: el caso no tiene carpeta en Drive.',
+      );
+    }
+
+    if (options.uploadToGoogleDrive) {
       const targetFolderId = await createDocumentSubfolder(
         caseFolderId,
         prepared.template.folderPath,

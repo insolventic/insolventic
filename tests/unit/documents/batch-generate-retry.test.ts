@@ -180,7 +180,7 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
     );
   });
 
-  it('agotados los reintentos, el documento queda registrado sin URL pero no rompe el lote', async () => {
+  it('agotados los reintentos, el documento es un error y no rompe el lote', async () => {
     mockUploadDocumentToCase.mockRejectedValue(
       new Error('ETIMEDOUT: Drive no respondió'),
     );
@@ -199,12 +199,46 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
     expect(mockUploadDocumentToCase).toHaveBeenCalledTimes(3);
 
     const data = result.data as {
-      documents: Array<{ status: string; documentUrl: string }>;
+      documents: Array<{ status: string; documentUrl: string; error?: string }>;
+      successfulDocuments: number;
+      failedDocuments: number;
+    };
+    expect(result.success).toBe(true);
+    expect(data.documents).toHaveLength(1);
+    // Antes quedaba como 'success' con URL vacía: el operador lo veía
+    // generado y en Drive no estaba.
+    expect(data.documents[0].status).toBe('error');
+    expect(data.documents[0].error).toMatch(
+      /No se subió a Google Drive: ETIMEDOUT/,
+    );
+    expect(data.successfulDocuments).toBe(0);
+    expect(data.failedDocuments).toBe(1);
+    expect(mockPrisma.document.create).not.toHaveBeenCalled();
+  });
+
+  it('si no se puede resolver la carpeta del caso, ningún documento queda como generado', async () => {
+    const { googleDriveService } = jest.requireMock('@/lib/google-drive');
+    googleDriveService.findOrCreateCaseFolder.mockRejectedValueOnce(
+      new Error('Drive: 403 insufficientPermissions'),
+    );
+
+    const result = await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: ['solicitud-insolvencia'],
+      outputFormat: 'pdf',
+    });
+
+    const data = result.data as {
+      documents: Array<{ status: string; error?: string }>;
+      successfulDocuments: number;
     };
     expect(data.documents).toHaveLength(1);
-    // Se agota el reintento, no el lote: el documento queda igual que antes
-    // de este cambio (registrado, sin URL), no lanza ni bloquea el resto.
-    expect(data.documents[0].status).toBe('success');
-    expect(data.documents[0].documentUrl).toBe('');
+    expect(data.documents[0].status).toBe('error');
+    expect(data.documents[0].error).toMatch(
+      /no se pudo resolver la carpeta del caso \(Drive: 403 insufficientPermissions\)/,
+    );
+    expect(data.successfulDocuments).toBe(0);
+    expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
+    expect(mockPrisma.document.create).not.toHaveBeenCalled();
   });
 });

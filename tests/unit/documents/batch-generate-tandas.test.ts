@@ -93,6 +93,14 @@ jest.mock('@/lib/html-to-pdf', () => ({
 
 jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
+    // La carpeta del caso tiene que resolverse: sin ella el documento es un
+    // error (no se registra sin URL) y el test dejaría de probar las tandas.
+    listFoldersAndFiles: jest.fn().mockResolvedValue({
+      folders: [{ id: 'docgen-id', name: 'documentos-generados' }],
+      files: [],
+    }),
+    findOrCreateCaseFolder: jest.fn().mockResolvedValue('case-folder-id'),
+    getFolderUrl: jest.fn((id: string) => `https://drive.example/folder/${id}`),
     createFolderHierarchy: jest.fn().mockResolvedValue('center-folder-id'),
     uploadDocumentToCase: jest.fn().mockResolvedValue({
       fileId: 'file-1',
