@@ -11,8 +11,6 @@ import {
   assertCaseAccess,
   assertCaseAccessOnRow,
 } from '@/features/case/case-access';
-import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
-import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import {
   generateDocumentsForNewCase,
   generateDocumentsForAdmission,
@@ -238,35 +236,23 @@ export async function generateInitialDocuments(caseId: string): Promise<{
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
     const caseWithRelations = asCaseWithRelations(caseData);
-    // Fail-closed: si por lo que sea no hay slug (no debería pasar, ver
-    // tenant-slug.ts), cae al cuid — que resolveCenterFolderName no
-    // reconoce y por eso lanza, en vez de adivinar un centro.
-    const centerFolderName = resolveCenterFolderName(
-      tenantSlugDelCaso(caseWithRelations) ?? tenantId,
-      caseData.centroConciliacionNombre,
-    );
 
     let folderInfo = { caseFolderId: '', caseFolderUrl: '' };
     const lock = await runWithGenerationLock(
       { tenantId, caseId, kind: 'INITIAL', userId: user.id },
       async () => {
+        // La carpeta (y su layoutVersion) la resuelve y la guarda
+        // resolveCaseFolder. Antes aquí se guardaba driveFolderId sin
+        // layoutVersion, pisando la carpeta que el caso ya tuviera.
         const result = await generateDocumentsForNewCase(
           caseWithRelations,
           {},
-          centerFolderName,
+          tenantId,
         );
         folderInfo = {
           caseFolderId: result.caseFolderId,
           caseFolderUrl: result.caseFolderUrl,
         };
-
-        // Update case with folder ID
-        if (result.caseFolderId) {
-          await prisma.case.update({
-            where: { id: caseId, tenantId },
-            data: { driveFolderId: result.caseFolderId },
-          });
-        }
 
         // Create document records
         await persistGeneratedDocuments(result.documents, caseId, tenantId);

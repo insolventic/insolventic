@@ -12,8 +12,6 @@
 
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
-import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import { generateDocumentsForNewCase } from './generate-documents';
 import {
   fetchCaseForGeneration,
@@ -98,24 +96,15 @@ export async function runInitialGenerationJob(params: {
       throw new Error('Caso no encontrado para generación');
     }
 
-    const caseWithRelations = asCaseWithRelations(caseData);
-    const centerFolderName = resolveCenterFolderName(
-      tenantSlugDelCaso(caseWithRelations) ?? tenantId,
-      caseData.centroConciliacionNombre,
-    );
-
+    // La carpeta la resuelve y la guarda resolveCaseFolder, dentro de
+    // generateDocumentsForNewCase, con su layoutVersion. Aquí ya no se escribe:
+    // antes este update pisaba sin condición la carpeta que los adjuntos del
+    // alta hubieran guardado mientras el job corría.
     const result = await generateDocumentsForNewCase(
-      caseWithRelations,
+      asCaseWithRelations(caseData),
       {},
-      centerFolderName,
+      tenantId,
     );
-
-    if (result.caseFolderId) {
-      await prisma.case.update({
-        where: { id: caseId, tenantId },
-        data: { driveFolderId: result.caseFolderId, layoutVersion: 1 },
-      });
-    }
 
     await persistGeneratedDocuments(result.documents, caseId, tenantId);
 

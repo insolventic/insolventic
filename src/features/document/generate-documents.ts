@@ -33,6 +33,7 @@ import {
   type DocumentTemplate,
 } from './templates-config';
 import { generateAndUploadExcel } from './generate-excel';
+import { resolveCaseFolder } from './case-folder';
 import type { CaseWithRelations } from '../case/schemas';
 
 /**
@@ -238,107 +239,6 @@ const defaultOptions: GenerationOptions = {
   generateDocx: false,
   uploadToGoogleDrive: true,
 };
-
-/**
- * Map case type code to human-readable folder label.
- */
-function caseTypeFolderLabel(
-  caseType: 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT',
-): string {
-  switch (caseType) {
-    case 'CONCILIATION':
-      return 'Conciliación';
-    case 'SUPPORT_AGREEMENT':
-      return 'Acuerdos de Apoyo';
-    case 'INSOLVENCY':
-    default:
-      return 'Insolvencia';
-  }
-}
-
-/**
- * Extracts surname from a debtor name (last token), sanitized for Drive.
- */
-function extractSurname(debtorName: string): string {
-  const cleaned = (debtorName || '').trim().replace(/[\\/\0]/g, '');
-  if (!cleaned) return '';
-  const parts = cleaned.split(/\s+/);
-  // Use last 2 tokens when available (likely both apellidos)
-  const tail = parts.slice(-2).join(' ');
-  return tail.substring(0, 40);
-}
-
-/**
- * Get or create case folder in Google Drive.
- *
- * Layout v1 (new cases):
- *   {root}/Insolventic/{Centro}/{TipoCaso}/{YYYY}/{caseNumber} - {Apellido}/
- *
- * Layout v0 (legacy — kept for back-compat with cases already on disk):
- *   {root}/documentos-generados/{Centro}/{caseNumber}/
- */
-async function getOrCreateCaseFolder(
-  caseNumber: string,
-  debtorName: string,
-  centerFolderName: string,
-  caseType: 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT' = 'INSOLVENCY',
-  layoutVersion: number = 1,
-): Promise<string> {
-  const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!rootFolderId) {
-    throw new Error('GOOGLE_DRIVE_FOLDER_ID no esta configurado');
-  }
-
-  if (layoutVersion >= 1) {
-    // New sectioned layout
-    const year = String(new Date().getFullYear());
-    const surname = extractSurname(debtorName);
-    const caseFolderName = surname ? `${caseNumber} - ${surname}` : caseNumber;
-
-    // Reintento con backoff: la creación de la jerarquía es find-or-create
-    // (idempotente), un fallo transitorio de la API de Drive no debe abortar
-    // toda la generación del expediente.
-    const hierarchyId = await withRetry(
-      () =>
-        googleDriveService.createFolderHierarchy(
-          [
-            'Insolventic',
-            centerFolderName,
-            caseTypeFolderLabel(caseType),
-            year,
-            caseFolderName,
-          ],
-          rootFolderId,
-        ),
-      {
-        label: `case-folder:${caseNumber}`,
-        isRetryable: isRetryableDriveError,
-      },
-    );
-    return hierarchyId;
-  }
-
-  // ----- Legacy layout (v0) -----
-  const rootContents =
-    await googleDriveService.listFoldersAndFiles(rootFolderId);
-  let docGenFolderId = rootContents.folders.find(
-    (f) => f.name?.toLowerCase() === 'documentos-generados',
-  )?.id;
-  if (!docGenFolderId) {
-    docGenFolderId = await googleDriveService.createFolder(
-      'documentos-generados',
-      rootFolderId,
-    );
-  }
-  const centerFolderId = await googleDriveService.createFolderHierarchy(
-    [centerFolderName],
-    docGenFolderId,
-  );
-  return await googleDriveService.findOrCreateCaseFolder(
-    caseNumber,
-    centerFolderId,
-  );
-}
 
 /**
  * Create subfolder structure within case folder.
@@ -924,7 +824,7 @@ async function generateFromTemplates(
 export async function generateDocumentsForNewCase(
   caseData: CaseWithRelations,
   options: GenerationOptions = {},
-  centerFolderName?: string,
+  tenantId?: string,
 ): Promise<{
   caseFolderId: string;
   caseFolderUrl: string;
@@ -936,21 +836,24 @@ export async function generateDocumentsForNewCase(
     'INSOLVENCY';
   const templates = getTemplatesForCaseCreation(caseType);
 
-  // Create case folder in Google Drive
+  // La carpeta del caso la decide resolveCaseFolder: la guardada si ya tiene
+  // (los adjuntos del alta pueden haberla creado antes), o la v1 nueva, que
+  // queda guardada con su layoutVersion. Antes se recalculaba aquí con el año
+  // y el apellido del momento y el job la guardaba encima de la que hubiera.
   let caseFolderId = mergedOptions.caseFolderId || '';
   let caseFolderUrl = '';
 
   if (mergedOptions.uploadToGoogleDrive && !caseFolderId) {
-    caseFolderId = await getOrCreateCaseFolder(
-      caseData.caseNumber,
-      caseData.debtor.name,
-      centerFolderName || 'General',
-      caseType,
-      1, // new cases always use sectioned layout v1
-    );
+    if (!tenantId) {
+      throw new Error('Falta el tenant para resolver la carpeta del caso');
+    }
+    const carpeta = await resolveCaseFolder(caseData.id, tenantId);
+    caseFolderId = carpeta.folderId;
     caseFolderUrl = googleDriveService.getFolderUrl(caseFolderId);
-    // Mark in-memory so createDocumentSubfolder nests templates inside 01-Generados
-    (caseData as { layoutVersion?: number }).layoutVersion = 1;
+    // createDocumentSubfolder anida en 01-Generados según el layout GUARDADO:
+    // un caso v0 conserva su estructura.
+    (caseData as { layoutVersion?: number }).layoutVersion =
+      carpeta.layoutVersion;
   }
 
   const documents = await generateFromTemplates(
