@@ -148,6 +148,11 @@ export function CreateDebtorDialog({
    * vacío en el formulario: "La dirección es requerida" con la dirección
    * escrita. Antes de validar, se copia el valor del DOM a cada campo que
    * difiera.
+   *
+   * Todos los campos llevan `autoComplete="off"`: son datos del deudor, no
+   * del operador, y el navegador no debe sugerir los datos personales de
+   * quien está usando el sistema. Algunos navegadores autocompletan igual
+   * (sobre todo direcciones); esta sincronización cubre esos casos.
    */
   const enviar = (e: FormEvent<HTMLFormElement>) => {
     const enElDom = new FormData(e.currentTarget);
@@ -188,7 +193,7 @@ export function CreateDebtorDialog({
             <Input
               id="newDebtorName"
               placeholder="Nombre completo"
-              autoComplete="name"
+              autoComplete="off"
               className={conError('name')}
               {...register('name')}
             />
@@ -224,7 +229,7 @@ export function CreateDebtorDialog({
               id="newDebtorEmail"
               type="email"
               placeholder="correo@ejemplo.com"
-              autoComplete="email"
+              autoComplete="off"
               className={conError('email')}
               {...register('email')}
             />
@@ -242,7 +247,7 @@ export function CreateDebtorDialog({
               id="newDebtorPhone"
               placeholder="+57 300 123-4567"
               inputMode="tel"
-              autoComplete="tel"
+              autoComplete="off"
               className={conError('phone')}
               {...register('phone')}
             />
@@ -259,7 +264,7 @@ export function CreateDebtorDialog({
             <Input
               id="newDebtorAddress"
               placeholder="Calle 45 #12-34"
-              autoComplete="street-address"
+              autoComplete="off"
               className={conError('address')}
               {...register('address')}
             />
@@ -277,7 +282,7 @@ export function CreateDebtorDialog({
               <Input
                 id="newDebtorCity"
                 placeholder="Bogotá"
-                autoComplete="address-level2"
+                autoComplete="off"
                 className={conError('city')}
                 {...register('city')}
               />
@@ -292,7 +297,7 @@ export function CreateDebtorDialog({
               <Input
                 id="newDebtorDept"
                 placeholder="Cundinamarca"
-                autoComplete="address-level1"
+                autoComplete="off"
                 className={conError('department')}
                 {...register('department')}
               />

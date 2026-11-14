@@ -175,15 +175,21 @@ describe('Crear Nuevo Deudor: validación', () => {
     expect(errorBajo('newDebtorAddress')).toBeNull();
   });
 
-  it('los campos llevan el autoComplete que corresponde', () => {
+  it('ningún campo pide autocompletar: son datos del deudor, no del operador', () => {
     montar();
-    const ac = (id: string) =>
-      document.getElementById(id)!.getAttribute('autocomplete');
-    expect(ac('newDebtorName')).toBe('name');
-    expect(ac('newDebtorEmail')).toBe('email');
-    expect(ac('newDebtorPhone')).toBe('tel');
-    expect(ac('newDebtorAddress')).toBe('street-address');
-    expect(ac('newDebtorCity')).toBe('address-level2');
-    expect(ac('newDebtorDept')).toBe('address-level1');
+    const campos = [
+      'newDebtorName',
+      'newDebtorId',
+      'newDebtorEmail',
+      'newDebtorPhone',
+      'newDebtorAddress',
+      'newDebtorCity',
+      'newDebtorDept',
+    ];
+    for (const id of campos) {
+      expect(document.getElementById(id)!.getAttribute('autocomplete')).toBe(
+        'off',
+      );
+    }
   });
 });
