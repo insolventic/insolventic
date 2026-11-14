@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -21,7 +21,12 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
-// Validation schema with clear, specific Spanish messages
+// Validation schema with clear, specific Spanish messages.
+//
+// Dirección, ciudad y departamento son obligatorios con los mismos mensajes
+// que `debtorSchema` (src/features/debtor/schemas.ts). Antes la dirección era
+// opcional aquí y obligatoria en el servidor: el diálogo dejaba enviar sin
+// ella y el rechazo llegaba del servidor, no bajo el campo.
 const createDebtorQuickSchema = z.object({
   name: z
     .string()
@@ -40,18 +45,30 @@ const createDebtorQuickSchema = z.object({
     .string()
     .min(1, 'El teléfono es obligatorio')
     .min(7, 'El teléfono debe tener al menos 7 dígitos'),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  department: z.string().optional(),
+  address: z.string().min(1, 'La dirección es requerida'),
+  city: z.string().min(1, 'La ciudad es requerida'),
+  department: z.string().min(1, 'El departamento es requerido'),
 });
 
 export type QuickDebtorFormData = z.infer<typeof createDebtorQuickSchema>;
+
+const CAMPOS = Object.keys(
+  createDebtorQuickSchema.shape,
+) as (keyof QuickDebtorFormData)[];
+
+/** Lo que devuelve `onSubmit` cuando el alta falla. */
+export interface ErrorAlCrearDeudor {
+  /** Mensaje legible (nunca el JSON de un error de validación). */
+  error: string;
+  /** Error por campo, tal como lo devuelve `createDebtor`. */
+  fieldErrors?: Record<string, string>;
+}
 
 interface CreateDebtorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   creatingDebtor: boolean;
-  onSubmit: (data: QuickDebtorFormData) => Promise<string | null>;
+  onSubmit: (data: QuickDebtorFormData) => Promise<ErrorAlCrearDeudor | null>;
 }
 
 export function CreateDebtorDialog({
@@ -67,6 +84,9 @@ export function CreateDebtorDialog({
     handleSubmit,
     formState: { errors },
     reset,
+    getValues,
+    setValue,
+    setError,
   } = useForm<QuickDebtorFormData>({
     resolver: zodResolver(createDebtorQuickSchema),
     // 'onTouched' y no 'onBlur': valida al salir del campo y, desde ahí,
@@ -101,11 +121,47 @@ export function CreateDebtorDialog({
 
   const onValid = async (data: QuickDebtorFormData) => {
     setServerError(null);
-    const error = await onSubmit(data);
-    if (error) {
-      setServerError(error);
+    const fallo = await onSubmit(data);
+    if (!fallo) return;
+
+    // El error de un campo del formulario va bajo ese campo; lo demás, a la
+    // alerta, como texto.
+    let ligados = 0;
+    for (const [campo, mensaje] of Object.entries(fallo.fieldErrors ?? {})) {
+      if ((CAMPOS as string[]).includes(campo)) {
+        setError(
+          campo as keyof QuickDebtorFormData,
+          { type: 'server', message: mensaje },
+          { shouldFocus: ligados === 0 },
+        );
+        ligados++;
+      }
     }
+    if (ligados === 0) setServerError(fallo.error);
   };
+
+  /**
+   * Lo que se ve es lo que se envía. Los campos son no controlados
+   * (`register`) y `handleSubmit` valida los valores que registró `onChange`.
+   * Un autocompletado que rellena el campo sin disparar `input` (algunos
+   * navegadores y gestores de contraseñas) dejaba el campo lleno a la vista y
+   * vacío en el formulario: "La dirección es requerida" con la dirección
+   * escrita. Antes de validar, se copia el valor del DOM a cada campo que
+   * difiera.
+   */
+  const enviar = (e: FormEvent<HTMLFormElement>) => {
+    const enElDom = new FormData(e.currentTarget);
+    for (const campo of CAMPOS) {
+      const valor = enElDom.get(campo);
+      if (typeof valor === 'string' && valor !== (getValues(campo) ?? '')) {
+        setValue(campo, valor, { shouldDirty: true });
+      }
+    }
+    return handleSubmit(onValid)(e);
+  };
+
+  const conError = (campo: keyof QuickDebtorFormData) =>
+    errors[campo] ? 'border-red-500 focus-visible:ring-red-500' : '';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -116,7 +172,7 @@ export function CreateDebtorDialog({
             Ingrese la información básica del deudor
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit(onValid)} className="grid gap-4 py-4">
+        <form onSubmit={enviar} className="grid gap-4 py-4">
           {serverError && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -132,9 +188,8 @@ export function CreateDebtorDialog({
             <Input
               id="newDebtorName"
               placeholder="Nombre completo"
-              className={
-                errors.name ? 'border-red-500 focus-visible:ring-red-500' : ''
-              }
+              autoComplete="name"
+              className={conError('name')}
               {...register('name')}
             />
             {errors.name && (
@@ -151,11 +206,8 @@ export function CreateDebtorDialog({
               id="newDebtorId"
               placeholder="Número de cédula"
               inputMode="numeric"
-              className={
-                errors.idNumber
-                  ? 'border-red-500 focus-visible:ring-red-500'
-                  : ''
-              }
+              autoComplete="off"
+              className={conError('idNumber')}
               {...register('idNumber')}
             />
             {errors.idNumber && (
@@ -172,9 +224,8 @@ export function CreateDebtorDialog({
               id="newDebtorEmail"
               type="email"
               placeholder="correo@ejemplo.com"
-              className={
-                errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''
-              }
+              autoComplete="email"
+              className={conError('email')}
               {...register('email')}
             />
             {errors.email && (
@@ -191,9 +242,8 @@ export function CreateDebtorDialog({
               id="newDebtorPhone"
               placeholder="+57 300 123-4567"
               inputMode="tel"
-              className={
-                errors.phone ? 'border-red-500 focus-visible:ring-red-500' : ''
-              }
+              autoComplete="tel"
+              className={conError('phone')}
               {...register('phone')}
             />
             {errors.phone && (
@@ -201,33 +251,56 @@ export function CreateDebtorDialog({
             )}
           </div>
 
-          {/* Dirección (opcional) */}
+          {/* Dirección */}
           <div className="space-y-1.5">
-            <Label htmlFor="newDebtorAddress">Dirección</Label>
+            <Label htmlFor="newDebtorAddress">
+              Dirección <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="newDebtorAddress"
               placeholder="Calle 45 #12-34"
+              autoComplete="street-address"
+              className={conError('address')}
               {...register('address')}
             />
+            {errors.address && (
+              <p className="text-sm text-red-500">{errors.address.message}</p>
+            )}
           </div>
 
           {/* Ciudad y Departamento en grid */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="newDebtorCity">Ciudad</Label>
+              <Label htmlFor="newDebtorCity">
+                Ciudad <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="newDebtorCity"
                 placeholder="Bogotá"
+                autoComplete="address-level2"
+                className={conError('city')}
                 {...register('city')}
               />
+              {errors.city && (
+                <p className="text-sm text-red-500">{errors.city.message}</p>
+              )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="newDebtorDept">Departamento</Label>
+              <Label htmlFor="newDebtorDept">
+                Departamento <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="newDebtorDept"
                 placeholder="Cundinamarca"
+                autoComplete="address-level1"
+                className={conError('department')}
                 {...register('department')}
               />
+              {errors.department && (
+                <p className="text-sm text-red-500">
+                  {errors.department.message}
+                </p>
+              )}
             </div>
           </div>
 
