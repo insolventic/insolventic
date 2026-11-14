@@ -9,6 +9,7 @@
  */
 
 import { inlineAssets } from './html-to-pdf';
+import { limitarLogosParaDocx } from './docx-imagenes';
 
 interface DocxOptions {
   /** Page margins in millimeters */
@@ -46,9 +47,12 @@ export async function htmlToDocx(
 
   try {
     // Inline assets if base directory provided
-    const processedHtml = assetsBaseDir
+    const inlinedHtml = assetsBaseDir
       ? await inlineAssets(html, assetsBaseDir, docDir)
       : html;
+    // html-to-docx ignora el CSS: sin esto los logos de branding salen a su
+    // tamaño natural, recortado al ancho de la página (ver docx-imagenes.ts).
+    const processedHtml = limitarLogosParaDocx(inlinedHtml);
 
     // html-to-docx uses a default export
     const HTMLtoDOCX = (await import('html-to-docx')).default;
