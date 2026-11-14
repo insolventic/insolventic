@@ -408,24 +408,34 @@ describe('/documents resuelve cada ruta de destino una sola vez por lote', () =>
     }
   });
 
-  it('si la búsqueda falla no se guarda: el documento siguiente la reintenta', async () => {
+  it('si la subcarpeta no se puede crear, ese documento es un error visible y no se sube a la raíz; el siguiente reintenta', async () => {
     fila = { driveFolderId: 'carpeta-v1', layoutVersion: 1 };
     pdfParaCadaPlantilla();
     mockCreateFolderHierarchy.mockRejectedValueOnce(new Error('Drive 503'));
 
-    await batchGenerateDocuments({
+    const resultado = await batchGenerateDocuments({
       caseId: 'case-1',
       templateIds: CON_RUTA_VACIA,
       outputFormat: 'pdf',
     });
 
+    // withRetry está mockeado sin reintento en este archivo: un intento por
+    // documento. El fallo no queda en la caché, así que el segundo reintenta.
     expect(busquedasDeSubcarpeta()).toEqual(['01-Generados', '01-Generados']);
     const destinos = mockUploadDocumentToCase.mock.calls.map(([, , d]) => d);
-    // El primero cayó a la carpeta del caso (fallback de siempre); los demás,
-    // a la subcarpeta resuelta en el reintento.
-    expect(destinos[0]).toBe('carpeta-v1');
-    expect(destinos.slice(1)).toEqual(
+    // Antes el primero caía a la raíz ('carpeta-v1') como generado.
+    expect(destinos).not.toContain('carpeta-v1');
+    expect(destinos).toEqual(
       Array(CON_RUTA_VACIA.length - 1).fill('carpeta-v1/01-Generados'),
+    );
+
+    const data = resultado.data as {
+      documents: Array<{ templateId: string; status: string; error?: string }>;
+    };
+    const fallido = data.documents.find((d) => d.status === 'error');
+    expect(fallido?.templateId).toBe(CON_RUTA_VACIA[0]);
+    expect(fallido?.error).toBe(
+      'No se subió a Google Drive: no se pudo crear la subcarpeta 01-Generados (Drive 503).',
     );
   });
 });

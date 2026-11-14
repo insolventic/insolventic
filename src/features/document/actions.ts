@@ -1468,10 +1468,6 @@ export async function batchGenerateDocuments(input: {
         try {
           const { googleDriveService } = await import('@/lib/google-drive');
 
-          // Igual que createDocumentSubfolder (ruta automatica): la
-          // subcarpeta no lleva reintento propio, degrada a la carpeta
-          // del caso si falla (find-or-create en el siguiente intento
-          // la reconstruye; no vale la pena bloquear la subida por esto).
           // En un caso v1 los generados van dentro de 01-Generados, como en
           // la ruta automática; un caso v0 conserva su estructura.
           const rutaDestino =
@@ -1481,24 +1477,51 @@ export async function batchGenerateDocuments(input: {
           const claveDeRuta = rutaDestino.join('/');
           let targetFolderId = destinoPorRuta.get(claveDeRuta) ?? caseFolderId;
           if (rutaDestino.length > 0 && !destinoPorRuta.has(claveDeRuta)) {
+            // Con reintento, como la carpeta del caso y la subida. Antes un
+            // fallo de Drive aquí (sin reintento) subía el documento a la
+            // raíz de la carpeta del caso y lo daba por generado: quedaba
+            // fuera de su subcarpeta sin que nadie lo viera. Ahora, agotado
+            // el reintento, el documento es un error visible y no se sube.
+            // Un fallo no se guarda en `destinoPorRuta`: el documento
+            // siguiente vuelve a intentar la ruta.
             try {
-              targetFolderId = await googleDriveService.createFolderHierarchy(
-                rutaDestino,
-                caseFolderId,
+              targetFolderId = await withRetry(
+                () =>
+                  googleDriveService.createFolderHierarchy(
+                    rutaDestino,
+                    caseFolderId,
+                  ),
+                {
+                  label: `subcarpeta:${claveDeRuta}`,
+                  isRetryable: isRetryableDriveError,
+                },
               );
               destinoPorRuta.set(claveDeRuta, targetFolderId);
             } catch (folderError) {
+              const motivo =
+                folderError instanceof Error
+                  ? folderError.message
+                  : String(folderError);
               logger.warn(
-                'Error creating Drive subfolder, falling back to case folder',
+                'No se pudo crear la subcarpeta de destino; el documento no se sube',
                 {
                   action: 'batch-generate-documents',
-                  folderPath: rutaDestino.join('/'),
-                  reason:
-                    folderError instanceof Error
-                      ? folderError.message
-                      : String(folderError),
+                  caseId: caseData.id,
+                  templateId: htmlDoc.template.id,
+                  folderPath: claveDeRuta,
+                  reason: motivo,
                 },
               );
+              documents.push({
+                templateId: htmlDoc.template.id,
+                templateName: htmlDoc.displayName,
+                documentId: '',
+                documentName: variantDocName,
+                documentUrl: '',
+                status: 'error',
+                error: `No se subió a Google Drive: no se pudo crear la subcarpeta ${claveDeRuta} (${motivo}).`,
+              });
+              continue;
             }
           }
 

@@ -255,4 +255,106 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
     expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
     expect(mockPrisma.document.create).not.toHaveBeenCalled();
   });
+
+  describe('subcarpeta de destino (caso v1)', () => {
+    beforeEach(async () => {
+      const fila = await mockPrisma.case.findUnique();
+      mockPrisma.case.findUnique.mockResolvedValue({
+        ...fila,
+        driveFolderId: 'case-folder-id',
+        layoutVersion: 1,
+      });
+      mockUploadDocumentToCase.mockResolvedValue({
+        fileId: 'file-1',
+        fileUrl: 'https://drive.example/file/file-1',
+      });
+    });
+
+    it('un fallo transitorio al crear la subcarpeta se reintenta y el documento llega a 01-Generados', async () => {
+      const { googleDriveService } = jest.requireMock('@/lib/google-drive');
+      googleDriveService.createFolderHierarchy
+        .mockRejectedValueOnce(
+          Object.assign(new Error('Drive 503 backendError'), { status: 503 }),
+        )
+        .mockResolvedValueOnce('generados-id');
+
+      const resultPromise = batchGenerateDocuments({
+        caseId: 'case-1',
+        templateIds: ['solicitud-insolvencia'],
+        outputFormat: 'pdf',
+      });
+      await jest.advanceTimersByTimeAsync(500);
+      const result = await resultPromise;
+
+      expect(googleDriveService.createFolderHierarchy).toHaveBeenCalledWith(
+        ['01-Generados'],
+        'case-folder-id',
+      );
+      expect(mockUploadDocumentToCase).toHaveBeenCalledTimes(1);
+      expect(mockUploadDocumentToCase.mock.calls[0][2]).toBe('generados-id');
+      const data = result.data as { documents: Array<{ status: string }> };
+      expect(data.documents[0].status).toBe('success');
+    });
+
+    it('agotado el reintento, el documento es un error visible y no se sube a la raíz', async () => {
+      const { googleDriveService } = jest.requireMock('@/lib/google-drive');
+      googleDriveService.createFolderHierarchy.mockRejectedValue(
+        Object.assign(new Error('Drive 503 backendError'), { status: 503 }),
+      );
+
+      const resultPromise = batchGenerateDocuments({
+        caseId: 'case-1',
+        templateIds: ['solicitud-insolvencia'],
+        outputFormat: 'pdf',
+      });
+      await jest.advanceTimersByTimeAsync(500);
+      await jest.advanceTimersByTimeAsync(1000);
+      const result = await resultPromise;
+
+      // 3 intentos de la subcarpeta y ninguna subida (antes: subía a la raíz).
+      expect(
+        googleDriveService.createFolderHierarchy.mock.calls.filter(
+          ([ruta]: [string[]]) => ruta.join('/') === '01-Generados',
+        ),
+      ).toHaveLength(3);
+      expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
+      expect(mockPrisma.document.create).not.toHaveBeenCalled();
+
+      const data = result.data as {
+        documents: Array<{ status: string; error?: string }>;
+        successfulDocuments: number;
+        failedDocuments: number;
+      };
+      expect(data.documents[0].status).toBe('error');
+      expect(data.documents[0].error).toBe(
+        'No se subió a Google Drive: no se pudo crear la subcarpeta 01-Generados (Drive 503 backendError).',
+      );
+      expect(data.successfulDocuments).toBe(0);
+      expect(data.failedDocuments).toBe(1);
+    });
+
+    it('un error permanente (403) no se reintenta y queda visible', async () => {
+      const { googleDriveService } = jest.requireMock('@/lib/google-drive');
+      googleDriveService.createFolderHierarchy.mockRejectedValue(
+        Object.assign(new Error('Drive 403 insufficientPermissions'), {
+          status: 403,
+        }),
+      );
+
+      const result = await batchGenerateDocuments({
+        caseId: 'case-1',
+        templateIds: ['solicitud-insolvencia'],
+        outputFormat: 'pdf',
+      });
+
+      expect(googleDriveService.createFolderHierarchy).toHaveBeenCalledTimes(1);
+      expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
+      const data = result.data as {
+        documents: Array<{ status: string; error?: string }>;
+      };
+      expect(data.documents[0].error).toMatch(
+        /no se pudo crear la subcarpeta 01-Generados \(Drive 403/,
+      );
+    });
+  });
 });
