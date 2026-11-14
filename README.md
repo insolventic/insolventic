@@ -206,7 +206,7 @@ npm run test:e2e          # Playwright E2E
 npm run test:e2e:ui       # Playwright UI mode
 ```
 
-**Estado actual:** `164 suites / 2184 tests ✅` — medido en `dev` el 2026-10-29.
+**Estado actual:** `185 suites / 2460 tests ✅` — medido el 2026-11-13 en `fix/validacion-deudor-mensajes`.
 
 > Este número lo vigila un test (`tests/unit/docs/conteo-de-tests.test.ts`):
 > falla si el conteo documentado aquí, en `docs/TESTS.md` o en `CLAUDE.md` se
