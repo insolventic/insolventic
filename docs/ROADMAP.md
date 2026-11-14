@@ -97,4 +97,8 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
    **Por qué no urge:** mientras los campos sigan siendo `type="number"` el navegador no deja escribir el punto, así que el bug es inalcanzable desde la UI. Lo que molesta hoy es la inconsistencia visual — un monto se escribe `1.500.000` en el wizard y `1500000` acá.
 
+10. **Subcarpetas de Drive duplicadas y fallback silencioso en la ruta automática** — ~3h, pendiente desde la carpeta única por caso (`fix/case-drive-folder`). Dos cambios, anotados para hacerlos juntos:
+    - **Búsqueda determinista en `createFolderHierarchy`** (`src/lib/google-drive.ts`). Busca la carpeta por nombre sin `orderBy` y toma `files[0]`. Si dos peticiones crean a la vez la misma subcarpeta (un Regenerar de Gestión de Casos, kind `INITIAL`, y una generación de `/documents`, kind `BATCH`, no comparten lock), quedan dos `01-Generados` con el mismo nombre y cada subida puede caer en cualquiera. Propuesta: `orderBy: 'createdTime'` para que gane siempre la más antigua, y un `logger.warn` cuando haya más de una coincidencia, para que el duplicado se vea en el log.
+    - **`createDocumentSubfolder`** (`src/features/document/generate-documents.ts`, la ruta automática: alta de caso, Regenerar y etapas). Si la subcarpeta falla, sube a la raíz de la carpeta del caso y da el documento por generado, sin reintento. `/documents` ya no lo hace: reintenta con `withRetry` + `isRetryableDriveError` y, agotado el reintento, el documento queda como error visible. Aplicar lo mismo aquí.
+
 > Nota: dos items del roadmap original se descartaron por no corresponder al código real: la migración Float→Decimal (los montos ya usan `Decimal`) y el split del schema Prisma (tiene 1.041 líneas, no 2.516 — no urge).
