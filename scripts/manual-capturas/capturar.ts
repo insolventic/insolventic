@@ -43,25 +43,59 @@ import {
 } from './config';
 import { assertBaseDeCapturas } from './guarda-base';
 import { sembrar, type ResultadoSeed } from './seed';
+import { esperarGeneracionesTerminadas } from './base';
+import { seccion01Ingreso } from './secciones/01-ingreso';
+import { seccion03Dashboard } from './secciones/03-dashboard';
 import { seccion041CrearCaso } from './secciones/04-1-crear-caso';
+import {
+  seccion042Listado,
+  seccion0431Papelera,
+  seccion044Fases,
+} from './secciones/04-casos';
 
 export interface Contexto {
-  contexto: BrowserContext;
   seed: ResultadoSeed;
-  /** Abre una pestaña nueva ya preparada para capturar. */
+  /**
+   * Abre una pestaña sin sesión, en un contexto de navegador nuevo, ya
+   * preparada para capturar (para las pantallas de ingreso).
+   */
   nuevaPagina: () => Promise<Page>;
-  /** Inicia sesión como el usuario del rol indicado y espera el dashboard. */
-  iniciarSesion: (
-    page: Page,
-    rol: keyof ResultadoSeed['usuarios'],
-  ) => Promise<void>;
+  /**
+   * Abre una pestaña con la sesión del rol indicado, en el dashboard. Cada rol
+   * tiene su propio contexto de navegador e inicia sesión UNA sola vez por
+   * corrida: el login de la app admite 5 intentos cada 15 minutos por IP, y
+   * no se desactiva ese límite.
+   */
+  paginaComo: (rol: keyof ResultadoSeed['usuarios']) => Promise<Page>;
+  /**
+   * Espera a que terminen las generaciones de documentos en segundo plano
+   * (en local fallan por falta de Drive y notifican al terminar). Sin esto,
+   * el número de la campana dependería de cuánto tardó el trabajo.
+   */
+  esperarGeneraciones: () => Promise<void>;
 }
 
 type Seccion = (ctx: Contexto) => Promise<void>;
 
-const SECCIONES: Record<string, Seccion> = {
-  '4.1': seccion041CrearCaso,
-};
+/**
+ * Secciones en orden canónico (el del manual). Una corrida ejecuta las
+ * pedidas más las que requieren, siempre en este orden: así el estado de la
+ * base es el mismo cada vez y las figuras salen idénticas.
+ */
+const SECCIONES: ReadonlyArray<{
+  id: string;
+  ejecutar: Seccion;
+  requiere?: readonly string[];
+}> = [
+  { id: '1', ejecutar: seccion01Ingreso },
+  { id: '3', ejecutar: seccion03Dashboard },
+  { id: '4.1', ejecutar: seccion041CrearCaso },
+  // El listado y el cambio de fase muestran el caso de Jorge, que crea 4.1.
+  { id: '4.2', ejecutar: seccion042Listado, requiere: ['4.1'] },
+  { id: '4.3.1', ejecutar: seccion0431Papelera },
+  { id: '4.4', ejecutar: seccion044Fases, requiere: ['4.1'] },
+];
+const IDS = SECCIONES.map((s) => s.id);
 
 /** CLI de Next invocado con este mismo `node`: sin shell ni `npx`. */
 const NEXT_CLI = path.join(
@@ -81,7 +115,7 @@ function argumentos(): { secciones: string[]; build: boolean } {
       secciones.push(...args[++i].split(','));
   }
   return {
-    secciones: secciones.length ? secciones : Object.keys(SECCIONES),
+    secciones: secciones.length ? secciones : IDS,
     build: args.includes('--build'),
   };
 }
@@ -135,12 +169,16 @@ async function esperarServidor(servidor: ChildProcess): Promise<void> {
 
 async function main(): Promise<void> {
   const { secciones, build } = argumentos();
-  const desconocidas = secciones.filter((s) => !SECCIONES[s]);
+  const desconocidas = secciones.filter((s) => !IDS.includes(s));
   if (desconocidas.length) {
     throw new Error(
-      `Secciones sin script: ${desconocidas.join(', ')}. Disponibles: ${Object.keys(SECCIONES).join(', ')}`,
+      `Secciones sin script: ${desconocidas.join(', ')}. Disponibles: ${IDS.join(', ')}`,
     );
   }
+  const pedidas = new Set(secciones);
+  for (const s of SECCIONES)
+    if (pedidas.has(s.id)) for (const r of s.requiere ?? []) pedidas.add(r);
+  const aEjecutar = SECCIONES.filter((s) => pedidas.has(s.id));
 
   const { url } = assertBaseDeCapturas(process.env);
   const env = entornoServidor(url);
@@ -182,38 +220,59 @@ async function main(): Promise<void> {
 
     // --lang: los campos de fecha nativos muestran dd/mm/aaaa, no dd/mm/yyyy.
     browser = await chromium.launch({ args: [`--lang=${LOCALE}`] });
-    const contexto = await browser.newContext({
-      viewport: VIEWPORT,
-      deviceScaleFactor: ESCALA,
-      locale: LOCALE,
-      timezoneId: ZONA_HORARIA,
-      colorScheme: 'light',
-      reducedMotion: 'reduce',
-      baseURL: URL_BASE,
-    });
-    await contexto.clock.setFixedTime(FECHA_ANCLA);
+    const navegador = browser;
+    const contextos: BrowserContext[] = [];
+
+    const crearContexto = async (): Promise<BrowserContext> => {
+      const contexto = await navegador.newContext({
+        viewport: VIEWPORT,
+        deviceScaleFactor: ESCALA,
+        locale: LOCALE,
+        timezoneId: ZONA_HORARIA,
+        colorScheme: 'light',
+        reducedMotion: 'reduce',
+        baseURL: URL_BASE,
+      });
+      await contexto.clock.setFixedTime(FECHA_ANCLA);
+      contextos.push(contexto);
+      return contexto;
+    };
+    const abrirPagina = async (contexto: BrowserContext): Promise<Page> => {
+      const page = await contexto.newPage();
+      page.on('load', () => void prepararPagina(page).catch(() => undefined));
+      return page;
+    };
+    const sesiones = new Map<string, BrowserContext>();
 
     const ctx: Contexto = {
-      contexto,
       seed,
-      nuevaPagina: async () => {
-        const page = await contexto.newPage();
-        page.on('load', () => void prepararPagina(page).catch(() => undefined));
+      nuevaPagina: async () => abrirPagina(await crearContexto()),
+      paginaComo: async (rol) => {
+        let contexto = sesiones.get(rol);
+        const page = await abrirPagina(
+          contexto ?? (contexto = await crearContexto()),
+        );
+        if (sesiones.has(rol)) {
+          await page.goto('/dashboard');
+        } else {
+          await page.goto(`/login?db=${CENTRO.slug}`);
+          await page.fill('input[type="email"]', seed.usuarios[rol].email);
+          await page.fill('input[type="password"]', seed.password);
+          await page.click('button[type="submit"]');
+          await page.waitForURL('**/dashboard');
+          sesiones.set(rol, contexto);
+        }
         return page;
       },
-      iniciarSesion: async (page, rol) => {
-        await page.goto(`/login?db=${CENTRO.slug}`);
-        await page.fill('input[type="email"]', seed.usuarios[rol].email);
-        await page.fill('input[type="password"]', seed.password);
-        await page.click('button[type="submit"]');
-        await page.waitForURL('**/dashboard');
-      },
+      esperarGeneraciones: () => esperarGeneracionesTerminadas(url),
     };
 
-    for (const s of secciones) {
-      console.log(`› Sección ${s}`);
-      await SECCIONES[s](ctx);
+    for (const s of aEjecutar) {
+      const nota = secciones.includes(s.id) ? '' : ' (requerida)';
+      console.log(`› Sección ${s.id}${nota}`);
+      await s.ejecutar(ctx);
     }
+    for (const c of contextos) await c.close();
     console.log('✓ Figuras generadas en docs/manual-usuario/img/');
   } finally {
     await browser?.close();

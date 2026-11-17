@@ -33,6 +33,7 @@ import {
   CASOS_CONTEXTO,
   DEUDOR_EJEMPLO,
   DEUDORES_CONTEXTO,
+  NOTIFICACIONES_ADMIN,
   USUARIOS,
   type ClaveRol,
 } from './datos';
@@ -312,7 +313,10 @@ export async function sembrar(
       ...DEUDORES_CONTEXTO.map((d) => ({ ...d })),
     ];
     for (const d of deudores) {
-      const casos = CASOS_CONTEXTO.filter((c) => c.deudor === d.clave);
+      // La papelera no cuenta como caso activo del deudor.
+      const casos = CASOS_CONTEXTO.filter(
+        (c) => c.deudor === d.clave && !c.papelera,
+      );
       const deuda = casos
         .flatMap((c) => c.deudas)
         .reduce((s, x) => s + x.monto, 0);
@@ -338,12 +342,26 @@ export async function sembrar(
       idsDeudor.set(d.clave, creado.id);
     }
 
+    const idsCaso = new Map<string, string>();
     for (const c of CASOS_CONTEXTO) {
       const deudor = deudores.find((d) => d.clave === c.deudor)!;
       const operador = USUARIOS.find((u) => u.clave === c.operador)!;
       const total = c.deudas.reduce((s, x) => s + x.monto, 0);
+      const papelera = c.papelera
+        ? {
+            // A media tarde del día indicado: una hora verosímil de oficina.
+            deletedAt: new Date(
+              diasAntesDelAncla(c.papelera.diasAntes).getTime() +
+                5 * 60 * 60 * 1000,
+            ),
+            deletedById: idsUsuario.get('operadora')!,
+            deletedByName: USUARIOS.find((u) => u.clave === 'operadora')!
+              .nombre,
+          }
+        : {};
       const caso = await prisma.case.create({
         data: {
+          ...papelera,
           caseNumber: c.numero,
           debtorName: deudor.nombre,
           debtorIdNumber: deudor.cedula,
@@ -374,6 +392,24 @@ export async function sembrar(
           },
         });
       }
+      idsCaso.set(c.numero, caso.id);
+    }
+
+    for (const n of NOTIFICACIONES_ADMIN) {
+      await prisma.notification.create({
+        data: {
+          type: n.tipo,
+          title: n.titulo,
+          message: n.mensaje,
+          userId: idsUsuario.get('admin')!,
+          caseId: n.caso ? idsCaso.get(n.caso)! : null,
+          read: n.leida,
+          createdDate: new Date(
+            FECHA_ANCLA.getTime() - n.horasAntes * 3600_000,
+          ),
+          tenantId,
+        },
+      });
     }
 
     return { password, usuarios };

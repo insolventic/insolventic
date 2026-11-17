@@ -108,8 +108,7 @@ async function abrirAlta(
 }
 
 export async function seccion041CrearCaso(ctx: Contexto): Promise<void> {
-  const page = await ctx.nuevaPagina();
-  await ctx.iniciarSesion(page, 'operadora');
+  const page = await ctx.paginaComo('operadora');
   await page.goto('/cases');
   await esperarEstable(page);
 
@@ -462,6 +461,9 @@ export async function seccion041CrearCaso(ctx: Contexto): Promise<void> {
     name: new RegExp(DEUDOR_EJEMPLO.nombre),
   });
   await filaNueva.waitFor();
+  // La generación inicial corre en segundo plano y, al fallar (no hay Drive),
+  // notifica: se espera para que las secciones siguientes sean estables.
+  await ctx.esperarGeneraciones();
   const tabla = page.getByRole('table');
   await anotar(page, [
     { objetivo: filaNueva, numero: 1, badge: 'izq', holgura: 2 },

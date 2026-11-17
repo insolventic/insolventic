@@ -232,6 +232,12 @@ export const CASOS_CONTEXTO: ReadonlyArray<{
     tasa: number;
     tipo: string;
   }>;
+  /**
+   * Si está, el caso nace en la papelera, eliminado `diasAntes` días antes de
+   * la ancla por la operadora. Se siembra así (y no se elimina durante la
+   * corrida) para que la fecha "Eliminado" de la papelera sea estable.
+   */
+  papelera?: { diasAntes: number };
 }> = [
   {
     numero: 'INSOL-000001',
@@ -323,5 +329,68 @@ export const CASOS_CONTEXTO: ReadonlyArray<{
     diasAntes: 12,
     operador: 'operadora',
     deudas: [],
+  },
+  // Duplicado de CONC-000001 radicado por error y enviado a la papelera
+  // (sección 4.3.1). Es de conciliación a propósito: la numeración de
+  // insolvencia cuenta también la papelera, y el caso que crea la sección 4.1
+  // debe seguir siendo INSOL-000005.
+  {
+    numero: 'CONC-000002',
+    tipo: 'CONCILIATION',
+    deudor: 'rosa',
+    fase: 'Inicial',
+    diasAntes: 12,
+    operador: 'operadora',
+    deudas: [],
+    papelera: { diasAntes: 2 },
+  },
+];
+
+/**
+ * Notificaciones del Administrador para el dashboard (sección 3), con el
+ * mismo título y texto que arma la app (`createNotificationForAction`).
+ * `horasAntes` se resta de la fecha ancla.
+ */
+export const NOTIFICACIONES_ADMIN: ReadonlyArray<{
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  caso?: string;
+  horasAntes: number;
+  leida: boolean;
+}> = [
+  {
+    tipo: 'case_updated',
+    titulo: 'Caso actualizado',
+    mensaje:
+      "Se ha actualizado el caso 'INSOL-000001 - Claudia Milena Rincón Duarte' por el usuario Diana Marcela Restrepo Gil con cédula 245.118",
+    caso: 'INSOL-000001',
+    horasAntes: 2,
+    leida: false,
+  },
+  {
+    tipo: 'case_deleted',
+    titulo: 'Caso eliminado',
+    mensaje:
+      "Se ha eliminado el caso 'CONC-000002 - Rosa Elena Quiroga Díaz' por el usuario Diana Marcela Restrepo Gil con cédula 245.118",
+    horasAntes: 42,
+    leida: false,
+  },
+  {
+    tipo: 'debtor_created',
+    titulo: 'Deudor creado',
+    mensaje:
+      "Se ha creado el deudor 'Jorge Enrique Salazar Peña' por el usuario Diana Marcela Restrepo Gil con cédula 245.118",
+    horasAntes: 70,
+    leida: true,
+  },
+  {
+    tipo: 'case_created',
+    titulo: 'Caso creado',
+    mensaje:
+      "Se ha creado el caso 'INSOL-000004 - Sergio Iván Patiño Lozano' por el usuario Andrés Felipe Cárdenas Mora con cédula 301.442",
+    caso: 'INSOL-000004',
+    horasAntes: 144,
+    leida: true,
   },
 ];

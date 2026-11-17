@@ -56,7 +56,16 @@ npx tsx scripts/manual-capturas/capturar.ts --build
   vez que cambie el código de la UI. Sin la opción se reutiliza el build que
   haya en `.next/`.
 - `--seccion 4.1` limita la corrida a una sección (admite varias separadas por
-  comas). Sin la opción corren todas.
+  comas). Sin la opción corren todas. Las secciones corren siempre en el orden
+  del manual, y una sección arrastra las que necesita: 4.2 y 4.4 muestran el
+  caso de Jorge, así que piden también 4.1 (que vuelve a generar sus figuras
+  con los mismos bytes).
+
+Cada rol (operadora, administradora…) inicia sesión **una sola vez** por
+corrida y reutiliza su sesión en todas las secciones. El login de la app
+admite 5 intentos cada 15 minutos por IP, y el script no desactiva ese
+límite: con una sesión por rol, una corrida completa usa 3 intentos (uno de
+ellos, el de la figura de credenciales inválidas).
 
 Las figuras quedan en `docs/manual-usuario/img/<NN-seccion>/`, con nombres
 `NN-seccion-descripcion.png` en kebab-case. Al terminar, el script detiene el
@@ -80,12 +89,13 @@ vista, el script se detiene y deja una captura del estado en
 El navegador corre con el reloj congelado en la **fecha ancla 2026-11-16
 10:00 (America/Bogota)** (`config.ts`) y todas las fechas del seed se calculan
 a partir de ella. Dos corridas seguidas producen imágenes idénticas byte a
-byte (verificado en la sección 4.1), salvo lo que el servidor calcula con su
-propio reloj:
+byte (verificado en las secciones 1, 3 y 4), salvo lo que el servidor calcula
+con su propio reloj:
 
 - **"Casos este Mes"** y **"Audiencias Próximas"** del dashboard. Coinciden con
   el seed solo si se regeneran en noviembre de 2026. En otro mes, esos dos
-  números cambian.
+  números cambian. Lo mismo el gráfico **"Casos Nuevos (Últimos 6 Meses)"**,
+  que hoy no aparece en ninguna figura.
 - La **fecha de radicación de un caso creado desde la UI** (sección 4.1) es la
   del día en que se corre el script.
 
@@ -96,6 +106,7 @@ propio reloj:
 | `capturar.ts`    | Punto de entrada: guarda, seed, servidor, navegador y secciones        |
 | `guarda-base.ts` | Aborta si la base no es `127.0.0.1:54330/insolventic_manual_test`      |
 | `optimizar.ts`   | Paleta de 256 colores con `sharp`; también se puede correr solo        |
+| `base.ts`        | Espera a que terminen las generaciones de documentos en segundo plano  |
 | `seed.ts`        | Recrea el esquema (`prisma db push --force-reset`) y siembra los datos |
 | `datos.ts`       | Los datos sintéticos y la historia del caso de ejemplo                 |
 | `anotaciones.ts` | CSS de captura, marcos y badges numerados, recorte y guardado          |
