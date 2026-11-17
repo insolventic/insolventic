@@ -45,23 +45,22 @@ Al ingresar verás:
 
 ### 4.1 Crear un caso
 
-`Casos → + Nuevo Caso`
+`Casos → Crear nuevo caso`, y en el menú elegir el tipo de servicio.
 
-**Secciones del formulario (insolvencia):**
+**Pestañas del formulario (insolvencia):**
 
-1. **Identificación del solicitante** — datos personales, documento, dirección, contacto.
-2. **Cónyuge** — si aplica (sociedad conyugal vigente/disuelta).
-3. **Información laboral y económica** — ingresos, gastos, capacidad de pago, patrimonio.
-4. **Cesación de pagos** — fecha, número de acreedores, % de pasivo en mora.
-5. **Acreedores y deudas** — monto, garantía, clase (laboral, fiscal, quirografario, privilegiado).
-6. **Bienes** — muebles, inmuebles, vehículos, con avalúo.
-7. **Procesos judiciales en curso** — si los hay.
-8. **Declaraciones** — veracidad, buena fe, no ocultamiento, autorizaciones.
-9. **Propuesta de pago** — plazo, cuota mensual, período de gracia, etc.
+1. **Solicitante** — deudor (se elige uno existente o se crea con el botón de al lado), causas de la insolvencia, ámbito de aplicación (persona natural no comerciante o pequeño comerciante) y operador del caso. La deuda total se calcula sola a partir de los acreedores.
+2. **Situación** — cónyuge o compañero(a) permanente (sociedad conyugal vigente/disuelta), información laboral y económica (ingresos, gastos, recursos disponibles, obligaciones alimentarias), cesación de pagos y procesos judiciales en curso.
+3. **Acreedores** — acreedores y deudas: capital, intereses, tasa y tipo de deuda; la clasificación del crédito, la clase y el % de acreencia se calculan solos. Incluye también libranzas y servicios públicos suspendidos.
+4. **Bienes** — muebles, inmuebles, vehículos, con avalúo.
+5. **Propuesta** — resumen de obligaciones por clase y flujo de caja (cuota mensual y plazo), que se calculan con los datos de las pestañas 2 y 3; período de gracia, dación en pago, quitas, condonación de intereses y orden de prelación.
+6. **Legal** — declaraciones (veracidad, buena fe, no ocultamiento, autorizaciones), tarifa y fundamentos de derecho, notificaciones, apoderado y firma del solicitante.
+7. **Documentos** — carga de los documentos del caso (ver el párrafo siguiente).
 
 **Documentos del caso:** PDF, JPG o PNG, máx. 4 MB por archivo, en la pestaña de documentos del formulario, al crear o al editar el caso. No hay límite para el total. Un archivo más pesado se rechaza al elegirlo; un PDF comprimido o una foto en menor resolución suelen caber. Si alguno no se puede subir al guardar, los demás quedan guardados y un aviso dice cuál falló y por qué; se vuelve a adjuntar desde **Editar caso → Documentos**.
 
-**Para un caso de Conciliación**, el formulario cambia: asunto y cuantía,
+**Para un caso de Conciliación**, el formulario cambia a tres pestañas
+(Solicitante, Partes y Solicitud): asunto y cuantía,
 audiencia virtual (Zoom: ID, código de acceso, enlace), convocante/convocado
 y sus apoderados, fechas reales del trámite (solicitud, citación,
 desistimiento), menores de edad (alimentos/unión marital), cláusulas del
