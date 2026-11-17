@@ -83,6 +83,36 @@ corrida normal, que las guarda optimizadas):
 npx tsx scripts/manual-capturas/optimizar.ts [archivo.png ...]
 ```
 
+## Índice de figuras y verificaciones del manual
+
+El script de capturas solo genera los PNG. Las figuras se insertan en el
+manual a mano (ancla, `<img>` con `alt`, pie `_Figura <sección>-<n>. …_` y
+leyenda `- ①…`). Después:
+
+```bash
+npx tsx scripts/manual-capturas/indice.ts
+```
+
+Regenera el "Índice de figuras" a partir de los pies, en orden de lectura,
+y fija el `width` de cada `<img>` en la mitad de los píxeles del PNG.
+Conserva los finales de línea del archivo y termina corriendo las
+verificaciones. Para verificar sin escribir nada:
+
+```bash
+npx tsx scripts/manual-capturas/verificar.ts
+```
+
+Sale con código 1 si encuentra algo. Comprueba que la numeración sea
+consecutiva dentro de cada sección y en orden de lectura; que cada figura
+tenga ancla, esté referenciada en el texto y en el índice; que no haya
+referencias rotas; que cada `<img>` tenga `alt`, un PNG existente y el
+ancho correcto; que no quede ningún PNG sin usar; que ninguna leyenda se
+fusione con la lista que la sigue (Markdown une dos listas seguidas al
+mismo nivel; un comentario HTML entre ambas las separa); y que el índice
+esté al día. Antes de commitear el manual, correr también
+`npx jest tests/unit/payments/comprobante-limite-tamano.test.ts`, que lee
+dos líneas del manual.
+
 El log de la app va a `manual-capturas-app.log` en la carpeta temporal del
 sistema (el script imprime la ruta). Es normal que registre fallos de Drive y
 de SMTP: no hay credenciales, a propósito. Si una anotación cae fuera de la
@@ -129,6 +159,8 @@ que el servidor calcula con su propio reloj:
 | `capturar.ts`    | Punto de entrada: guarda, seed, servidor, navegador y secciones        |
 | `guarda-base.ts` | Aborta si la base no es `127.0.0.1:54330/insolventic_manual_test`      |
 | `optimizar.ts`   | Paleta de 256 colores con `sharp`; también se puede correr solo        |
+| `indice.ts`      | Regenera el índice de figuras y los anchos del manual, y lo verifica   |
+| `verificar.ts`   | Numeración, referencias, `alt`, anchos e índice del manual (solo lee)  |
 | `base.ts`        | Generaciones en segundo plano, documentos sembrados, fechas a la ancla |
 | `seed.ts`        | Recrea el esquema (`prisma db push --force-reset`) y siembra los datos |
 | `datos.ts`       | Los datos sintéticos y la historia del caso de ejemplo                 |
@@ -171,3 +203,4 @@ en `optimizar.ts` cambia los bytes de todas las figuras.
 2. Registrarla en `SECCIONES` de `capturar.ts`.
 3. Usar `anotar()` y `capturar()` de `anotaciones.ts`. No dibujar nada fuera
    de esas funciones, para que el estilo siga siendo uno solo.
+4. Insertar las figuras en el manual y correr `indice.ts` (ver arriba).
