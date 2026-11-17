@@ -459,7 +459,27 @@ En el detalle de caso → pestaña **Documentos**:
 
 ### 8.1 Generar cronograma
 
-En la pestaña **Pagos** del caso, botón **"Generar Cronograma de Pagos"** crea las cuotas según la propuesta de pago del caso (plazo, periodicidad y fecha de inicio).
+En la pestaña **Pagos** del caso, botón **"Generar Cronograma de Pagos"** crea las cuotas según la propuesta de pago del caso (plazo, periodicidad y fecha de inicio) (ver [Figura 8.1-1](#figura-8-1-1)).
+
+<a id="figura-8-1-1"></a>
+<img src="manual-usuario/img/08-pagos/08-pagos-01-sin-cronograma.png" alt="Pestaña Pagos de un caso sin cronograma, con los botones Generar Cronograma de Pagos y Registrar Pago Manual." width="870">
+
+_Figura 8.1-1. Caso sin cronograma de pagos._
+
+- ① Botón **Generar Cronograma de Pagos**.
+- ② Botón **Registrar Pago Manual**.
+
+Con el cronograma creado, la pestaña muestra el resumen y cada cuota con su estado (ver [Figura 8.1-2](#figura-8-1-2)).
+
+<a id="figura-8-1-2"></a>
+<img src="manual-usuario/img/08-pagos/08-pagos-02-cronograma.png" alt="Pestaña Pagos del caso INSOL-000003 con el resumen (total, pagado, pendiente y una cuota vencida) y el cronograma: seis cuotas pagadas con comprobante, la séptima vencida y las siguientes pendientes." width="896">
+
+_Figura 8.1-2. Cronograma de pagos de un acuerdo en curso._
+
+- ① Resumen: total, pagado, pendiente y cuotas vencidas.
+- ② Cuota pagada, con su comprobante.
+- ③ Cuota vencida.
+- ④ Botón **Pagar** de la cuota.
 
 ### 8.2 Registrar un pago
 
@@ -471,7 +491,27 @@ Botón **"Registrar Pago Manual"** (o **"Pagar"** en una cuota del cronograma):
 - Observaciones
 - **Comprobante** (PDF / JPG / PNG, máx. 4 MB)
 
-El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive. Si el archivo pesa más de 4 MB, el formulario lo rechaza al elegirlo y dice cuánto pesa; una foto o un PDF escaneado suelen bajar de ese tamaño comprimiéndolos o guardándolos en menor resolución.
+Ver [Figura 8.2-1](#figura-8-2-1).
+
+<a id="figura-8-2-1"></a>
+<img src="manual-usuario/img/08-pagos/08-pagos-03-registrar-pago.png" alt="Diálogo Registrar Pago de la cuota 7 con el monto, el método PSE, una observación y el comprobante adjunto." width="448">
+
+_Figura 8.2-1. Pago de una cuota del cronograma._
+
+- ① Monto.
+- ② Método de pago.
+- ③ Observaciones.
+- ④ Comprobante.
+- ⑤ Botón **Registrar Pago**.
+
+El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive. Si el archivo pesa más de 4 MB, el formulario lo rechaza al elegirlo y dice cuánto pesa; una foto o un PDF escaneado suelen bajar de ese tamaño comprimiéndolos o guardándolos en menor resolución (ver [Figura 8.2-2](#figura-8-2-2)).
+
+<a id="figura-8-2-2"></a>
+<img src="manual-usuario/img/08-pagos/08-pagos-04-comprobante-pesado.png" alt="Diálogo Registrar Pago con el mensaje: el archivo pesa 5,2 MB y el máximo es 4 MB." width="448">
+
+_Figura 8.2-2. Comprobante rechazado por tamaño._
+
+- ① Mensaje con el peso del archivo y el máximo permitido.
 
 ### 8.3 Estados de pago
 
@@ -611,6 +651,10 @@ No directamente desde la UI. Contacta a un administrador — la auditoría conse
 - [Figura 4.4-2](#figura-4-4-2). Paso a Fracaso: subtipo y fecha obligatorios.
 - [Figura 6-1](#figura-6-1). Lista de paquetes, con el número de documentos de cada uno.
 - [Figura 6-2](#figura-6-2). Formulario completo antes de generar.
+- [Figura 8.1-1](#figura-8-1-1). Caso sin cronograma de pagos.
+- [Figura 8.1-2](#figura-8-1-2). Cronograma de pagos de un acuerdo en curso.
+- [Figura 8.2-1](#figura-8-2-1). Pago de una cuota del cronograma.
+- [Figura 8.2-2](#figura-8-2-2). Comprobante rechazado por tamaño.
 
 ---
 
