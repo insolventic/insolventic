@@ -308,7 +308,7 @@ _Figura 4.2-2. Filtro de fase desplegado._
 
 ### 4.3 Editar un caso
 
-Abrir el caso → **Editar**. El sistema protege contra ediciones concurrentes:
+En el listado, acción **Editar caso** (ícono de lápiz) de la fila del caso (ver [Figura 4.2-1](#figura-4-2-1), ④). El sistema protege contra ediciones concurrentes:
 
 > ⚠️ **Si dos usuarios editan el mismo caso al tiempo**, quien guarde último recibirá el mensaje _"Este caso fue modificado por otro usuario. Recargue y vuelva a intentarlo."_ — el dialog se cerrará automáticamente.
 
