@@ -385,7 +385,7 @@ Módulos independientes con CRUD. Al crear un caso puedes vincular un deudor exi
 
 ## 6. Generación de documentos
 
-`Documentos → Generar documentos`
+Módulo **Documentos**, tarjeta **Generación de Documentos**:
 
 1. **Seleccionar caso.**
 2. **Seleccionar paquete** — el número de documentos de cada opción se
