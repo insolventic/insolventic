@@ -545,17 +545,56 @@ Los dos reportes se exportan a Excel (.xlsx) con el botón **Exportar Excel**.
 
 ## 10. Gestión de usuarios y roles
 
-`Usuarios` (permiso requerido):
+`Usuarios` (permiso requerido; ver [Figura 10-1](#figura-10-1) y [Figura 10-2](#figura-10-2)):
 
 - Crear usuario (email, nombre, rol, tenant).
 - Asignar rol.
 - Activar / desactivar.
 - **Forzar cambio de contraseña en próximo login**.
 
-`Usuarios → Roles y Permisos`:
+<a id="figura-10-1"></a>
+<img src="manual-usuario/img/10-usuarios/10-usuarios-01-lista.png" alt="Pantalla Gestión de usuarios y permisos con las pestañas Usuarios y Roles y Permisos, el botón Nuevo Usuario, el filtro por rol y la tabla de usuarios con sus acciones." width="1440">
+
+_Figura 10-1. Lista de usuarios._
+
+- ① Pestañas **Usuarios** y **Roles y Permisos**.
+- ② Botón **Nuevo Usuario**.
+- ③ Filtro por rol.
+- ④ Acciones del usuario: ver, editar y eliminar.
+
+<a id="figura-10-2"></a>
+<img src="manual-usuario/img/10-usuarios/10-usuarios-02-nuevo-usuario.png" alt="Diálogo Crear Nuevo Usuario con nombre, correo, teléfono, dirección y el rol Asistente Legal elegido, el aviso de credenciales automáticas y los permisos del rol." width="768">
+
+_Figura 10-2. Alta de un usuario._
+
+- ① Nombre completo.
+- ② Correo electrónico.
+- ③ Rol, con sus permisos debajo.
+- ④ Botón **Crear Usuario**.
+
+`Usuarios → Roles y Permisos` (ver [Figura 10-3](#figura-10-3) y [Figura 10-4](#figura-10-4)):
 
 - Crear rol nuevo.
 - Marcar permisos por módulo.
+
+<a id="figura-10-3"></a>
+<img src="manual-usuario/img/10-usuarios/10-usuarios-03-roles.png" alt="Pestaña Roles y Permisos con el botón Nuevo Rol y las tarjetas de cada rol; la de Operadora de Insolvencia está resaltada con su botón Editar." width="1440">
+
+_Figura 10-3. Roles del centro y sus permisos._
+
+- ① Botón **Nuevo Rol**.
+- ② Tarjeta del rol, con algunos de sus permisos.
+- ③ Botón **Editar** del rol.
+
+<a id="figura-10-4"></a>
+<img src="manual-usuario/img/10-usuarios/10-usuarios-04-permisos-rol.png" alt="Diálogo Editar Rol de la Operadora de Insolvencia con los permisos agrupados por módulo; el módulo Gestión de Casos muestra 5 de 9 permisos marcados." width="1024">
+
+_Figura 10-4. Permisos de un rol, agrupados por módulo._
+
+- ① Nombre del rol.
+- ② Módulo de permisos.
+- ③ Permisos marcados del módulo y casilla para marcarlo entero.
+- ④ Botón **Guardar Cambios**.
 
 ---
 
@@ -655,6 +694,10 @@ No directamente desde la UI. Contacta a un administrador — la auditoría conse
 - [Figura 8.1-2](#figura-8-1-2). Cronograma de pagos de un acuerdo en curso.
 - [Figura 8.2-1](#figura-8-2-1). Pago de una cuota del cronograma.
 - [Figura 8.2-2](#figura-8-2-2). Comprobante rechazado por tamaño.
+- [Figura 10-1](#figura-10-1). Lista de usuarios.
+- [Figura 10-2](#figura-10-2). Alta de un usuario.
+- [Figura 10-3](#figura-10-3). Roles del centro y sus permisos.
+- [Figura 10-4](#figura-10-4). Permisos de un rol, agrupados por módulo.
 
 ---
 
