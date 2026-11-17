@@ -252,11 +252,21 @@ cuantía) muestra el separador de miles mientras se escribe —`1.500.000`, no
 
 ### 4.2 Filtrar y buscar casos
 
-En el listado puedes filtrar por:
+En el listado (ver [Figura 4.2-1](#figura-4-2-1)) puedes filtrar por:
 
 - Texto libre (número de caso, nombre del deudor, cédula)
 - **Tipo de servicio** (Insolvencia / Conciliación / Acuerdo de Apoyo)
 - Fase (cualquiera de las 13 fases del expediente; ver 4.4)
+
+<a id="figura-4-2-1"></a>
+<img src="manual-usuario/img/04-casos/04-casos-listado-01-vista-general.png" alt="Pantalla Gestión de Casos con los botones Papelera y Crear nuevo caso, los indicadores, la búsqueda con los filtros de tipo y fase, y la tabla de casos con las acciones de cada fila." width="1440">
+
+_Figura 4.2-1. Listado de casos._
+
+- ① Botón **Crear nuevo caso**.
+- ② Botón **Papelera**.
+- ③ Búsqueda y filtros por tipo de servicio y por fase.
+- ④ Acciones del caso: ver, editar, cambiar fase y eliminar.
 
 ### 4.3 Editar un caso
 
@@ -266,10 +276,45 @@ Abrir el caso → **Editar**. El sistema protege contra ediciones concurrentes:
 
 ### 4.3.1 Eliminar y restaurar un caso (papelera)
 
-**Eliminar** un caso lo manda a la **papelera**: deja de aparecer en listados, búsquedas, reportes, alertas, pagos y documentos, pero no se pierde nada. Hay que escribir el número del caso para confirmar.
+**Eliminar** un caso lo manda a la **papelera**: deja de aparecer en listados, búsquedas, reportes, alertas, pagos y documentos, pero no se pierde nada. Hay que escribir el número del caso para confirmar (ver [Figura 4.3.1-1](#figura-4-3-1-1)).
 
-- **Ver la papelera y restaurar:** botón **Papelera** en Gestión de Casos. Lo ve quien puede eliminar casos (Administrador y Operadora de Insolvencia). **Restaurar** devuelve el caso tal como estaba.
-- **Eliminar definitivamente:** solo el **Administrador**, desde la papelera, escribiendo de nuevo el número del caso. Borra el caso y todo lo asociado y **no se puede deshacer**. Úselo solo cuando corresponda una supresión de datos (ver el procedimiento de derechos ARCO).
+<a id="figura-4-3-1-1"></a>
+<img src="manual-usuario/img/04-casos/04-casos-papelera-01-eliminar.png" alt="Diálogo Eliminar Caso del caso INSOL-000004 con sus datos, la nota de que se puede restaurar y el número del caso escrito para confirmar." width="448">
+
+_Figura 4.3.1-1. Confirmación para mandar un caso a la papelera._
+
+- ① Datos del caso que se va a eliminar.
+- ② Número del caso, escrito para confirmar.
+- ③ Botón **Eliminar Caso**.
+
+<!-- La leyenda de arriba y la lista de abajo son listas distintas. -->
+
+- **Ver la papelera y restaurar:** botón **Papelera** en Gestión de Casos. Lo ve quien puede eliminar casos (Administrador y Operadora de Insolvencia). **Restaurar** devuelve el caso tal como estaba (ver [Figura 4.3.1-2](#figura-4-3-1-2)).
+
+  <a id="figura-4-3-1-2"></a>
+  <img src="manual-usuario/img/04-casos/04-casos-papelera-02-operadora.png" alt="Papelera vista por la operadora: el caso CONC-000002, eliminado el 14 de noviembre de 2026 por Diana Marcela Restrepo Gil, con el botón Restaurar." width="896">
+
+  _Figura 4.3.1-2. Papelera vista por la Operadora: solo puede restaurar._
+  - ① Fecha de eliminación y usuario que eliminó el caso.
+  - ② Botón **Restaurar**.
+
+- **Eliminar definitivamente:** solo el **Administrador**, desde la papelera, escribiendo de nuevo el número del caso. Borra el caso y todo lo asociado y **no se puede deshacer**. Úselo solo cuando corresponda una supresión de datos (ver el procedimiento de derechos ARCO). Ver [Figura 4.3.1-3](#figura-4-3-1-3) y [Figura 4.3.1-4](#figura-4-3-1-4).
+
+  <a id="figura-4-3-1-3"></a>
+  <img src="manual-usuario/img/04-casos/04-casos-papelera-03-administrador.png" alt="Papelera vista por la administradora: junto a Restaurar aparece el botón rojo para eliminar definitivamente el caso CONC-000002." width="896">
+
+  _Figura 4.3.1-3. Papelera vista por la Administradora._
+  - ① Botón **Restaurar**.
+  - ② Botón para eliminar el caso definitivamente.
+
+  <a id="figura-4-3-1-4"></a>
+  <img src="manual-usuario/img/04-casos/04-casos-papelera-04-confirmar-borrado.png" alt="Confirmación del borrado definitivo de CONC-000002: advertencia de que no se puede deshacer, campo para escribir el número del caso y botón Eliminar definitivamente todavía inactivo." width="896">
+
+  _Figura 4.3.1-4. Confirmación del borrado definitivo._
+  - ① Advertencia: el borrado no se puede deshacer.
+  - ② Número del caso, escrito de nuevo para confirmar.
+  - ③ Botón **Eliminar definitivamente**; se activa solo cuando el número coincide.
+
 - Un **deudor** que tenga casos (incluidos los de la papelera) no se puede eliminar: primero hay que eliminar sus casos.
 
 ### 4.4 Transiciones de fase
@@ -277,7 +322,15 @@ Abrir el caso → **Editar**. El sistema protege contra ediciones concurrentes:
 El expediente tiene 13 fases (`Inicial` → `Terminado`). La fase se cambia
 desde el listado, con la acción **Cambiar fase** de cada caso: el diálogo
 muestra la fase actual y solo las transiciones **válidas desde ella** — el
-sistema no deja saltar fases.
+sistema no deja saltar fases (ver [Figura 4.4-1](#figura-4-4-1)).
+
+<a id="figura-4-4-1"></a>
+<img src="manual-usuario/img/04-casos/04-casos-fases-01-transiciones.png" alt="Diálogo Cambiar Fase del Caso para INSOL-000005 en fase Inicial, con las transiciones disponibles a Admisión, Rechazo y Retiro." width="448">
+
+_Figura 4.4-1. Transiciones válidas desde la fase Inicial._
+
+- ① Fase actual del caso.
+- ② Transiciones disponibles desde esa fase.
 
 **Las 5 fases que distinguen el desenlace de la negociación**, en vez de
 caer todas a `Fracaso` con el mismo paquete de documentos:
@@ -296,8 +349,17 @@ acuerdo_, _Muerte del deudor_ — porque cada uno genera un paquete de
 documentos distinto.
 
 Al elegir **Fracaso** o **Desistimiento**, el diálogo pide el subtipo y la
-fecha antes de confirmar el cambio. Las demás transiciones se aplican al
-elegirlas.
+fecha antes de confirmar el cambio (ver [Figura 4.4-2](#figura-4-4-2)). Las
+demás transiciones se aplican al elegirlas.
+
+<a id="figura-4-4-2"></a>
+<img src="manual-usuario/img/04-casos/04-casos-fases-02-subtipo.png" alt="Diálogo Cambiar Fase del Caso para INSOL-000001, de En negociación a Fracaso, con el subtipo Inasistencia del Deudor y la fecha 16/11/2026." width="448">
+
+_Figura 4.4-2. Paso a Fracaso: subtipo y fecha obligatorios._
+
+- ① Subtipo de fracaso.
+- ② Fecha del fracaso.
+- ③ Botón **Confirmar cambio de fase**.
 
 Cada transición queda registrada en el **Audit Log**.
 
@@ -517,6 +579,13 @@ No directamente desde la UI. Contacta a un administrador — la auditoría conse
 - [Figura 4.1-10](#figura-4-1-10). El caso recién creado en el listado de casos.
 - [Figura 4.1-11](#figura-4-1-11). Conciliación: pestaña Partes.
 - [Figura 4.1-12](#figura-4-1-12). Conciliación: pestaña Solicitud.
+- [Figura 4.2-1](#figura-4-2-1). Listado de casos.
+- [Figura 4.3.1-1](#figura-4-3-1-1). Confirmación para mandar un caso a la papelera.
+- [Figura 4.3.1-2](#figura-4-3-1-2). Papelera vista por la Operadora: solo puede restaurar.
+- [Figura 4.3.1-3](#figura-4-3-1-3). Papelera vista por la Administradora.
+- [Figura 4.3.1-4](#figura-4-3-1-4). Confirmación del borrado definitivo.
+- [Figura 4.4-1](#figura-4-4-1). Transiciones válidas desde la fase Inicial.
+- [Figura 4.4-2](#figura-4-4-2). Paso a Fracaso: subtipo y fecha obligatorios.
 
 ---
 
