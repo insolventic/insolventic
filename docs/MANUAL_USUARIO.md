@@ -62,11 +62,37 @@ Los permisos son configurables por rol desde **Configuración → Roles**.
 
 Al ingresar verás:
 
-- **Selector de tareas:** accesos a los módulos que tu rol puede usar.
-- **Indicadores:** total de casos, casos de este mes, audiencias de los próximos 7 días, deuda total y acreedores registrados; cuando hay pagos vencidos, también su número.
-- **Gráficos:** casos por tipo, casos por fase y casos nuevos de los últimos 6 meses.
-- **Casos recientes:** los últimos 5 casos ingresados, con su fase.
-- **Notificaciones:** las más recientes, en el panel de la derecha; la campana de la barra superior indica cuántas hay sin leer.
+- **Selector de tareas:** accesos a los módulos que tu rol puede usar (ver [Figura 3-1](#figura-3-1)).
+- **Indicadores:** total de casos, casos de este mes, audiencias de los próximos 7 días, deuda total y acreedores registrados; cuando hay pagos vencidos, también su número (ver [Figura 3-2](#figura-3-2)).
+- **Gráficos:** casos por tipo, casos por fase y casos nuevos de los últimos 6 meses (ver [Figura 3-2](#figura-3-2)).
+- **Casos recientes:** los últimos 5 casos ingresados, con su fase (ver [Figura 3-3](#figura-3-3)).
+- **Notificaciones:** las más recientes, en el panel de la derecha; la campana de la barra superior indica cuántas hay sin leer (ver [Figura 3-1](#figura-3-1)).
+
+<a id="figura-3-1"></a>
+<img src="manual-usuario/img/03-dashboard/03-dashboard-01-vista-general.png" alt="Dashboard de la administradora con la búsqueda y la campana en la barra superior, el selector de tareas con nueve módulos y el panel de notificaciones a la derecha." width="1440">
+
+_Figura 3-1. Dashboard de la Administradora: barra superior, selector de tareas y notificaciones._
+
+- ① Búsqueda global.
+- ② Campana, con el número de notificaciones sin leer.
+- ③ Selector de tareas: un acceso por cada módulo permitido al rol.
+- ④ Panel de notificaciones recientes.
+
+<a id="figura-3-2"></a>
+<img src="manual-usuario/img/03-dashboard/03-dashboard-02-indicadores.png" alt="Indicadores del dashboard (Total Casos, Casos este Mes, Audiencias Próximas, Deuda Total y Acreedores Totales) y los gráficos Casos por Tipo y Casos por Fase." width="978">
+
+_Figura 3-2. Indicadores y gráficos del dashboard._
+
+- ① Indicadores.
+- ② Gráfico de casos por tipo de servicio.
+- ③ Gráfico de casos por fase.
+
+<a id="figura-3-3"></a>
+<img src="manual-usuario/img/03-dashboard/03-dashboard-03-casos-recientes.png" alt="Tabla Casos Recientes con los cinco últimos casos: número, deudor, tipo, fase, monto, acreedores y fecha." width="978">
+
+_Figura 3-3. Casos recientes._
+
+- ① Los cinco casos ingresados más recientemente.
 
 ---
 
@@ -479,6 +505,9 @@ No directamente desde la UI. Contacta a un administrador — la auditoría conse
 - [Figura 1-1](#figura-1-1). Selección del centro de conciliación.
 - [Figura 1-2](#figura-1-2). Formulario de inicio de sesión.
 - [Figura 1-3](#figura-1-3). Mensaje cuando el correo o la contraseña no coinciden.
+- [Figura 3-1](#figura-3-1). Dashboard de la Administradora: barra superior, selector de tareas y notificaciones.
+- [Figura 3-2](#figura-3-2). Indicadores y gráficos del dashboard.
+- [Figura 3-3](#figura-3-3). Casos recientes.
 - [Figura 4.1-1](#figura-4-1-1). Botón «Crear nuevo caso» y su menú de tipos de servicio.
 - [Figura 4.1-2](#figura-4-1-2). Formulario de alta de insolvencia al abrirse, en la pestaña Solicitante.
 - [Figura 4.1-3](#figura-4-1-3). Errores de validación al intentar crear el caso sin los datos obligatorios.
