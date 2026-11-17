@@ -548,7 +548,7 @@ Los dos reportes se exportan a Excel (.xlsx) con el botón **Exportar Excel**.
 
 `Usuarios` (permiso requerido; ver [Figura 10-1](#figura-10-1) y [Figura 10-2](#figura-10-2)):
 
-- Crear usuario (email, nombre, rol).
+- Crear usuario: nombre completo, correo electrónico, teléfono, tarjeta profesional, dirección y rol (obligatorios: nombre, correo y rol). El sistema genera una contraseña segura y la envía por correo electrónico al usuario.
 - Asignar rol.
 
 <a id="figura-10-1"></a>
