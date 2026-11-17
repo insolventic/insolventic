@@ -647,7 +647,7 @@ Contacta a soporte. La plantilla `.docx` base puede estar corrupta o faltar.
 Google Drive puede tardar unos segundos en propagar permisos. Recarga la pestaña.
 
 **¿Puedo recuperar un caso eliminado?**
-No directamente desde la UI. Contacta a un administrador — la auditoría conserva evidencia y se puede restaurar desde backup.
+Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos → **Restaurar** (ver 4.3.1). Un caso eliminado definitivamente ya no se puede recuperar desde la aplicación; contacta a un administrador — la auditoría conserva evidencia.
 
 ---
 
