@@ -439,14 +439,14 @@ En el detalle de caso → pestaña **Documentos**:
 
 ### 8.1 Generar cronograma
 
-En la pestaña **Pagos** del caso, botón **"Generar cronograma"** crea las cuotas según la propuesta de pago aprobada.
+En la pestaña **Pagos** del caso, botón **"Generar Cronograma de Pagos"** crea las cuotas según la propuesta de pago del caso (plazo, periodicidad y fecha de inicio).
 
 ### 8.2 Registrar un pago
 
-Botón **"Registrar pago"** (o "Pagar" en una cuota):
+Botón **"Registrar Pago Manual"** (o **"Pagar"** en una cuota del cronograma):
 
 - Monto
-- Fecha de pago
+- Fecha de pago (solo en el registro manual; al pagar una cuota se registra la fecha del día)
 - Método (Transferencia, Efectivo, Cheque, PSE, Otro)
 - Observaciones
 - **Comprobante** (PDF / JPG / PNG, máx. 4 MB)
@@ -455,12 +455,12 @@ El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive. Si el
 
 ### 8.3 Estados de pago
 
-| Estado      | Significado                           |
-| ----------- | ------------------------------------- |
-| `pendiente` | Cuota programada, sin pago registrado |
-| `pagado`    | Pago completo recibido                |
-| `parcial`   | Pago menor al monto esperado          |
-| `vencido`   | `dueDate` superada sin pago           |
+| Estado      | Significado                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------- |
+| `pendiente` | Cuota programada, sin pago registrado                                                              |
+| `pagado`    | Pago registrado (aunque el monto sea menor al de la cuota)                                         |
+| `parcial`   | Existe como estado, pero hoy ninguna acción lo asigna: registrar un pago deja la cuota en `pagado` |
+| `vencido`   | Fecha de vencimiento superada sin pago                                                             |
 
 ### 8.4 Reporte de trazabilidad
 
