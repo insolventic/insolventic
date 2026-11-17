@@ -632,18 +632,7 @@ Al hacer click se marcan como leídas. Si tu administrador activa `ALERTS_EMAIL_
 
 ---
 
-## 13. Cambio de centro (multi-tenant)
-
-Si tu usuario tiene acceso a varios centros, en el perfil aparece **Cambiar centro**. El sistema:
-
-1. Revalida tu sesión.
-2. Revalida `mustChangePassword`.
-3. Emite un nuevo token con el `tenantId` del centro destino.
-4. Te redirige al dashboard del nuevo centro.
-
----
-
-## 14. Preguntas frecuentes
+## 13. Preguntas frecuentes
 
 **¿Por qué no puedo editar un caso?**
 
