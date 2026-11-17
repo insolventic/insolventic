@@ -642,10 +642,10 @@ Los filtros (estado, fechas, comprobante y búsqueda) están en la vista **Todos
 
 ## 9. Reportes
 
-| Reporte                   | Contenido                                                          |
-| ------------------------- | ------------------------------------------------------------------ |
-| **Estado de Casos**       | Distribución por tipo, fase, operador. Montos solo en Insolvencia. |
-| **Trazabilidad de Pagos** | Ver sección 8.4                                                    |
+| Reporte                   | Contenido                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Estado de Casos**       | Total de casos, monto total de los casos de insolvencia, casos por fase y casos por tipo de servicio; filtrable por rango de fechas. |
+| **Trazabilidad de Pagos** | Ver sección 8.4                                                                                                                      |
 
 Los dos reportes se exportan a Excel (.xlsx) con el botón **Exportar Excel** (ver [Figura 9-1](#figura-9-1)).
 
