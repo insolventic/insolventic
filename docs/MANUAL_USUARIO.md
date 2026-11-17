@@ -419,7 +419,7 @@ Cada transición queda registrada en la **Auditoría** (ver 11).
 
 ## 5. Deudores, acreedores, apoderados
 
-Módulos independientes con CRUD. Al crear un caso puedes vincular un deudor existente o crear uno nuevo al vuelo.
+Módulos independientes: en cada uno se pueden crear, consultar y editar registros, y eliminarlos con el permiso correspondiente. Al crear un caso puedes vincular un deudor existente o crear uno nuevo al vuelo.
 
 Las listas de deudores y de acreedores tienen búsqueda, un filtro, exportación y las acciones de cada fila (ver [Figura 5-1](#figura-5-1) y [Figura 5-3](#figura-5-3)). El alta de un deudor se diligencia en tres pestañas: Personal, Financiero y Contacto (ver [Figura 5-2](#figura-5-2)).
 
