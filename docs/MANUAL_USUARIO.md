@@ -548,10 +548,8 @@ Los dos reportes se exportan a Excel (.xlsx) con el botón **Exportar Excel**.
 
 `Usuarios` (permiso requerido; ver [Figura 10-1](#figura-10-1) y [Figura 10-2](#figura-10-2)):
 
-- Crear usuario (email, nombre, rol, tenant).
+- Crear usuario (email, nombre, rol).
 - Asignar rol.
-- Activar / desactivar.
-- **Forzar cambio de contraseña en próximo login**.
 
 <a id="figura-10-1"></a>
 <img src="manual-usuario/img/10-usuarios/10-usuarios-01-lista.png" alt="Pantalla Gestión de usuarios y permisos con las pestañas Usuarios y Roles y Permisos, el botón Nuevo Usuario, el filtro por rol y la tabla de usuarios con sus acciones." width="1440">
