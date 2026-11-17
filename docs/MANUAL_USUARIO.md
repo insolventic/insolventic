@@ -715,12 +715,14 @@ _Figura 10-4. Permisos de un rol, agrupados por módulo._
 
 `Auditoría` (permiso requerido): bitácora cronológica de acciones críticas:
 
-- Login / logout
-- Creación, edición, eliminación de casos/deudores/acreedores
+- Creación, edición y eliminación de casos, deudores y acreedores; restauración y eliminación definitiva de casos
 - Cambios de fase
 - Generación de documentos
-- Registro de pagos
-- Cambios de rol/permisos
+- Registro de pagos (aparecen como entradas del caso)
+- Cambio y restablecimiento de contraseña (aparecen como actualización del usuario)
+- Altas, cambios y bajas de usuarios y de roles, incluidos sus permisos
+
+El inicio y el cierre de sesión no quedan registrados.
 
 Filtrable por texto (nombre o usuario), tipo de entidad, acción, usuario y rango de fechas (ver [Figura 11-1](#figura-11-1)).
 
