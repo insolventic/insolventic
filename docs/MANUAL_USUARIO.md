@@ -626,7 +626,17 @@ _Figura 8.2-2. Comprobante rechazado por tamaño._
 
 - Filtros: estado, fechas, tiene comprobante, búsqueda.
 - Summaries: total recaudado, pendiente, vencido, casos con pagos.
-- Tabla expandible por caso con barra de progreso `pagado / obligación total`.
+- Tabla expandible por caso con barra de progreso `pagado / obligación total` (ver [Figura 8.4-1](#figura-8-4-1)).
+
+<a id="figura-8-4-1"></a>
+<img src="manual-usuario/img/09-reportes/09-reportes-02-trazabilidad-pagos.png" alt="Pestaña Trazabilidad de Pagos en la vista Progreso por Caso: totales recaudado, pendiente y vencido, casos con pagos, y la fila del caso INSOL-000003 con su barra de progreso." width="1440">
+
+_Figura 8.4-1. Reporte de trazabilidad, vista Progreso por Caso._
+
+- ① Botón **Exportar Excel**.
+- ② Un caso: obligación, pagado, pendiente, avance y cuotas; la flecha lo despliega.
+
+Los filtros (estado, fechas, comprobante y búsqueda) están en la vista **Todos los Pagos**.
 
 ---
 
@@ -637,7 +647,15 @@ _Figura 8.2-2. Comprobante rechazado por tamaño._
 | **Estado de Casos**       | Distribución por tipo, fase, operador. Montos solo en Insolvencia. |
 | **Trazabilidad de Pagos** | Ver sección 8.4                                                    |
 
-Los dos reportes se exportan a Excel (.xlsx) con el botón **Exportar Excel**.
+Los dos reportes se exportan a Excel (.xlsx) con el botón **Exportar Excel** (ver [Figura 9-1](#figura-9-1)).
+
+<a id="figura-9-1"></a>
+<img src="manual-usuario/img/09-reportes/09-reportes-01-estado-casos.png" alt="Pestaña Estado de Casos del módulo Reportes, con los filtros de fecha, los botones Filtrar y Exportar Excel, los totales de casos y de monto en insolvencia, y la tabla Casos por Fase." width="1440">
+
+_Figura 9-1. Reporte Estado de Casos._
+
+- ① Pestañas de los dos reportes.
+- ② Botón **Exportar Excel**.
 
 ---
 
@@ -790,6 +808,8 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 - [Figura 8.1-2](#figura-8-1-2). Cronograma de pagos de un acuerdo en curso.
 - [Figura 8.2-1](#figura-8-2-1). Pago de una cuota del cronograma.
 - [Figura 8.2-2](#figura-8-2-2). Comprobante rechazado por tamaño.
+- [Figura 8.4-1](#figura-8-4-1). Reporte de trazabilidad, vista Progreso por Caso.
+- [Figura 9-1](#figura-9-1). Reporte Estado de Casos.
 - [Figura 10-1](#figura-10-1). Lista de usuarios.
 - [Figura 10-2](#figura-10-2). Alta de un usuario.
 - [Figura 10-3](#figura-10-3). Roles del centro y sus permisos.
