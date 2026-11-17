@@ -13,6 +13,7 @@ import path from 'node:path';
 import type { Locator, Page } from '@playwright/test';
 
 import { CARPETA_IMG, COLOR_ANOTACION, VIEWPORT } from './config';
+import { guardarOptimizado } from './optimizar';
 
 const ID_CAPA = 'manual-anotaciones';
 
@@ -261,12 +262,13 @@ export async function capturar(
     };
   }
 
-  await page.screenshot({
-    path: destino,
+  const png = await page.screenshot({
     clip,
     animations: 'disabled',
     caret: 'hide',
     scale: 'device',
   });
+  // Paleta de 256 colores, sin metadatos; no reescribe si los bytes no cambian.
+  await guardarOptimizado(destino, png);
   return destino;
 }

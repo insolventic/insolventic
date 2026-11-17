@@ -27,8 +27,11 @@ datos, recortes y anotaciones salen de este script.
 
 ## Requisitos
 
-1. Dependencias instaladas (`npm ci`) y el Chromium de Playwright
-   (`npx playwright install chromium`).
+1. Dependencias instaladas (`npm ci`, **sin** `--omit=optional`) y el
+   Chromium de Playwright (`npx playwright install chromium`). La
+   optimización de PNG usa `sharp`, que Next.js instala como dependencia
+   opcional: no está en `package.json` y no hay que agregarlo. Si falta, el
+   script se detiene con un mensaje que lo explica.
 2. Un Postgres local para la base de capturas. Con Docker:
 
    ```bash
@@ -59,6 +62,13 @@ Las figuras quedan en `docs/manual-usuario/img/<NN-seccion>/`, con nombres
 `NN-seccion-descripcion.png` en kebab-case. Al terminar, el script detiene el
 servidor. Para borrar la base: `docker rm -f insolventic-manual-pg`.
 
+Para re-optimizar figuras que ya están en disco (no hace falta tras una
+corrida normal, que las guarda optimizadas):
+
+```bash
+npx tsx scripts/manual-capturas/optimizar.ts [archivo.png ...]
+```
+
 El log de la app va a `manual-capturas-app.log` en la carpeta temporal del
 sistema (el script imprime la ruta). Es normal que registre fallos de Drive y
 de SMTP: no hay credenciales, a propósito. Si una anotación cae fuera de la
@@ -84,7 +94,8 @@ propio reloj:
 | Archivo          | Qué hace                                                               |
 | ---------------- | ---------------------------------------------------------------------- |
 | `capturar.ts`    | Punto de entrada: guarda, seed, servidor, navegador y secciones        |
-| `guarda-base.ts` | Aborta si la base no es `localhost/insolventic_manual_test`            |
+| `guarda-base.ts` | Aborta si la base no es `127.0.0.1:54330/insolventic_manual_test`      |
+| `optimizar.ts`   | Paleta de 256 colores con `sharp`; también se puede correr solo        |
 | `seed.ts`        | Recrea el esquema (`prisma db push --force-reset`) y siembra los datos |
 | `datos.ts`       | Los datos sintéticos y la historia del caso de ejemplo                 |
 | `anotaciones.ts` | CSS de captura, marcos y badges numerados, recorte y guardado          |
@@ -100,6 +111,25 @@ propio reloj:
   con la leyenda que va bajo la figura en el manual.
 - Pantalla completa solo la primera vez que aparece un módulo; el resto son
   recortes de la región que el paso describe.
+
+### Formato de archivo: PNG con paleta de 256 colores
+
+Cada figura se guarda como PNG de paleta (`sharp`, libimagequant, calidad 90)
+y sin metadatos. **Por qué paleta:** las capturas de Playwright ya vienen bien
+comprimidas, y una recompresión sin pérdida no baja ni un 1 %. Con paleta,
+las 12 figuras de la sección 4.1 pasaron de 2.040 KB a 756 KB (−63 %), y la
+mayor quedó en 106 KB (objetivo orientativo: ≤ 300 KB por figura).
+
+**Qué se pierde:** los píxeles que cambian están en bordes suavizados y en
+sombras muy tenues. Comparado a 2x en el piloto (Figuras 4.1, 4.6 y 4.9), el
+texto y los colores no se distinguen del original. A 6x, la sombra más tenue
+bajo una tarjeta muestra un tramado fino en vez de un degradado continuo; no
+se ve a tamaño normal y no forma bandas.
+
+**Idempotente:** la cuantización es determinista (misma captura, mismos
+bytes), un PNG que ya es de paleta no se vuelve a cuantizar, y un archivo que
+ya tiene esos bytes no se reescribe. Cambiar las opciones de `OPCIONES_PNG`
+en `optimizar.ts` cambia los bytes de todas las figuras.
 
 ### Agregar una sección
 
