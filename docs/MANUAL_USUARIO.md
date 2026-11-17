@@ -610,7 +610,7 @@ _Figura 10-4. Permisos de un rol, agrupados por módulo._
 - Registro de pagos
 - Cambios de rol/permisos
 
-Filtrable por usuario, acción, fecha.
+Filtrable por texto (nombre o usuario), tipo de entidad, acción, usuario y rango de fechas.
 
 ---
 
