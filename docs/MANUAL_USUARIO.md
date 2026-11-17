@@ -751,6 +751,17 @@ Icono de campana en la barra superior muestra notificaciones internas. Dos fuent
 
 Al hacer click se marcan como leídas. Si tu administrador activa `ALERTS_EMAIL_ENABLED`, también recibirás un correo.
 
+La página **Notificaciones** las lista todas; **Marcar todas como leídas** las marca de una vez (ver [Figura 12-1](#figura-12-1)).
+
+<a id="figura-12-1"></a>
+<img src="manual-usuario/img/12-notificaciones/12-notificaciones-01-centro.png" alt="Centro de Notificaciones de la operadora con el botón Marcar todas como leídas y tres notificaciones: Caso creado, sin leer, y Caso actualizado y Deudor creado, ya leídas." width="1440">
+
+_Figura 12-1. Centro de notificaciones._
+
+- ① Campana, con las notificaciones sin leer.
+- ② Botón **Marcar todas como leídas**.
+- ③ Notificación sin leer, resaltada.
+
 ---
 
 ## 13. Preguntas frecuentes
@@ -823,6 +834,7 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 - [Figura 10-3](#figura-10-3). Roles del centro y sus permisos.
 - [Figura 10-4](#figura-10-4). Permisos de un rol, agrupados por módulo.
 - [Figura 11-1](#figura-11-1). Registro de auditoría.
+- [Figura 12-1](#figura-12-1). Centro de notificaciones.
 
 ---
 
