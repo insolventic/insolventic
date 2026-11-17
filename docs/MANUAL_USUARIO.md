@@ -44,7 +44,7 @@ _Figura 1-3. Mensaje cuando el correo o la contraseña no coinciden._
 
 ## 2. Roles y permisos
 
-Los 5 roles con los que arranca cada centro (`src/prisma/seed.ts`):
+Los 6 roles con los que arranca cada centro (`src/prisma/seed.ts`):
 
 | Rol                          | Alcance                                                                                                        |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
@@ -53,6 +53,7 @@ Los 5 roles con los que arranca cada centro (`src/prisma/seed.ts`):
 | **Abogado**                  | Crear y editar casos (ve también los casos propios); genera documentos. No elimina nada                        |
 | **Asistente Legal**          | Solo consulta de casos (propios y en general) y de acreedores/deudores; genera documentos                      |
 | **Secretaria**               | Solo consulta de casos y documentos — sin crear, editar ni generar                                             |
+| **Usuario**                  | Consulta de los casos en los que figura como cliente, de deudores, acreedores y documentos; ve notificaciones  |
 
 Los permisos son configurables por rol desde **Usuarios → Roles y Permisos** (ver 10).
 
