@@ -54,7 +54,7 @@ Los 5 roles con los que arranca cada centro (`src/prisma/seed.ts`):
 | **Asistente Legal**          | Solo consulta de casos (propios y en general) y de acreedores/deudores; genera documentos                      |
 | **Secretaria**               | Solo consulta de casos y documentos — sin crear, editar ni generar                                             |
 
-Los permisos son configurables por rol desde **Configuración → Roles**.
+Los permisos son configurables por rol desde **Usuarios → Roles y Permisos** (ver 10).
 
 ---
 
@@ -492,7 +492,7 @@ Los reportes se exportan a Excel/CSV (próximamente).
 - Activar / desactivar.
 - **Forzar cambio de contraseña en próximo login**.
 
-`Configuración → Roles`:
+`Usuarios → Roles y Permisos`:
 
 - Crear rol nuevo.
 - Marcar permisos por módulo.
