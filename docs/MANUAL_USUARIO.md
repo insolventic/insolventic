@@ -29,14 +29,6 @@
 
 4. Si es tu primer ingreso, el sistema te forzará a **cambiar tu contraseña** antes de continuar.
 
-   Mientras la cuenta tenga pendiente fijar su contraseña, el formulario no deja entrar y muestra el aviso de la [Figura 1-4](#figura-1-4).
-
-   <a id="figura-1-4"></a>
-   <img src="manual-usuario/img/01-ingreso/01-ingreso-04-contrasena-pendiente.png" alt="Formulario de inicio de sesión con el aviso Debe establecer una nueva contraseña, que remite al enlace de activación enviado por correo o a la recuperación de contraseña." width="488">
-
-   _Figura 1-4. Aviso al ingresar con la contraseña pendiente de fijar._
-   - ① Aviso: la contraseña se fija desde el enlace del correo o con la recuperación de contraseña.
-
 Si el correo o la contraseña no coinciden, el formulario muestra un mensaje y no deja entrar (ver [Figura 1-3](#figura-1-3)).
 
 <a id="figura-1-3"></a>
@@ -45,6 +37,15 @@ Si el correo o la contraseña no coinciden, el formulario muestra un mensaje y n
 _Figura 1-3. Mensaje cuando el correo o la contraseña no coinciden._
 
 - ① Mensaje de credenciales inválidas.
+
+Mientras la cuenta tenga pendiente fijar su contraseña (ver el paso 4), el formulario tampoco deja entrar y muestra el aviso de la [Figura 1-4](#figura-1-4).
+
+<a id="figura-1-4"></a>
+<img src="manual-usuario/img/01-ingreso/01-ingreso-04-contrasena-pendiente.png" alt="Formulario de inicio de sesión con el aviso Debe establecer una nueva contraseña, que remite al enlace de activación enviado por correo o a la recuperación de contraseña." width="488">
+
+_Figura 1-4. Aviso al ingresar con la contraseña pendiente de fijar._
+
+- ① Aviso: la contraseña se fija desde el enlace del correo o con la recuperación de contraseña.
 
 **Olvidaste tu contraseña:** link "¿Olvidó su contraseña?" envía un email con token válido por 1 hora (ver [Figura 1-5](#figura-1-5)).
 
@@ -670,8 +671,8 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 
 - [Figura 1-1](#figura-1-1). Selección del centro de conciliación.
 - [Figura 1-2](#figura-1-2). Formulario de inicio de sesión.
-- [Figura 1-4](#figura-1-4). Aviso al ingresar con la contraseña pendiente de fijar.
 - [Figura 1-3](#figura-1-3). Mensaje cuando el correo o la contraseña no coinciden.
+- [Figura 1-4](#figura-1-4). Aviso al ingresar con la contraseña pendiente de fijar.
 - [Figura 1-5](#figura-1-5). Formulario de recuperación de contraseña.
 - [Figura 3-1](#figura-3-1). Dashboard de la Administradora: barra superior, selector de tareas y notificaciones.
 - [Figura 3-2](#figura-3-2). Indicadores y gráficos del dashboard.
