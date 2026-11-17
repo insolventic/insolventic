@@ -447,12 +447,13 @@ El sistema:
 
 ## 7. Vista de documentos del caso
 
-En el detalle de caso → pestaña **Documentos**:
+En el detalle del caso (acción **Ver detalles** del listado) → pestaña **8. Documentos**:
 
-- **Árbol de carpetas** por sección (01-Generados, 02-Adjuntos, 03-Evidencias, 04-Historial).
-- **Vista previa inline** para PDFs e imágenes (click en el ícono de ojo+documento).
-- **Descargar** (click en el ícono de ojo) abre el archivo en Drive.
-- **Subir adjunto** (permiso requerido).
+- **Estado de Documentos:** si el caso ya tiene carpeta en Google Drive (con el botón **Abrir carpeta** cuando existe) y cuántos documentos se han generado.
+- **Generar Documentos por Etapa:** un botón por paquete (Solicitud, Admisión, Acuerdo y Fracaso); cada paquete indica los datos que le faltan antes de poder generarlo.
+- **Documentos Generados:** la lista de documentos del caso; **Ver** abre el documento en una pestaña nueva.
+
+Los documentos del caso se suben desde **Editar** → pestaña **8. Documentos** (ver 4.3).
 
 ---
 
