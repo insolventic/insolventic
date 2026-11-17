@@ -254,10 +254,9 @@ cuantía) muestra el separador de miles mientras se escribe —`1.500.000`, no
 
 En el listado puedes filtrar por:
 
-- Estado (activo / cerrado / todos)
-- Fase (Solicitud / Admisión / Negociación / Terminación)
-- **Tipo de servicio** (Insolvencia / Conciliación / Acuerdo de Apoyo)
 - Texto libre (número de caso, nombre del deudor, cédula)
+- **Tipo de servicio** (Insolvencia / Conciliación / Acuerdo de Apoyo)
+- Fase (cualquiera de las 13 fases del expediente; ver 4.4)
 
 ### 4.3 Editar un caso
 
@@ -275,9 +274,10 @@ Abrir el caso → **Editar**. El sistema protege contra ediciones concurrentes:
 
 ### 4.4 Transiciones de fase
 
-El expediente tiene 13 fases (`Inicial` → `Terminado`). En el detalle del
-caso solo aparecen los botones de las transiciones **válidas desde la fase
-actual** — el sistema no deja saltar fases.
+El expediente tiene 13 fases (`Inicial` → `Terminado`). La fase se cambia
+desde el listado, con la acción **Cambiar fase** de cada caso: el diálogo
+muestra la fase actual y solo las transiciones **válidas desde ella** — el
+sistema no deja saltar fases.
 
 **Las 5 fases que distinguen el desenlace de la negociación**, en vez de
 caer todas a `Fracaso` con el mismo paquete de documentos:
@@ -295,12 +295,9 @@ ejemplo _Inasistencia del deudor_, _Incumplimiento_, _Impugnación del
 acuerdo_, _Muerte del deudor_ — porque cada uno genera un paquete de
 documentos distinto.
 
-Otros botones contextuales que verás:
-
-- **Admitir** (desde Inicial) → exige fecha de admisión, operador designado, fecha de aceptación.
-- **Programar primera audiencia** (desde Admisión).
-- **Registrar resultado** (desde En negociación / Audiencia programada) → Acuerdo aprobado, Desistimiento o Fracaso.
-- **Cerrar caso** (Terminado) → marca `resultDate` y bloquea edición.
+Al elegir **Fracaso** o **Desistimiento**, el diálogo pide el subtipo y la
+fecha antes de confirmar el cambio. Las demás transiciones se aplican al
+elegirlas.
 
 Cada transición queda registrada en el **Audit Log**.
 
