@@ -45,19 +45,119 @@ Al ingresar verás:
 
 ### 4.1 Crear un caso
 
-`Casos → Crear nuevo caso`, y en el menú elegir el tipo de servicio.
+`Casos → Crear nuevo caso`, y en el menú elegir el tipo de servicio (ver [Figura 4.1](#figura-4-1)).
+
+<a id="figura-4-1"></a>
+<img src="manual-usuario/img/04-casos/04-casos-crear-caso-01-menu.png" alt="Botón Crear nuevo caso con su menú desplegado y las opciones Insolvencia, Conciliación y Acuerdos de apoyo." width="312">
+
+_Figura 4.1. Botón «Crear nuevo caso» y su menú de tipos de servicio._
+
+- ① Botón **Crear nuevo caso**.
+- ② Opción **Insolvencia**.
+- ③ Opción **Conciliación**.
+
+El formulario se abre en la pestaña 1; las pestañas se recorren con **Siguiente** o haciendo clic en ellas (ver [Figura 4.2](#figura-4-2)).
+
+<a id="figura-4-2"></a>
+<img src="manual-usuario/img/04-casos/04-casos-crear-caso-02-solicitante-vacio.png" alt="Formulario Crear Nuevo Caso abierto en la pestaña 1. Solicitante, con el selector de deudor vacío y la deuda total en cero." width="1152">
+
+_Figura 4.2. Formulario de alta de insolvencia al abrirse, en la pestaña Solicitante._
+
+- ① Las siete pestañas del formulario.
+- ② Selector del deudor.
+- ③ Botón para crear un deudor nuevo.
+- ④ Deuda total, que se calcula a partir de los acreedores.
+
+Si al pulsar **Crear Caso** falta un dato obligatorio, el formulario vuelve a la primera pestaña con errores, marca en rojo las pestañas y los campos que faltan, y un aviso «Campos incompletos» los enumera (ver [Figura 4.3](#figura-4-3)).
+
+<a id="figura-4-3"></a>
+<img src="manual-usuario/img/04-casos/04-casos-crear-caso-03-error-validacion.png" alt="Formulario Crear Nuevo Caso con las pestañas Solicitante y Acreedores marcadas en rojo, el selector de deudor con borde rojo, el mensaje La deuda total es requerida y un aviso Campos incompletos que enumera los datos faltantes." width="1440">
+
+_Figura 4.3. Errores de validación al intentar crear el caso sin los datos obligatorios._
+
+- ① Pestaña **Solicitante**, marcada con errores.
+- ② Pestaña **Acreedores**, marcada con errores.
+- ③ Selector del deudor sin diligenciar.
+- ④ Mensaje del campo con error.
+- ⑤ Aviso «Campos incompletos» con la lista de lo que falta.
 
 **Pestañas del formulario (insolvencia):**
 
-1. **Solicitante** — deudor (se elige uno existente o se crea con el botón de al lado), causas de la insolvencia, ámbito de aplicación (persona natural no comerciante o pequeño comerciante) y operador del caso. La deuda total se calcula sola a partir de los acreedores.
-2. **Situación** — cónyuge o compañero(a) permanente (sociedad conyugal vigente/disuelta), información laboral y económica (ingresos, gastos, recursos disponibles, obligaciones alimentarias), cesación de pagos y procesos judiciales en curso.
-3. **Acreedores** — acreedores y deudas: capital, intereses, tasa y tipo de deuda; la clasificación del crédito, la clase y el % de acreencia se calculan solos. Incluye también libranzas y servicios públicos suspendidos.
+1. **Solicitante** — deudor (se elige uno existente o se crea con el botón de al lado), causas de la insolvencia, ámbito de aplicación (persona natural no comerciante o pequeño comerciante) y operador del caso. La deuda total se calcula sola a partir de los acreedores (ver [Figura 4.4](#figura-4-4) y [Figura 4.5](#figura-4-5)).
+
+   <a id="figura-4-4"></a>
+   <img src="manual-usuario/img/04-casos/04-casos-crear-caso-04-solicitante-deudor.png" alt="Pestaña Solicitante con el deudor Jorge Enrique Salazar Peña seleccionado, su ficha de datos, la deuda total de 45.440.000 pesos y dos causas de insolvencia marcadas." width="1152">
+
+   _Figura 4.4. Pestaña Solicitante diligenciada: deudor, ficha, deuda total y causas._
+   - ① Deudor seleccionado.
+   - ② Ficha con los datos del deudor.
+   - ③ Deuda total, calculada desde los acreedores.
+   - ④ Causas de la insolvencia.
+
+   <a id="figura-4-5"></a>
+   <img src="manual-usuario/img/04-casos/04-casos-crear-caso-05-solicitante-datos-caso.png" alt="Parte inferior de la pestaña Solicitante con el ámbito Persona natural no comerciante elegido y el operador del caso asignado." width="1152">
+
+   _Figura 4.5. Ámbito de aplicación y operador del caso._
+   - ① Ámbito de aplicación.
+   - ② Operador del caso; recibe las alertas de audiencia y de pago vencido del expediente.
+
+2. **Situación** — cónyuge o compañero(a) permanente (sociedad conyugal vigente/disuelta), información laboral y económica (ingresos, gastos, recursos disponibles, obligaciones alimentarias), cesación de pagos y procesos judiciales en curso (ver [Figura 4.6](#figura-4-6)).
+
+   <a id="figura-4-6"></a>
+   <img src="manual-usuario/img/04-casos/04-casos-crear-caso-06-ingresos-gastos.png" alt="Pestaña Situación con el ingreso principal de 4.200.000 pesos, los gastos del mes que suman 3.100.000 y el recuadro Recursos disponibles con 1.100.000 pesos." width="1152">
+
+   _Figura 4.6. Ingresos, gastos y recursos disponibles del deudor._
+   - ① Ingreso principal mensual.
+   - ② Total de gastos mensuales, calculado.
+   - ③ Recursos disponibles (ingresos menos gastos), base de la cuota de la propuesta.
+
+3. **Acreedores** — acreedores y deudas: capital, intereses, tasa y tipo de deuda; la clasificación del crédito, la clase y el % de acreencia se calculan solos. Incluye también libranzas y servicios públicos suspendidos (ver [Figura 4.7](#figura-4-7)).
+
+   <a id="figura-4-7"></a>
+   <img src="manual-usuario/img/04-casos/04-casos-crear-caso-07-acreedor.png" alt="Formulario del Acreedor número 1 con Banco Andino de Fomento S.A., capital de 32.500.000 pesos, tipo de deuda Personal y clase Quinta calculada." width="1152">
+
+   _Figura 4.7. Datos de un acreedor y su deuda._
+   - ① Nombre del acreedor.
+   - ② Capital de la deuda, con separador de miles.
+   - ③ Tipo de deuda.
+   - ④ Clase, calculada según el tipo de deuda.
+
 4. **Bienes** — muebles, inmuebles, vehículos, con avalúo.
-5. **Propuesta** — resumen de obligaciones por clase y flujo de caja (cuota mensual y plazo), que se calculan con los datos de las pestañas 2 y 3; período de gracia, dación en pago, quitas, condonación de intereses y orden de prelación.
+5. **Propuesta** — resumen de obligaciones por clase y flujo de caja (cuota mensual y plazo), que se calculan con los datos de las pestañas 2 y 3; período de gracia, dación en pago, quitas, condonación de intereses y orden de prelación (ver [Figura 4.8](#figura-4-8)).
+
+   <a id="figura-4-8"></a>
+   <img src="manual-usuario/img/04-casos/04-casos-crear-caso-08-propuesta.png" alt="Pestaña Propuesta con el resumen financiero por clase, el total de obligaciones de 45.440.000 pesos, la cuota mensual propuesta de 1.100.000 y el plazo estimado de 42 meses." width="1152">
+
+   _Figura 4.8. Resumen por clase y flujo de caja calculados._
+   - ① Total de obligaciones.
+   - ② Cuota mensual propuesta.
+   - ③ Plazo estimado.
+
 6. **Legal** — declaraciones (veracidad, buena fe, no ocultamiento, autorizaciones), tarifa y fundamentos de derecho, notificaciones, apoderado y firma del solicitante.
 7. **Documentos** — carga de los documentos del caso (ver el párrafo siguiente).
 
 **Documentos del caso:** PDF, JPG o PNG, máx. 4 MB por archivo, en la pestaña de documentos del formulario, al crear o al editar el caso. No hay límite para el total. Un archivo más pesado se rechaza al elegirlo; un PDF comprimido o una foto en menor resolución suelen caber. Si alguno no se puede subir al guardar, los demás quedan guardados y un aviso dice cuál falló y por qué; se vuelve a adjuntar desde **Editar caso → Documentos**.
+
+La [Figura 4.9](#figura-4-9) muestra la pestaña con un archivo rechazado por tamaño.
+
+<a id="figura-4-9"></a>
+<img src="manual-usuario/img/04-casos/04-casos-crear-caso-09-documentos.png" alt="Pestaña Documentos con la cédula y el certificado REDAM cargados en verde, el certificado de ingresos pendiente en rojo y un aviso que rechaza un archivo de 5,2 MB porque el máximo es 4 MB." width="1440">
+
+_Figura 4.9. Carga de documentos, con un archivo rechazado por tamaño._
+
+- ① Formatos admitidos y tamaño máximo por archivo.
+- ② Documento obligatorio cargado.
+- ③ Documento obligatorio pendiente.
+- ④ Aviso de rechazo, con el peso del archivo.
+
+Con todo completo, **Crear Caso** guarda el expediente y el caso aparece en el listado con su número (ver [Figura 4.10](#figura-4-10)).
+
+<a id="figura-4-10"></a>
+<img src="manual-usuario/img/04-casos/04-casos-crear-caso-10-caso-en-listado.png" alt="Listado de casos con la fila del caso nuevo INSOL-000005 de Jorge Enrique Salazar Peña resaltada, en fase Inicial y con monto total de 45.440.000 pesos." width="1230">
+
+_Figura 4.10. El caso recién creado en el listado de casos._
+
+- ① Caso nuevo, con el número que le asignó el sistema.
 
 **Para un caso de Conciliación**, el formulario cambia a tres pestañas
 (Solicitante, Partes y Solicitud): asunto y cuantía,
@@ -67,13 +167,33 @@ desistimiento), menores de edad (alimentos/unión marital), cláusulas del
 acuerdo, causa de terminación anormal, resultado del informe del
 conciliador, y — si aplica el trámite — los datos de la Aclaración de Acta
 (qué campo tenía el error, valor incorrecto/correcto) y de las referencias
-del acta de unión marital que se disuelve o aclara.
+del acta de unión marital que se disuelve o aclara (ver [Figura 4.11](#figura-4-11) y [Figura 4.12](#figura-4-12)).
+
+<a id="figura-4-11"></a>
+<img src="manual-usuario/img/04-casos/04-casos-crear-caso-11-conciliacion-partes.png" alt="Pestaña Partes de un caso de conciliación con los datos del convocado Gustavo Adolfo Ríos Mejía y las secciones opcionales de apoderado del convocante y del convocado." width="1152">
+
+_Figura 4.11. Conciliación: pestaña Partes._
+
+- ① Las tres pestañas de la conciliación.
+- ② Datos del convocado (contraparte).
+- ③ Apoderado del convocante.
+- ④ Apoderado del convocado.
+
+<a id="figura-4-12"></a>
+<img src="manual-usuario/img/04-casos/04-casos-crear-caso-12-conciliacion-solicitud.png" alt="Pestaña Solicitud de un caso de conciliación con el asunto, la cuantía de 6.800.000 pesos, las fechas reales del trámite y los datos de la audiencia virtual por Zoom." width="1152">
+
+_Figura 4.12. Conciliación: pestaña Solicitud._
+
+- ① Asunto y cuantía.
+- ② Fechas reales del trámite.
+- ③ Audiencia virtual (Zoom).
 
 El sistema guarda como **borrador** al avanzar entre secciones.
 
 **Montos en pesos:** todo campo de dinero (ingresos, gastos, deudas,
 cuantía) muestra el separador de miles mientras se escribe —`1.500.000`, no
-`1500000`— para que sea más fácil verificar que el monto es el correcto.
+`1500000`— para que sea más fácil verificar que el monto es el correcto (ver
+[Figura 4.6](#figura-4-6) y [Figura 4.7](#figura-4-7)).
 
 ### 4.2 Filtrar y buscar casos
 
@@ -322,6 +442,23 @@ Google Drive puede tardar unos segundos en propagar permisos. Recarga la pestañ
 
 **¿Puedo recuperar un caso eliminado?**
 No directamente desde la UI. Contacta a un administrador — la auditoría conserva evidencia y se puede restaurar desde backup.
+
+---
+
+## Índice de figuras
+
+- [Figura 4.1](#figura-4-1). Botón «Crear nuevo caso» y su menú de tipos de servicio.
+- [Figura 4.2](#figura-4-2). Formulario de alta de insolvencia al abrirse, en la pestaña Solicitante.
+- [Figura 4.3](#figura-4-3). Errores de validación al intentar crear el caso sin los datos obligatorios.
+- [Figura 4.4](#figura-4-4). Pestaña Solicitante diligenciada: deudor, ficha, deuda total y causas.
+- [Figura 4.5](#figura-4-5). Ámbito de aplicación y operador del caso.
+- [Figura 4.6](#figura-4-6). Ingresos, gastos y recursos disponibles del deudor.
+- [Figura 4.7](#figura-4-7). Datos de un acreedor y su deuda.
+- [Figura 4.8](#figura-4-8). Resumen por clase y flujo de caja calculados.
+- [Figura 4.9](#figura-4-9). Carga de documentos, con un archivo rechazado por tamaño.
+- [Figura 4.10](#figura-4-10). El caso recién creado en el listado de casos.
+- [Figura 4.11](#figura-4-11). Conciliación: pestaña Partes.
+- [Figura 4.12](#figura-4-12). Conciliación: pestaña Solicitud.
 
 ---
 
