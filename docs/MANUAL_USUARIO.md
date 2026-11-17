@@ -422,6 +422,35 @@ Cada transición queda registrada en el **Audit Log**.
 
 Módulos independientes con CRUD. Al crear un caso puedes vincular un deudor existente o crear uno nuevo al vuelo.
 
+Las listas de deudores y de acreedores tienen búsqueda, un filtro, exportación y las acciones de cada fila (ver [Figura 5-1](#figura-5-1) y [Figura 5-3](#figura-5-3)). El alta de un deudor se diligencia en tres pestañas: Personal, Financiero y Contacto (ver [Figura 5-2](#figura-5-2)).
+
+<a id="figura-5-1"></a>
+<img src="manual-usuario/img/05-deudores/05-deudores-01-lista.png" alt="Lista de Deudores con los indicadores de total de deudores, ingresos y deuda, el botón Nuevo Deudor, la búsqueda con filtro por ocupación y exportación, y la tabla con las acciones de cada fila." width="1440">
+
+_Figura 5-1. Lista de deudores._
+
+- ① Botón **Nuevo Deudor**.
+- ② Búsqueda, filtro por ocupación y exportación.
+- ③ Acciones del deudor: ver, editar y eliminar (esta última, solo con el permiso).
+
+<a id="figura-5-2"></a>
+<img src="manual-usuario/img/05-deudores/05-deudores-02-nuevo-deudor.png" alt="Diálogo Nuevo Deudor en la pestaña Personal, con un nombre y un número de documento de ejemplo escritos." width="1024">
+
+_Figura 5-2. Alta de un deudor._
+
+- ① Pestañas Personal, Financiero y Contacto.
+- ② Datos personales del deudor.
+- ③ Botón **Guardar Deudor**.
+
+<a id="figura-5-3"></a>
+<img src="manual-usuario/img/05-deudores/05-deudores-03-acreedores.png" alt="Lista de Acreedores con los indicadores de total de acreedores y deuda, el botón Nuevo Acreedor, la búsqueda con filtro por tipo y exportación, y la tabla con tipo, NIT, representante, contacto y acciones." width="1440">
+
+_Figura 5-3. Lista de acreedores._
+
+- ① Botón **Nuevo Acreedor**.
+- ② Búsqueda, filtro por tipo y exportación.
+- ③ Acciones del acreedor: ver, editar y eliminar (esta última, solo con el permiso).
+
 **En conciliación:** hay dos roles — **Convocante** (solicitante) y **Convocado** (contraparte). Se gestionan como acreedores bilaterales.
 
 ---
@@ -725,6 +754,9 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 - [Figura 4.3.1-4](#figura-4-3-1-4). Confirmación del borrado definitivo.
 - [Figura 4.4-1](#figura-4-4-1). Transiciones válidas desde la fase Inicial.
 - [Figura 4.4-2](#figura-4-4-2). Paso a Fracaso: subtipo y fecha obligatorios.
+- [Figura 5-1](#figura-5-1). Lista de deudores.
+- [Figura 5-2](#figura-5-2). Alta de un deudor.
+- [Figura 5-3](#figura-5-3). Lista de acreedores.
 - [Figura 6-1](#figura-6-1). Lista de paquetes, con el número de documentos de cada uno.
 - [Figura 6-2](#figura-6-2). Formulario completo antes de generar.
 - [Figura 8.1-1](#figura-8-1-1). Caso sin cronograma de pagos.
