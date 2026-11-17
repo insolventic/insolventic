@@ -3,6 +3,8 @@
  *
  * Figuras (docs/manual-usuario/img/04-casos/):
  *   4.2-1   04-casos-listado-01-vista-general        listado, operadora
+ *   4.2-2   04-casos-listado-02-filtro-fase          filtro de fase abierto
+ *   4.3-1   04-casos-editar-01-dialogo               diálogo "Editar Caso"
  *   4.3.1-1 04-casos-papelera-01-eliminar            diálogo "Eliminar Caso"
  *   4.3.1-2 04-casos-papelera-02-operadora           papelera: solo Restaurar
  *   4.3.1-3 04-casos-papelera-03-administrador       papelera: también borrar del todo
@@ -80,6 +82,58 @@ export async function seccion042Listado(ctx: Contexto): Promise<void> {
   ]);
   await capturar(page, CARPETA, '04-casos-listado-01-vista-general');
   await quitarAnotaciones(page);
+  // 4.2-2 — Filtro de fase abierto: las 13 fases.
+  const filtroFase = page
+    .locator('button[role="combobox"]')
+    .filter({ hasText: 'Todas las fases' });
+  await filtroFase.click();
+  const fases = page.getByRole('listbox');
+  await fases.waitFor();
+  await esperarEstable(page);
+  await anotar(page, [
+    { objetivo: filtroFase, numero: 1, badge: 'izq' },
+    { objetivo: fases, numero: 2, badge: 'izq' },
+  ]);
+  await capturar(page, CARPETA, '04-casos-listado-02-filtro-fase', {
+    recorte: [filtroFase, fases],
+    margen: 40,
+  });
+  await quitarAnotaciones(page);
+  await page.keyboard.press('Escape');
+
+  await page.close();
+}
+
+/**
+ * 4.3 — Editar el caso de Jorge: encabezado y pestañas del diálogo. Se
+ * recorta ahí a propósito: el selector de deudor aparece sin el deudor
+ * elegido (hallazgo de UI, ver docs/REVISION_MANUAL.md) y "Guardar Cambios"
+ * queda al pie, tras el scroll interno; el texto del manual lo nombra. Se
+ * cancela sin guardar.
+ */
+export async function seccion043Editar(ctx: Contexto): Promise<void> {
+  const page = await abrirListado(ctx, 'operadora');
+  await fila(page, new RegExp(DEUDOR_EJEMPLO.nombre))
+    .getByTitle('Editar caso')
+    .click();
+  const dlg = page.getByRole('dialog');
+  const pestanas = dlg.getByRole('tablist');
+  await pestanas.waitFor();
+  await dlg
+    .locator('button[role="combobox"]')
+    .first()
+    .filter({ hasNotText: 'Cargando deudores' })
+    .waitFor();
+  await sinFoco(page);
+  await esperarEstable(page);
+  await anotar(page, [{ objetivo: pestanas, numero: 1 }]);
+  await capturar(page, CARPETA, '04-casos-editar-01-dialogo', {
+    recorte: [dlg.getByRole('heading').first(), pestanas],
+    anchoDe: dlg,
+    margen: 28,
+  });
+  await quitarAnotaciones(page);
+  await dlg.getByRole('button', { name: 'Cancelar' }).click();
   await page.close();
 }
 

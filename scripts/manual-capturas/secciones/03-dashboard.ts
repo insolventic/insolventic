@@ -85,5 +85,20 @@ export async function seccion03Dashboard(ctx: Contexto): Promise<void> {
   });
   await quitarAnotaciones(page);
 
+  // 04 — La Secretaria ve menos módulos: el selector depende del rol.
+  const secretaria = await ctx.paginaComo('secretaria');
+  const selector = secretaria.locator('[data-slot="card"]', {
+    has: secretaria.getByText('Selector de Tareas', { exact: true }),
+  });
+  await selector.waitFor();
+  await esperarEstable(secretaria);
+  await anotar(secretaria, [{ objetivo: selector, numero: 1 }]);
+  await capturar(secretaria, CARPETA, N('04-secretaria'), {
+    recorte: selector,
+    margen: 24,
+  });
+  await quitarAnotaciones(secretaria);
+  await secretaria.close();
+
   await page.close();
 }

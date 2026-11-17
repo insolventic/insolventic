@@ -45,6 +45,8 @@ import { assertBaseDeCapturas } from './guarda-base';
 import { sembrar, type ResultadoSeed } from './seed';
 import {
   esperarGeneracionesTerminadas,
+  normalizarFechasDeLaCorrida,
+  quitarAvisosDelEntorno,
   restituirUltimosAccesos,
   sembrarDocumentosDeJorge,
 } from './base';
@@ -53,12 +55,18 @@ import { seccion03Dashboard } from './secciones/03-dashboard';
 import { seccion041CrearCaso } from './secciones/04-1-crear-caso';
 import {
   seccion042Listado,
+  seccion043Editar,
   seccion0431Papelera,
   seccion044Fases,
 } from './secciones/04-casos';
+import { seccion05DeudoresAcreedores } from './secciones/05-deudores-acreedores';
 import { seccion06Generacion } from './secciones/06-generacion';
+import { seccion07DocumentosCaso } from './secciones/07-documentos-caso';
 import { seccion08Pagos } from './secciones/08-pagos';
+import { seccion09Reportes } from './secciones/09-reportes';
 import { seccion10Usuarios } from './secciones/10-usuarios';
+import { seccion11Auditoria } from './secciones/11-auditoria';
+import { seccion12Notificaciones } from './secciones/12-notificaciones';
 
 export interface Contexto {
   seed: ResultadoSeed;
@@ -84,6 +92,10 @@ export interface Contexto {
   sembrarDocumentosDeJorge: () => Promise<void>;
   /** Devuelve el Último acceso de los usuarios a los valores del seed. */
   restituirUltimosAccesos: () => Promise<void>;
+  /** Lleva a la fecha ancla lo creado en la corrida (ver base.ts). */
+  normalizarFechas: (minutosAntes: number) => Promise<void>;
+  /** Borra los avisos de generación fallida, propios del entorno sin Drive. */
+  quitarAvisosDelEntorno: () => Promise<void>;
 }
 
 type Seccion = (ctx: Contexto) => Promise<void>;
@@ -103,12 +115,19 @@ const SECCIONES: ReadonlyArray<{
   { id: '4.1', ejecutar: seccion041CrearCaso },
   // El listado y el cambio de fase muestran el caso de Jorge, que crea 4.1.
   { id: '4.2', ejecutar: seccion042Listado, requiere: ['4.1'] },
+  { id: '4.3', ejecutar: seccion043Editar, requiere: ['4.1'] },
   { id: '4.3.1', ejecutar: seccion0431Papelera },
   { id: '4.4', ejecutar: seccion044Fases, requiere: ['4.1'] },
   // El generador usa el caso de Jorge; Usuarios cuenta sus casos asignados.
+  { id: '5', ejecutar: seccion05DeudoresAcreedores },
   { id: '6', ejecutar: seccion06Generacion, requiere: ['4.1'] },
+  { id: '7', ejecutar: seccion07DocumentosCaso, requiere: ['4.1'] },
   { id: '8', ejecutar: seccion08Pagos },
+  { id: '9', ejecutar: seccion09Reportes },
   { id: '10', ejecutar: seccion10Usuarios, requiere: ['4.1'] },
+  // Auditoría y notificaciones muestran lo que dejó el alta del caso de Jorge.
+  { id: '11', ejecutar: seccion11Auditoria, requiere: ['4.1'] },
+  { id: '12', ejecutar: seccion12Notificaciones, requiere: ['4.1'] },
 ];
 const IDS = SECCIONES.map((s) => s.id);
 
@@ -199,9 +218,13 @@ async function main(): Promise<void> {
   const env = entornoServidor(url);
 
   if (build) {
+    // El build descarga la fuente Inter (next/font) igual que `npm run build`:
+    // sin el proxy cerrado, que es solo para el servidor en ejecución.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { HTTP_PROXY, HTTPS_PROXY, NO_PROXY, ...envBuild } = env;
     execFileSync(process.execPath, [NEXT_CLI, 'build'], {
       cwd: RAIZ_REPO,
-      env,
+      env: envBuild,
       stdio: 'inherit',
     });
   } else if (!existsSync(path.join(RAIZ_REPO, '.next', 'BUILD_ID'))) {
@@ -282,6 +305,9 @@ async function main(): Promise<void> {
       esperarGeneraciones: () => esperarGeneracionesTerminadas(url),
       sembrarDocumentosDeJorge: () => sembrarDocumentosDeJorge(url),
       restituirUltimosAccesos: () => restituirUltimosAccesos(url),
+      normalizarFechas: (minutos) =>
+        normalizarFechasDeLaCorrida(url, seed.sembradoEn, minutos),
+      quitarAvisosDelEntorno: () => quitarAvisosDelEntorno(url),
     };
 
     for (const s of aEjecutar) {

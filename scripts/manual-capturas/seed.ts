@@ -34,7 +34,9 @@ import {
   DEUDOR_EJEMPLO,
   CRONOGRAMA_LUZ,
   DEUDORES_CONTEXTO,
+  AUDITORIA_SEMBRADA,
   NOTIFICACIONES_ADMIN,
+  NOTIFICACIONES_OPERADORA,
   ULTIMO_ACCESO_HORAS,
   USUARIOS,
   type ClaveRol,
@@ -186,6 +188,8 @@ export interface ResultadoSeed {
     Exclude<ClaveRol, 'usuario'>,
     { email: string; nombre: string }
   >;
+  /** Fin del seed: lo creado después es de la corrida (fechas reales). */
+  sembradoEn: Date;
 }
 
 /**
@@ -275,7 +279,9 @@ export async function sembrar(
           name: u.nombre,
           email: u.email,
           password: hash,
-          mustChangePassword: false,
+          // La asistente aún no fijó su contraseña: la sección 1 muestra el
+          // mensaje que recibe al intentar entrar.
+          mustChangePassword: u.clave === 'asistente',
           professionalCard: u.tarjetaProfesional,
           phone: u.telefono,
           address: u.direccion,
@@ -449,7 +455,58 @@ export async function sembrar(
       });
     }
 
-    return { password, usuarios };
+    // Auditoría previa a la corrida (sección 11), con el texto de la app.
+    const acciones: Record<string, string> = {
+      created: 'creado',
+      updated: 'actualizado',
+      deleted: 'eliminado',
+    };
+    const etiquetas: Record<string, string> = {
+      case: 'caso',
+      debtor: 'deudor',
+    };
+    for (const a of AUDITORIA_SEMBRADA) {
+      const actor = USUARIOS.find((u) => u.clave === a.actor)!;
+      const entityId =
+        a.entidad === 'case'
+          ? idsCaso.get(a.nombre.split(' - ')[0])!
+          : idsDeudor.get(DEUDOR_EJEMPLO.clave)!;
+      await prisma.auditLog.create({
+        data: {
+          action: a.accion,
+          entityType: a.entidad,
+          entityId,
+          entityName: a.nombre,
+          userId: idsUsuario.get(a.actor)!,
+          userName: actor.nombre,
+          userCedula: actor.tarjetaProfesional,
+          description: `Se ha ${acciones[a.accion]} el ${etiquetas[a.entidad]} '${a.nombre}' por el usuario ${actor.nombre} con cédula ${actor.tarjetaProfesional}`,
+          createdAt: new Date(FECHA_ANCLA.getTime() - a.horasAntes * 3600_000),
+          tenantId,
+        },
+      });
+    }
+
+    // Notificaciones ya leídas de la operadora (sección 12). Leídas para no
+    // cambiar el número de su campana en figuras ya aprobadas.
+    for (const n of NOTIFICACIONES_OPERADORA) {
+      await prisma.notification.create({
+        data: {
+          type: n.tipo,
+          title: n.titulo,
+          message: n.mensaje,
+          userId: idsUsuario.get('operadora')!,
+          caseId: n.caso ? idsCaso.get(n.caso)! : null,
+          read: true,
+          createdDate: new Date(
+            FECHA_ANCLA.getTime() - n.horasAntes * 3600_000,
+          ),
+          tenantId,
+        },
+      });
+    }
+
+    return { password, usuarios, sembradoEn: new Date() };
   } finally {
     await prisma.$disconnect();
   }

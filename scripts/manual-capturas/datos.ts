@@ -404,6 +404,119 @@ export const DOCUMENTOS_JORGE = [
 ] as const;
 
 /**
+ * Auditoría anterior a la corrida (sección 11), coherente con el resto del
+ * seed: quién creó cada caso, el cambio de fase de Claudia, el duplicado que
+ * fue a la papelera y el alta del deudor de Jorge. El texto lo arma el seed
+ * con la misma plantilla que `createAuditLog`. `horasAntes` de la ancla.
+ */
+export const AUDITORIA_SEMBRADA: ReadonlyArray<{
+  accion: 'created' | 'updated' | 'deleted';
+  entidad: 'case' | 'debtor';
+  nombre: string;
+  actor: Exclude<ClaveRol, 'usuario'>;
+  horasAntes: number;
+}> = [
+  {
+    accion: 'created',
+    entidad: 'case',
+    nombre: 'INSOL-000003 - Luz Ángela Moreno Bernal',
+    actor: 'abogado',
+    horasAntes: 210 * 24,
+  },
+  {
+    accion: 'created',
+    entidad: 'case',
+    nombre: 'INSOL-000001 - Claudia Milena Rincón Duarte',
+    actor: 'operadora',
+    horasAntes: 96 * 24,
+  },
+  {
+    accion: 'created',
+    entidad: 'case',
+    nombre: 'INSOL-000002 - Hernán Darío Villegas Toro',
+    actor: 'operadora',
+    horasAntes: 41 * 24,
+  },
+  {
+    accion: 'updated',
+    entidad: 'case',
+    nombre: 'INSOL-000001 - Claudia Milena Rincón Duarte',
+    actor: 'operadora',
+    horasAntes: 30 * 24,
+  },
+  {
+    accion: 'created',
+    entidad: 'case',
+    nombre: 'CONC-000001 - Rosa Elena Quiroga Díaz',
+    actor: 'operadora',
+    horasAntes: 12 * 24,
+  },
+  {
+    accion: 'created',
+    entidad: 'case',
+    nombre: 'CONC-000002 - Rosa Elena Quiroga Díaz',
+    actor: 'operadora',
+    horasAntes: 12 * 24 - 1,
+  },
+  {
+    accion: 'created',
+    entidad: 'case',
+    nombre: 'INSOL-000004 - Sergio Iván Patiño Lozano',
+    actor: 'abogado',
+    horasAntes: 144,
+  },
+  {
+    accion: 'created',
+    entidad: 'debtor',
+    nombre: 'Jorge Enrique Salazar Peña',
+    actor: 'operadora',
+    horasAntes: 70,
+  },
+  {
+    accion: 'deleted',
+    entidad: 'case',
+    nombre: 'CONC-000002 - Rosa Elena Quiroga Díaz',
+    actor: 'operadora',
+    horasAntes: 43,
+  },
+  {
+    accion: 'updated',
+    entidad: 'case',
+    nombre: 'INSOL-000001 - Claudia Milena Rincón Duarte',
+    actor: 'operadora',
+    horasAntes: 2,
+  },
+];
+
+/**
+ * Notificaciones ya leídas de la operadora (sección 12). Leídas a propósito:
+ * su campana sale en figuras ya aprobadas y solo cuenta las no leídas.
+ */
+export const NOTIFICACIONES_OPERADORA: ReadonlyArray<{
+  tipo: string;
+  titulo: string;
+  mensaje: string;
+  caso?: string;
+  horasAntes: number;
+}> = [
+  {
+    tipo: 'case_updated',
+    titulo: 'Caso actualizado',
+    mensaje:
+      "Se ha actualizado el caso 'INSOL-000001 - Claudia Milena Rincón Duarte' por el usuario Diana Marcela Restrepo Gil con cédula 245.118",
+    caso: 'INSOL-000001',
+    horasAntes: 2,
+  },
+  {
+    tipo: 'debtor_created',
+    titulo: 'Deudor creado',
+    mensaje:
+      "Se ha creado el deudor 'Jorge Enrique Salazar Peña' por el usuario Diana Marcela Restrepo Gil con cédula 245.118",
+    horasAntes: 70,
+  },
+];
+
+/**
  * Notificaciones del Administrador para el dashboard (sección 3), con el
  * mismo título y texto que arma la app (`createNotificationForAction`).
  * `horasAntes` se resta de la fecha ancla.

@@ -54,18 +54,23 @@ npx tsx scripts/manual-capturas/capturar.ts --build
 
 - `--build` compila la app (`next build`). Hace falta la primera vez y cada
   vez que cambie el código de la UI. Sin la opción se reutiliza el build que
-  haya en `.next/`.
+  haya en `.next/`. El build corre **sin** el proxy cerrado: `next/font`
+  descarga la fuente Inter de Google Fonts al compilar, igual que
+  `npm run build`. El servidor que se captura sí arranca con el proxy.
 - `--seccion 4.1` limita la corrida a una sección (admite varias separadas por
   comas). Sin la opción corren todas. Las secciones corren siempre en el orden
   del manual, y una sección arrastra las que necesita: 4.2 y 4.4 muestran el
   caso de Jorge, así que piden también 4.1 (que vuelve a generar sus figuras
-  con los mismos bytes).
+  con los mismos bytes). Igual 4.3, 6, 7, 10, 11 y 12.
 
 Cada rol (operadora, administradora…) inicia sesión **una sola vez** por
 corrida y reutiliza su sesión en todas las secciones. El login de la app
 admite 5 intentos cada 15 minutos por IP, y el script no desactiva ese
-límite: con una sesión por rol, una corrida completa usa 3 intentos (uno de
-ellos, el de la figura de credenciales inválidas).
+límite: con una sesión por rol, una corrida completa usa **5 intentos, el
+máximo**: la figura de credenciales inválidas (1-3), la de contraseña
+pendiente (1-4, la asistente) y las sesiones de la administradora, la
+secretaria y la operadora. Una figura más que necesite otro rol obliga a
+correr esa sección aparte, 15 minutos después.
 
 Las figuras quedan en `docs/manual-usuario/img/<NN-seccion>/`, con nombres
 `NN-seccion-descripcion.png` en kebab-case. Al terminar, el script detiene el
@@ -89,8 +94,8 @@ vista, el script se detiene y deja una captura del estado en
 El navegador corre con el reloj congelado en la **fecha ancla 2026-11-16
 10:00 (America/Bogota)** (`config.ts`) y todas las fechas del seed se calculan
 a partir de ella. Dos corridas seguidas producen imágenes idénticas byte a
-byte (verificado en las secciones 1, 3 y 4), salvo lo que el servidor calcula
-con su propio reloj:
+byte (verificado con dos corridas completas, todas las secciones), salvo lo
+que el servidor calcula con su propio reloj:
 
 - **"Casos este Mes"** y **"Audiencias Próximas"** del dashboard. Coinciden con
   el seed solo si se regeneran en noviembre de 2026. En otro mes, esos dos
@@ -102,8 +107,20 @@ con su propio reloj:
   después, una más por cada mes. La pestaña Pagos del caso (sección 8) sí es
   estable: allí el estado "Vencido" lo calcula el navegador, con el reloj en
   la fecha ancla.
-- La **fecha de radicación de un caso creado desde la UI** (sección 4.1) es la
-  del día en que se corre el script.
+  Lo que la corrida escribe con la hora real del servidor (el alta y la
+  radicación del caso de 4.1, sus entradas de auditoría y sus notificaciones) se
+  lleva a minutos antes de la fecha ancla en cuanto se crea
+  (`normalizarFechasDeLaCorrida`, `base.ts`): así la auditoría (sección 11) y
+  las notificaciones (sección 12) muestran siempre las mismas fechas. El aviso
+  de "generación fallida", propio de un entorno sin Drive, se borra antes de la
+  sección 12.
+
+## Lo que no se puede capturar
+
+- **La confirmación "Correo de recuperación enviado"** (`/forgot-password`).
+  Sin SMTP la acción responde con error, así que la sección 1 captura el
+  formulario sin enviarlo. Habría que falsear la respuesta del servidor, y la
+  figura dejaría de salir de la app real.
 
 ## Cómo está organizado
 
@@ -112,7 +129,7 @@ con su propio reloj:
 | `capturar.ts`    | Punto de entrada: guarda, seed, servidor, navegador y secciones        |
 | `guarda-base.ts` | Aborta si la base no es `127.0.0.1:54330/insolventic_manual_test`      |
 | `optimizar.ts`   | Paleta de 256 colores con `sharp`; también se puede correr solo        |
-| `base.ts`        | Espera a que terminen las generaciones de documentos en segundo plano  |
+| `base.ts`        | Generaciones en segundo plano, documentos sembrados, fechas a la ancla |
 | `seed.ts`        | Recrea el esquema (`prisma db push --force-reset`) y siembra los datos |
 | `datos.ts`       | Los datos sintéticos y la historia del caso de ejemplo                 |
 | `anotaciones.ts` | CSS de captura, marcos y badges numerados, recorte y guardado          |

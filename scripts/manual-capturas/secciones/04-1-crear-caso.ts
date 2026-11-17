@@ -464,6 +464,9 @@ export async function seccion041CrearCaso(ctx: Contexto): Promise<void> {
   // La generación inicial corre en segundo plano y, al fallar (no hay Drive),
   // notifica: se espera para que las secciones siguientes sean estables.
   await ctx.esperarGeneraciones();
+  // Lo creado con la hora real (alta del caso, notificaciones, auditoría)
+  // pasa a la fecha ancla, para que las secciones siguientes sean estables.
+  await ctx.normalizarFechas(20);
   const tabla = page.getByRole('table');
   await anotar(page, [
     { objetivo: filaNueva, numero: 1, badge: 'izq', holgura: 2 },

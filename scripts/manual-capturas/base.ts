@@ -108,3 +108,64 @@ export async function restituirUltimosAccesos(url: string): Promise<void> {
     }
   });
 }
+
+/**
+ * Lleva a la fecha ancla lo que la corrida creó con la hora real (todo lo
+ * posterior a `desde`, el fin del seed): entradas de auditoría,
+ * notificaciones y la fecha de alta del caso creado en 4.1. Quedan
+ * `minutosAntes` minutos antes de la ancla, separadas 30 s y en su orden
+ * real, para que la auditoría y "Hace N minutos" salgan iguales en cada
+ * corrida.
+ */
+export async function normalizarFechasDeLaCorrida(
+  url: string,
+  desde: Date,
+  minutosAntes: number,
+): Promise<void> {
+  await conBase(url, async (prisma) => {
+    const base = FECHA_ANCLA.getTime() - minutosAntes * 60_000;
+    const logs = await prisma.auditLog.findMany({
+      where: { createdAt: { gt: desde } },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    for (const [i, l] of logs.entries()) {
+      await prisma.auditLog.update({
+        where: { id: l.id },
+        data: { createdAt: new Date(base + i * 30_000) },
+      });
+    }
+    const avisos = await prisma.notification.findMany({
+      where: { createdDate: { gt: desde } },
+      orderBy: [{ createdDate: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    for (const [i, n] of avisos.entries()) {
+      await prisma.notification.update({
+        where: { id: n.id },
+        data: { createdDate: new Date(base + i * 30_000) },
+      });
+    }
+    await prisma.case.updateMany({
+      where: { createdDate: { gt: desde } },
+      data: { createdDate: new Date(base) },
+    });
+    await prisma.case.updateMany({
+      where: { filingDate: { gt: desde } },
+      data: { filingDate: FECHA_ANCLA },
+    });
+  });
+}
+
+/**
+ * Borra las notificaciones de "generación de documentos fallida": en local
+ * la generación siempre falla porque no hay Drive (decisión P2). Es un
+ * artefacto del entorno de capturas, no algo que el manual deba mostrar.
+ */
+export async function quitarAvisosDelEntorno(url: string): Promise<void> {
+  await conBase(url, async (prisma) => {
+    await prisma.notification.deleteMany({
+      where: { type: 'document_generation_failed' },
+    });
+  });
+}
