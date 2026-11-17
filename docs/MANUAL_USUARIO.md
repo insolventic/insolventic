@@ -521,9 +521,33 @@ El sistema:
 
 En el detalle del caso (acción **Ver detalles** del listado) → pestaña **8. Documentos**:
 
-- **Estado de Documentos:** si el caso ya tiene carpeta en Google Drive (con el botón **Abrir carpeta** cuando existe) y cuántos documentos se han generado.
-- **Generar Documentos por Etapa:** un botón por paquete (Solicitud, Admisión, Acuerdo y Fracaso); cada paquete indica los datos que le faltan antes de poder generarlo.
-- **Documentos Generados:** la lista de documentos del caso; **Ver** abre el documento en una pestaña nueva.
+- **Estado de Documentos:** si el caso ya tiene carpeta en Google Drive (con el botón **Abrir carpeta** cuando existe) y cuántos documentos se han generado (ver [Figura 7-1](#figura-7-1)).
+- **Generar Documentos por Etapa:** un botón por paquete (Solicitud, Admisión, Acuerdo y Fracaso); cada paquete indica los datos que le faltan antes de poder generarlo (ver [Figura 7-2](#figura-7-2)).
+- **Documentos Generados:** la lista de documentos del caso; **Ver** abre el documento en una pestaña nueva (ver [Figura 7-3](#figura-7-3)).
+
+<a id="figura-7-1"></a>
+<img src="manual-usuario/img/07-documentos-caso/07-documentos-caso-01-pestana.png" alt="Pestaña 8. Documentos del detalle de un caso, con la fase actual y la tarjeta Estado de Documentos: carpeta de Google Drive no creada aún y 4 documentos generados." width="896">
+
+_Figura 7-1. Pestaña Documentos del detalle del caso._
+
+- ① Pestaña **8. Documentos**.
+- ② Estado de los documentos del caso.
+
+<a id="figura-7-2"></a>
+<img src="manual-usuario/img/07-documentos-caso/07-documentos-caso-02-por-etapa.png" alt="Tarjeta Generar Documentos por Etapa con los paquetes de Solicitud, Admisión, Acuerdo y Fracaso; los de Admisión y Acuerdo indican los datos que les faltan." width="896">
+
+_Figura 7-2. Generación de documentos por etapa._
+
+- ① Botón **Generar** de un paquete disponible.
+- ② Datos que faltan para poder generar un paquete.
+
+<a id="figura-7-3"></a>
+<img src="manual-usuario/img/07-documentos-caso/07-documentos-caso-03-generados.png" alt="Lista Documentos Generados con cuatro documentos del caso y un botón Ver en cada uno." width="896">
+
+_Figura 7-3. Documentos generados del caso._
+
+- ① Documentos generados del caso.
+- ② Botón **Ver**.
 
 Los documentos del caso se suben desde **Editar** → pestaña **8. Documentos** (ver 4.3).
 
@@ -759,6 +783,9 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 - [Figura 5-3](#figura-5-3). Lista de acreedores.
 - [Figura 6-1](#figura-6-1). Lista de paquetes, con el número de documentos de cada uno.
 - [Figura 6-2](#figura-6-2). Formulario completo antes de generar.
+- [Figura 7-1](#figura-7-1). Pestaña Documentos del detalle del caso.
+- [Figura 7-2](#figura-7-2). Generación de documentos por etapa.
+- [Figura 7-3](#figura-7-3). Documentos generados del caso.
 - [Figura 8.1-1](#figura-8-1-1). Caso sin cronograma de pagos.
 - [Figura 8.1-2](#figura-8-1-2). Cronograma de pagos de un acuerdo en curso.
 - [Figura 8.2-1](#figura-8-2-1). Pago de una cuota del cronograma.
