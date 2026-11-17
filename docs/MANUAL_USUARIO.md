@@ -243,7 +243,10 @@ _Figura 4.1-12. Conciliación: pestaña Solicitud._
 - ② Fechas reales del trámite.
 - ③ Audiencia virtual (Zoom).
 
-El sistema guarda como **borrador** al avanzar entre secciones.
+Si cierra el diálogo antes de pulsar **Crear Caso** (con **Cancelar**, la X,
+la tecla Esc o un clic fuera del diálogo), los datos ingresados no se
+conservan: el sistema no pide confirmación y el formulario vuelve a abrirse
+vacío.
 
 **Montos en pesos:** todo campo de dinero (ingresos, gastos, deudas,
 cuantía) muestra el separador de miles mientras se escribe —`1.500.000`, no
