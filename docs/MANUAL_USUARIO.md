@@ -47,7 +47,7 @@ _Figura 1-4. Aviso al ingresar con la contraseña pendiente de fijar._
 
 - ① Aviso: la contraseña se fija desde el enlace del correo o con la recuperación de contraseña.
 
-**Olvidaste tu contraseña:** link "¿Olvidó su contraseña?" envía un email con token válido por 1 hora (ver [Figura 1-5](#figura-1-5)).
+**Olvidaste tu contraseña:** link "¿Olvidó su contraseña?" envía un email con un enlace válido por 30 minutos (ver [Figura 1-5](#figura-1-5)).
 
 <a id="figura-1-5"></a>
 <img src="manual-usuario/img/01-ingreso/01-ingreso-05-recuperar-contrasena.png" alt="Formulario Recuperar Contraseña del centro Constructores de Paz con el correo de la usuaria escrito y el botón Enviar Instrucciones." width="488">
