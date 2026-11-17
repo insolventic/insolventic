@@ -286,7 +286,7 @@ En el listado (ver [Figura 4.2-1](#figura-4-2-1)) puedes filtrar por:
 
 - Texto libre (número de caso, nombre del deudor, cédula)
 - **Tipo de servicio** (Insolvencia / Conciliación / Acuerdo de Apoyo)
-- Fase (cualquiera de las 13 fases del expediente; ver 4.4)
+- Fase (cualquiera de las 13 fases del expediente; ver [Figura 4.2-2](#figura-4-2-2) y 4.4)
 
 <a id="figura-4-2-1"></a>
 <img src="manual-usuario/img/04-casos/04-casos-listado-01-vista-general.png" alt="Pantalla Gestión de Casos con los botones Papelera y Crear nuevo caso, los indicadores, la búsqueda con los filtros de tipo y fase, y la tabla de casos con las acciones de cada fila." width="1440">
@@ -298,11 +298,28 @@ _Figura 4.2-1. Listado de casos._
 - ③ Búsqueda y filtros por tipo de servicio y por fase.
 - ④ Acciones del caso: ver, editar, cambiar fase y eliminar.
 
+<a id="figura-4-2-2"></a>
+<img src="manual-usuario/img/04-casos/04-casos-listado-02-filtro-fase.png" alt="Filtro de fase desplegado con la opción Todas las fases marcada y las 13 fases del expediente, de Inicial a Terminado." width="280">
+
+_Figura 4.2-2. Filtro de fase desplegado._
+
+- ① Filtro de fase.
+- ② Las 13 fases del expediente.
+
 ### 4.3 Editar un caso
 
 Abrir el caso → **Editar**. El sistema protege contra ediciones concurrentes:
 
 > ⚠️ **Si dos usuarios editan el mismo caso al tiempo**, quien guarde último recibirá el mensaje _"Este caso fue modificado por otro usuario. Recargue y vuelva a intentarlo."_ — el dialog se cerrará automáticamente.
+
+El diálogo **Editar Caso** reparte los datos en pestañas numeradas (ver [Figura 4.3-1](#figura-4-3-1)); los cambios se guardan con **Guardar Cambios**, al pie del diálogo.
+
+<a id="figura-4-3-1"></a>
+<img src="manual-usuario/img/04-casos/04-casos-editar-01-dialogo.png" alt="Encabezado del diálogo Editar Caso INSOL-000005 con el nombre del deudor y las pestañas de 1. Solicitante a 8. Documentos." width="1152">
+
+_Figura 4.3-1. Diálogo de edición de un caso de insolvencia._
+
+- ① Pestañas con los datos del caso.
 
 ### 4.3.1 Eliminar y restaurar un caso (papelera)
 
@@ -700,6 +717,8 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 - [Figura 4.1-11](#figura-4-1-11). Conciliación: pestaña Partes.
 - [Figura 4.1-12](#figura-4-1-12). Conciliación: pestaña Solicitud.
 - [Figura 4.2-1](#figura-4-2-1). Listado de casos.
+- [Figura 4.2-2](#figura-4-2-2). Filtro de fase desplegado.
+- [Figura 4.3-1](#figura-4-3-1). Diálogo de edición de un caso de insolvencia.
 - [Figura 4.3.1-1](#figura-4-3-1-1). Confirmación para mandar un caso a la papelera.
 - [Figura 4.3.1-2](#figura-4-3-1-2). Papelera vista por la Operadora: solo puede restaurar.
 - [Figura 4.3.1-3](#figura-4-3-1-3). Papelera vista por la Administradora.
