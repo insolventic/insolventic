@@ -237,9 +237,7 @@ export async function seccion044Fases(ctx: Contexto): Promise<void> {
   await dlg.getByRole('button', { name: /Fracaso/ }).click();
   const subtipo = dlg.locator('#phase-transition-subtype');
   await subtipo.click();
-  await page
-    .getByRole('option', { name: 'Inasistencia y Vencimiento' })
-    .click();
+  await page.getByRole('option', { name: 'Inasistencia del Deudor' }).click();
   await sinFoco(page);
   await esperarEstable(page);
   await anotar(page, [
