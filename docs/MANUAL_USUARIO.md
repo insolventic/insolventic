@@ -27,7 +27,7 @@
    - ④ Botón **Iniciar Sesión**.
    - ⑤ Enlace para recuperar la contraseña.
 
-4. Si es tu primer ingreso, el sistema te forzará a **cambiar tu contraseña** antes de continuar.
+4. Si es tu primer ingreso, antes tienes que fijar tu contraseña: al crear tu usuario, el sistema te envía por correo un enlace de activación, válido por 48 horas, para que la establezcas. Si el enlace venció, pide uno nuevo con **¿Olvidó su contraseña?**. Hasta que fijes la contraseña, el sistema no te deja entrar.
 
 Si el correo o la contraseña no coinciden, el formulario muestra un mensaje y no deja entrar (ver [Figura 1-3](#figura-1-3)).
 
