@@ -310,7 +310,7 @@ _Figura 4.2-2. Filtro de fase desplegado._
 
 En el listado, acción **Editar caso** (ícono de lápiz) de la fila del caso (ver [Figura 4.2-1](#figura-4-2-1), ④). El sistema protege contra ediciones concurrentes:
 
-> ⚠️ **Si dos usuarios editan el mismo caso al tiempo**, quien guarde último recibirá el mensaje _"Este caso fue modificado por otro usuario. Recargue y vuelva a intentarlo."_ — el dialog se cerrará automáticamente.
+> ⚠️ **Si dos usuarios editan el mismo caso al tiempo**, quien guarde último recibirá el mensaje _"Este caso fue modificado por otro usuario. Recargue y vuelva a intentarlo."_ — el diálogo se cerrará automáticamente.
 
 El diálogo **Editar Caso** reparte los datos en pestañas numeradas (ver [Figura 4.3-1](#figura-4-3-1)); los cambios se guardan con **Guardar Cambios**, al pie del diálogo.
 
@@ -345,7 +345,7 @@ _Figura 4.3.1-1. Confirmación para mandar un caso a la papelera._
   - ① Fecha de eliminación y usuario que eliminó el caso.
   - ② Botón **Restaurar**.
 
-- **Eliminar definitivamente:** solo el **Administrador**, desde la papelera, escribiendo de nuevo el número del caso. Borra el caso y todo lo asociado y **no se puede deshacer**. Úselo solo cuando corresponda una supresión de datos (ver el procedimiento de derechos ARCO). Ver [Figura 4.3.1-3](#figura-4-3-1-3) y [Figura 4.3.1-4](#figura-4-3-1-4).
+- **Eliminar definitivamente:** solo el **Administrador**, desde la papelera, escribiendo de nuevo el número del caso. Borra el caso y todo lo asociado y **no se puede deshacer**. Úselo solo cuando corresponda una supresión de datos (ver «Derechos de los titulares» en la **Política de privacidad**, enlace **Privacidad** al pie de cada pantalla). Ver [Figura 4.3.1-3](#figura-4-3-1-3) y [Figura 4.3.1-4](#figura-4-3-1-4).
 
   <a id="figura-4-3-1-3"></a>
   <img src="manual-usuario/img/04-casos/04-casos-papelera-03-administrador.png" alt="Papelera vista por la administradora: junto a Restaurar aparece el botón rojo para eliminar definitivamente el caso CONC-000002." width="896">
@@ -408,11 +408,10 @@ _Figura 4.4-2. Paso a Fracaso: subtipo y fecha obligatorios._
 - ② Fecha del fracaso.
 - ③ Botón **Confirmar cambio de fase**.
 
-Cada transición queda registrada en el **Audit Log**.
+Cada transición queda registrada en la **Auditoría** (ver 11).
 
 > `Rechazo`, `Retiro`, `Acuerdo impugnado` y `Acuerdo reformado` todavía no
-> tienen su propio paquete de documentos (pendiente del abogado, ver
-> `docs/DISENO_FASES_NUEVAS_2026-09-11.md` §3) — hoy, al generar documentos
+> tienen su propio paquete de documentos — hoy, al generar documentos
 > para un caso en una de esas 4 fases, el sistema usa el Paquete 1 por
 > defecto.
 
@@ -625,7 +624,7 @@ _Figura 8.2-2. Comprobante rechazado por tamaño._
 `Reportes → Trazabilidad de Pagos`:
 
 - Filtros: estado, fechas, tiene comprobante, búsqueda.
-- Summaries: total recaudado, pendiente, vencido, casos con pagos.
+- Totales: recaudado, pendiente, vencido y casos con pagos.
 - Tabla expandible por caso con barra de progreso `pagado / obligación total` (ver [Figura 8.4-1](#figura-8-4-1)).
 
 <a id="figura-8-4-1"></a>
