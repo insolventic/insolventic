@@ -38,7 +38,7 @@ _Figura 1-3. Mensaje cuando el correo o la contraseña no coinciden._
 
 - ① Mensaje de credenciales inválidas.
 
-**Olvidaste tu contraseña:** link "¿Olvidaste tu contraseña?" envía un email con token válido por 1 hora.
+**Olvidaste tu contraseña:** link "¿Olvidó su contraseña?" envía un email con token válido por 1 hora.
 
 ---
 
