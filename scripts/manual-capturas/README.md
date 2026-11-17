@@ -96,6 +96,12 @@ con su propio reloj:
   el seed solo si se regeneran en noviembre de 2026. En otro mes, esos dos
   números cambian. Lo mismo el gráfico **"Casos Nuevos (Últimos 6 Meses)"**,
   que hoy no aparece en ninguna figura.
+- **"Pagos Vencidos"** del dashboard: cuenta las cuotas del cronograma
+  sembrado (`CRONOGRAMA_LUZ`) cuyo vencimiento ya pasó según la fecha real.
+  Regeneradas entre el 15 de noviembre y el 14 de diciembre de 2026 dan 1;
+  después, una más por cada mes. La pestaña Pagos del caso (sección 8) sí es
+  estable: allí el estado "Vencido" lo calcula el navegador, con el reloj en
+  la fecha ancla.
 - La **fecha de radicación de un caso creado desde la UI** (sección 4.1) es la
   del día en que se corre el script.
 

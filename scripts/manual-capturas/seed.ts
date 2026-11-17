@@ -32,8 +32,10 @@ import {
   ACREEDORES,
   CASOS_CONTEXTO,
   DEUDOR_EJEMPLO,
+  CRONOGRAMA_LUZ,
   DEUDORES_CONTEXTO,
   NOTIFICACIONES_ADMIN,
+  ULTIMO_ACCESO_HORAS,
   USUARIOS,
   type ClaveRol,
 } from './datos';
@@ -278,7 +280,9 @@ export async function sembrar(
           phone: u.telefono,
           address: u.direccion,
           createdDate: diasAntesDelAncla(300),
-          lastLogin: diasAntesDelAncla(1),
+          lastLogin: new Date(
+            FECHA_ANCLA.getTime() - ULTIMO_ACCESO_HORAS[u.clave] * 3600_000,
+          ),
           roleId: roles.get(u.clave)!,
           tenantId,
         },
@@ -393,6 +397,39 @@ export async function sembrar(
         });
       }
       idsCaso.set(c.numero, caso.id);
+    }
+
+    // Cronograma del acuerdo de Luz (sección 8).
+    {
+      const c = CRONOGRAMA_LUZ;
+      const casoLuz = CASOS_CONTEXTO.find((x) => x.numero === c.caso)!;
+      for (let k = 1; k <= c.cuotas; k++) {
+        const { anio, mes, dia } = c.primerVencimiento;
+        // 10:00 en Bogotá (15:00 UTC) del día 15 de cada mes.
+        const vence = new Date(Date.UTC(anio, mes - 1 + (k - 1), dia, 15));
+        const pagada = k <= c.pagadas;
+        const n = String(k).padStart(2, '0');
+        await prisma.payment.create({
+          data: {
+            caseId: idsCaso.get(c.caso)!,
+            debtorId: idsDeudor.get(casoLuz.deudor)!,
+            tenantId,
+            amount: c.valorCuota,
+            paymentNumber: k,
+            dueDate: vence,
+            status: pagada ? 'pagado' : 'pendiente',
+            ...(pagada
+              ? {
+                  paymentDate: new Date(vence.getTime() - 2 * 24 * 3600_000),
+                  paymentMethod: c.metodos[k - 1],
+                  registeredById: idsUsuario.get('admin')!,
+                  receiptFileName: `comprobante-cuota-${n}.pdf`,
+                  receiptFileUrl: `https://example.invalid/comprobantes/${c.caso}/cuota-${n}.pdf`,
+                }
+              : {}),
+          },
+        });
+      }
     }
 
     for (const n of NOTIFICACIONES_ADMIN) {

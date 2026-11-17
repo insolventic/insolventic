@@ -72,6 +72,22 @@ export const USUARIOS: ReadonlyArray<{
   },
 ];
 
+/**
+ * "Último acceso" de cada usuario, en horas antes de la ancla. El login de
+ * la corrida lo sobrescribe con la hora real; la sección 10 lo restituye a
+ * estos valores antes de capturar la tabla de usuarios.
+ */
+export const ULTIMO_ACCESO_HORAS: Record<
+  Exclude<ClaveRol, 'usuario'>,
+  number
+> = {
+  admin: 2,
+  operadora: 1,
+  abogado: 26,
+  asistente: 75,
+  secretaria: 24,
+};
+
 export const ACREEDORES = [
   {
     clave: 'bancoAndino',
@@ -299,7 +315,11 @@ export const CASOS_CONTEXTO: ReadonlyArray<{
       },
       {
         acreedor: 'coopHorizonte',
-        monto: 14_600_000,
+        // 14.620.000 y no 14.600.000: con el caso que crea la sección 4.1, la
+        // suma de los 6 casos (213.510.000) queda divisible por 6 y el
+        // "Promedio por Caso" del listado es un entero (35.585.000). La app
+        // muestra decimales si no lo es (hallazgo de UI, no se corrige aquí).
+        monto: 14_620_000,
         tasa: 20.2,
         tipo: 'Crédito de libranza',
       },
@@ -345,6 +365,43 @@ export const CASOS_CONTEXTO: ReadonlyArray<{
     papelera: { diasAntes: 2 },
   },
 ];
+
+/**
+ * Cronograma del acuerdo de Luz Ángela Moreno Bernal (INSOL-000003, en
+ * "Acuerdo aprobado"), para la sección 8: 40 cuotas mensuales de 1.063.000
+ * (= 42.520.000, su deuda), los días 15 desde mayo de 2026. Las 6 primeras
+ * están pagadas con comprobante; la 7 (15 de noviembre) sigue pendiente y,
+ * con el reloj en la fecha ancla, aparece vencida. Los comprobantes apuntan a
+ * `https://example.invalid/…`: no existen (decisión P2, sin Drive).
+ */
+export const CRONOGRAMA_LUZ = {
+  caso: 'INSOL-000003',
+  cuotas: 40,
+  valorCuota: 1_063_000,
+  primerVencimiento: { anio: 2026, mes: 5, dia: 15 },
+  pagadas: 6,
+  metodos: [
+    'Transferencia',
+    'PSE',
+    'Transferencia',
+    'Efectivo',
+    'PSE',
+    'Transferencia',
+  ],
+} as const;
+
+/**
+ * Documentos ya generados del caso de Jorge (sección 6), para que el
+ * generador muestre el aviso "Este caso ya tiene N documento(s)". Se
+ * insertan después de que la sección 4.1 crea el caso. Enlaces inválidos a
+ * propósito (decisión P2).
+ */
+export const DOCUMENTOS_JORGE = [
+  'Solicitud de Insolvencia',
+  'Certificado de Ingresos',
+  'Declaracion Juramentada Domicilio',
+  'Check List',
+] as const;
 
 /**
  * Notificaciones del Administrador para el dashboard (sección 3), con el

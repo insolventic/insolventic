@@ -43,7 +43,11 @@ import {
 } from './config';
 import { assertBaseDeCapturas } from './guarda-base';
 import { sembrar, type ResultadoSeed } from './seed';
-import { esperarGeneracionesTerminadas } from './base';
+import {
+  esperarGeneracionesTerminadas,
+  restituirUltimosAccesos,
+  sembrarDocumentosDeJorge,
+} from './base';
 import { seccion01Ingreso } from './secciones/01-ingreso';
 import { seccion03Dashboard } from './secciones/03-dashboard';
 import { seccion041CrearCaso } from './secciones/04-1-crear-caso';
@@ -52,6 +56,9 @@ import {
   seccion0431Papelera,
   seccion044Fases,
 } from './secciones/04-casos';
+import { seccion06Generacion } from './secciones/06-generacion';
+import { seccion08Pagos } from './secciones/08-pagos';
+import { seccion10Usuarios } from './secciones/10-usuarios';
 
 export interface Contexto {
   seed: ResultadoSeed;
@@ -73,6 +80,10 @@ export interface Contexto {
    * el número de la campana dependería de cuánto tardó el trabajo.
    */
   esperarGeneraciones: () => Promise<void>;
+  /** Registra documentos ya generados en el caso de Jorge (enlaces inválidos). */
+  sembrarDocumentosDeJorge: () => Promise<void>;
+  /** Devuelve el Último acceso de los usuarios a los valores del seed. */
+  restituirUltimosAccesos: () => Promise<void>;
 }
 
 type Seccion = (ctx: Contexto) => Promise<void>;
@@ -94,6 +105,10 @@ const SECCIONES: ReadonlyArray<{
   { id: '4.2', ejecutar: seccion042Listado, requiere: ['4.1'] },
   { id: '4.3.1', ejecutar: seccion0431Papelera },
   { id: '4.4', ejecutar: seccion044Fases, requiere: ['4.1'] },
+  // El generador usa el caso de Jorge; Usuarios cuenta sus casos asignados.
+  { id: '6', ejecutar: seccion06Generacion, requiere: ['4.1'] },
+  { id: '8', ejecutar: seccion08Pagos },
+  { id: '10', ejecutar: seccion10Usuarios, requiere: ['4.1'] },
 ];
 const IDS = SECCIONES.map((s) => s.id);
 
@@ -265,6 +280,8 @@ async function main(): Promise<void> {
         return page;
       },
       esperarGeneraciones: () => esperarGeneracionesTerminadas(url),
+      sembrarDocumentosDeJorge: () => sembrarDocumentosDeJorge(url),
+      restituirUltimosAccesos: () => restituirUltimosAccesos(url),
     };
 
     for (const s of aEjecutar) {
