@@ -723,7 +723,15 @@ _Figura 10-4. Permisos de un rol, agrupados por módulo._
 - Registro de pagos
 - Cambios de rol/permisos
 
-Filtrable por texto (nombre o usuario), tipo de entidad, acción, usuario y rango de fechas.
+Filtrable por texto (nombre o usuario), tipo de entidad, acción, usuario y rango de fechas (ver [Figura 11-1](#figura-11-1)).
+
+<a id="figura-11-1"></a>
+<img src="manual-usuario/img/11-auditoria/11-auditoria-01-bitacora.png" alt="Registro de Auditoría con los filtros de texto, entidad, acción, usuario y fechas, y la tabla de registros con fecha, acción, entidad, descripción, usuario y cédula." width="1440">
+
+_Figura 11-1. Registro de auditoría._
+
+- ① Filtros.
+- ② Un registro: fecha, acción, entidad, descripción y quién la hizo.
 
 ---
 
@@ -814,6 +822,7 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 - [Figura 10-2](#figura-10-2). Alta de un usuario.
 - [Figura 10-3](#figura-10-3). Roles del centro y sus permisos.
 - [Figura 10-4](#figura-10-4). Permisos de un rol, agrupados por módulo.
+- [Figura 11-1](#figura-11-1). Registro de auditoría.
 
 ---
 
