@@ -5,7 +5,7 @@
  * insolvencia de Jorge Enrique Salazar Peña (datos de `datos.ts`). Al final
  * se muestran las dos pestañas que cambian en un caso de conciliación.
  *
- * Figuras (docs/manual-usuario/img/04-casos/), Figura 4.N del manual:
+ * Figuras (docs/manual-usuario/img/04-casos/), Figura 4.1-N del manual:
  *   01 menú "Crear nuevo caso"            07 pestaña 3: un acreedor
  *   02 pestaña 1 vacía (orientación)      08 pestaña 5: propuesta calculada
  *   03 error de validación al enviar      09 pestaña 7: documentos y rechazo

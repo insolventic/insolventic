@@ -121,7 +121,7 @@ las 12 figuras de la sección 4.1 pasaron de 2.040 KB a 756 KB (−63 %), y la
 mayor quedó en 106 KB (objetivo orientativo: ≤ 300 KB por figura).
 
 **Qué se pierde:** los píxeles que cambian están en bordes suavizados y en
-sombras muy tenues. Comparado a 2x en el piloto (Figuras 4.1, 4.6 y 4.9), el
+sombras muy tenues. Comparado a 2x en el piloto (Figuras 4.1-1, 4.1-6 y 4.1-9), el
 texto y los colores no se distinguen del original. A 6x, la sombra más tenue
 bajo una tarjeta muestra un tramado fino en vez de un degradado continuo; no
 se ve a tamaño normal y no forma bandas.
