@@ -479,7 +479,7 @@ El comprobante se sube automáticamente a `{caso}/Comprobantes/` en Drive. Si el
 | **Estado de Casos**       | Distribución por tipo, fase, operador. Montos solo en Insolvencia. |
 | **Trazabilidad de Pagos** | Ver sección 8.4                                                    |
 
-Los reportes se exportan a Excel/CSV (próximamente).
+Los dos reportes se exportan a Excel (.xlsx) con el botón **Exportar Excel**.
 
 ---
 
