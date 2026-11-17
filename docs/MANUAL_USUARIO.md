@@ -662,7 +662,7 @@ _Figura 9-1. Reporte Estado de Casos._
 
 `Usuarios` (permiso requerido; ver [Figura 10-1](#figura-10-1) y [Figura 10-2](#figura-10-2)):
 
-- Crear usuario: nombre completo, correo electrónico, teléfono, tarjeta profesional, dirección y rol (obligatorios: nombre, correo y rol). El sistema genera una contraseña segura y la envía por correo electrónico al usuario.
+- Crear usuario: nombre completo, correo electrónico, teléfono, tarjeta profesional, dirección y rol (obligatorios: nombre, correo y rol). El sistema le envía al usuario un correo con un enlace de activación, válido por 48 horas, para que fije su contraseña.
 - Asignar rol.
 
 <a id="figura-10-1"></a>
