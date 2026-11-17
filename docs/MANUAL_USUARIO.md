@@ -7,9 +7,36 @@
 ## 1. Ingreso al sistema
 
 1. Ir a la URL del centro (ej. `https://insolventic.vercel.app`).
-2. Seleccionar el **centro de conciliación** correspondiente.
-3. Ingresar email y contraseña.
+2. Seleccionar el **centro de conciliación** correspondiente (ver [Figura 1-1](#figura-1-1)).
+
+   <a id="figura-1-1"></a>
+   <img src="manual-usuario/img/01-ingreso/01-ingreso-01-selector-centro.png" alt="Pantalla de selección de centro de conciliación con las tarjetas Armonia y Constructores de Paz; la de Constructores de Paz está resaltada." width="1440">
+
+   _Figura 1-1. Selección del centro de conciliación._
+   - ① Tarjeta del centro de conciliación.
+
+3. Ingresar email y contraseña (ver [Figura 1-2](#figura-1-2)).
+
+   <a id="figura-1-2"></a>
+   <img src="manual-usuario/img/01-ingreso/01-ingreso-02-formulario.png" alt="Formulario Iniciar Sesión del centro Constructores de Paz con el correo de la usuaria escrito y la contraseña oculta." width="488">
+
+   _Figura 1-2. Formulario de inicio de sesión._
+   - ① Centro elegido; con **Cambiar** se vuelve a la selección de centro.
+   - ② Correo electrónico.
+   - ③ Contraseña.
+   - ④ Botón **Iniciar Sesión**.
+   - ⑤ Enlace para recuperar la contraseña.
+
 4. Si es tu primer ingreso, el sistema te forzará a **cambiar tu contraseña** antes de continuar.
+
+Si el correo o la contraseña no coinciden, el formulario muestra un mensaje y no deja entrar (ver [Figura 1-3](#figura-1-3)).
+
+<a id="figura-1-3"></a>
+<img src="manual-usuario/img/01-ingreso/01-ingreso-03-credenciales-invalidas.png" alt="Formulario de inicio de sesión con el mensaje Credenciales inválidas. Verifique su correo y contraseña." width="488">
+
+_Figura 1-3. Mensaje cuando el correo o la contraseña no coinciden._
+
+- ① Mensaje de credenciales inválidas.
 
 **Olvidaste tu contraseña:** link "¿Olvidaste tu contraseña?" envía un email con token válido por 1 hora.
 
@@ -447,6 +474,9 @@ No directamente desde la UI. Contacta a un administrador — la auditoría conse
 
 ## Índice de figuras
 
+- [Figura 1-1](#figura-1-1). Selección del centro de conciliación.
+- [Figura 1-2](#figura-1-2). Formulario de inicio de sesión.
+- [Figura 1-3](#figura-1-3). Mensaje cuando el correo o la contraseña no coinciden.
 - [Figura 4.1-1](#figura-4-1-1). Botón «Crear nuevo caso» y su menú de tipos de servicio.
 - [Figura 4.1-2](#figura-4-1-2). Formulario de alta de insolvencia al abrirse, en la pestaña Solicitante.
 - [Figura 4.1-3](#figura-4-1-3). Errores de validación al intentar crear el caso sin los datos obligatorios.
