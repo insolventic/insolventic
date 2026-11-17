@@ -62,9 +62,11 @@ Los permisos son configurables por rol desde **Configuración → Roles**.
 
 Al ingresar verás:
 
-- **KPIs principales:** total de casos, activos, por fase, con acuerdos vigentes.
-- **Casos recientes** del último mes.
-- **Alertas:** audiencias próximas, plazos por vencer, notificaciones sin leer.
+- **Selector de tareas:** accesos a los módulos que tu rol puede usar.
+- **Indicadores:** total de casos, casos de este mes, audiencias de los próximos 7 días, deuda total y acreedores registrados; cuando hay pagos vencidos, también su número.
+- **Gráficos:** casos por tipo, casos por fase y casos nuevos de los últimos 6 meses.
+- **Casos recientes:** los últimos 5 casos ingresados, con su fase.
+- **Notificaciones:** las más recientes, en el panel de la derecha; la campana de la barra superior indica cuántas hay sin leer.
 
 ---
 
