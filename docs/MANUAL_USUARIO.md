@@ -396,8 +396,28 @@ Módulos independientes con CRUD. Al crear un caso puedes vincular un deudor exi
    - Paquete 3 — Negociación y Acuerdo
    - Paquete 4 — Terminación Normal
    - Paquete 5 — Fracaso
+
+   Ver [Figura 6-1](#figura-6-1).
+
+   <a id="figura-6-1"></a>
+   <img src="manual-usuario/img/06-documentos/06-documentos-01-paquetes.png" alt="Formulario de generación de documentos con la lista de paquetes desplegada: Todos los paquetes con 65 documentos y los paquetes 1 a 5 con su número de documentos." width="1280">
+
+   _Figura 6-1. Lista de paquetes, con el número de documentos de cada uno._
+   - ① Selector de paquete.
+   - ② Paquetes disponibles.
+
 3. **Seleccionar formato:** Solo PDF / Solo Word / Ambos.
-4. **Generar documentos.**
+4. **Generar documentos** (ver [Figura 6-2](#figura-6-2)).
+
+   <a id="figura-6-2"></a>
+   <img src="manual-usuario/img/06-documentos/06-documentos-02-formulario.png" alt="Formulario de generación con el caso INSOL-000005 de Jorge Enrique Salazar Peña, el Paquete 1 Solicitud, el formato Ambos y el aviso de que el caso ya tiene 4 documentos generados." width="1296">
+
+   _Figura 6-2. Formulario completo antes de generar._
+   - ① Caso.
+   - ② Paquete.
+   - ③ Formato.
+   - ④ Aviso: el caso ya tiene documentos generados.
+   - ⑤ Botón **Generar Documentos**.
 
 **Lotes grandes (Todos los paquetes, o Paquete 5) se generan por tandas.**
 El botón muestra _"Generando tanda X de Y..."_ mientras corre — es normal
@@ -418,7 +438,7 @@ El sistema:
 
 **Alertas que puedes ver:**
 
-- ⚠️ _Este caso ya tiene N documentos generados. Al generar nuevamente se crearán adicionales sin reemplazar los existentes._
+- ⚠️ _Este caso ya tiene N documentos generados. Al generar nuevamente se crearán adicionales sin reemplazar los existentes._ (ver [Figura 6-2](#figura-6-2))
 - ❌ _Error leyendo plantilla:_ significa que la plantilla base tiene un problema — contacta a soporte.
 - ⚠️ _No se generó por datos incompletos:_ el documento se salta (no cuenta como error) porque al caso le falta un dato obligatorio para esa plantilla — complétalo y vuelve a generar.
 
@@ -589,6 +609,8 @@ No directamente desde la UI. Contacta a un administrador — la auditoría conse
 - [Figura 4.3.1-4](#figura-4-3-1-4). Confirmación del borrado definitivo.
 - [Figura 4.4-1](#figura-4-4-1). Transiciones válidas desde la fase Inicial.
 - [Figura 4.4-2](#figura-4-4-2). Paso a Fracaso: subtipo y fecha obligatorios.
+- [Figura 6-1](#figura-6-1). Lista de paquetes, con el número de documentos de cada uno.
+- [Figura 6-2](#figura-6-2). Formulario completo antes de generar.
 
 ---
 
