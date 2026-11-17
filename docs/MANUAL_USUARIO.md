@@ -641,7 +641,7 @@ Al hacer click se marcan como leídas. Si tu administrador activa `ALERTS_EMAIL_
 - Tu rol solo tiene permiso "Ver casos".
 
 **El documento generado dice "Error leyendo plantilla":**
-Contacta a soporte. La plantilla `.docx` base puede estar corrupta o faltar.
+Contacta a soporte. La plantilla HTML base puede estar dañada o faltar.
 
 **Subí un comprobante pero no aparece el link:**
 Google Drive puede tardar unos segundos en propagar permisos. Recarga la pestaña.
