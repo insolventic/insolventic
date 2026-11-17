@@ -79,7 +79,7 @@ _Figura 3-1. Dashboard de la Administradora: barra superior, selector de tareas 
 - ④ Panel de notificaciones recientes.
 
 <a id="figura-3-2"></a>
-<img src="manual-usuario/img/03-dashboard/03-dashboard-02-indicadores.png" alt="Indicadores del dashboard (Total Casos, Casos este Mes, Audiencias Próximas, Deuda Total y Acreedores Totales) y los gráficos Casos por Tipo y Casos por Fase." width="978">
+<img src="manual-usuario/img/03-dashboard/03-dashboard-02-indicadores.png" alt="Indicadores del dashboard (Total Casos, Casos este Mes, Audiencias Próximas, Deuda Total, Acreedores Totales y Pagos Vencidos) y los gráficos Casos por Tipo y Casos por Fase." width="978">
 
 _Figura 3-2. Indicadores y gráficos del dashboard._
 
