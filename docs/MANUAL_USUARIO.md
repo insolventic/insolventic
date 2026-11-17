@@ -112,6 +112,15 @@ _Figura 3-3. Casos recientes._
 
 - ① Los cinco casos ingresados más recientemente.
 
+El selector de tareas cambia con el rol. La Secretaria, por ejemplo, solo ve **Gestión de Casos** y **Documentos** (ver [Figura 3-4](#figura-3-4)).
+
+<a id="figura-3-4"></a>
+<img src="manual-usuario/img/03-dashboard/03-dashboard-04-secretaria.png" alt="Selector de tareas de la Secretaria con solo dos accesos: Gestión de Casos y Documentos." width="978">
+
+_Figura 3-4. Selector de tareas de la Secretaria._
+
+- ① Solo los módulos que permite su rol.
+
 ---
 
 ## 4. Gestión de casos
@@ -677,6 +686,7 @@ Sí, mientras esté en la papelera: botón **Papelera** en Gestión de Casos →
 - [Figura 3-1](#figura-3-1). Dashboard de la Administradora: barra superior, selector de tareas y notificaciones.
 - [Figura 3-2](#figura-3-2). Indicadores y gráficos del dashboard.
 - [Figura 3-3](#figura-3-3). Casos recientes.
+- [Figura 3-4](#figura-3-4). Selector de tareas de la Secretaria.
 - [Figura 4.1-1](#figura-4-1-1). Botón «Crear nuevo caso» y su menú de tipos de servicio.
 - [Figura 4.1-2](#figura-4-1-2). Formulario de alta de insolvencia al abrirse, en la pestaña Solicitante.
 - [Figura 4.1-3](#figura-4-1-3). Errores de validación al intentar crear el caso sin los datos obligatorios.
