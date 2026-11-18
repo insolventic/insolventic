@@ -323,3 +323,36 @@ describe('CreateCaseDialog — documentos adjuntos', () => {
     );
   });
 });
+
+describe('CreateCaseDialog — no pisa los ingresos del deudor (F6)', () => {
+  // Ingresos, gastos, otros ingresos y certificación laboral son campos del
+  // DEUDOR: createCase los escribe en su ficha. El asistente de alta no los
+  // muestra, pero los enviaba con sus valores por defecto (0, '', false), y
+  // crear cualquier caso dejaba al deudor con ingreso 0.
+  it('sin capturar ingresos, el envío no lleva valores que borren la ficha', async () => {
+    render(
+      <CreateCaseDialog
+        open
+        onOpenChange={() => {}}
+        onCaseCreated={() => {}}
+        initialType="CONCILIATION"
+      />,
+    );
+    await waitFor(() => selectCon('deudor-1'));
+    await waitFor(() => selectCon('operador-1'));
+    await elegir('deudor-1');
+    await elegir('operador-1');
+    while (screen.queryByRole('button', { name: 'Siguiente' })) {
+      await pulsar('Siguiente');
+    }
+    await pulsar('Crear Caso');
+
+    await waitFor(() => expect(mockCreateCase).toHaveBeenCalledTimes(1));
+    const enviado = mockCreateCase.mock.calls[0][0];
+    expect(enviado.monthlyIncome).toBeUndefined();
+    expect(enviado.monthlyExpenses).toBeUndefined();
+    expect(enviado.otherIncomeAmount).toBeUndefined();
+    expect(enviado.otherIncomeDescription).toBeUndefined();
+    expect(enviado.hasEmployerCertification).toBeUndefined();
+  });
+});

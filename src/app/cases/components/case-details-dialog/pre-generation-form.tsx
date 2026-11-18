@@ -56,14 +56,14 @@ export function PreGenerationForm({
 
   if (packageNumber === 2) {
     if (!caseData.filingDate && !filingDate)
-      missingFields.push('Fecha de radicacion');
+      missingFields.push('Fecha de radicación');
     if (!caseData.designationDate && !designationDate)
-      missingFields.push('Fecha de designacion');
+      missingFields.push('Fecha de designación');
     if (!caseData.positionAcceptanceDate && !positionAcceptanceDate)
-      missingFields.push('Fecha de aceptacion del cargo');
+      missingFields.push('Fecha de aceptación del cargo');
   } else {
     if (caseData.approvalPercentage == null && !approvalPercentage)
-      missingFields.push('Porcentaje de aprobacion');
+      missingFields.push('Porcentaje de aprobación');
     if (!caseData.agreementValidityDate && !agreementValidityDate)
       missingFields.push('Vigencia del acuerdo');
   }
@@ -117,13 +117,13 @@ export function PreGenerationForm({
         <CardTitle className="flex items-center gap-2 text-base text-amber-800 dark:text-amber-300">
           <AlertTriangle className="h-5 w-5" />
           {packageNumber === 2
-            ? 'Datos requeridos para Admision'
+            ? 'Datos requeridos para Admisión'
             : 'Datos requeridos para Acuerdo'}
         </CardTitle>
         {missingFields.length > 0 && (
           <p className="text-sm text-amber-700 dark:text-amber-400">
             Faltan los siguientes datos: {missingFields.join(', ')}. Complete la
-            informacion para continuar con la generacion.
+            información para continuar con la generación.
           </p>
         )}
       </CardHeader>
@@ -132,7 +132,7 @@ export function PreGenerationForm({
           {packageNumber === 2 ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="filingDate">Fecha de radicacion</Label>
+                <Label htmlFor="filingDate">Fecha de radicación</Label>
                 <Input
                   id="filingDate"
                   type="date"
@@ -142,7 +142,7 @@ export function PreGenerationForm({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="designationDate">Fecha de designacion</Label>
+                <Label htmlFor="designationDate">Fecha de designación</Label>
                 <Input
                   id="designationDate"
                   type="date"
@@ -153,7 +153,7 @@ export function PreGenerationForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor="positionAcceptanceDate">
-                  Fecha de aceptacion del cargo
+                  Fecha de aceptación del cargo
                 </Label>
                 <Input
                   id="positionAcceptanceDate"
@@ -168,7 +168,7 @@ export function PreGenerationForm({
             <>
               <div className="space-y-2">
                 <Label htmlFor="approvalPercentage">
-                  Porcentaje de aprobacion (%)
+                  Porcentaje de aprobación (%)
                 </Label>
                 <Input
                   id="approvalPercentage"

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import prisma from '@/lib/prisma';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 const hearingSchema = z.object({
   id: z.string(),
@@ -123,8 +124,11 @@ export async function getHearings(input: {
     console.error('Error getting hearings:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener audiencias',
+      error: mensajeDeError(
+        error,
+        'Error al obtener audiencias',
+        'getHearings',
+      ),
     };
   }
 }

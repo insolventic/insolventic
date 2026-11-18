@@ -30,6 +30,7 @@
 
 import prisma from '@/lib/prisma';
 import { P } from '@/lib/permissions';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
 
 /**
  * Lo mínimo que estas funciones necesitan de la sesión. Deliberadamente más
@@ -170,7 +171,7 @@ export function caseWhereOrNothing(
  * y no mandarlo a Sentry como error: un acceso denegado es un evento
  * **esperado** (`CLAUDE.md`, sección del logger).
  */
-export class CaseAccessError extends Error {
+export class CaseAccessError extends ErrorDeNegocio {
   readonly reason: 'not-found' | 'forbidden';
 
   constructor(reason: 'not-found' | 'forbidden') {
@@ -347,7 +348,7 @@ export async function assertOperatorInTenant(
   });
 
   if (!operador) {
-    throw new Error(
+    throw new ErrorDeNegocio(
       'El operador asignado no pertenece a este centro de conciliación.',
     );
   }
@@ -375,7 +376,7 @@ export async function assertDebtorInTenant(
   });
 
   if (!deudor) {
-    throw new Error(
+    throw new ErrorDeNegocio(
       'El deudor asignado no pertenece a este centro de conciliación.',
     );
   }

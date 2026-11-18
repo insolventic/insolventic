@@ -163,7 +163,8 @@ describe('runInitialGenerationJob — P4 background', () => {
         data: expect.objectContaining({
           status: 'FAILED',
           activeKey: null,
-          error: 'Drive API down',
+          // N6: la fila la lee la interfaz; el detalle va al log, no acá.
+          error: 'No se pudieron generar los documentos',
         }),
       }),
     );

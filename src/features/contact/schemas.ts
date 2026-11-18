@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import '@/lib/zod-es';
+import { telefonoNuevo } from '@/lib/telefono';
 
 const creditorForContactSchema = z.object({
   id: z.string(),
@@ -27,7 +29,7 @@ export type ContactWithCreditor = z.infer<typeof contactWithCreditorSchema>;
 export const createContactSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
   email: z.string().email('Email inválido'),
-  phone: z.string().min(1, 'El teléfono es requerido'),
+  phone: telefonoNuevo(),
   role: z.string().min(1, 'El rol es requerido'),
 });
 

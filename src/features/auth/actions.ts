@@ -32,6 +32,8 @@ import {
   setAuthCookies,
   clearAuthCookies,
 } from '@/lib/auth';
+import { ErrorDeNegocio } from '@/lib/error-de-accion';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 import {
   loginSchema,
@@ -57,17 +59,17 @@ export async function authenticateUser() {
   const accessToken = cookieStore.get('access-token')?.value;
 
   if (!accessToken) {
-    throw new Error('No hay token de acceso');
+    throw new ErrorDeNegocio('No hay token de acceso');
   }
 
   const payload = await verifyToken(accessToken);
   if (!payload) {
-    throw new Error('Token inválido');
+    throw new ErrorDeNegocio('Token inválido');
   }
 
   const tenantId = payload.tenantId as TenantId;
   if (!tenantId) {
-    throw new Error('Tenant no especificado en el token');
+    throw new ErrorDeNegocio('Tenant no especificado en el token');
   }
 
   // Verify that the tenant exists
@@ -76,7 +78,7 @@ export async function authenticateUser() {
   });
 
   if (!tenant) {
-    throw new Error('Tenant no encontrado');
+    throw new ErrorDeNegocio('Tenant no encontrado');
   }
 
   const user = await prisma.user.findUnique({
@@ -98,7 +100,7 @@ export async function authenticateUser() {
   });
 
   if (!user) {
-    throw new Error('Usuario no encontrado');
+    throw new ErrorDeNegocio('Usuario no encontrado');
   }
 
   // A-6 (revocación de sesiones): este access token se emitió con una
@@ -107,7 +109,7 @@ export async function authenticateUser() {
   // es el entry point de casi toda server action, así que esto cierra el
   // acceso de inmediato sin esperar a que el token expire por su cuenta.
   if (payload.tokenVersion !== user.tokenVersion) {
-    throw new Error('Sesión inválida. Inicie sesión nuevamente.');
+    throw new ErrorDeNegocio('Sesión inválida. Inicie sesión nuevamente.');
   }
 
   return {
@@ -135,7 +137,7 @@ export async function authenticateUser() {
 export async function requireActionPermission(permission: string) {
   const { user, tenantId } = await authenticateUser();
   if (!user.permissions.includes(permission)) {
-    throw new Error(`No tiene permisos para: ${permission}`);
+    throw new ErrorDeNegocio(`No tiene permisos para: ${permission}`);
   }
   return { user, tenantId };
 }
@@ -1104,8 +1106,12 @@ export async function changePassword(input: unknown): Promise<{
     logger.error('Error in changePassword', error);
     return {
       success: false,
-      message:
-        error instanceof Error ? error.message : 'Error al cambiar contraseña',
+      message: mensajeDeError(
+        error,
+        'Error al cambiar contraseña',
+        'changePassword',
+        { registrado: true },
+      ),
     };
   }
 }

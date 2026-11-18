@@ -11,6 +11,7 @@ import { AVISO_SIN_CASO_EN_PAPELERA } from '@/lib/papelera';
 import { P } from '@/lib/permissions';
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { mensajeDeError } from '@/lib/error-de-accion';
 import {
   getNotificationsInputSchema,
   getNotificationsOutputSchema,
@@ -106,10 +107,11 @@ export async function getNotifications(
     console.error('Error getting notifications:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener notificaciones',
+      error: mensajeDeError(
+        error,
+        'Error al obtener notificaciones',
+        'getNotifications',
+      ),
     };
   }
 }
@@ -167,10 +169,11 @@ export async function deleteNotification(
     console.error('Error deleting notification:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al eliminar notificación',
+      error: mensajeDeError(
+        error,
+        'Error al eliminar notificación',
+        'deleteNotification',
+      ),
     };
   }
 }
@@ -223,10 +226,11 @@ export async function markAsRead(notificationId: string): Promise<{
     console.error('Error marking notification as read:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al marcar notificación como leída',
+      error: mensajeDeError(
+        error,
+        'Error al marcar notificación como leída',
+        'markAsRead',
+      ),
     };
   }
 }
@@ -251,10 +255,11 @@ export async function markAllAsRead(): Promise<{
     console.error('Error marking all notifications as read:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al marcar notificaciones como leídas',
+      error: mensajeDeError(
+        error,
+        'Error al marcar notificaciones como leídas',
+        'markAllAsRead',
+      ),
     };
   }
 }
@@ -312,10 +317,11 @@ export async function getNotificationStats(
     console.error('Error getting notification stats:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener estadísticas de notificaciones',
+      error: mensajeDeError(
+        error,
+        'Error al obtener estadísticas de notificaciones',
+        'getNotificationStats',
+      ),
     };
   }
 }

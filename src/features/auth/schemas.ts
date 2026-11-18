@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import '@/lib/zod-es';
+import { telefonoNuevo } from '@/lib/telefono';
 
 /**
  * Reusable password schema with strong security requirements.
@@ -86,7 +88,7 @@ export const registerSchema = z
     email: z.string().max(254, 'Email demasiado largo').email('Email inválido'),
     password: passwordSchema,
     confirmPassword: z.string(),
-    phone: z.string().min(1, 'El teléfono es requerido'),
+    phone: telefonoNuevo(),
     address: z.string().min(1, 'La dirección es requerida'),
     professionalCard: z.string().min(1, 'La tarjeta profesional es requerida'),
     tenantId: z.string().min(1, 'El tenant es requerido'),

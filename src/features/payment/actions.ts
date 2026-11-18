@@ -7,11 +7,13 @@ import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
 import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
+import { montoNumerico } from '@/features/case/monto-schemas';
 import {
   checkRateLimit,
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
+import { ErrorDeNegocio, mensajeDeError } from '@/lib/error-de-accion';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -133,6 +135,28 @@ function validateReceiptFile(file: File): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
+/**
+ * Lo que ve el usuario si Drive falla con el comprobante. Es veraz en las tres
+ * rutas que suben uno (`markPaymentPaid`, `registerPayment`,
+ * `uploadPaymentReceipt`): la subida va ANTES de escribir el pago, así que un
+ * fallo de Drive no deja nada registrado y reintentar es lo correcto.
+ */
+const MENSAJE_COMPROBANTE_DRIVE =
+  'No se pudo subir el comprobante a Google Drive. Intente nuevamente.';
+
+/**
+ * Una llamada a Drive del flujo del comprobante. El fallo original va como
+ * `cause`; el detalle ya lo registró `google-drive.ts` (`errorDeDrive` →
+ * `logger.error` → Sentry), así que aquí no se vuelve a registrar.
+ */
+async function pasoEnDrive<T>(paso: () => Promise<T>): Promise<T> {
+  try {
+    return await paso();
+  } catch (error) {
+    throw new ErrorDeNegocio(MENSAJE_COMPROBANTE_DRIVE, { cause: error });
+  }
+}
+
 async function uploadReceiptToDrive(
   caseId: string,
   tenantId: string,
@@ -153,9 +177,11 @@ async function uploadReceiptToDrive(
 
   if (!caseFolderId) {
     const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-    const folder = await googleDriveService.findOrCreateCaseFolder(
-      caseData?.caseNumber ?? caseId,
-      rootFolderId,
+    const folder = await pasoEnDrive(() =>
+      googleDriveService.findOrCreateCaseFolder(
+        caseData?.caseNumber ?? caseId,
+        rootFolderId,
+      ),
     );
     caseFolderId = folder;
     await prisma.case.update({
@@ -164,18 +190,20 @@ async function uploadReceiptToDrive(
     });
   }
 
-  const comprobantesFolderId = await googleDriveService.createFolderHierarchy(
-    ['Comprobantes'],
-    caseFolderId,
+  const carpetaDelCaso = caseFolderId;
+  const comprobantesFolderId = await pasoEnDrive(() =>
+    googleDriveService.createFolderHierarchy(['Comprobantes'], carpetaDelCaso),
   );
 
   const sanitizedName = sanitizeFileName(file.name);
   const buffer = Buffer.from(await file.arrayBuffer());
-  const fileId = await googleDriveService.uploadFile(
-    sanitizedName,
-    buffer,
-    file.type,
-    comprobantesFolderId,
+  const fileId = await pasoEnDrive(() =>
+    googleDriveService.uploadFile(
+      sanitizedName,
+      buffer,
+      file.type,
+      comprobantesFolderId,
+    ),
   );
   const fileUrl = googleDriveService.getFileUrl(fileId);
 
@@ -213,10 +241,11 @@ export async function getPaymentSchedule(caseId: string): Promise<{
     console.error('Error getting payment schedule:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener cronograma de pagos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener cronograma de pagos',
+        'getPaymentSchedule',
+      ),
     };
   }
 }
@@ -350,10 +379,11 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
     console.error('Error generating payment schedule:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al generar cronograma de pagos',
+      error: mensajeDeError(
+        error,
+        'Error al generar cronograma de pagos',
+        'generatePaymentSchedule',
+      ),
     };
   }
 }
@@ -364,7 +394,7 @@ export async function generatePaymentSchedule(caseId: string): Promise<{
 
 const markPaymentPaidInput = z.object({
   paymentId: z.string(),
-  amount: z.number().positive().optional(),
+  amount: montoNumerico().positive('El monto debe ser mayor a 0').optional(),
   paymentMethod: z.string().optional(),
   observations: z.string().optional(),
   receipt: z.instanceof(File).optional(),
@@ -458,7 +488,11 @@ export async function markPaymentPaid(
     console.error('Error marking payment paid:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al registrar pago',
+      error: mensajeDeError(
+        error,
+        'Error al registrar pago',
+        'markPaymentPaid',
+      ),
     };
   }
 }
@@ -469,7 +503,7 @@ export async function markPaymentPaid(
 
 const registerPaymentInput = z.object({
   caseId: z.string(),
-  amount: z.number().positive(),
+  amount: montoNumerico().positive('El monto debe ser mayor a 0'),
   paymentDate: z.string(),
   paymentMethod: z.string().optional(),
   observations: z.string().optional(),
@@ -570,8 +604,11 @@ export async function registerPayment(
     console.error('Error registering payment:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al registrar el pago',
+      error: mensajeDeError(
+        error,
+        'Error al registrar el pago',
+        'registerPayment',
+      ),
     };
   }
 }
@@ -650,8 +687,11 @@ export async function uploadPaymentReceipt(
     console.error('Error uploading receipt:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al subir comprobante',
+      error: mensajeDeError(
+        error,
+        'Error al subir comprobante',
+        'uploadPaymentReceipt',
+      ),
     };
   }
 }
@@ -1292,7 +1332,11 @@ export async function exportPaymentTrackingToExcel(
     console.error('Error exporting payment tracking:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al exportar pagos',
+      error: mensajeDeError(
+        error,
+        'Error al exportar pagos',
+        'exportPaymentTrackingToExcel',
+      ),
     };
   }
 }

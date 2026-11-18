@@ -38,6 +38,7 @@ import {
   getRateLimitKey,
   RATE_LIMIT_CONFIGS,
 } from '@/lib/rate-limit';
+import { mensajeDeError } from '@/lib/error-de-accion';
 
 /**
  * Per-user rate limit shared by every generation action. Returns an error
@@ -89,8 +90,11 @@ export async function getDocumentTemplates(): Promise<{
     console.error('Error getting document templates:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al obtener plantillas',
+      error: mensajeDeError(
+        error,
+        'Error al obtener plantillas',
+        'getDocumentTemplates',
+      ),
     };
   }
 }
@@ -193,8 +197,11 @@ export async function regenerateCaseDocument(input: {
     console.error('Error regenerating document:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al regenerar documento',
+      error: mensajeDeError(
+        error,
+        'Error al regenerar documento',
+        'regenerateCaseDocument',
+      ),
     };
   }
 }
@@ -287,8 +294,11 @@ export async function generateInitialDocuments(caseId: string): Promise<{
     console.error('Error generating initial documents:', error);
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al generar documentos',
+      error: mensajeDeError(
+        error,
+        'Error al generar documentos',
+        'generateInitialDocuments',
+      ),
     };
   }
 }
@@ -355,10 +365,11 @@ export async function generateAdmissionDocuments(caseId: string): Promise<{
     console.error('Error generating admission documents:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al generar documentos de admisión',
+      error: mensajeDeError(
+        error,
+        'Error al generar documentos de admisión',
+        'generateAdmissionDocuments',
+      ),
     };
   }
 }
@@ -425,10 +436,11 @@ export async function generateAgreementDocuments(caseId: string): Promise<{
     console.error('Error generating agreement documents:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al generar documentos de acuerdo',
+      error: mensajeDeError(
+        error,
+        'Error al generar documentos de acuerdo',
+        'generateAgreementDocuments',
+      ),
     };
   }
 }
@@ -499,10 +511,11 @@ export async function generateFailureDocuments(
     console.error('Error generating failure documents:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al generar documentos de fracaso',
+      error: mensajeDeError(
+        error,
+        'Error al generar documentos de fracaso',
+        'generateFailureDocuments',
+      ),
     };
   }
 }
@@ -531,10 +544,11 @@ export async function getFailureTypes(): Promise<{
     console.error('Error getting failure types:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener tipos de fracaso',
+      error: mensajeDeError(
+        error,
+        'Error al obtener tipos de fracaso',
+        'getFailureTypes',
+      ),
     };
   }
 }
@@ -607,10 +621,11 @@ export async function getCaseDocumentStatus(caseId: string): Promise<{
     console.error('Error getting document status:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al obtener estado de documentos',
+      error: mensajeDeError(
+        error,
+        'Error al obtener estado de documentos',
+        'getCaseDocumentStatus',
+      ),
     };
   }
 }
@@ -644,10 +659,11 @@ export async function getGenerationRequestStatus(caseId: string): Promise<{
     console.error('Error getting generation request status:', error);
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Error al consultar el estado de generación',
+      error: mensajeDeError(
+        error,
+        'Error al consultar el estado de generación',
+        'getGenerationRequestStatus',
+      ),
     };
   }
 }

@@ -33,6 +33,8 @@ export default async function DashboardPage() {
       <DashboardHeader />
 
       <main className="container mx-auto px-4 py-6">
+        {/* Sin título visible: el <h1> es para lectores de pantalla (A3). */}
+        <h1 className="sr-only">Panel principal</h1>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
           <div className="space-y-6 lg:col-span-3">
             <TaskSelector />

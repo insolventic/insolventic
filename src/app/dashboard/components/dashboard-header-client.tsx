@@ -116,7 +116,9 @@ export function DashboardHeaderClient() {
               className="rounded-full"
             />
             <div>
-              <h1 className="text-foreground text-xl font-bold">INSOLVENTIC</h1>
+              {/* La marca no es el título de la pantalla: cada pantalla tiene
+                  su propio <h1> (A3, auditoría 2026-10-27). */}
+              <p className="text-foreground text-xl font-bold">INSOLVENTIC</p>
               <div className="flex items-center space-x-2">
                 <Image
                   src={currentDb.icon || '/placeholder.svg'}

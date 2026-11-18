@@ -16,14 +16,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Eliminar un deudor ya no borra sus casos.** Antes se llevaba todos sus expedientes sin la confirmación ni la auditoría de eliminar un caso; ahora se niega si el deudor tiene casos, incluidos los de la papelera.
 - La auditoría distingue "Restauración" y "Eliminación definitiva".
+- **Ningún monto puede ser negativo ni superar $1.000.000.000.000.000** (capital, intereses, garantías, valor de bienes, libranzas, servicios, ingresos y gastos, pagos). Antes una deuda negativa se imprimía como `-$ 3` en el documento, y un monto enorme salía con dígitos basura.
+- **El teléfono tiene formato**: entre 7 y 15 dígitos, con espacios, `+`, `-`, paréntesis y «ext.». Se exige al crear y, al editar, solo si el teléfono cambió.
+- **Los textos tienen longitud máxima**: 200 caracteres en nombres, documentos y ciudades, 254 en correos, 500 en direcciones y 10.000 en texto libre. Al editar se valida solo lo que cambió, así que un registro viejo se sigue pudiendo editar.
+- "Monto" (seguimiento de pagos del caso) y "Valor pagado" (Reportes) aceptan el separador de miles, como el resto de los montos.
 
 ### Seguridad
 
+- **Un error interno ya no llega a la pantalla.** Cuando algo fallaba por dentro (la base de datos, la red, Google Drive), el aviso mostraba el detalle técnico del fallo; y un dato inválido devolvía la lista completa de errores de validación, en inglés. Ahora el aviso dice qué operación falló, el detalle queda en el registro de errores, y los avisos de validación salen en español, uno a la vez. Los mensajes pensados para el usuario (permisos, "no encontrado", el motivo de un cambio de fase no permitido) siguen igual.
+- Si Google Drive falla con un comprobante de pago, el aviso lo dice («No se pudo subir el comprobante a Google Drive. Intente nuevamente.») en vez del genérico del pago. El pago no queda registrado, así que reintentar es lo correcto.
 - Dependencias al día dentro de sus versiones: `next` 15.5.29 y `@sentry/nextjs` 10.78, que cierran las dos vulnerabilidades críticas de `npm audit`. Las que quedan piden un cambio de versión mayor (`prisma` 7, `puppeteer-core` 25, `next` 16, `nodemailer` 10) y van aparte.
 - `zod` queda fijado en 4.1.12 exacto: 4.6 cambia cómo se validan los campos opcionales con preprocess y `updateCase` empieza a rechazar ediciones válidas (58 tests en rojo). Subirlo es un cambio propio, no una actualización de rutina.
 
 ### Fixed
 
+- **Crear un caso ya no borra los ingresos de la ficha del deudor.** El asistente de alta enviaba ingresos, gastos y otros ingresos en 0, y la certificación laboral en «no», aunque esos campos no se muestran ahí; al crear cualquier caso, la ficha del deudor quedaba con ingreso 0.
+- Los montos de la interfaz salen sin decimales (antes, por ejemplo, `$8.916.666,667` en "Promedio por Caso").
+- Tildes que faltaban en el formulario de datos previo a la generación (radicación, designación, aceptación, aprobación, Admisión).
+- Accesibilidad: el buscador de casos y la deuda total del asistente tienen nombre para lectores de pantalla, y cada pantalla tiene un solo título principal.
 - **Un caso con una fase antigua ya no queda sin salida.** Se mostraba como «Inicial» y a la vez decía «No hay transiciones disponibles»; ahora ofrece las mismas transiciones que «Inicial», que son las que el servidor ya aceptaba.
 - El detalle del caso se titula con el número del expediente y no con su identificador interno.
 
