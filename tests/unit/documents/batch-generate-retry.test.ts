@@ -180,9 +180,9 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
     );
   });
 
-  it('agotados los reintentos, el documento queda registrado sin URL pero no rompe el lote', async () => {
+  it('agotados los reintentos, el documento sale como error y NO se registra sin URL', async () => {
     mockUploadDocumentToCase.mockRejectedValue(
-      new Error('ETIMEDOUT: Drive no respondió'),
+      new Error('ETIMEDOUT: Drive no respondió (detalle interno)'),
     );
 
     const resultPromise = batchGenerateDocuments({
@@ -199,12 +199,72 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
     expect(mockUploadDocumentToCase).toHaveBeenCalledTimes(3);
 
     const data = result.data as {
-      documents: Array<{ status: string; documentUrl: string }>;
+      documents: Array<{ status: string; documentUrl: string; error?: string }>;
+      successfulDocuments: number;
+      failedDocuments: number;
     };
     expect(data.documents).toHaveLength(1);
-    // Se agota el reintento, no el lote: el documento queda igual que antes
-    // de este cambio (registrado, sin URL), no lanza ni bloquea el resto.
-    expect(data.documents[0].status).toBe('success');
-    expect(data.documents[0].documentUrl).toBe('');
+    // N-A2-05: antes quedaba `status: 'success'` y un `Document` con
+    // `url: ''` en la lista del caso, que no abre. Ahora es un fallo del
+    // lote, con un mensaje propio: el de Drive no sale del servidor.
+    expect(data.documents[0].status).toBe('error');
+    expect(data.documents[0].error).toBe(
+      'No se pudo subir el documento a Google Drive. Intenta generarlo de nuevo.',
+    );
+    expect(data.documents[0].error).not.toContain('ETIMEDOUT');
+    expect(data.successfulDocuments).toBe(0);
+    expect(data.failedDocuments).toBe(1);
+    expect(result.message).toContain('0 exitosos, 1 fallidos');
+    expect(mockPrisma.document.create).not.toHaveBeenCalled();
+  });
+
+  it('si no se pudo crear la carpeta del caso, no sube ni registra nada', async () => {
+    const { googleDriveService } = jest.requireMock('@/lib/google-drive');
+    (
+      googleDriveService.findOrCreateCaseFolder as jest.Mock
+    ).mockRejectedValueOnce(new Error('403 insufficientPermissions'));
+
+    const result = await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: ['solicitud-insolvencia'],
+      outputFormat: 'pdf',
+    });
+
+    const data = result.data as {
+      documents: Array<{ status: string; error?: string }>;
+      successfulDocuments: number;
+    };
+    expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
+    expect(data.documents).toHaveLength(1);
+    expect(data.documents[0].status).toBe('error');
+    expect(data.documents[0].error).not.toContain('403');
+    expect(data.successfulDocuments).toBe(0);
+    expect(mockPrisma.document.create).not.toHaveBeenCalled();
+  });
+
+  it('un fallo al guardar en BD no expone el mensaje crudo de Prisma', async () => {
+    mockUploadDocumentToCase.mockResolvedValue({
+      fileId: 'file-1',
+      fileUrl: 'https://drive.example/file/file-1',
+    });
+    mockPrisma.document.create.mockRejectedValue(
+      new Error(
+        'Invalid `prisma.document.create()` invocation: tabla "Document"',
+      ),
+    );
+
+    const result = await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: ['solicitud-insolvencia'],
+      outputFormat: 'pdf',
+    });
+
+    const data = result.data as {
+      documents: Array<{ status: string; error?: string }>;
+    };
+    expect(data.documents[0].status).toBe('error');
+    expect(data.documents[0].error).toBe(
+      'No se pudo guardar el documento. Intenta generarlo de nuevo.',
+    );
   });
 });

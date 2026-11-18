@@ -926,6 +926,14 @@ export async function planBatchGeneration(input: {
   }
 }
 
+/**
+ * Lo que ve el usuario cuando un documento del lote no llegó a Drive. No
+ * lleva el `message` del error: puede traer detalles de la API de Google o
+ * de la red que no le sirven y no deben salir del servidor (va al logger).
+ */
+const ERROR_SUBIDA_DRIVE =
+  'No se pudo subir el documento a Google Drive. Intenta generarlo de nuevo.';
+
 export async function batchGenerateDocuments(input: {
   caseId: string;
   templateIds?: string[];
@@ -1484,14 +1492,32 @@ export async function batchGenerateDocuments(input: {
             }
           }
 
+          // Sin archivo en Drive no hay documento que registrar. Antes se
+          // creaba igual un `Document` con `url: ''` y el lote lo contaba como
+          // exitoso: el usuario veía "Generación completada" y en la lista un
+          // documento que no abre. Cubre también la carpeta del caso que no se
+          // pudo crear (`caseFolderId` vacío): ahí no se intenta subir nada.
+          if (!fileId) {
+            documents.push({
+              templateId: htmlDoc.template.id,
+              templateName: htmlDoc.displayName,
+              documentId: '',
+              documentName: variantDocName,
+              documentUrl: '',
+              status: 'error',
+              error: ERROR_SUBIDA_DRIVE,
+            });
+            continue;
+          }
+
           const document = await prisma.document.create({
             data: {
               name: variantDocName,
               type: 'generated',
               status: 'Generado',
               uploadDate: new Date(),
-              url: fileUrl || '',
-              googleDriveId: fileId || undefined,
+              url: fileUrl,
+              googleDriveId: fileId,
               caseId: caseData.id,
               tenantId,
               fileName: variantDocName,
@@ -1521,10 +1547,10 @@ export async function batchGenerateDocuments(input: {
             documentName: variantDocName,
             documentUrl: '',
             status: 'error',
+            // El detalle va al logger de arriba; al usuario, un mensaje
+            // propio (el de Prisma puede traer nombres de tablas y valores).
             error:
-              saveError instanceof Error
-                ? saveError.message
-                : 'Error guardando documento',
+              'No se pudo guardar el documento. Intenta generarlo de nuevo.',
           });
         }
       }

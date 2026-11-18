@@ -9,6 +9,37 @@ import { displayTimeZone, parseDateOnly } from '@/lib/date-colombia';
 import { logger } from '@/lib/logger';
 
 import type { CreateCaseFormInput } from './schemas';
+import { parsearMonto } from './monto';
+
+/**
+ * Un monto tal como llega al validador: número, o cadena con separador de
+ * miles y coma decimal (`"1.500.000,50"`), que es lo que producen `MoneyInput`
+ * y los `capitalAmount` de `debtSchema` (`z.string()`).
+ *
+ * `parseFloat("80.000.000")` da `80`: con él la deuda total de un expediente
+ * con separadores quedaba en unos cientos de pesos y las reglas de 40 y 150
+ * SMMLV no se disparaban en el servidor. La lectura es la misma que usa la
+ * persistencia (`parsearMonto`), así que regla y BD ven el mismo número.
+ *
+ * Un valor que no es monto (`NaN`) se trata como ausente, igual que antes.
+ */
+function leerMonto(valor: unknown): number | undefined {
+  const n = parsearMonto(valor);
+  return n === undefined || Number.isNaN(n) ? undefined : n;
+}
+
+/** Capital + intereses de todas las acreencias, con la misma lectura. */
+function sumarDeudas(
+  debts: ReadonlyArray<{ capitalAmount?: unknown; interestAmount?: unknown }>,
+): number {
+  return debts.reduce(
+    (sum, d) =>
+      sum +
+      (leerMonto(d.capitalAmount) ?? 0) +
+      (leerMonto(d.interestAmount) ?? 0),
+    0,
+  );
+}
 
 // ============================================
 // CONSTANTS
@@ -901,17 +932,7 @@ export function validateCaseComplete(
 
   // Calculate totals from debts
   const debts = data.debts || [];
-  const totalDebt = debts.reduce((sum, d) => {
-    const capital =
-      typeof d.capitalAmount === 'string'
-        ? parseFloat(d.capitalAmount) || 0
-        : d.capitalAmount || 0;
-    const interest =
-      typeof d.interestAmount === 'string'
-        ? parseFloat(d.interestAmount) || 0
-        : d.interestAmount || 0;
-    return sum + capital + interest;
-  }, 0);
+  const totalDebt = sumarDeudas(debts);
 
   // Basic required fields
   if (!data.debtorId) {
@@ -948,8 +969,8 @@ export function validateCaseComplete(
 
   // Income/Expenses validation
   const incomeIssues = validateIncomeExpenses(
-    typeof data.monthlyIncome === 'number' ? data.monthlyIncome : undefined,
-    typeof data.monthlyExpenses === 'number' ? data.monthlyExpenses : undefined,
+    leerMonto(data.monthlyIncome),
+    leerMonto(data.monthlyExpenses),
   );
 
   incomeIssues.forEach((issue) => {
@@ -1165,25 +1186,13 @@ export function validateCaseBusinessRules(
   // --- Reglas aplicables a todo tipo de caso -------------------------------
 
   const debts = data.debts ?? [];
-  const totalDebt = debts.reduce((sum, d) => {
-    const capital =
-      typeof d.capitalAmount === 'string'
-        ? parseFloat(d.capitalAmount) || 0
-        : (d.capitalAmount ?? 0);
-    const interest =
-      typeof d.interestAmount === 'string'
-        ? parseFloat(d.interestAmount) || 0
-        : (d.interestAmount ?? 0);
-    return sum + capital + interest;
-  }, 0);
+  const totalDebt = sumarDeudas(debts);
 
   if (data.monthlyIncome !== undefined || data.monthlyExpenses !== undefined) {
     push(
       validateIncomeExpenses(
-        typeof data.monthlyIncome === 'number' ? data.monthlyIncome : undefined,
-        typeof data.monthlyExpenses === 'number'
-          ? data.monthlyExpenses
-          : undefined,
+        leerMonto(data.monthlyIncome),
+        leerMonto(data.monthlyExpenses),
       ),
     );
   }

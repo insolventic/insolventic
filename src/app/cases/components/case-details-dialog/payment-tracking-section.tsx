@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MoneyInputField } from '@/components/ui/money-input';
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 
+import { formatearMonto, parsearMonto } from '@/features/case/monto';
 import type { CaseWithRelations } from '@/features/case/schemas';
 import {
   getPaymentSchedule,
@@ -173,7 +175,9 @@ export function PaymentTrackingSection({
     setPaymentError(null);
     setSelectedPayment(payment);
     setIsManualPayment(false);
-    setPaymentAmount(payment.amount.toString());
+    // Formateado desde el número: `toString()` de 123.456 sería "123.456",
+    // que `parsearMonto` lee como miles.
+    setPaymentAmount(formatearMonto(payment.amount));
     setPaymentDate(new Date().toISOString().slice(0, 10));
     setShowPaymentDialog(true);
   };
@@ -209,7 +213,7 @@ export function PaymentTrackingSection({
       if (isManualPayment) {
         result = await registerPayment({
           caseId: caseData.id,
-          amount: parseFloat(paymentAmount),
+          amount: parsearMonto(paymentAmount) ?? NaN,
           paymentDate,
           paymentMethod: paymentMethod || undefined,
           observations: observations || undefined,
@@ -218,7 +222,7 @@ export function PaymentTrackingSection({
       } else if (selectedPayment) {
         result = await markPaymentPaid({
           paymentId: selectedPayment.id,
-          amount: parseFloat(paymentAmount) || undefined,
+          amount: parsearMonto(paymentAmount) || undefined,
           paymentMethod: paymentMethod || undefined,
           observations: observations || undefined,
           receipt,
@@ -572,13 +576,15 @@ function PaymentDialog({
             <label className="mb-1 block text-sm font-medium">
               Monto <span className="text-red-500">*</span>
             </label>
-            <Input
-              type="number"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
+            <MoneyInputField
+              field={{
+                name: 'paymentAmount',
+                value: paymentAmount,
+                onChange: (v) => setPaymentAmount(String(v ?? '')),
+                onBlur: () => {},
+                ref: null,
+              }}
               placeholder="0"
-              min="0"
-              step="1"
             />
           </div>
 
@@ -675,9 +681,7 @@ function PaymentDialog({
           </Button>
           <Button
             onClick={onSubmit}
-            disabled={
-              submitting || !paymentAmount || parseFloat(paymentAmount) <= 0
-            }
+            disabled={submitting || !((parsearMonto(paymentAmount) ?? 0) > 0)}
           >
             {submitting ? 'Registrando...' : 'Registrar Pago'}
           </Button>

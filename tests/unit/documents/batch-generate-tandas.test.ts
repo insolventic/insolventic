@@ -94,6 +94,14 @@ jest.mock('@/lib/html-to-pdf', () => ({
 jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
     createFolderHierarchy: jest.fn().mockResolvedValue('center-folder-id'),
+    // Sin estos tres la carpeta del caso fallaba y el documento se "subía" sin
+    // carpeta; desde N-A2-05 eso es un fallo del lote, no un éxito con url ''.
+    listFoldersAndFiles: jest.fn().mockResolvedValue({
+      folders: [{ id: 'docgen-id', name: 'documentos-generados' }],
+      files: [],
+    }),
+    findOrCreateCaseFolder: jest.fn().mockResolvedValue('case-folder-id'),
+    getFolderUrl: jest.fn((id: string) => `https://drive.example/folder/${id}`),
     uploadDocumentToCase: jest.fn().mockResolvedValue({
       fileId: 'file-1',
       fileUrl: 'https://drive.example/file/file-1',
