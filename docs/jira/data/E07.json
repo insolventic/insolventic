@@ -1,0 +1,233 @@
+{
+  "epica": {
+    "id": "E07",
+    "titulo": "Notificaciones y Alertas Proactivas",
+    "descripcion": "Notificaciones in-app por usuario y rol, alertas proactivas por cron (audiencia próxima, pago vencido) con email opcional, y avisos del resultado de la generación de documentos en segundo plano.",
+    "objetivo": "Que nadie del centro se entere tarde de una audiencia, un pago vencido o una generación fallida.",
+    "prioridad": "Media",
+    "labels": [],
+    "evidencia": [
+      "src/features/notification/",
+      "src/app/api/cron/alerts",
+      "CHANGELOG.md [0.3.0]"
+    ]
+  },
+  "items": [
+    {
+      "id": "E07-01",
+      "tipo": "Story",
+      "titulo": "Bandeja de notificaciones internas por usuario",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "recibir en la app avisos de lo que pasa en mis casos",
+        "para": "no depender del correo para enterarme de cambios"
+      },
+      "ac": [
+        "Dado una acción sobre mi caso Cuando ocurre Entonces recibo una notificación",
+        "Dado una notificación Cuando la marco como leída Entonces deja de contar como pendiente",
+        "[error] Dado una notificación de otro usuario Cuando intento marcarla Entonces se rechaza"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W06",
+      "estado": "Done",
+      "resuelto": "2026-02-08",
+      "version": "v0.1.0",
+      "evidencia": [
+        "83d2d71",
+        "CHANGELOG.md [0.1.0] Dashboard (módulo Notifications)",
+        "README.md §Notificaciones y Auditoría"
+      ]
+    },
+    {
+      "id": "E07-02",
+      "tipo": "Story",
+      "titulo": "Paginación de la bandeja de notificaciones",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que la bandeja pagine",
+        "para": "que siga cargando rápido con cientos de avisos"
+      },
+      "ac": [
+        "Dado más de una página de notificaciones Cuando abro la bandeja Entonces veo la primera página",
+        "Dado la siguiente página Cuando avanzo Entonces se carga desde el servidor",
+        "[borde] Dado cero notificaciones Cuando abro la bandeja Entonces veo un estado vacío"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-18",
+      "version": "v0.2.0",
+      "evidencia": ["27bd3c6 feat: ... agregar paginación a notificaciones"]
+    },
+    {
+      "id": "E07-03",
+      "tipo": "Story",
+      "titulo": "Aviso 48 horas antes de una audiencia",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "recibir un aviso dos días antes de cada audiencia de mis casos",
+        "para": "preparar la audiencia a tiempo"
+      },
+      "ac": [
+        "Dado una audiencia dentro de 48 h Cuando corre el cron Entonces el operador asignado recibe hearing_upcoming",
+        "[borde] Dado que el cron corre dos veces en 20 h Cuando evalúa la misma audiencia Entonces no duplica el aviso",
+        "Dado ALERTS_EMAIL_ENABLED en true Cuando se genera el aviso Entonces también se envía por correo"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": [
+        "820461c feat(0.3.0): alertas proactivas",
+        "CHANGELOG.md [0.3.0] hearing_upcoming"
+      ]
+    },
+    {
+      "id": "E07-04",
+      "tipo": "Story",
+      "titulo": "Aviso de pago vencido",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que el sistema me avise cuando una cuota vence sin pago y la marque vencida",
+        "para": "contactar al deudor antes de que el incumplimiento crezca"
+      },
+      "ac": [
+        "Dado una cuota vencida sin pago Cuando corre el cron Entonces se marca vencido y se notifica a la operadora",
+        "[borde] Dado una cuota pagada el mismo día Cuando corre el cron Entonces no se marca vencida",
+        "Dado el mismo vencimiento Cuando el cron corre de nuevo dentro de la ventana Entonces no duplica el aviso"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": ["820461c", "CHANGELOG.md [0.3.0] payment_overdue"]
+    },
+    {
+      "id": "E07-05",
+      "tipo": "Story",
+      "titulo": "Ejecución diaria de alertas protegida con secreto",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que las alertas corran solas cada mañana y nadie externo pueda dispararlas",
+        "para": "tener avisos confiables sin exponer un endpoint abierto"
+      },
+      "ac": [
+        "Dado el schedule de vercel.json Cuando son las 08:00 UTC Entonces se llama /api/cron/alerts",
+        "[error] Dado un Bearer incorrecto Cuando se llama el endpoint Entonces responde 401 (comparación timingSafeEqual)",
+        "[borde] Dado una ejecución que excede 60 s Cuando se corta Entonces responde ok:false, timedOut:true con requestId"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["seguridad"],
+      "componentes": ["Backend", "Infra-CI/CD"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": [
+        "820461c",
+        "CHANGELOG.md [0.3.0] Cron endpoint, Security",
+        "tests/unit/cron/alerts-route.test.ts"
+      ]
+    },
+    {
+      "id": "E07-06",
+      "tipo": "Task",
+      "titulo": "Tipos de notificación desde una única lista",
+      "tarea": {
+        "objetivo": "Que agregar un tipo de notificación no requiera tocar 15 conteos paralelos.",
+        "alcance": "notificationTypeSchema desde la tupla NOTIFICATION_TYPES; getNotificationStats con un solo groupBy; API tipada CrudNotificationType.",
+        "dod": "Agregar un tipo es un cambio de una línea; tests verdes."
+      },
+      "ac": [
+        "Dado un tipo nuevo en NOTIFICATION_TYPES Cuando se compila Entonces el schema y las estadísticas lo incluyen"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": ["820461c", "CHANGELOG.md [0.3.0] Notificaciones — schema"]
+    },
+    {
+      "id": "E07-07",
+      "tipo": "Bug",
+      "titulo": "El aviso de documentos generados dejaba la bandeja vacía con un error",
+      "bug": {
+        "entorno": "Producción (1.0.0-rc.1), octubre 2026",
+        "pasos": [
+          "Crear un caso para que se generen sus documentos en segundo plano",
+          "Abrir la bandeja de notificaciones al terminar"
+        ],
+        "esperado": "La bandeja muestra el aviso de generación terminada o fallida",
+        "actual": "La bandeja queda vacía con un error",
+        "severidad": "Alta",
+        "causaRaiz": "El job creaba notificaciones con tipos que el enum de lectura (NOTIFICATION_TYPES) no reconocía, y la validación de la lista entera fallaba.",
+        "fix": "#149 b29166c: tipos agregados al enum y lectura tolerante en getNotifications, con ícono y etiqueta en notification-item",
+        "regresion": "Barrido de todos los type: que el código crea vs. el enum, con test."
+      },
+      "ac": [
+        "Dado una notificación de generación Cuando se lista la bandeja Entonces aparece con su ícono",
+        "Dado un tipo creado por código Cuando no está en el enum Entonces el test de barrido falla"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["bug-regresion", "doc-semana-15"],
+      "componentes": ["Backend", "Frontend", "Testing"],
+      "sprint": "2026-W43",
+      "estado": "Done",
+      "resuelto": "2026-10-19",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#149 b29166c", "docs/IMPLEMENTACION_SEMANA_15.md"]
+    },
+    {
+      "id": "E07-08",
+      "tipo": "Bug",
+      "titulo": "La creación interna de notificaciones está expuesta como endpoint público",
+      "bug": {
+        "entorno": "Producción actual",
+        "pasos": ["Inspeccionar notification/actions.ts ('use server')"],
+        "esperado": "Las funciones internas viven fuera de módulos 'use server'",
+        "actual": "createNotificationForAction es una server action exportada sin autenticación; hoy no es explotable solo porque recibe un PrismaClient no serializable",
+        "severidad": "Media",
+        "causaRaiz": "Viola la convención de CLAUDE.md: los módulos compartidos entre actions van en archivos sin 'use server'.",
+        "fix": "Pendiente: mover createNotificationForAction a un módulo sin 'use server'.",
+        "regresion": "Test que verifica que el módulo 'use server' de notificaciones no exporta funciones sin authenticateUser."
+      },
+      "ac": [
+        "Dado el módulo de acciones de notificaciones Cuando se inspecciona Entonces no exporta createNotificationForAction",
+        "Dado los llamadores actuales Cuando se mueve la función Entonces siguen notificando igual"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["seguridad"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "hallazgos": ["CIERRE-5.5"],
+      "evidencia": [
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §5.5",
+        "src/features/notification/actions.ts:1 y :317 (verificado 2026-10-21)"
+      ]
+    }
+  ]
+}
