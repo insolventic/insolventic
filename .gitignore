@@ -61,3 +61,12 @@ docs/*.local.md
 /INSOLVENTIC_Presentacion.pptx
 /Diagrama_AS-IS_Insolventic.png
 /Diagrama_TO-BE_Insolventic.png
+
+# Documentos internos del autor (costos, mensajes al cliente, borradores de PR):
+# no forman parte del repositorio entregable.
+/docs/ESTIMACION_COSTOS_INFRAESTRUCTURA.md
+/docs/MENSAJE_CLIENTE_COSTOS.md
+/docs/PR_MANUAL_USUARIO.md
+
+# Copia local de CLAUDE.md para otros agentes: no se versiona.
+/AGENTS.md
