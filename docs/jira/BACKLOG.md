@@ -2736,7 +2736,7 @@ Como **administrador del centro**, quiero que un cambio de contraseña o un cier
 **Labels:** seguridad · **Components:** Base-de-Datos
 
 - **Objetivo:** Confirmar que el guard de fila (fail closed) no le quitó la edición a un rol creado a mano.
-- **Alcance:** Correr scripts/verificar-roles-sin-alcance.sql (solo lectura) contra Neon producción y corregir los roles que aparezcan.
+- **Alcance:** Correr scripts/diagnostico/verificar-roles-sin-alcance.sql (solo lectura) contra Neon producción y corregir los roles que aparezcan.
 - **Definición de terminado:** Resultado registrado en docs; 0 roles con Editar/Eliminar/Generar/Ver documentos/Ver reportes sin permiso de alcance.
 
 **Criterios de aceptación:**
@@ -2744,7 +2744,7 @@ Como **administrador del centro**, quiero que un cambio de contraseña o un cier
 - Dado la consulta Cuando se corre en producción Entonces el resultado queda documentado
 - **(error)** Dado un rol sin alcance Cuando aparece Entonces se le asigna el permiso de alcance correcto con aprobación del centro
 
-**Evidencia:** docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4 · scripts/verificar-roles-sin-alcance.sql (sin commitear)
+**Evidencia:** docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4 · scripts/diagnostico/verificar-roles-sin-alcance.sql (sin commitear)
 
 ### E03-31 · Task (spike) · Calibrar el límite de creación de casos con el uso real
 
@@ -5382,7 +5382,7 @@ Como **operadora de insolvencia**, quiero generar el auto de rechazo y la consta
 
 **Justificación de la estimación:** Dos plantillas nuevas desde texto legal, mapeo de fase a paquete y branding por centro.
 
-**Evidencia:** docs/DISENO_FASES_NUEVAS_2026-09-11.md §3 (4 plantillas nuevas) · find templates -iname '_rechazo_|_retiro_' → sin resultados (2026-10-21)
+**Evidencia:** docs/DISENO*FASES_NUEVAS_2026-09-11.md §3 (4 plantillas nuevas) · find templates -iname '\_rechazo*|_retiro_' → sin resultados (2026-10-21)
 
 ### E12-08 · Story · Documentos de Acuerdo impugnado y Acuerdo reformado
 

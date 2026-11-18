@@ -1548,7 +1548,7 @@ h4. Criterios de aceptación
 
 *Evidencia:* #140 376d83b · docs/IMPLEMENTACION_SEMANA_7.md §3 · CHANGELOG.md [1.0.0-rc.1] Revocación de sesiones","1004","High","5","seguridad","doc-semana-7","sprint-2026-W42","","Backend","Base-de-Datos","","","INS 2026-W42","Done","Done","2026-10-17","v1.0.0-rc.1","#140 376d83b · docs/IMPLEMENTACION_SEMANA_7.md §3 · CHANGELOG.md [1.0.0-rc.1] Revocación de sesiones","","","",""
 "1133","E03-30","Task","Verificar en producción que ningún rol quedó sin permiso de alcance","*Objetivo:* Confirmar que el guard de fila (fail closed) no le quitó la edición a un rol creado a mano.
-*Alcance:* Correr scripts/verificar-roles-sin-alcance.sql (solo lectura) contra Neon producción y corregir los roles que aparezcan.
+*Alcance:* Correr scripts/diagnostico/verificar-roles-sin-alcance.sql (solo lectura) contra Neon producción y corregir los roles que aparezcan.
 *Definición de terminado:* Resultado registrado en docs; 0 roles con Editar/Eliminar/Generar/Ver documentos/Ver reportes sin permiso de alcance.
 
 h4. Criterios de aceptación
@@ -1556,7 +1556,7 @@ h4. Criterios de aceptación
 * *(error)* Dado un rol sin alcance Cuando aparece Entonces se le asigna el permiso de alcance correcto con aprobación del centro
 *MoSCoW:* Must · *Rank:* 4
 
-*Evidencia:* docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4 · scripts/verificar-roles-sin-alcance.sql (sin commitear)","1004","High","1","seguridad","sprint-2026-W44","","","Base-de-Datos","","","","INS 2026-W44","To Do","","","v1.0.0-rc.2","docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4 · scripts/verificar-roles-sin-alcance.sql (sin commitear)","","","Must","4"
+*Evidencia:* docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4 · scripts/diagnostico/verificar-roles-sin-alcance.sql (sin commitear)","1004","High","1","seguridad","sprint-2026-W44","","","Base-de-Datos","","","","INS 2026-W44","To Do","","","v1.0.0-rc.2","docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4 · scripts/diagnostico/verificar-roles-sin-alcance.sql (sin commitear)","","","Must","4"
 "1134","E03-31","Task","Calibrar el límite de creación de casos con el uso real","*Objetivo:* Validar si 10 casos por usuario cada 10 minutos es correcto para la digitación real de los centros.
 *Alcance:* Revisar en logs/Sentry los rechazos por límite durante las primeras semanas de uso.
 *Definición de terminado:* Valor confirmado o ajustado (una línea) y documentado.

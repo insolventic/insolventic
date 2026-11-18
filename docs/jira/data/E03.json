@@ -905,7 +905,7 @@
       "titulo": "Verificar en producción que ningún rol quedó sin permiso de alcance",
       "tarea": {
         "objetivo": "Confirmar que el guard de fila (fail closed) no le quitó la edición a un rol creado a mano.",
-        "alcance": "Correr scripts/verificar-roles-sin-alcance.sql (solo lectura) contra Neon producción y corregir los roles que aparezcan.",
+        "alcance": "Correr scripts/diagnostico/verificar-roles-sin-alcance.sql (solo lectura) contra Neon producción y corregir los roles que aparezcan.",
         "dod": "Resultado registrado en docs; 0 roles con Editar/Eliminar/Generar/Ver documentos/Ver reportes sin permiso de alcance."
       },
       "ac": [
@@ -922,7 +922,7 @@
       "moscow": "Must",
       "evidencia": [
         "docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4",
-        "scripts/verificar-roles-sin-alcance.sql (sin commitear)"
+        "scripts/diagnostico/verificar-roles-sin-alcance.sql (sin commitear)"
       ]
     },
     {
