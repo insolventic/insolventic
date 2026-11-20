@@ -32,7 +32,7 @@ import {
   brandingRef,
 } from '@/lib/branding-assets';
 import { inlineAssets } from '@/lib/html-to-pdf';
-import { imagenPrivadaRef } from '@/lib/imagenes-privadas';
+import { CENTROS_CON_SELLO, imagenPrivadaRef } from '@/lib/imagenes-privadas';
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { SCENARIOS } from '../../helpers/mapper-scenarios';
 
@@ -62,7 +62,7 @@ const TEMPLATES_ROOT = path.join(process.cwd(), 'templates');
 
 describe('1. el mapper produce los placeholders de branding', () => {
   it('los logos apuntan a /branding/', () => {
-    const map = mapCaseToPlaceholders(casoDelCentro('constructores-paz'));
+    const map = mapCaseToPlaceholders(casoDelCentro('armonia'));
 
     for (const clave of ['LOGO_ENCABEZADO_SRC', 'LOGO_FIRMA_SRC']) {
       expect(typeof map[clave]).toBe('string');
@@ -78,6 +78,16 @@ describe('1. el mapper produce los placeholders de branding', () => {
       expect(map.FIRMA_OPERADOR_SRC).toBe(imagenPrivadaRef('firma-operador'));
       expect(map.FIRMA_DIRECTOR_SRC).toBe(imagenPrivadaRef('firma-director'));
     }
+  });
+
+  it('el logo de firma de Constructores de Paz es un sello y sale de la base', () => {
+    const constructores = mapCaseToPlaceholders(
+      casoDelCentro('constructores-paz'),
+    );
+    const armonia = mapCaseToPlaceholders(casoDelCentro('armonia'));
+
+    expect(constructores.LOGO_FIRMA_SRC).toBe(imagenPrivadaRef('sello'));
+    expect(armonia.LOGO_FIRMA_SRC).toBe('/branding/armonia/logo-firma.png');
   });
 
   it('el escapado del punto de fusión no toca estas rutas (sin allowlist)', () => {
@@ -125,8 +135,12 @@ describe('2. la elección pasa por el mapa de tenants, no por el fallback', () =
       );
 
       for (const asset of ASSETS_REQUERIDOS) {
+        const esSello =
+          asset === 'logo-firma' && CENTROS_CON_SELLO.has(tenantId);
         expect(brandingDelCaso[CLAVE_POR_ASSET[asset]]).toBe(
-          `${BRANDING_REF_PREFIX}${CARPETAS_DISTINTAS[tenantId]}/${asset}.png`,
+          esSello
+            ? imagenPrivadaRef('sello')
+            : `${BRANDING_REF_PREFIX}${CARPETAS_DISTINTAS[tenantId]}/${asset}.png`,
         );
       }
 
@@ -185,6 +199,10 @@ describe('3. GUARDIÁN: todo asset que el mapa promete existe en el disco', () =
     ASSETS_REQUERIDOS.map(
       (asset) => [tenantId, asset, brandingRef(asset, tenantId)] as const,
     ),
+  ).filter(
+    // El sello de los centros que lo usan se resuelve contra la base.
+    ([tenantId, asset]) =>
+      !(asset === 'logo-firma' && CENTROS_CON_SELLO.has(tenantId)),
   );
 
   it.each(casos)('%s / %s → %s existe', async (_tenantId, _asset, ref) => {

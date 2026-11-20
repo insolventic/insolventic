@@ -477,7 +477,8 @@ necesitan usuarios demo ni casos de ejemplo.
 
 Las firmas que insertan las plantillas no se versionan: el repositorio es
 público. Viven en la tabla `imagenes_privadas`, una fila por centro y tipo
-(`firma-operador`, `firma-director`), y solo las lee
+(`firma-operador`, `firma-director` y, en Constructores de Paz, `sello`: el
+logo que acompaña la firma), y solo las lee
 `src/lib/imagenes-privadas.ts` al generar. Si a un centro le falta una, ese
 centro no genera documentos: el usuario ve «Falta la firma del operador para
 <centro>. Contacta al administrador.» y Sentry registra el evento
@@ -492,6 +493,7 @@ git y sirve de carpeta local):
 <carpeta>/armonia/firma-director.jpg
 <carpeta>/constructores-paz/firma-operador.png
 <carpeta>/constructores-paz/firma-director.jpg
+<carpeta>/constructores-paz/sello.png
 ```
 
 La subcarpeta es el slug del centro y el nombre del archivo es el tipo. PNG o

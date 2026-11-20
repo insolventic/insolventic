@@ -14,6 +14,7 @@ import {
   aplicarImagenesPrivadas,
   ImagenPrivadaFaltanteError,
   resolverImagenesPrivadas,
+  tiposRequeridos,
 } from '@/lib/imagenes-privadas';
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
@@ -1121,7 +1122,12 @@ export async function batchGenerateDocuments(input: {
     // Drive o convertir el primer documento: si falta una, el lote no empieza.
     const placeholders = aplicarImagenesPrivadas(
       mapCaseToPlaceholders(asCaseWithRelations(transformedCaseData)),
-      await resolverImagenesPrivadas(caseData.tenantId),
+      await resolverImagenesPrivadas(
+        caseData.tenantId,
+        tiposRequeridos(
+          tenantSlugDelCaso(asCaseWithRelations(transformedCaseData)),
+        ),
+      ),
     );
 
     // Read HTML templates, replace placeholders, generate PDFs

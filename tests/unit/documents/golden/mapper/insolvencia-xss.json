@@ -173,7 +173,7 @@
   "LISTA_ACREEDORES": "1. &lt;b onmouseover=XSSMARK&gt;Bancolombia S.A. - $ 9.200.000<br>2. &lt;b onmouseover=XSSMARK&gt;Banco de Bogotá - $ 11.950.000<br>3. &lt;b onmouseover=XSSMARK&gt;Davivienda - $ 14.700.000",
   "LISTA_ANEXOS": "<li>&lt;b onmouseover=XSSMARK&gt;Cédula de ciudadanía</li>\n            <li>&lt;b onmouseover=XSSMARK&gt;Certificado de tradición y libertad</li>",
   "LOGO_ENCABEZADO_SRC": "/branding/constructores-paz/logo-encabezado.png",
-  "LOGO_FIRMA_SRC": "/branding/constructores-paz/logo-firma.png",
+  "LOGO_FIRMA_SRC": "imagen-privada:sello",
   "LUGAR_CONTROL_LEGALIDAD": "________________________________",
   "MES": "marzo",
   "MES_ACEPTACION": "febrero",

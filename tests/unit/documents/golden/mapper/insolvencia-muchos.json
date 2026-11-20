@@ -193,7 +193,7 @@
   "LISTA_ACREEDORES": "sha256:fa0570fcf769+529",
   "LISTA_ANEXOS": "<li>Cédula de ciudadanía</li>\n            <li>Certificado de tradición y libertad</li>",
   "LOGO_ENCABEZADO_SRC": "/branding/constructores-paz/logo-encabezado.png",
-  "LOGO_FIRMA_SRC": "/branding/constructores-paz/logo-firma.png",
+  "LOGO_FIRMA_SRC": "imagen-privada:sello",
   "LUGAR_CONTROL_LEGALIDAD": "________________________________",
   "MES": "marzo",
   "MES_ACEPTACION": "febrero",

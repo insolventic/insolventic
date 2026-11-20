@@ -12,8 +12,10 @@ import { htmlToPdf, batchHtmlToPdf } from '@/lib/html-to-pdf';
 import {
   aplicarImagenesPrivadas,
   resolverImagenesPrivadas,
+  tiposRequeridos,
   type ImagenesPrivadas,
 } from '@/lib/imagenes-privadas';
+import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import {
   mapCaseToPlaceholders,
   buildTemplateContext,
@@ -65,7 +67,10 @@ function firmasDelCentro(
   caseData: CaseWithRelations,
 ): Promise<ImagenesPrivadas> {
   const { tenantId } = caseData as { tenantId?: unknown };
-  return resolverImagenesPrivadas(typeof tenantId === 'string' ? tenantId : '');
+  return resolverImagenesPrivadas(
+    typeof tenantId === 'string' ? tenantId : '',
+    tiposRequeridos(tenantSlugDelCaso(caseData)),
+  );
 }
 
 /**

@@ -1,5 +1,6 @@
 /**
- * Verifica que cada centro de la base tenga todas sus firmas cargadas y válidas.
+ * Verifica que cada centro de la base tenga cargadas y válidas todas sus
+ * imágenes privadas: las firmas y, en los centros que lo usan, el sello.
  *
  * Uso:
  *   npx tsx scripts/imagenes-privadas/verificar.ts
@@ -15,9 +16,8 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 
 import {
-  esTipoImagenPrivada,
   motivoImagenInvalida,
-  TIPOS_IMAGEN_PRIVADA,
+  tiposRequeridos,
 } from '../../src/lib/imagenes-privadas';
 import { hostDeLaBase } from './base';
 
@@ -43,7 +43,8 @@ async function main() {
     let fallas = 0;
     for (const tenant of tenants) {
       console.log(`${tenant.name} (${tenant.slug})`);
-      for (const tipo of TIPOS_IMAGEN_PRIVADA) {
+      const requeridos = tiposRequeridos(tenant.slug);
+      for (const tipo of requeridos) {
         const fila = filas.find(
           (f) => f.tenantId === tenant.id && f.tipo === tipo,
         );
@@ -60,19 +61,18 @@ async function main() {
         );
       }
       for (const fila of filas) {
-        if (fila.tenantId === tenant.id && !esTipoImagenPrivada(fila.tipo)) {
-          console.log(
-            `  aviso  ${fila.tipo.padEnd(16)} tipo desconocido; no se usa`,
-          );
+        const sobra = !(requeridos as readonly string[]).includes(fila.tipo);
+        if (fila.tenantId === tenant.id && sobra) {
+          console.log(`  aviso  ${fila.tipo.padEnd(16)} este centro no lo usa`);
         }
       }
     }
 
     if (fallas > 0) {
-      console.error(`\n${fallas} firma(s) faltante(s) o inválida(s).`);
+      console.error(`\n${fallas} imagen(es) faltante(s) o inválida(s).`);
       process.exitCode = 1;
     } else {
-      console.log('\nTodos los centros tienen sus firmas.');
+      console.log('\nTodos los centros tienen sus imágenes.');
     }
   } finally {
     await prisma.$disconnect();

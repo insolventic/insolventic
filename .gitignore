@@ -82,3 +82,5 @@ docs/*.local.md
 [Ss]ello*.png
 [Ss]ello*.jpg
 [Ss]ello*.jpeg
+# El logo de firma de Constructores de Paz es un sello.
+/templates/branding/constructores-paz/logo-firma.*

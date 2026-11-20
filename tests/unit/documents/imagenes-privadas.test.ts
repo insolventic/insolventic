@@ -27,6 +27,7 @@ import {
   motivoImagenInvalida,
   resolverImagenesPrivadas,
   TAMANO_MAXIMO_IMAGEN_PRIVADA,
+  tiposRequeridos,
 } from '@/lib/imagenes-privadas';
 import {
   dataUriDePrueba,
@@ -209,7 +210,66 @@ describe('aplicarImagenesPrivadas', () => {
   it('un ref de un tipo desconocido corta, no se deja pasar', () => {
     expect(() =>
       aplicarImagenesPrivadas({ X: 'imagen-privada:sello-falso' }, new Map()),
-    ).toThrow(/desconocida/);
+    ).toThrow(/no se resolvió/);
+  });
+
+  it('un ref que el centro no resolvió corta: el sello no se toma de otro lado', async () => {
+    const sinSello = await resolverImagenesPrivadas(ARMONIA);
+    expect(() =>
+      aplicarImagenesPrivadas(
+        { LOGO_FIRMA_SRC: imagenPrivadaRef('sello') },
+        sinSello,
+      ),
+    ).toThrow(/no se resolvió/);
+  });
+});
+
+describe('sello', () => {
+  it('solo Constructores de Paz lo exige', () => {
+    expect(tiposRequeridos('constructores-paz')).toEqual([
+      'firma-operador',
+      'firma-director',
+      'sello',
+    ]);
+    expect(tiposRequeridos('armonia')).toEqual([
+      'firma-operador',
+      'firma-director',
+    ]);
+    expect(tiposRequeridos(undefined)).toEqual([
+      'firma-operador',
+      'firma-director',
+    ]);
+  });
+
+  it('si el centro lo exige y no está, falla con su propio mensaje', async () => {
+    mockPrisma.imagenPrivada.findMany.mockImplementation(
+      findManyDeImagenes(
+        firmasDelCentro(CONSTRUCTORES).filter((f) => f.tipo !== 'sello'),
+      ),
+    );
+    mockPrisma.tenant.findUnique.mockResolvedValue({
+      name: 'Constructores de Paz',
+      slug: 'constructores-paz',
+    });
+
+    await expect(
+      resolverImagenesPrivadas(
+        CONSTRUCTORES,
+        tiposRequeridos('constructores-paz'),
+      ),
+    ).rejects.toThrow(
+      'Falta el sello para Constructores de Paz. Contacta al administrador.',
+    );
+  });
+
+  it('si el centro lo exige y está, sale como data URI de ese centro', async () => {
+    const imagenes = await resolverImagenesPrivadas(
+      CONSTRUCTORES,
+      tiposRequeridos('constructores-paz'),
+    );
+    expect(imagenes.get('sello')).toBe(
+      dataUriDePrueba(`${CONSTRUCTORES}/sello`),
+    );
   });
 });
 

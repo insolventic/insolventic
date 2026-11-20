@@ -13,6 +13,7 @@
  *   <carpeta>/constructores-paz/firma-operador.png
  *   ...
  *
+ * Los centros con sello (`CENTROS_CON_SELLO`) suman `<carpeta>/<centro>/sello.png`.
  * Si dos centros usan la misma firma, el archivo va en las dos subcarpetas: cada
  * centro tiene su propia fila. Es idempotente (upsert por centro y tipo) y valida
  * todo antes de escribir: si un archivo no sirve, no se carga ninguno. Nunca lee

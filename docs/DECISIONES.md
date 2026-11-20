@@ -25,7 +25,9 @@ Historial de decisiones técnicas por iteración de trabajo. Material de consult
 
 **Consecuencias:** cada entorno (local, Preview, producción) necesita sus firmas cargadas antes de generar documentos; el checklist de despliegue suma migración → carga → verificación antes del deploy. Las firmas siguen en el historial de git hasta que se reescriba, que es una operación aparte.
 
-**Non-goals:** quién firma la Designación del Conciliador por cada centro (ítem 12 de `PENDIENTES_DECISION_LEGAL.md`), una UI para administrar las firmas, y mover a la base los logos, que son públicos.
+**Sello de Constructores de Paz.** Su `logo-firma.png` es un sello, no un logo, así que sigue el mismo camino: tipo `sello`, exigido solo a los centros de `CENTROS_CON_SELLO`, y `{{LOGO_FIRMA_SRC}}` de ese centro pasa a resolverse contra la base. Los logos de Armonía se quedan en `templates/branding/armonia/`.
+
+**Non-goals:** quién firma la Designación del Conciliador por cada centro (ítem 12 de `PENDIENTES_DECISION_LEGAL.md`), una UI para administrar las firmas, y mover a la base los logos que no son sellos, que son públicos.
 
 ## 2026-11-08 — Papelera de casos (soft-delete)
 

@@ -30,7 +30,7 @@
 import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { brandingRef, type CarpetasPorTenant } from '@/lib/branding-assets';
-import { imagenPrivadaRef } from '@/lib/imagenes-privadas';
+import { CENTROS_CON_SELLO, imagenPrivadaRef } from '@/lib/imagenes-privadas';
 
 import { tenantSlugDelCaso } from './tenant-slug';
 
@@ -57,7 +57,10 @@ export function mapBrandingAssets(
 
   return {
     LOGO_ENCABEZADO_SRC: brandingRef('logo-encabezado', slug, carpetas),
-    LOGO_FIRMA_SRC: brandingRef('logo-firma', slug, carpetas),
+    LOGO_FIRMA_SRC:
+      slug && CENTROS_CON_SELLO.has(slug)
+        ? imagenPrivadaRef('sello')
+        : brandingRef('logo-firma', slug, carpetas),
     FIRMA_OPERADOR_SRC: imagenPrivadaRef('firma-operador'),
     FIRMA_DIRECTOR_SRC: imagenPrivadaRef('firma-director'),
   };

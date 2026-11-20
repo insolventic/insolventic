@@ -1,7 +1,8 @@
 /**
  * Firmas de las plantillas, resueltas desde la base y no desde el repositorio.
  *
- * El repositorio es público y una firma manuscrita no puede estar en él. Las
+ * El repositorio es público y una firma manuscrita no puede estar en él; lo
+ * mismo vale para el sello de los centros que lo usan junto a la firma. Las
  * plantillas piden la firma con un placeholder (`{{FIRMA_OPERADOR_SRC}}`) igual
  * que cualquier imagen de branding, pero el mapper no produce una ruta de
  * archivo sino un ref simbólico (`imagen-privada:firma-operador`) que no nombra
@@ -26,10 +27,11 @@
 
 import { logger } from './logger';
 
-/** Las firmas que un centro debe tener cargadas para generar documentos. */
+/** Todo lo que puede guardarse en la tabla. */
 export const TIPOS_IMAGEN_PRIVADA = [
   'firma-operador',
   'firma-director',
+  'sello',
 ] as const;
 
 export type TipoImagenPrivada = (typeof TIPOS_IMAGEN_PRIVADA)[number];
@@ -38,7 +40,31 @@ export type TipoImagenPrivada = (typeof TIPOS_IMAGEN_PRIVADA)[number];
 const ETIQUETA_TIPO: Record<TipoImagenPrivada, string> = {
   'firma-operador': 'la firma del operador',
   'firma-director': 'la firma del director',
+  sello: 'el sello',
 };
+
+const TIPOS_DE_TODO_CENTRO: readonly TipoImagenPrivada[] = [
+  'firma-operador',
+  'firma-director',
+];
+
+/**
+ * Centros cuyo logo junto a la firma (`{{LOGO_FIRMA_SRC}}`) es un sello y por
+ * eso tampoco se versiona. Los demás siguen leyendo `logo-firma.png` de
+ * `templates/branding/<centro>/`.
+ */
+export const CENTROS_CON_SELLO: ReadonlySet<string> = new Set([
+  'constructores-paz',
+]);
+
+/** Lo que un centro debe tener cargado para generar documentos. */
+export function tiposRequeridos(
+  slug: string | undefined,
+): readonly TipoImagenPrivada[] {
+  return slug && CENTROS_CON_SELLO.has(slug)
+    ? [...TIPOS_DE_TODO_CENTRO, 'sello']
+    : TIPOS_DE_TODO_CENTRO;
+}
 
 export const MIME_IMAGEN_PRIVADA = ['image/png', 'image/jpeg'] as const;
 
@@ -125,11 +151,12 @@ export class ImagenPrivadaFaltanteError extends Error {
   }
 }
 
-/** Las firmas de un centro, ya como data URI, listas para los placeholders. */
+/** Las imágenes de un centro, ya como data URI, listas para los placeholders. */
 export type ImagenesPrivadas = ReadonlyMap<TipoImagenPrivada, string>;
 
 /**
- * Lee de la base todas las firmas del centro, en una sola consulta.
+ * Lee de la base las imágenes `tipos` del centro, en una sola consulta. Los
+ * puntos de entrada pasan {@link tiposRequeridos} del centro del expediente.
  *
  * @throws {ImagenPrivadaFaltanteError} si falta alguna o alguna no es válida.
  *   Antes de lanzar deja un evento en Sentry con el centro y la firma, sin la
@@ -137,6 +164,7 @@ export type ImagenesPrivadas = ReadonlyMap<TipoImagenPrivada, string>;
  */
 export async function resolverImagenesPrivadas(
   tenantId: string,
+  tipos: readonly TipoImagenPrivada[] = TIPOS_DE_TODO_CENTRO,
 ): Promise<ImagenesPrivadas> {
   if (!tenantId) {
     throw new Error(
@@ -148,12 +176,12 @@ export async function resolverImagenesPrivadas(
   // puras de este módulo con su propio PrismaClient.
   const { default: prisma } = await import('./prisma');
   const filas = await prisma.imagenPrivada.findMany({
-    where: { tenantId, tipo: { in: [...TIPOS_IMAGEN_PRIVADA] } },
+    where: { tenantId, tipo: { in: [...tipos] } },
     select: { tipo: true, mimeType: true, datos: true },
   });
 
   const imagenes = new Map<TipoImagenPrivada, string>();
-  for (const tipo of TIPOS_IMAGEN_PRIVADA) {
+  for (const tipo of tipos) {
     const fila = filas.find((f) => f.tipo === tipo);
     const motivo = fila
       ? motivoImagenInvalida(fila.datos, fila.mimeType)
@@ -191,8 +219,8 @@ export async function resolverImagenesPrivadas(
  * Cambia los refs de firma de los placeholders por sus data URIs. Lo que no es
  * un ref de firma queda igual.
  *
- * @throws si un placeholder pide una firma que no está en `imagenes`: el mapper
- *   y {@link TIPOS_IMAGEN_PRIVADA} se desincronizaron.
+ * @throws si un placeholder pide una imagen que no está en `imagenes`: el mapper
+ *   y {@link tiposRequeridos} se desincronizaron.
  */
 export function aplicarImagenesPrivadas<T extends Record<string, string>>(
   placeholders: T,
@@ -205,7 +233,7 @@ export function aplicarImagenesPrivadas<T extends Record<string, string>>(
     const dataUri = esTipoImagenPrivada(tipo) ? imagenes.get(tipo) : undefined;
     if (!dataUri) {
       throw new Error(
-        `El placeholder ${clave} pide una firma desconocida: ${tipo}`,
+        `El placeholder ${clave} pide una imagen que no se resolvió: ${tipo}`,
       );
     }
     resultado[clave] = dataUri;
