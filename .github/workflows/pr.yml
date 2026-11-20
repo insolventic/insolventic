@@ -29,6 +29,19 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Las firmas y sellos se cargan en la base por centro (docs/RUNBOOK.md
+      # §7.3). El repositorio es público y lo que entra queda en el historial
+      # aunque se borre después, así que se corta en el PR, antes de mergear.
+      # `.gitignore` evita el caso común; esto cubre un `git add -f`.
+      - name: Sin firmas ni sellos en el repositorio
+        run: |
+          encontrados=$(git ls-files | grep -iE '(^|/)(firma|sello)[^/]*\.(png|jpe?g|gif|webp|bmp|tiff?|svg|pdf)$' || true)
+          if [ -n "$encontrados" ]; then
+            echo "::error::Hay imágenes de firma o sello versionadas. Se cargan en la base (docs/RUNBOOK.md §7.3):"
+            echo "$encontrados"
+            exit 1
+          fi
+
       - uses: actions/setup-node@v5
         with:
           node-version: 24
