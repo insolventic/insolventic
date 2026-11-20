@@ -17,6 +17,11 @@
  *    mapper no produce la clave, la generación se bloquea en vez de subir a
  *    Drive un PDF sin logo.
  *
+ * Las firmas son la excepción: no se versionan, así que su placeholder no lleva
+ * una ruta sino un ref simbólico sin centro (`imagen-privada:<tipo>`). Cada
+ * punto de entrada de la generación lo cambia por la firma del centro del
+ * expediente antes de renderizar (`src/lib/imagenes-privadas.ts`).
+ *
  * Los valores son rutas sin caracteres especiales, así que el escapado por
  * defecto (`escapeAllUnlessHtml`) los deja intactos: NO hay que agregarlos a
  * `HTML_PLACEHOLDERS_ALLOWLIST`.
@@ -25,6 +30,7 @@
 import type { PlaceholderMap } from '../placeholder-mapper';
 import type { CaseWithRelations } from '../../case/schemas';
 import { brandingRef, type CarpetasPorTenant } from '@/lib/branding-assets';
+import { imagenPrivadaRef } from '@/lib/imagenes-privadas';
 
 import { tenantSlugDelCaso } from './tenant-slug';
 
@@ -52,6 +58,7 @@ export function mapBrandingAssets(
   return {
     LOGO_ENCABEZADO_SRC: brandingRef('logo-encabezado', slug, carpetas),
     LOGO_FIRMA_SRC: brandingRef('logo-firma', slug, carpetas),
-    FIRMA_OPERADOR_SRC: brandingRef('firma-operador', slug, carpetas),
+    FIRMA_OPERADOR_SRC: imagenPrivadaRef('firma-operador'),
+    FIRMA_DIRECTOR_SRC: imagenPrivadaRef('firma-director'),
   };
 }

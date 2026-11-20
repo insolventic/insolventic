@@ -32,6 +32,7 @@ import {
   brandingRef,
 } from '@/lib/branding-assets';
 import { inlineAssets } from '@/lib/html-to-pdf';
+import { imagenPrivadaRef } from '@/lib/imagenes-privadas';
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { SCENARIOS } from '../../helpers/mapper-scenarios';
 
@@ -59,17 +60,23 @@ function caso(overrides: Record<string, unknown> = {}): CaseWithRelations {
 /** `templates/`, la raíz compartida contra la que resuelve `/branding/...`. */
 const TEMPLATES_ROOT = path.join(process.cwd(), 'templates');
 
-describe('1. el mapper produce los tres placeholders de branding', () => {
-  it('las tres claves existen y apuntan a /branding/', () => {
+describe('1. el mapper produce los placeholders de branding', () => {
+  it('los logos apuntan a /branding/', () => {
     const map = mapCaseToPlaceholders(casoDelCentro('constructores-paz'));
 
-    for (const clave of [
-      'LOGO_ENCABEZADO_SRC',
-      'LOGO_FIRMA_SRC',
-      'FIRMA_OPERADOR_SRC',
-    ]) {
+    for (const clave of ['LOGO_ENCABEZADO_SRC', 'LOGO_FIRMA_SRC']) {
       expect(typeof map[clave]).toBe('string');
       expect(map[clave].startsWith(BRANDING_REF_PREFIX)).toBe(true);
+    }
+  });
+
+  it('las firmas no apuntan a ningún archivo ni nombran un centro', () => {
+    // Se resuelven contra la base con el tenant del expediente
+    // (`imagenes-privadas.ts`); el ref es el mismo para todos los centros.
+    for (const slug of TENANTS_CON_BRANDING) {
+      const map = mapCaseToPlaceholders(casoDelCentro(slug));
+      expect(map.FIRMA_OPERADOR_SRC).toBe(imagenPrivadaRef('firma-operador'));
+      expect(map.FIRMA_DIRECTOR_SRC).toBe(imagenPrivadaRef('firma-director'));
     }
   });
 
@@ -107,7 +114,6 @@ describe('2. la elección pasa por el mapa de tenants, no por el fallback', () =
   const CLAVE_POR_ASSET: Record<string, string> = {
     'logo-encabezado': 'LOGO_ENCABEZADO_SRC',
     'logo-firma': 'LOGO_FIRMA_SRC',
-    'firma-operador': 'FIRMA_OPERADOR_SRC',
   };
 
   it.each(TENANTS_CON_BRANDING)(
@@ -132,7 +138,7 @@ describe('2. la elección pasa por el mapa de tenants, no por el fallback', () =
   );
 
   it.each(TENANTS_CON_BRANDING)(
-    '%s resuelve sus tres assets a SU PROPIA carpeta con el mapa real',
+    '%s resuelve sus logos a SU PROPIA carpeta con el mapa real',
     (tenantId) => {
       // Hasta el 2026-10-10 los dos centros compartían `constructores-paz` y
       // este caso solo podía fijar ese estado: con las dos filas iguales, la
@@ -242,7 +248,9 @@ describe('5. el fallback de assets no puede llegar a un documento real', () => {
    * plantilla por plantilla.
    */
   const CLAVES_MEMBRETE_RE = /\{\{\s*(CENTRO_[A-Z_]+|OPERADOR_[A-Z_]+)\s*\}\}/;
-  const REF_BRANDING_RE = /\{\{\s*(LOGO_ENCABEZADO_SRC|LOGO_FIRMA_SRC|FIRMA_OPERADOR_SRC)\s*\}\}/;
+  // Solo los logos: las firmas no tienen fallback, salen del tenant del
+  // expediente o la generación falla (`imagenes-privadas.ts`).
+  const REF_BRANDING_RE = /\{\{\s*(LOGO_ENCABEZADO_SRC|LOGO_FIRMA_SRC)\s*\}\}/;
 
   function plantillas(dir: string, out: string[] = []): string[] {
     for (const e of fsSync.readdirSync(dir, { withFileTypes: true })) {

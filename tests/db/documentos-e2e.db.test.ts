@@ -72,6 +72,7 @@ import {
   VALORES_QUE_NO_LLEGAN,
 } from './helpers/pendientes-conocidos';
 import { brandingRef } from '@/lib/branding-assets';
+import { imagenPrivadaRef } from '@/lib/imagenes-privadas';
 import { mapBrandingAssets } from '@/features/document/placeholders/branding';
 import { mapMembreteCentro } from '@/features/document/placeholders/membrete';
 
@@ -428,7 +429,6 @@ describe('branding por centro: el tenant del row llega al mapper', () => {
     const esperados = [
       ['LOGO_ENCABEZADO_SRC', 'logo-encabezado'],
       ['LOGO_FIRMA_SRC', 'logo-firma'],
-      ['FIRMA_OPERADOR_SRC', 'firma-operador'],
     ] as const;
 
     for (const [clave, asset] of esperados) {
@@ -436,6 +436,10 @@ describe('branding por centro: el tenant del row llega al mapper', () => {
         brandingRef(asset, stored.tenantId as string),
       );
     }
+    // Las firmas no dependen de la carpeta: se resuelven contra la base.
+    expect(placeholders.FIRMA_OPERADOR_SRC).toBe(
+      imagenPrivadaRef('firma-operador'),
+    );
   });
 
   it('FAIL-CLOSED contra la base real: un centro desconocido no emite membrete', () => {
@@ -491,9 +495,6 @@ describe('branding por centro: el tenant del row llega al mapper', () => {
     );
     expect(branding.LOGO_FIRMA_SRC).toBe(
       '/branding/carpeta-del-slug/logo-firma.png',
-    );
-    expect(branding.FIRMA_OPERADOR_SRC).toBe(
-      '/branding/carpeta-del-slug/firma-operador.png',
     );
 
     // Y el cuid NO alcanza: si el mapper volviera a leer `tenantId`, con un
