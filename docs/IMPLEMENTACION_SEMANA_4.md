@@ -14,38 +14,38 @@
 
 8 commits atómicos: uno por hallazgo, más uno de fixtures de `test:db` (fallout de dos de ellos, separado porque el historial no se reescribe).
 
-| # | Hallazgo | Sev. | Commit |
-| --- | --- | --- | --- |
-| 1 | **G-A1** — `globalSearch` sin permiso ni scoping | 🟠 Alto | `7d46fff` |
-| 2 | **GC-A1 + GD-M4 + GC-M5** — visibilidad por fila en mutaciones, generación y reportes | 🟠/🟡 | `6b36d84` |
-| 3 | **GC-M6** (interino) — `deleteCase`: confirmación escrita + auditoría previa | 🟡 Medio | `b5062ed` |
-| 4 | **GC-M4** — la auditoría se espera; `updateCase` registra qué cambió | 🟡 Medio | `ad608e5` |
-| 5 | **GC-M2** — el operador asignado tiene que ser del centro | 🟡 Medio | `fc3e555` |
-| 6 | **GC-B2** — rate limit en `createCase` | 🔵 Bajo | `deea49e` |
-| 7 | **nodemailer** + `npm audit fix` no-breaking | — | `4ddb5cd` |
-| — | fixtures de `test:db` | — | `dbdab7a` |
+| #   | Hallazgo                                                                              | Sev.     | Commit    |
+| --- | ------------------------------------------------------------------------------------- | -------- | --------- |
+| 1   | **G-A1** — `globalSearch` sin permiso ni scoping                                      | 🟠 Alto  | `7d46fff` |
+| 2   | **GC-A1 + GD-M4 + GC-M5** — visibilidad por fila en mutaciones, generación y reportes | 🟠/🟡    | `6b36d84` |
+| 3   | **GC-M6** (interino) — `deleteCase`: confirmación escrita + auditoría previa          | 🟡 Medio | `b5062ed` |
+| 4   | **GC-M4** — la auditoría se espera; `updateCase` registra qué cambió                  | 🟡 Medio | `ad608e5` |
+| 5   | **GC-M2** — el operador asignado tiene que ser del centro                             | 🟡 Medio | `fc3e555` |
+| 6   | **GC-B2** — rate limit en `createCase`                                                | 🔵 Bajo  | `deea49e` |
+| 7   | **nodemailer** + `npm audit fix` no-breaking                                          | —        | `4ddb5cd` |
+| —   | fixtures de `test:db`                                                                 | —        | `dbdab7a` |
 
 ### Verificación
 
-| Check | Resultado |
-| --- | --- |
-| `npx tsc --noEmit` | ✅ 0 errores |
-| `npm run lint` | ✅ 0 errores / 0 warnings |
-| `npx jest --ci` | ✅ **1912 tests / 130 suites** (venía de 1780 / 119) |
-| `npm run test:db` | ✅ **105 / 105**, 5 suites, contra Postgres 16 real |
-| Golden master | ✅ **sin cambios de hash** |
+| Check              | Resultado                                            |
+| ------------------ | ---------------------------------------------------- |
+| `npx tsc --noEmit` | ✅ 0 errores                                         |
+| `npm run lint`     | ✅ 0 errores / 0 warnings                            |
+| `npx jest --ci`    | ✅ **1912 tests / 130 suites** (venía de 1780 / 119) |
+| `npm run test:db`  | ✅ **105 / 105**, 5 suites, contra Postgres 16 real  |
+| Golden master      | ✅ **sin cambios de hash**                           |
 
 **+132 tests nuevos** en 10 suites. Todo el control es de servidor; la UI solo añade fricción.
 
 ### CI del PR #137 — estado final
 
-| Check | Resultado |
-| --- | --- |
-| `quality-checks` (lint + tsc + jest + build) | ✅ **pass** — 3m 26s |
-| `playwright` (E2E) | ✅ **pass** — 3m 6s |
-| `Vercel Preview Comments` | ✅ pass |
-| `smoke` | skipping — esperado, no hay deployment |
-| `Vercel` | ❌ fail — **issue #7**, autoría del commit. Ver §5.5 |
+| Check                                        | Resultado                                            |
+| -------------------------------------------- | ---------------------------------------------------- |
+| `quality-checks` (lint + tsc + jest + build) | ✅ **pass** — 3m 26s                                 |
+| `playwright` (E2E)                           | ✅ **pass** — 3m 6s                                  |
+| `Vercel Preview Comments`                    | ✅ pass                                              |
+| `smoke`                                      | skipping — esperado, no hay deployment               |
+| `Vercel`                                     | ❌ fail — **issue #7**, autoría del commit. Ver §5.5 |
 
 Los dos checks que verifican el código están verdes. El único rojo es el bloqueo
 de autoría del plan Hobby, que falla igual en `#133`, `#134` y `#135` — los tres
@@ -87,14 +87,14 @@ El borrado **sigue siendo físico y en cascada**: el soft-delete es Fase 3 del r
 
 **(a) Qué roles tienen `ELIMINAR_CASOS`** — verificado contra `src/prisma/seed.ts`, **sin cambiar el seed**:
 
-| Rol | `ELIMINAR_CASOS` |
-| --- | --- |
-| Administrador | **SÍ** |
-| Operadora de Insolvencia | **SÍ** |
-| Abogado | no |
-| Asistente Legal | no |
-| Secretaria | no |
-| Usuario | no |
+| Rol                      | `ELIMINAR_CASOS` |
+| ------------------------ | ---------------- |
+| Administrador            | **SÍ**           |
+| Operadora de Insolvencia | **SÍ**           |
+| Abogado                  | no               |
+| Asistente Legal          | no               |
+| Secretaria               | no               |
+| Usuario                  | no               |
 
 2 de 6, y los dos son de administración. **Ojo:** los roles se editan desde la propia app (`/users`), así que esta tabla describe el seed, no necesariamente lo que hay en producción hoy.
 
@@ -110,7 +110,7 @@ Se registra también `driveFolderId` y `driveFolderDeleted: false`, que es el pe
 
 **Ver §4.2: el `await` que pedía el encargo no servía por sí solo.**
 
-El registro de `updateCase` decía literalmente *"Se ha actualizado el caso INSOL-000042"* y nada más. No permitía responder *"¿quién le movió la fecha de audiencia?"*, que es exactamente lo que se le pregunta a una auditoría.
+El registro de `updateCase` decía literalmente _"Se ha actualizado el caso INSOL-000042"_ y nada más. No permitía responder _"¿quién le movió la fecha de audiencia?"_, que es exactamente lo que se le pregunta a una auditoría.
 
 No alcanzaba con listar el payload: el formulario de edición reenvía **todos** sus campos, cambiados o no. Hay que comparar contra lo que había, y para eso se leen de la base **únicamente las columnas que el payload trae** — el `select` del diff se suma al que ya existía dentro de la transacción, sin consulta extra.
 
@@ -148,13 +148,13 @@ Verificado también el destinatario, porque varias de las otras advisories son d
 
 **`npm audit fix` (sin `--force`). `package.json` no cambia: solo el lockfile.**
 
-|  | antes | después |
-| --- | ---: | ---: |
-| total | 69 | 42 |
-| critical | 1 | **0** |
-| high | 59 | 19 |
-| producción, total | 25 | 17 |
-| producción, high | 19 | 14 |
+|                   | antes | después |
+| ----------------- | ----: | ------: |
+| total             |    69 |      42 |
+| critical          |     1 |   **0** |
+| high              |    59 |      19 |
+| producción, total |    25 |      17 |
+| producción, high  |    19 |      14 |
 
 `sharp` (CVE-2026-96889 vía librsvg) sale de la lista de high. De paso nodemailer subió 9.0.3 → **9.1.1** dentro del `^9.0.3` que ya había, y eso cierra la advisory de `resolveContent` (cubría `<9.1.0`) más la de IDN/Punycode y una del addressparser. El hallazgo queda cerrado por las dos vías.
 
@@ -164,22 +164,22 @@ Los 23 moderate que aparecen ahora (eran 9) son de la cadena de Jest/babel: dev,
 
 ## 3. Tests
 
-| Suite nueva | Casos | Qué protege |
-| --- | ---: | --- |
-| `security/global-search-access` | 12 | G-A1: gate por categoría y acote del rol cliente |
-| `security/case-access-guard` | 25 | el helper de visibilidad en aislamiento |
-| `security/case-mutations-row-access` | 10 | que las **actions** llamen al guard |
-| `security/report-role-scoping` | 9 | GC-M5: el `where` de los 3 reportes |
-| `security/delete-case-confirmation` | 15 | GC-M6: confirmación y orden de la auditoría |
-| `components/delete-case-dialog-confirmacion` | 9 | la fricción en la UI |
-| `cases/audit-diff` | 23 | el diff: Date↔string, Decimal↔número, PII |
-| `security/audit-log-await` | 8 | que el `await` espere, y el diff cableado |
-| `security/operator-tenant-validation` | 8 | GC-M2 |
-| `security/create-case-rate-limit` | 6 | GC-B2 |
+| Suite nueva                                  | Casos | Qué protege                                      |
+| -------------------------------------------- | ----: | ------------------------------------------------ |
+| `security/global-search-access`              |    12 | G-A1: gate por categoría y acote del rol cliente |
+| `security/case-access-guard`                 |    25 | el helper de visibilidad en aislamiento          |
+| `security/case-mutations-row-access`         |    10 | que las **actions** llamen al guard              |
+| `security/report-role-scoping`               |     9 | GC-M5: el `where` de los 3 reportes              |
+| `security/delete-case-confirmation`          |    15 | GC-M6: confirmación y orden de la auditoría      |
+| `components/delete-case-dialog-confirmacion` |     9 | la fricción en la UI                             |
+| `cases/audit-diff`                           |    23 | el diff: Date↔string, Decimal↔número, PII      |
+| `security/audit-log-await`                   |     8 | que el `await` espere, y el diff cableado        |
+| `security/operator-tenant-validation`        |     8 | GC-M2                                            |
+| `security/create-case-rate-limit`            |     6 | GC-B2                                            |
 
 Dos criterios, porque sin ellos los tests no prueban nada:
 
-- **Los negativos afirman que NO se escribió**, no solo que la respuesta sea de error. Un guard puesto *después* de la escritura devolvería el mismo error con la base ya mutada.
+- **Los negativos afirman que NO se escribió**, no solo que la respuesta sea de error. Un guard puesto _después_ de la escritura devolvería el mismo error con la base ya mutada.
 - **Hay positivos por rol** (Abogado sobre su propio expediente, Administrador, cliente sobre el suyo). Un guard que bloquea de más rompe el trabajo diario de los dos roles que más usan el sistema.
 
 Verificado que muerden: quitando el gate de categoría y el acote por fila de `globalSearch`, fallan 4 de los 12.
@@ -220,7 +220,7 @@ Ahora la función espera el insert. Lo que **no** cambia es que nunca lanza: dev
 
 Un rol creado a mano desde `/users` al que se le haya olvidado el permiso de alcance (`Ver todos los casos` / `Ver casos propios` / `Ver casos como cliente`) **podía, hasta ahora, editar cualquier expediente del centro; desde este PR no puede editar ninguno.**
 
-*Fail closed* es lo correcto, y es lo que `getAllCases` ya hacía en las lecturas — este PR solo pone las mutaciones de acuerdo con los listados. Pero si existe un rol así en producción, a ese rol se le rompe la edición.
+_Fail closed_ es lo correcto, y es lo que `getAllCases` ya hacía en las lecturas — este PR solo pone las mutaciones de acuerdo con los listados. Pero si existe un rol así en producción, a ese rol se le rompe la edición.
 
 Los 6 roles del seed están bien. **No tengo acceso a producción para comprobar los creados a mano.** Se responde con una consulta de solo lectura: buscar roles con `Editar casos` y sin ninguno de los tres permisos de alcance.
 
@@ -254,11 +254,11 @@ que todo lo que verifica el código está verde y el único rojo es el de autor�
 El `vercel[bot]` comentó en el PR ofreciendo tres salidas, y vale dejar escrito
 el veredicto de cada una porque una es activamente mala:
 
-| Opción del bot | Veredicto |
-| --- | --- |
-| **Hacer público el repositorio** | 🔴 **No.** Proyecto de tesis con expedientes legales reales. El repo tiene el histórico de `.env.example`, los runbooks con la estructura de secretos y los datos de membrete de los dos centros. Sería cambiar un rojo cosmético por una fuga real. |
-| **Upgrade a Pro + agregar a `@MaxitoJM`** | 🟡 La salida de fondo. Cierra el issue #7 **y** levanta el techo de `maxDuration = 60 s`, que es el **issue #3** (los lotes de 27 y 49 documentos que hoy no caben). Dos bloqueantes por el mismo movimiento. Implica facturación: es tu decisión. |
-| **Solicitar acceso** (link de invitación) | 🟡 Un click tuyo con la cuenta de `MaxitoJM`. Más barato, pero no resuelve el issue #3. |
+| Opción del bot                            | Veredicto                                                                                                                                                                                                                                            |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hacer público el repositorio**          | 🔴 **No.** Proyecto de tesis con expedientes legales reales. El repo tiene el histórico de `.env.example`, los runbooks con la estructura de secretos y los datos de membrete de los dos centros. Sería cambiar un rojo cosmético por una fuga real. |
+| **Upgrade a Pro + agregar a `@MaxitoJM`** | 🟡 La salida de fondo. Cierra el issue #7 **y** levanta el techo de `maxDuration = 60 s`, que es el **issue #3** (los lotes de 27 y 49 documentos que hoy no caben). Dos bloqueantes por el mismo movimiento. Implica facturación: es tu decisión.   |
+| **Solicitar acceso** (link de invitación) | 🟡 Un click tuyo con la cuenta de `MaxitoJM`. Más barato, pero no resuelve el issue #3.                                                                                                                                                              |
 
 Recomendación: la segunda, y no por el check de CI —ese es el síntoma menor—
 sino porque el plan Hobby es lo que sostiene el issue #3, que sí es un
@@ -268,16 +268,16 @@ bloqueante real de entrega.
 
 ## 6. Lo que necesita tu decisión
 
-| # | Decisión | Estado |
-| --- | --- | --- |
-| 1 | **¿Las 15 mutaciones o las 7 del encargo?** (§4.1) | ✅ **Aprobado 2026-10-17** — se quedan las 15 |
-| 2 | **¿Se le quita `ELIMINAR_CASOS` a `Operadora de Insolvencia`?** | ✅ **Decidido 2026-10-17** — NO se recorta; pendiente post-lanzamiento junto al soft-delete (§2.3) |
-| 3 | **¿10 por 10 minutos es el límite correcto para `createCase`?** | Pendiente — depende de cómo se digita en la práctica |
-| 4 | **¿Hay roles en producción sin permiso de alcance?** (§5.1) | Pendiente — query lista y validada en `scripts/verificar-roles-sin-alcance.sql`, falta correrla contra producción |
-| 5 | **¿Se commitea este documento** como `IMPLEMENTACION_SEMANA_4.md`? | Pendiente |
-| 6 | **¿Se vincula la cuenta de Vercel de `MaxitoJM`, o se pasa a Pro?** (§5.5) | Pendiente — implica facturación y/o visibilidad del repo |
+| #   | Decisión                                                                   | Estado                                                                                                                        |
+| --- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **¿Las 15 mutaciones o las 7 del encargo?** (§4.1)                         | ✅ **Aprobado 2026-10-17** — se quedan las 15                                                                                 |
+| 2   | **¿Se le quita `ELIMINAR_CASOS` a `Operadora de Insolvencia`?**            | ✅ **Decidido 2026-10-17** — NO se recorta; pendiente post-lanzamiento junto al soft-delete (§2.3)                            |
+| 3   | **¿10 por 10 minutos es el límite correcto para `createCase`?**            | Pendiente — depende de cómo se digita en la práctica                                                                          |
+| 4   | **¿Hay roles en producción sin permiso de alcance?** (§5.1)                | Pendiente — query lista y validada en `scripts/diagnostico/verificar-roles-sin-alcance.sql`, falta correrla contra producción |
+| 5   | **¿Se commitea este documento** como `IMPLEMENTACION_SEMANA_4.md`?         | Pendiente                                                                                                                     |
+| 6   | **¿Se vincula la cuenta de Vercel de `MaxitoJM`, o se pasa a Pro?** (§5.5) | Pendiente — implica facturación y/o visibilidad del repo                                                                      |
 
-Para el punto 4: la query ampliada en `scripts/verificar-roles-sin-alcance.sql`
+Para el punto 4: la query ampliada en `scripts/diagnostico/verificar-roles-sin-alcance.sql`
 (sin commitear) cubre los 5 permisos cuya acción pasa por el guard de
 visibilidad —`Editar casos`, `Eliminar casos`, `Generar documentos`,
 `Ver documentos`, `Ver reportes`— y lista, por rol, cuáles de esos 5 tiene.

@@ -1,0 +1,363 @@
+{
+  "proyecto": {
+    "clave": "INS",
+    "nombre": "INSOLVENTIC",
+    "fechaCorte": "2026-10-21"
+  },
+  "referencia": {
+    "id": "E01-30",
+    "puntos": 3,
+    "titulo": "Montos en formato colombiano en todos los campos de dinero fuera del formulario maestro (#145)",
+    "porQue": "Bug real, acotado y completo: causa raíz conocida (parseo de '1.500.000' como 1.5), barrido de 4 campos en 3 archivos reusando MoneyInput/parsearMonto, tests de regresión y verificación manual en navegador + base local. Representa el trabajo típico de una jornada de Maxi con IA: poco código, mucha verificación."
+  },
+  "escala": [1, 2, 3, 5, 8],
+  "reglaBugs": "Un bug se puntúa solo si NO es trivial: requiere investigar causa raíz, toca más de un archivo o necesita test de regresión nuevo. Los triviales (una línea, causa evidente) quedan sin puntos y no cuentan para la velocidad.",
+  "velocidad": {
+    "factorBajo": 0.7,
+    "versionesAlcanceV1": ["v1.0.0-rc.2", "v1.0.0"],
+    "supuestos": [
+      "LOS PUNTOS HISTÓRICOS SON ESTIMACIONES RETROACTIVAS, asignadas en octubre de 2026 a trabajo ya terminado y relativas a la historia de referencia. La 'velocidad' que sale de ellos es una referencia para planificar, no una medición: nadie estimó esos ítems antes de hacerlos.",
+      "Se recalibra con datos reales tras los primeros 2-3 sprints en Jira (W44-W46): si la velocidad real queda fuera del rango [escenario bajo, mediana], se reemplaza el rango por la mediana de esos sprints reales.",
+      "Velocidad = MEDIANA de las semanas no excluidas (no el promedio, que arrastran las semanas extremas). Escenario bajo = 70% de la mediana, redondeado hacia abajo.",
+      "Semanas excluidas: los clústeres atípicos de sesión intensa (W40, W42, W43). El motivo de cada una está en la tabla de sprints.",
+      "Sprints de 1 semana calendario, un único desarrollador (Maxi) con IA como agente de ejecución, en paralelo con el último semestre académico.",
+      "El plan cargado en Jira usa el ESCENARIO BAJO (ningún sprint futuro supera esa cifra); el escenario base es la proyección optimista con el mismo orden.",
+      "Los ítems con label legal-pendiente se planifican, pero su Sprint Goal no depende de ellos: si la respuesta legal no llega, pasan al siguiente sprint sin romper el objetivo.",
+      "Lo que no entra en el alcance de v1.0 (Should/Could fuera de capacidad) queda en v1.1.0, no se fuerza un sprint más."
+    ]
+  },
+  "versiones": [
+    {
+      "id": "v0.0.0",
+      "fecha": "2026-02-01",
+      "estado": "Released",
+      "real": false,
+      "descripcion": "RECONSTRUIDO (sin tag ni software): cierre de las fases 1 y 2 del Gantt, análisis y diseño."
+    },
+    {
+      "id": "v0.1.0",
+      "fecha": "2026-03-08",
+      "estado": "Released",
+      "real": true,
+      "descripcion": "Primera versión etiquetada: auth, casos, deudores/acreedores, 49 plantillas, Drive, tests (CHANGELOG [0.1.0])."
+    },
+    {
+      "id": "v0.2.0",
+      "fecha": "2026-04-14",
+      "estado": "Released",
+      "real": true,
+      "descripcion": "Edición con bloqueo optimista, filtro por tipo, preview inline, comprobantes de pago, tests en CI (CHANGELOG [0.2.0])."
+    },
+    {
+      "id": "v0.3.0",
+      "fecha": "2026-04-15",
+      "estado": "Released",
+      "real": true,
+      "descripcion": "Alertas proactivas, Sentry, Vercel Analytics, export Excel, workflow e2e.yml (CHANGELOG [0.3.0])."
+    },
+    {
+      "id": "v0.4.0",
+      "fecha": "2026-08-18",
+      "estado": "Released",
+      "real": false,
+      "descripcion": "RECONSTRUIDO (sin tag): Acuerdos de Apoyo, auditoría del módulo de documentos (P2-P4), logger, deploy nativo de Vercel. El CHANGELOG lo agrupa dentro de 1.0.0-rc.1."
+    },
+    {
+      "id": "v0.5.0",
+      "fecha": "2026-09-11",
+      "estado": "Released",
+      "real": false,
+      "descripcion": "RECONSTRUIDO (sin tag): Semanas 1-3 de remediación + incidentes de producción; corresponde a la promoción a main d2f7cef del 2026-09-11."
+    },
+    {
+      "id": "v0.6.0",
+      "fecha": "2026-10-08",
+      "estado": "Released",
+      "real": false,
+      "descripcion": "RECONSTRUIDO (sin tag): ronda del formulario maestro, 5 fases nuevas, división del placeholder-mapper, todos los acreedores."
+    },
+    {
+      "id": "v1.0.0-rc.1",
+      "fecha": "2026-10-18",
+      "estado": "Released",
+      "real": true,
+      "descripcion": "Release candidate real (package.json + CHANGELOG): branding/membrete por centro, bloqueantes de seguridad #137, conciliación, tandas, cumplimiento, fixes #144-#149."
+    },
+    {
+      "id": "v1.0.0-rc.2",
+      "fecha": "2026-11-08",
+      "estado": "Unreleased",
+      "real": false,
+      "descripcion": "PROPUESTO: cierre de los riesgos de código y primera tanda legal (sprints 2026-W44 y W45, escenario bajo)."
+    },
+    {
+      "id": "v1.0.0",
+      "fecha": "2026-11-29",
+      "estado": "Unreleased",
+      "real": false,
+      "descripcion": "PROPUESTO: entrega a los clientes — Ley 1581 completa, UAT firmado, infraestructura de pago y backup verificado (W46-W48, escenario bajo; ~2026-11-22 en el escenario base)."
+    },
+    {
+      "id": "v1.1.0",
+      "fecha": "",
+      "estado": "Unreleased",
+      "real": false,
+      "descripcion": "PROPUESTO: post-lanzamiento — lo que no cabe en el pronóstico conservador (soft-delete completo, deuda técnica, mejoras)."
+    }
+  ],
+  "sprints": [
+    {
+      "id": "Fase-Diseno",
+      "inicio": "2025-11-03",
+      "fin": "2026-02-01",
+      "estado": "Cerrado",
+      "excluirVelocidad": true,
+      "motivoExclusion": "Fase de análisis y diseño (fases 1 y 2 del Gantt, semanas 1-13): trabajo de documentación y modelado, no de construcción, hecho por el equipo de tesis. Sprint de 13 semanas, no una semana ISO. Fechas inferidas: la semana 14 del Gantt (inicio de la construcción) se hizo coincidir con el primer commit (W06, 2026-02-02).",
+      "objetivo": "Entender el negocio y diseñar la arquitectura: requisitos, casos de uso, BPMN AS-IS/TO-BE, arquitectura, modelo de datos y mockups."
+    },
+    {
+      "id": "2026-W06",
+      "inicio": "2026-02-02",
+      "fin": "2026-02-08",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Montar la base del proyecto: setup completo, autenticación y schema inicial."
+    },
+    {
+      "id": "2026-W07",
+      "inicio": "2026-02-09",
+      "fin": "2026-02-15",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Estabilizar el render de la app y la primera generación de documentos."
+    },
+    {
+      "id": "2026-W08",
+      "inicio": "2026-02-16",
+      "fin": "2026-02-22",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Formulario definitivo de insolvencia y pipeline de documentos HTML local."
+    },
+    {
+      "id": "2026-W09",
+      "inicio": "2026-02-23",
+      "fin": "2026-03-01",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Corregir generación documental y creación de casos; habilitar deploy automático en Vercel."
+    },
+    {
+      "id": "2026-W10",
+      "inicio": "2026-03-02",
+      "fin": "2026-03-08",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Deploy estable, suite de tests, hardening de seguridad, validación del formulario y Drive por centro: publicar v0.1.0."
+    },
+    {
+      "id": "2026-W11",
+      "inicio": "2026-03-09",
+      "fin": "2026-03-15",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Corregir validación multi-tenant en generación y formularios."
+    },
+    {
+      "id": "2026-W12",
+      "inicio": "2026-03-16",
+      "fin": "2026-03-22",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Identidad visual por tenant, RBAC type-safe y auditoría inmutable."
+    },
+    {
+      "id": "2026-W13",
+      "inicio": "2026-03-23",
+      "fin": "2026-03-29",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Completar módulos: dashboard, fases, calendario, reportes, pagos y búsqueda global."
+    },
+    {
+      "id": "2026-W14",
+      "inicio": "2026-03-30",
+      "fin": "2026-04-05",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Salida Word (.docx), flujo de creación por tipo de caso y plantillas actualizadas (Ley 2445/2025)."
+    },
+    {
+      "id": "2026-W15",
+      "inicio": "2026-04-06",
+      "fin": "2026-04-12",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Servicio de Conciliación completo, layout v1 de Drive y hardening de seguridad."
+    },
+    {
+      "id": "2026-W16",
+      "inicio": "2026-04-13",
+      "fin": "2026-04-19",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Alertas proactivas, observabilidad con Sentry y E2E en CI: publicar v0.2.0 y v0.3.0."
+    },
+    {
+      "id": "2026-W17",
+      "inicio": "2026-04-20",
+      "fin": "2026-04-26",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Módulo de Acuerdos de Apoyo y pruebas de carga k6."
+    },
+    {
+      "id": "2026-W28",
+      "inicio": "2026-07-06",
+      "fin": "2026-07-12",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Remediar la auditoría del módulo de documentos (P2-P4) y montar el logger estructurado."
+    },
+    {
+      "id": "2026-W33",
+      "inicio": "2026-08-10",
+      "fin": "2026-08-16",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Documentación técnica para revisión del cliente y desbloqueo del deploy (OTel)."
+    },
+    {
+      "id": "2026-W34",
+      "inicio": "2026-08-17",
+      "fin": "2026-08-23",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Migrar el deploy a la integración nativa Vercel-GitHub."
+    },
+    {
+      "id": "2026-W35",
+      "inicio": "2026-08-24",
+      "fin": "2026-08-30",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "docsSemana": [1, 2],
+      "objetivo": "Semanas 1-2: cerrar los bloqueantes de seguridad y de operación de la auditoría pre-producción."
+    },
+    {
+      "id": "2026-W36",
+      "inicio": "2026-08-31",
+      "fin": "2026-09-06",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Destrabar el CI: OOM del build en GitHub Actions (#5)."
+    },
+    {
+      "id": "2026-W37",
+      "inicio": "2026-09-07",
+      "fin": "2026-09-13",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "docsSemana": [3],
+      "objetivo": "Semana 3: blindar la lógica de negocio en el servidor (#4) y resolver los incidentes de producción."
+    },
+    {
+      "id": "2026-W38",
+      "inicio": "2026-09-14",
+      "fin": "2026-09-20",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Apoderados del deudor, robustez de la sesión (issue #9), red de seguridad de tests del mapper y performance."
+    },
+    {
+      "id": "2026-W39",
+      "inicio": "2026-09-21",
+      "fin": "2026-09-27",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Corregir hallazgos de fechas y placeholders en los documentos."
+    },
+    {
+      "id": "2026-W40",
+      "inicio": "2026-09-28",
+      "fin": "2026-10-04",
+      "estado": "Cerrado",
+      "excluirVelocidad": true,
+      "motivoExclusion": "Sesión intensa atípica: ~70 commits y ~45 PRs en 6 días (25 commits solo el 29-sep), incluida la ronda completa del formulario maestro y los 9 pasos de la división del mapper. 126 pts retroactivos, 5x la mediana; no es un ritmo repetible.",
+      "objetivo": "Ronda del formulario maestro, 5 fases nuevas del expediente y división del placeholder-mapper."
+    },
+    {
+      "id": "2026-W41",
+      "inicio": "2026-10-05",
+      "fin": "2026-10-11",
+      "estado": "Cerrado",
+      "excluirVelocidad": false,
+      "objetivo": "Documentos correctos (fechas, causas, apoyo), replay de migraciones y membrete por centro."
+    },
+    {
+      "id": "2026-W42",
+      "inicio": "2026-10-12",
+      "fin": "2026-10-18",
+      "estado": "Cerrado",
+      "excluirVelocidad": true,
+      "motivoExclusion": "Sesión intensa atípica: los documentos 'Semana 4' a 'Semana 12' (9 semanas de documento) ocurrieron en 2 días (17-18 oct), con 7 PRs grandes (#137-#145). No representa una semana normal de trabajo.",
+      "docsSemana": [4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "objetivo": "Clúster 17-18 oct: bloqueantes de seguridad pre-entrega, conciliación, tandas, cumplimiento y 1.0.0-rc.1."
+    },
+    {
+      "id": "2026-W43",
+      "inicio": "2026-10-19",
+      "fin": "2026-10-25",
+      "estado": "En curso",
+      "excluirVelocidad": true,
+      "motivoExclusion": "Continuación del mismo clúster (19-20 oct, documentos 'Semana 13' a '15') y semana todavía en curso: dato parcial e inflado por la sesión intensa.",
+      "docsSemana": [13, 14, 15],
+      "objetivo": "Clúster 19-20 oct: apoderado único, bienes en dos niveles y notificaciones de generación."
+    },
+    {
+      "id": "2026-W44",
+      "inicio": "2026-10-26",
+      "fin": "2026-11-01",
+      "estado": "Futuro",
+      "excluirVelocidad": false,
+      "objetivo": "Riesgos de código: ningún documento puede salir incompleto ni ninguna edición perderse en silencio."
+    },
+    {
+      "id": "2026-W45",
+      "inicio": "2026-11-02",
+      "fin": "2026-11-08",
+      "estado": "Futuro",
+      "excluirVelocidad": false,
+      "objetivo": "Legal I: CYG con apoderado verificado, documentos de Rechazo y Retiro y Check List completo; publicar 1.0.0-rc.2."
+    },
+    {
+      "id": "2026-W46",
+      "inicio": "2026-11-09",
+      "fin": "2026-11-15",
+      "estado": "Futuro",
+      "excluirVelocidad": false,
+      "objetivo": "Legal II y Ley 1581: umbrales validados, cuenta de Armonía, política de retención, privacidad y ARCO completos; conflictos de apoderado resolubles en la UI."
+    },
+    {
+      "id": "2026-W47",
+      "inicio": "2026-11-16",
+      "fin": "2026-11-22",
+      "estado": "Futuro",
+      "excluirVelocidad": false,
+      "objetivo": "Aceptación: aislamiento entre centros probado, regeneración sin duplicados, estado de la generación visible y UAT firmado por ambos centros.",
+      "colchon": {
+        "item": "E02-36",
+        "destino": "2026-W48",
+        "motivo": "Se elige porque es Should y ningún ítem de v1.0 depende de él."
+      }
+    },
+    {
+      "id": "2026-W48",
+      "inicio": "2026-11-23",
+      "fin": "2026-11-29",
+      "estado": "Futuro",
+      "excluirVelocidad": false,
+      "objetivo": "Infraestructura y pagos: plan de Vercel, restauración de backup probada, transferencia de cuentas y release 1.0.0."
+    }
+  ]
+}

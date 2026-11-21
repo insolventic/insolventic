@@ -10,6 +10,12 @@ import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import { logger } from '@/lib/logger';
+import {
+  aplicarImagenesPrivadas,
+  ImagenPrivadaFaltanteError,
+  resolverImagenesPrivadas,
+  tiposRequeridos,
+} from '@/lib/imagenes-privadas';
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
 import { canGenerateDocument } from '../case/validation-rules';
@@ -1112,8 +1118,16 @@ export async function batchGenerateDocuments(input: {
       },
     };
 
-    const placeholders = mapCaseToPlaceholders(
-      asCaseWithRelations(transformedCaseData),
+    // Las firmas del centro se leen una vez para todo el lote y antes de tocar
+    // Drive o convertir el primer documento: si falta una, el lote no empieza.
+    const placeholders = aplicarImagenesPrivadas(
+      mapCaseToPlaceholders(asCaseWithRelations(transformedCaseData)),
+      await resolverImagenesPrivadas(
+        caseData.tenantId,
+        tiposRequeridos(
+          tenantSlugDelCaso(asCaseWithRelations(transformedCaseData)),
+        ),
+      ),
     );
 
     // Read HTML templates, replace placeholders, generate PDFs
@@ -1606,9 +1620,13 @@ export async function batchGenerateDocuments(input: {
       },
     };
   } catch (error) {
-    logger.error('Error in batch document generation', error, {
-      action: 'batch-generate-documents',
-    });
+    // La falta de una firma ya dejó su evento, con el centro y la firma, en
+    // `resolverImagenesPrivadas`; repetirlo acá solo duplica la alerta.
+    if (!(error instanceof ImagenPrivadaFaltanteError)) {
+      logger.error('Error in batch document generation', error, {
+        action: 'batch-generate-documents',
+      });
+    }
 
     // C-4: liberar el lock para que el usuario pueda reintentar; si esto
     // fallara, el recuperador de huérfanos lo libera a los 10 min.

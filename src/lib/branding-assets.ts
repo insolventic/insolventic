@@ -17,6 +17,8 @@
  * ESTADO ACTUAL — cada centro apunta a su propia carpeta. Armonía entregó sus
  * assets el 2026-10-10 y se convirtieron a PNG con canal alfa; el detalle de la
  * conversión está en `docs/BRANDING_POR_CENTRO_2026-09-30.md` §6.
+ * Las firmas no están acá: no se versionan y salen de la base por centro
+ * (`src/lib/imagenes-privadas.ts`).
  * `tests/unit/documents/branding-assets.test.ts` falla en CI si a un centro le
  * falta un archivo — sin ese guardián, cuando una imagen no existe `inlineAssets`
  * solo escribe un `console.warn` y el documento se genera igual, con la imagen
@@ -36,17 +38,14 @@ import type { TenantId } from './prisma';
 export const BRANDING_REF_PREFIX = '/branding/';
 
 /** Las piezas de branding que una plantilla puede pedir. */
-export type BrandingAsset =
-  | 'logo-encabezado'
-  | 'logo-firma'
-  | 'firma-operador';
+export type BrandingAsset = 'logo-encabezado' | 'logo-firma';
 
 /**
  * Carpeta de assets por tenant, relativa a `templates/branding/`.
  *
  * Cada centro con la suya desde el 2026-10-10. Agregar un centro es agregar una
- * fila acá y una carpeta con los tres nombres de archivo; el guardián del test
- * exige que los tres existan.
+ * fila acá, una carpeta con los dos logos (el guardián del test exige que
+ * existan) y cargar sus firmas en la base (`docs/RUNBOOK.md` §7.3).
  */
 const CARPETA_POR_TENANT: Record<TenantId, string> = {
   'constructores-paz': 'constructores-paz',
@@ -114,5 +113,4 @@ export const TENANTS_CON_BRANDING = Object.keys(
 export const ASSETS_REQUERIDOS: BrandingAsset[] = [
   'logo-encabezado',
   'logo-firma',
-  'firma-operador',
 ];
