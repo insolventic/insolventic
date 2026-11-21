@@ -1,6 +1,13 @@
 'use client';
 
-import { Eye, Edit, Trash2, ArrowRightLeft, FolderOpen } from 'lucide-react';
+import {
+  Eye,
+  Edit,
+  Trash2,
+  ArrowRightLeft,
+  CalendarClock,
+  FolderOpen,
+} from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +24,10 @@ import { formatCurrency } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
 import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
+import {
+  audienciaVigente,
+  formatearAudiencia,
+} from '@/features/calendar/audiencia';
 
 import type { CaseListItem } from '@/features/case/schemas';
 
@@ -26,6 +37,7 @@ interface CaseTableProps {
   onEdit: (caseItem: CaseListItem) => void;
   onDelete: (caseItem: CaseListItem) => void;
   onChangePhase?: (caseItem: CaseListItem) => void;
+  onScheduleHearing?: (caseItem: CaseListItem) => void;
   isLoading?: boolean;
 }
 
@@ -35,6 +47,7 @@ export function CaseTable({
   onEdit,
   onDelete,
   onChangePhase,
+  onScheduleHearing,
   isLoading = false,
 }: Readonly<CaseTableProps>) {
   const { checkPermission } = useAuth();
@@ -174,9 +187,8 @@ export function CaseTable({
               <TableCell>{formatCurrency(caseItem.totalDebt)}</TableCell>
               <TableCell>{caseItem.creditors}</TableCell>
               <TableCell>
-                {caseItem.hearingDate
-                  ? new Date(caseItem.hearingDate).toLocaleDateString('es-CO')
-                  : 'No programada'}
+                {formatearAudiencia(audienciaVigente(caseItem)) ||
+                  'No programada'}
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-2">
@@ -198,6 +210,18 @@ export function CaseTable({
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
+                  {onScheduleHearing && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onScheduleHearing(caseItem)}
+                      title="Programar audiencia"
+                      aria-label={`Programar audiencia del caso ${caseItem.caseNumber}`}
+                      disabled={!canEditCases}
+                    >
+                      <CalendarClock className="h-4 w-4" />
+                    </Button>
+                  )}
                   {onChangePhase && (
                     <Button
                       variant="ghost"

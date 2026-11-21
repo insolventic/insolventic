@@ -10,6 +10,7 @@ import { P } from '@/lib/permissions';
 import {
   INITIAL_CASE_PHASE,
   validatePhaseTransition,
+  HEARING_SCHEDULED_PHASE,
   phaseRequiresSubtype,
   isValidDesistimientoSubtype,
 } from '@/lib/case-phases';
@@ -57,6 +58,11 @@ import {
 } from './validation-rules';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import {
+  tieneAudienciaPendiente,
+  whereAudienciaEntre,
+  whereCasoAbierto,
+} from '@/features/calendar/audiencia';
 import {
   generateDocumentsForAdmission,
   generateDocumentsForAgreement,
@@ -2840,10 +2846,7 @@ export async function getDashboardStats(): Promise<{
       prisma.case.count({
         where: {
           ...whereClause,
-          OR: [
-            { hearingDate: { gte: now, lte: in7Days } },
-            { firstHearingDate: { gte: now, lte: in7Days } },
-          ],
+          AND: [whereAudienciaEntre(now, in7Days), whereCasoAbierto()],
         },
       }),
       prisma.case.aggregate({
@@ -2998,6 +3001,11 @@ export async function updateCasePhase(input: {
         // hacer una segunda consulta.
         operatorId: true,
         debtorId: true,
+        // Para exigir audiencia al entrar a "Audiencia programada".
+        hearingDate: true,
+        hearingTime: true,
+        firstHearingDate: true,
+        firstHearingTime: true,
       },
     });
 
@@ -3020,6 +3028,19 @@ export async function updateCasePhase(input: {
     // ni documentación que regenerar.
     if (check.isNoop) {
       return { success: true };
+    }
+
+    // Solo al ENTRAR a la fase, y por eso después del no-op: un caso que ya está
+    // en ella sin fecha sigue pudiendo editarse y salir. `updateCase` no puede
+    // cambiar la fase y `createCase` la fija en "Inicial": esta es la única puerta.
+    if (
+      newPhase === HEARING_SCHEDULED_PHASE &&
+      !tieneAudienciaPendiente(existingCase)
+    ) {
+      return {
+        success: false,
+        error: `Para pasar a "${HEARING_SCHEDULED_PHASE}" primero programe la audiencia, con una fecha de hoy en adelante.`,
+      };
     }
 
     // Fracaso y Desistimiento exigen subtipo + fecha para generar el

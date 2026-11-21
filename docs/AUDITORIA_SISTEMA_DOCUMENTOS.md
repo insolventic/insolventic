@@ -178,8 +178,8 @@ Según las reglas del negocio, los siguientes campos **SOLO deben ser ingresados
 | Fecha de designación | Al designar conciliador (+1 día) | `FECHA_DESIGNACION` |
 | Fecha de aceptación del cargo | Al aceptar cargo (+2 días) | `FECHA_ACEPTACION` |
 | Fecha de admisión | Al admitir el trámite | `FECHA_ADMISION` |
-| Fecha primera audiencia | Al programar audiencia | `FECHA_AUDIENCIA` |
-| Hora primera audiencia | Al programar audiencia | `HORA_AUDIENCIA` |
+| Fecha primera audiencia | Al programar audiencia | `FECHA_PRIMERA_AUDIENCIA` (`FECHA_AUDIENCIA` es la vigente) |
+| Hora primera audiencia | Al programar audiencia | `HORA_PRIMERA_AUDIENCIA` (`HORA_AUDIENCIA` es la vigente) |
 
 ### Información de Juzgados (MANUAL)
 | Campo | Momento de Diligenciamiento | Variable HTML |
