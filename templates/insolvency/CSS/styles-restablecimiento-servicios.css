@@ -2,6 +2,25 @@
 
 /* Estilos específicos para Restablecimiento de Servicios Públicos */
 
+/* Membrete: misma regla que styles-base.css (ver el porqué allí).
+   Hace falta repetirla porque esta hoja no recibe styles-base.css: el
+   generador de PDF resuelve un solo nivel de @import, y la base llega
+   anidada a través de styles-suspension-juzgados.css. Sin esto el logo se
+   imprime a su tamaño natural, más ancho que la hoja, y Chrome reduce la
+   página entera para que quepa (el texto sale diminuto). El centrado del
+   contenedor también viene de la base. */
+.logo-section {
+  text-align: center;
+}
+
+.logo-section .logo {
+  width: auto;
+  height: auto;
+  max-width: 380px;
+  max-height: 100px;
+  object-fit: contain;
+}
+
 /* Tabla de referencia con colores propios */
 .tabla-restablecimiento thead th {
   background-color: #1a3a5c;
