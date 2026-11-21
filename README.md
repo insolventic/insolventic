@@ -335,6 +335,8 @@ debe volver. Las migraciones (`prisma migrate deploy`) corren dentro del
 
 El despliegue es automático mediante la integración nativa de Vercel con GitHub: un _push_ a `dev` genera un _preview_ y un _push_ a `main` publica en producción. Las migraciones (`prisma migrate deploy`) se ejecutan dentro del `buildCommand` de `vercel.json` y solo en producción. Las variables de entorno se administran en el panel de Vercel (ver [`docs/RUNBOOK_ENV_VARS.md`](./docs/RUNBOOK_ENV_VARS.md)). Los procedimientos de operación, incidentes, copias de seguridad y rotación de credenciales están en [`docs/RUNBOOK.md`](./docs/RUNBOOK.md) y [`docs/RUNBOOK_ROTACION_DRIVE.md`](./docs/RUNBOOK_ROTACION_DRIVE.md).
 
+Las firmas que insertan los documentos no están en el repositorio: se cargan en la base de cada entorno con `scripts/imagenes-privadas/cargar.ts` y se comprueban con `scripts/imagenes-privadas/verificar.ts`, **antes** del deploy que las necesite. Sin ellas, el centro afectado no puede generar documentos. El procedimiento está en [`docs/RUNBOOK.md`](./docs/RUNBOOK.md) §7.3.
+
 ---
 
 ## Variables de Entorno

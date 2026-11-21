@@ -20,6 +20,10 @@ jest.mock('next/cache', () => require('../../__mocks__/next-cache'));
 jest.mock('next/navigation', () => require('../../__mocks__/next-navigation'));
 
 import mockPrisma, { resetAllMocks } from '../../__mocks__/prisma';
+import {
+  findManyDeImagenes,
+  firmasDelCentro,
+} from '../../helpers/imagenes-privadas';
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: require('../../__mocks__/prisma').default,
@@ -106,6 +110,9 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
   beforeEach(() => {
     jest.useFakeTimers();
     resetAllMocks();
+    mockPrisma.imagenPrivada.findMany.mockImplementation(
+      findManyDeImagenes(firmasDelCentro(TENANT_ID)),
+    );
     jest.clearAllMocks();
     mockAuthenticateUser.mockResolvedValue({
       user: { ...ADMIN_USER, permissions: Object.values(P) },

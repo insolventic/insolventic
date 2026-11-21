@@ -70,3 +70,17 @@ docs/*.local.md
 
 # Copia local de CLAUDE.md para otros agentes: no se versiona.
 /AGENTS.md
+
+# Firmas y sellos: se cargan en la base por centro (docs/RUNBOOK.md §7.3) y no
+# se versionan nunca; el repositorio es público. `privado/` es la carpeta local
+# sugerida para tenerlas a mano. El check "Sin firmas ni sellos" de pr.yml
+# rechaza el PR si alguna entra igual.
+/privado/
+[Ff]irma*.png
+[Ff]irma*.jpg
+[Ff]irma*.jpeg
+[Ss]ello*.png
+[Ss]ello*.jpg
+[Ss]ello*.jpeg
+# El logo de firma de Constructores de Paz es un sello.
+/templates/branding/constructores-paz/logo-firma.*

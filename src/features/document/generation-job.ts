@@ -12,6 +12,7 @@
 
 import prisma from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { ImagenPrivadaFaltanteError } from '@/lib/imagenes-privadas';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import { generateDocumentsForNewCase } from './generate-documents';
@@ -151,14 +152,18 @@ export async function runInitialGenerationJob(params: {
 
     return { total, success, errors, caseFolderId: result.caseFolderId };
   } catch (error) {
-    logger.error('Generation job failed', error, {
-      action: 'generation-job',
-      requestId,
-      caseId,
-      duration: Date.now() - startedAt,
-    });
     // Sin captura directa en Sentry: logger.error ya la hace (con entrega
-    // garantizada) y llevaba a duplicar el evento por cada fallo.
+    // garantizada) y llevaba a duplicar el evento por cada fallo. Por lo
+    // mismo, la falta de una firma no se registra acá: ya dejó su evento.
+    const faltaFirma = error instanceof ImagenPrivadaFaltanteError;
+    if (!faltaFirma) {
+      logger.error('Generation job failed', error, {
+        action: 'generation-job',
+        requestId,
+        caseId,
+        duration: Date.now() - startedAt,
+      });
+    }
 
     await failGenerationRequest(requestId, error).catch(() => {
       /* la fila queda huérfana; el timeout de claim la recupera */
@@ -170,8 +175,9 @@ export async function runInitialGenerationJob(params: {
       userId: requestedById,
       requestId,
       ok: false,
-      detail:
-        'La generación automática de documentos falló. Puede reintentarla desde la sección Documentos del caso.',
+      detail: faltaFirma
+        ? error.message
+        : 'La generación automática de documentos falló. Puede reintentarla desde la sección Documentos del caso.',
     });
 
     return null;
