@@ -1,5 +1,5 @@
 /**
- * Unit Tests: visibilidad por expediente en las actions de pagos (N-B-01).
+ * Unit Tests: visibilidad por expediente en las actions de pagos.
  *
  * El módulo de pagos solo acotaba por `tenantId` y, en algunos listados, por
  * `operatorId` escrito a mano. Consecuencias:

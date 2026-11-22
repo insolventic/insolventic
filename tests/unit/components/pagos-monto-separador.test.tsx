@@ -4,7 +4,7 @@
 
 /**
  * Los dos diálogos de registrar pago capturan el monto con separador de miles
- * y lo envían como número (N-F-01).
+ * y lo envían como número.
  *
  * Antes eran `<input type="number">` leídos con `parseFloat`: el navegador no
  * deja escribir el punto de miles, y un monto pegado como `1.500.000` llegaba

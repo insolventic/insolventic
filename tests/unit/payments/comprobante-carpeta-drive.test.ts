@@ -99,7 +99,7 @@ describe('comprobante de pago en Drive', () => {
         id: 'user-1',
         name: 'Operador',
         professionalCard: '123',
-        // Con alcance: desde N-B-01 las actions de pagos aplican la visibilidad
+        // Con alcance: las actions de pagos aplican la visibilidad
         // por expediente de `case-access`, y sin alcance no se ve ningún caso.
         permissions: [P.REGISTRAR_PAGOS, P.VER_TODOS_CASOS],
       },

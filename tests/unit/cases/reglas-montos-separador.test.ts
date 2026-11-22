@@ -1,5 +1,5 @@
 /**
- * Unit Tests: las reglas del trámite leen los montos con separador (N-A1-01).
+ * Unit Tests: las reglas del trámite leen los montos con separador.
  *
  * `validateCaseBusinessRules` sumaba las acreencias con `parseFloat`, y
  * `parseFloat("80.000.000")` es `80`. Con montos escritos como los produce
@@ -89,7 +89,7 @@ const supera150 = (debts: ReturnType<typeof aDebt>[], year: number): boolean =>
     { mode: 'create', year },
   ).warnings.some((w) => w.message.includes('150 SMMLV'));
 
-describe('mínima cuantía (40 SMMLV) con montos con separador — N-A1-01', () => {
+describe('mínima cuantía (40 SMMLV) con montos con separador', () => {
   it('2026: el valor exacto del umbral no exige apoderado', () => {
     expect(exigeApoderado([aDebt('70.036.200')], 2026)).toBe(false);
   });
@@ -146,7 +146,7 @@ describe('mínima cuantía (40 SMMLV) con montos con separador — N-A1-01', () 
   });
 });
 
-describe('tope de 150 SMMLV con montos con separador — N-A1-01', () => {
+describe('tope de 150 SMMLV con montos con separador', () => {
   it('2026: el valor exacto no advierte; un peso más, sí', () => {
     expect(supera150([aDebt('262.635.750')], 2026)).toBe(false);
     expect(supera150([aDebt('262.635.751')], 2026)).toBe(true);
@@ -159,7 +159,7 @@ describe('tope de 150 SMMLV con montos con separador — N-A1-01', () => {
   });
 });
 
-describe('validateCaseComplete lee los montos igual — N-A1-01', () => {
+describe('validateCaseComplete lee los montos igual', () => {
   // `validateCaseComplete` (la del formulario) evalúa el tope de 150 SMMLV,
   // no la mínima cuantía; se fija que la suma también lee el separador.
   it('la deuda total con separador dispara el tope de 150 SMMLV', () => {
@@ -174,7 +174,7 @@ describe('validateCaseComplete lee los montos igual — N-A1-01', () => {
   });
 });
 
-describe('createCase rechaza en el servidor la deuda con separador — N-A1-01', () => {
+describe('createCase rechaza en el servidor la deuda con separador', () => {
   beforeEach(() => {
     resetAllMocks();
     mockPrisma.user.findFirst.mockResolvedValue({ id: 'user-del-centro' });

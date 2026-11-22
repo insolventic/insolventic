@@ -147,7 +147,7 @@ describe('guardas — que el filtro siga aplicándose', () => {
     // Son las lecturas de todo el centro sobre un modelo hijo; las acotadas a
     // un caso pasan antes por una lectura de Case, que sí filtra la extensión.
     // Pagos: el filtro de papelera viaja junto con la visibilidad por
-    // expediente en `filtroDeCasoVisible` (N-B-01), que usan el reporte, la
+    // expediente en `filtroDeCasoVisible`, que usan el reporte, la
     // exportación y el conteo de vencidos.
     const pagos = leer('src/features/payment/actions.ts');
     expect(pagos).toMatch(
