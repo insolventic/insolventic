@@ -21,8 +21,12 @@ import {
   getTemplateAssetsBaseDir,
   getTemplatePath,
 } from '@/features/document/templates-config';
-import { brandingRef } from '@/lib/branding-assets';
+import type { CaseWithRelations } from '@/features/case/schemas';
+import { mapBrandingAssets } from '@/features/document/placeholders/branding';
 import { inlineAssets } from '@/lib/html-to-pdf';
+import { aplicarImagenesPrivadas } from '@/lib/imagenes-privadas';
+
+import { imagenesDePrueba } from '../../helpers/imagenes-privadas';
 
 import { htmlToDocx, soloImagenesIncrustadas } from '@/lib/html-to-docx';
 import { logger } from '@/lib/logger';
@@ -151,23 +155,27 @@ describe('3. regresión: ninguna plantilla real pierde imágenes en la ruta DOCX
   // Las plantillas pasan por `inlineAssets` antes del filtro: todo `<img>`
   // legítimo ya llega como `data:image/...;base64`. Si alguno no, el filtro lo
   // quitaría del DOCX y la firma o el logo desaparecerían en silencio.
-  const plantillas = ALL_TEMPLATES.map((t) => [t.id, t] as const);
+  //
+  // Las imágenes salen como en producción: los refs de `mapBrandingAssets` y
+  // las firmas cambiadas por data URIs antes de `inlineAssets`. Los dos
+  // centros, porque el de Constructores de Paz pone el sello donde el otro
+  // pone el logo de firma.
+  const CENTROS = ['armonia', 'constructores-paz'];
+  const casos = CENTROS.flatMap((centro) =>
+    ALL_TEMPLATES.map((t) => [centro, t.id, t] as const),
+  );
 
-  it.each(plantillas)('%s', async (_id, template) => {
+  it.each(casos)('%s › %s', async (centro, _id, template) => {
     const crudo = await readTemplateFile(template);
-    const html = crudo
-      .replace(
-        /\{\{LOGO_ENCABEZADO_SRC\}\}/g,
-        brandingRef('logo-encabezado', 'constructores-paz'),
-      )
-      .replace(
-        /\{\{LOGO_FIRMA_SRC\}\}/g,
-        brandingRef('logo-firma', 'constructores-paz'),
-      )
-      .replace(
-        /\{\{FIRMA_OPERADOR_SRC\}\}/g,
-        brandingRef('firma-operador', 'constructores-paz'),
-      );
+    const imagenes = aplicarImagenesPrivadas(
+      mapBrandingAssets({ tenant: { slug: centro } } as CaseWithRelations),
+      imagenesDePrueba(centro),
+    );
+    const html = Object.entries(imagenes).reduce(
+      (acc, [clave, valor]) => acc.replaceAll(`{{${clave}}}`, valor),
+      crudo,
+    );
+    expect(html).not.toMatch(/\{\{[A-Z_]+_SRC\}\}/);
 
     const incrustado = await inlineAssets(
       html,

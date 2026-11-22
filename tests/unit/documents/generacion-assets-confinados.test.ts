@@ -30,7 +30,10 @@ import {
 } from '@/features/document/templates-config';
 import { mapCaseToPlaceholders } from '@/features/document/placeholder-mapper';
 import { inlineAssets } from '@/lib/html-to-pdf';
+import { aplicarImagenesPrivadas } from '@/lib/imagenes-privadas';
 import { logger } from '@/lib/logger';
+
+import { imagenesDePrueba } from '../../helpers/imagenes-privadas';
 
 const OFICIO = ALL_TEMPLATES.find((t) => t.id === 'suspension-juzgados')!;
 
@@ -136,10 +139,16 @@ describe('1. el overlay del oficio sale escapado', () => {
 
     let leidos: string[] = [];
     try {
+      // Como en producción: las firmas llegan como data URI antes de
+      // `inlineAssets` (las inyecta el punto de entrada de la generación).
+      const placeholders = aplicarImagenesPrivadas(
+        mapCaseToPlaceholders(caseData),
+        imagenesDePrueba('constructores-paz'),
+      );
       for (const variante of templateVariants(OFICIO, caseData)) {
         const { html } = await prepareTemplate(
           OFICIO,
-          mapCaseToPlaceholders(caseData),
+          placeholders,
           undefined,
           variante,
         );
