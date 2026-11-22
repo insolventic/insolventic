@@ -2,6 +2,33 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-20 — Firmas de los documentos: en la base, por centro
+
+**Diagnóstico:** el repositorio es público y versionaba cuatro imágenes de firmas manuscritas (`templates/branding/*/firma-operador.png` y `templates/insolvency/img/`), algunas desde febrero de 2026. Las plantillas las leían del disco al generar. Además, la firma de la Designación del Conciliador estaba escrita a mano en la plantilla y salía igual para los dos centros.
+
+**Decisión:**
+
+- Las firmas se guardan en la tabla `imagenes_privadas` (Neon), una fila por **centro y tipo** (`@@unique([tenantId, tipo])`, FK a `Tenant` con borrado en cascada). Si dos centros usan la misma imagen, se guarda dos veces: una fila nunca se comparte entre centros.
+- El mapper no emite una ruta sino un ref simbólico sin centro (`imagen-privada:firma-operador`). Cada punto de entrada de la generación (job inicial, etapas, regenerar, vista previa y el lote de `/documents`) resuelve las firmas con el `tenantId` del expediente **antes** de crear carpetas o convertir el primer documento, en una sola consulta, y las inyecta como data URI. El centro sale siempre del expediente, nunca de un valor de la plantilla.
+- Si falta una firma, el documento **no se genera**: `ImagenPrivadaFaltanteError` con el centro y el tipo, un mensaje para el usuario sin detalles internos y un evento en Sentry con centro y clave, sin la imagen ni datos del caso. En un lote falla todo antes de empezar. Es el mismo criterio del gate de placeholders sin resolver.
+- `inlineAssets` corta si recibe un ref de firma sin resolver, para que un punto de entrada nuevo que olvide resolverlas falle en vez de producir una imagen rota.
+- Carga y verificación por scripts (`scripts/imagenes-privadas/`), fuera del ciclo de la app: no hay UI ni ruta que lea o escriba la tabla, y un guardián estático (`tests/unit/security/imagenes-privadas-acceso.test.ts`) lo sostiene. El formato (PNG/JPEG por contenido) y el tamaño (1 MB) se validan al cargar y otra vez al leer.
+- `.gitignore` y un paso de `pr.yml` impiden que vuelva a entrar una imagen de firma o sello.
+
+**Descartado:**
+
+- Variables de entorno con la imagen en base64: Vercel limita a 64 KB el total de las variables de un deployment y cuatro firmas en base64 se llevan buena parte, las variables `sensitive` no bajan con `vercel pull` (los builds y la CI las ven vacías) y reemplazar una firma obliga a redeployar.
+- Vercel Blob: otro proveedor y otra credencial para cuatro archivos de 20 KB, y una URL que, aun firmada, existe fuera de la app. La base ya está, ya tiene backups y ya aísla por `tenantId`.
+- Google Drive: es donde se suben los documentos generados, con permisos pensados para los operadores; mezclar ahí las firmas las expone a quien navega la carpeta, y suma una llamada de red con reintentos a cada generación.
+- Leer cada firma por documento con una caché global por instancia: una caché que sobrevive entre peticiones y centros es un punto más donde un centro podría recibir la imagen de otro, y una sola consulta por generación ya es barata.
+- Una imagen de ejemplo en desarrollo cuando falta la real: evita cargar firmas en local, pero deja un camino por el que un documento puede salir con una firma falsa.
+
+**Consecuencias:** cada entorno (local, Preview, producción) necesita sus firmas cargadas antes de generar documentos; el checklist de despliegue suma migración → carga → verificación antes del deploy. Las firmas siguen en el historial de git hasta que se reescriba, que es una operación aparte.
+
+**Sello de Constructores de Paz.** Su `logo-firma.png` es un sello, no un logo, así que sigue el mismo camino: tipo `sello`, exigido solo a los centros de `CENTROS_CON_SELLO`, y `{{LOGO_FIRMA_SRC}}` de ese centro pasa a resolverse contra la base. Los logos de Armonía se quedan en `templates/branding/armonia/`.
+
+**Non-goals:** quién firma la Designación del Conciliador por cada centro (ítem 12 de `PENDIENTES_DECISION_LEGAL.md`), una UI para administrar las firmas, y mover a la base los logos que no son sellos, que son públicos.
+
 ## 2026-11-08 — Papelera de casos (soft-delete)
 
 **Diagnóstico:** `deleteCase` borraba en cascada y sin recuperación, con expedientes legales reales en producción y backups nunca probados (A-8, GC-M6). Además `deleteDebtor` destruía todos los expedientes del deudor sin la confirmación escrita ni la auditoría de `deleteCase`.

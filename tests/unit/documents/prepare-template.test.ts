@@ -17,8 +17,10 @@ import {
   prepareTemplate,
   variantDisplayName,
   readTemplateFile,
+  PlantillaNoDisponibleError,
   SIN_VARIANTE,
 } from '@/features/document/prepare-template';
+import { logger } from '@/lib/logger';
 import { templateVariants } from '@/features/document/template-variants';
 import { ALL_TEMPLATES } from '@/features/document/templates-config';
 import { mapCaseToPlaceholders } from '@/features/document/placeholder-mapper';
@@ -182,7 +184,7 @@ describe('prepareTemplate', () => {
 
     await expect(
       prepareTemplate(inexistente, {}, undefined, SIN_VARIANTE),
-    ).rejects.toThrow(/No se pudo leer la plantilla/);
+    ).rejects.toThrow(/No Existe\.html/);
   });
 });
 
@@ -191,6 +193,69 @@ describe('readTemplateFile', () => {
     const html = await readTemplateFile(OFICIO);
 
     expect(html).toContain('{{NOMBRE_JUZGADO}}');
+  });
+
+  // Lo que pasaba en Vercel: templates/ fuera del bundle, ENOENT en cada
+  // lectura y un mensaje que no decía ni el código ni el expediente.
+  describe('cuando el archivo no está en disco', () => {
+    const inexistente = { ...OFICIO, fileName: 'No Existe.html' };
+    const rutaEsperada = 'templates/insolvency/No Existe.html';
+
+    beforeEach(() => {
+      jest.spyOn(logger, 'error').mockImplementation(() => {});
+    });
+    afterEach(() => jest.restoreAllMocks());
+
+    it('conserva código, ruta, plantilla y expediente en el error', async () => {
+      const error = await readTemplateFile(inexistente, {
+        caseId: 'caso-1',
+      }).catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(PlantillaNoDisponibleError);
+      expect(error).toMatchObject({
+        code: 'ENOENT',
+        templatePath: rutaEsperada,
+        templateId: OFICIO.id,
+        caseId: 'caso-1',
+      });
+      expect((error as Error).cause).toMatchObject({ code: 'ENOENT' });
+    });
+
+    it('la UI recibe un mensaje que nombra la plantilla y la causa', async () => {
+      await expect(readTemplateFile(inexistente)).rejects.toThrow(
+        `La plantilla "${OFICIO.name}" no está disponible en el servidor (${rutaEsperada}, ENOENT)`,
+      );
+    });
+
+    it('el log lleva el error original y el contexto del expediente', async () => {
+      const spy = jest.mocked(logger.error);
+
+      await readTemplateFile(inexistente, { caseId: 'caso-1' }).catch(() => {});
+
+      expect(spy).toHaveBeenCalledWith(
+        'Error reading template',
+        expect.objectContaining({ code: 'ENOENT' }),
+        expect.objectContaining({
+          action: 'prepare-template',
+          code: 'ENOENT',
+          templatePath: rutaEsperada,
+          templateId: OFICIO.id,
+          caseId: 'caso-1',
+        }),
+      );
+    });
+
+    it('prepareTemplate pasa el expediente hasta la lectura', async () => {
+      const error = await prepareTemplate(
+        inexistente,
+        {},
+        undefined,
+        SIN_VARIANTE,
+        { caseId: 'caso-2' },
+      ).catch((e: unknown) => e);
+
+      expect(error).toMatchObject({ caseId: 'caso-2', code: 'ENOENT' });
+    });
   });
 });
 

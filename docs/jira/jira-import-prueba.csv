@@ -1,0 +1,136 @@
+"Issue ID","Clave temporal","Issue Type","Summary","Description","Parent","Priority","Story Points","Labels","Labels","Labels","Labels","Components","Components","Components","Components","Sprint","Status","Resolution","Resolved","Fix Version","Evidencia","Blocks","Blocks","MoSCoW","Rank"
+"1002","E01","Epic","Gestión de Casos y Máquina de Estados","Ciclo de vida del expediente para los tres servicios (Insolvencia, Conciliación, Acuerdo de Apoyo): formulario maestro (~400 campos), creación por tipo, edición con bloqueo optimista, fases y transiciones validadas en el servidor, reglas del trámite colombiano (Ley 1564/2012 arts. 531 y ss., Decreto 2677/2012) y bienes del deudor.
+
+*Objetivo de negocio:* Que cada expediente nazca y evolucione cumpliendo los requisitos formales del trámite, sin depender de que la UI sea la única barrera.
+
+*Evidencia:* README.md §Gestión de Casos · src/features/case/ · docs/FORMULARIO_MAESTRO.md · docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2","","Highest","","","","","","","","","","","In Progress","","","","README.md §Gestión de Casos · src/features/case/ · docs/FORMULARIO_MAESTRO.md · docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2","","","",""
+"1024","E01-01","Story","Crear y listar expedientes de insolvencia aislados por centro","*Historia:* Como operadora de insolvencia, quiero registrar un expediente con los datos del deudor y verlo en el listado de mi centro, para dejar de llevar los casos en hojas sueltas y tener un único registro consultable.
+
+h4. Criterios de aceptación
+* Dado que estoy autenticada en Armonía Cuando creo un caso con los datos obligatorios Entonces el caso queda guardado con el tenantId de Armonía y aparece en mi listado
+* Dado un caso creado en Constructores de Paz Cuando consulto el listado desde Armonía Entonces ese caso no aparece
+* *(error)* Dado un formulario con campos obligatorios vacíos Cuando intento guardar Entonces el caso no se crea y se señalan los campos faltantes
+* Dado un caso existente Cuando lo abro Entonces veo sus datos y su fase actual
+
+*Estimación:* 8 pts — Setup inicial del dominio completo (schema, server actions, UI de listado/detalle) sobre un stack nuevo; mucha superficie y aprendizaje.
+
+*Evidencia:* 83d2d71 feat: initial full project setup · CHANGELOG.md [0.1.0] Case management","1002","Highest","8","feature","sprint-2026-W06","","","Frontend","Backend","Base-de-Datos","","INS 2026-W06","Done","Done","2026-02-08","v0.1.0","83d2d71 feat: initial full project setup · CHANGELOG.md [0.1.0] Case management","","","",""
+"1038","E01-15","Bug","El listado /cases salía vacío en producción","*Entorno:* Producción (Vercel + Neon), detectado septiembre 2026
+*Severidad:* Crítica
+*Pasos:*
+# Iniciar sesión en producción
+# Abrir /cases
+*Esperado:* El listado muestra los casos del centro
+*Actual:* El listado sale vacío, sin error visible y sin evento en Sentry
+*Causa raíz:* Dos defectos encadenados: (1) caseSchema rechazaba null en 7 campos Json? y el catch devolvía lista vacía; (2) 29 columnas apoyo_* existían en schema.prisma (creadas con db push) pero ninguna migración las creaba, así que no estaban en producción.
+*Fix:* a54d92e (6 arrays Json? aceptan null) + ebc500b (7º campo) + 8ec70d6 (migración de las 29 columnas apoyo_*)
+*Test de regresión:* Verificación de deriva contra information_schema (scripts/verificar-deriva-esquema.sql) y smoke contra Postgres real (E14-05).
+
+h4. Criterios de aceptación del fix
+* Dado casos con campos Json? nulos Cuando se lista /cases Entonces aparecen todos
+* Dado la base de producción Cuando se compara con schema.prisma Entonces las columnas apoyo_* existen
+* *(error)* Dado un fallo en getAllCases Cuando ocurre Entonces llega a Sentry en vez de devolver una lista vacía silenciosa
+
+*Estimación:* 5 pts — Diagnóstico mal encaminado dos veces (la base local se construía con db push); requirió comparar contra producción.
+
+*Evidencia:* a54d92e · ebc500b · 8ec70d6 fix(db): migración que crea las 29 columnas apoyo_* · docs/CHECKPOINT_2026-09-09.md §8 · docs/AUDITORIA_CIERRE_2026-09-12.md §3","1002","Highest","5","bug-regresion","sprint-2026-W37","","","Backend","Base-de-Datos","","","INS 2026-W37","Done","Done","2026-09-09","v0.5.0","a54d92e · ebc500b · 8ec70d6 fix(db): migración que crea las 29 columnas apoyo_* · docs/CHECKPOINT_2026-09-09.md §8 · docs/AUDITORIA_CIERRE_2026-09-12.md §3","","","",""
+"1039","E01-16","Story","Máquina de estados del expediente validada en el servidor","*Historia:* Como administrador del centro, quiero que ninguna fase se pueda saltar ni reabrir por fuera de las transiciones válidas, para que el estado de un expediente legal sea siempre jurídicamente coherente.
+
+h4. Criterios de aceptación
+* *(error)* Dado un caso en Inicial Cuando se envía por POST directo a updateCase un cambio a Terminado Entonces el servidor lo rechaza
+* Dado un caso nuevo Cuando se crea Entonces nace siempre en fase Inicial aunque el cliente envíe otra
+* Dado una transición válida Cuando se usa updateCasePhase Entonces la fase cambia y se audita fase anterior y nueva
+* *(error)* Dado una fase inexistente Cuando se envía Entonces se rechaza por no pertenecer a CASE_PHASES
+
+*Estimación:* 5 pts — Extraer guards puros compartidos por dos rutas y escribir los tests de bypass que faltaban.
+*Hallazgos:* GC-C1, GC-M3
+
+*Evidencia:* PR #4 17c7de2 (commit 9e0ed99) · docs/IMPLEMENTACION_SEMANA_3.md §2 · src/features/case/actions.ts:565","1002","Highest","5","seguridad","doc-semana-3","sprint-2026-W37","","Backend","Testing","","","INS 2026-W37","Done","Done","2026-09-11","v0.5.0","PR #4 17c7de2 (commit 9e0ed99) · docs/IMPLEMENTACION_SEMANA_3.md §2 · src/features/case/actions.ts:565","","","",""
+"1052","E01-29","Story","Separador de miles en los 27 campos de dinero del formulario maestro","*Historia:* Como operadora de insolvencia, quiero escribir los montos como 1.500.000 y no como 1500000, para leer y verificar las cifras igual que en los documentos del deudor.
+
+h4. Criterios de aceptación
+* Dado cualquiera de los 27 campos de dinero Cuando escribo 1500000 Entonces se muestra 1.500.000
+* Dado el monto 1.500.000 Cuando se guarda Entonces Prisma recibe 1500000, no 1.5
+* *(borde)* Dado un monto con coma decimal Cuando se guarda Entonces se conserva la parte decimal
+* Dado los campos de dinero Cuando se renderizan Entonces no muestran los spinners del input numérico
+
+*Estimación:* 5 pts — 27 campos y un bug de parseo en tres capas que solo cerró un test que llega hasta Prisma.
+
+*Evidencia:* #136 c678020 · src/components/ui/money-input.tsx · src/features/case/monto.ts · CLAUDE.md Quick Win 9","1002","Medium","5","feature","sprint-2026-W41","","","Frontend","Backend","Testing","","INS 2026-W41","Done","Done","2026-10-11","v1.0.0-rc.1","#136 c678020 · src/components/ui/money-input.tsx · src/features/case/monto.ts · CLAUDE.md Quick Win 9","","","",""
+"1053","E01-30","Story","Montos en formato colombiano en los campos de dinero fuera del formulario maestro","*Historia:* Como conciliadora, quiero escribir la cuantía de la audiencia y el monto mensual del acuerdo de apoyo en formato 1.234,56, para que el documento no imprima $0 en silencio cuando escribo un monto con puntos.
+
+_HISTORIA DE REFERENCIA (3 pts) de todo el backlog._
+
+h4. Criterios de aceptación
+* Dado la cuantía de conciliación Cuando escribo 1.234,56 Entonces se guarda 1234.56
+* Dado el monto mensual de apoyo Cuando escribo 1.500.000 Entonces el documento imprime $1.500.000
+* *(error)* Dado un monto no numérico Cuando se envía Entonces se rechaza con mensaje en vez de guardarse como $0
+* *(borde)* Dado formatCurrency con un valor NaN Cuando se formatea Entonces no imprime NaN en el documento
+
+*Evidencia:* #145 4e5a342 · docs/IMPLEMENTACION_SEMANA_11.md · CHANGELOG.md [1.0.0-rc.1] (#145)","1002","Medium","3","feature","doc-semana-11","sprint-2026-W42","","Frontend","Backend","","","INS 2026-W42","Done","Done","2026-10-18","v1.0.0-rc.1","#145 4e5a342 · docs/IMPLEMENTACION_SEMANA_11.md · CHANGELOG.md [1.0.0-rc.1] (#145)","","","",""
+"1059","E01-36","Story","Selector de bienes en dos niveles: categoría y tipo","*Historia:* Como operadora de insolvencia, quiero elegir primero la categoría del bien y después el tipo exacto, para no confundir tipos de bienes parecidos en una lista larga.
+
+h4. Criterios de aceptación
+* Dado el formulario de bienes Cuando elijo la categoría Entonces solo veo los tipos de esa categoría
+* Dado un bien guardado con la versión anterior Cuando abro la edición Entonces se normaliza a categoría y tipo
+* *(borde)* Dado un tipo legacy sin categoría Cuando se carga Entonces no desaparece de la tabla
+
+*Evidencia:* #148 25d6d7e · docs/IMPLEMENTACION_SEMANA_14.md §3","1002","Medium","3","feature","doc-semana-14","sprint-2026-W43","","Frontend","","","","INS 2026-W43","Done","Done","2026-10-19","v1.0.0-rc.1","#148 25d6d7e · docs/IMPLEMENTACION_SEMANA_14.md §3","","","",""
+"1061","E01-38","Bug","El bloqueo optimista es opcional y no atómico","*Entorno:* Producción actual (1.0.0-rc.1)
+*Severidad:* Alta
+*Pasos:*
+# Abrir el mismo caso en dos sesiones (versión 5)
+# Guardar en ambas casi a la vez
+# O enviar updateCase sin version
+*Esperado:* La segunda escritura recibe conflicto
+*Actual:* Ambas leen v=5, pasan el check y escriben; si el cliente no manda version el check se salta
+*Causa raíz:* version es z.number().int().optional() (schemas.ts:1406) y el check es leer-luego-escribir (actions.ts:1008) en READ COMMITTED.
+*Fix:* Pendiente: updateMany({ where: { id, tenantId, version } }) con count === 0 como conflicto, y version obligatorio.
+*Test de regresión:* Test de dos escrituras concurrentes con la misma versión y de envío sin version.
+
+h4. Criterios de aceptación del fix
+* *(error)* Dado dos guardados concurrentes con version 5 Cuando ambos llegan Entonces exactamente uno falla con conflicto
+* *(error)* Dado un updateCase sin version Cuando se envía Entonces se rechaza
+* Dado un guardado normal Cuando no hay conflicto Entonces la versión se incrementa en la misma sentencia
+*Hallazgos:* GC-A2
+*MoSCoW:* Must · *Rank:* 1
+
+*Evidencia:* docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 (Alto) · docs/AUDITORIA_CIERRE_2026-09-12.md §4 A-2 sin cambios · src/features/case/schemas.ts:1406 · src/features/case/actions.ts:1008","1002","High","3","nfr","sprint-2026-W44","","","Backend","Testing","","","INS 2026-W44","To Do","","","v1.0.0-rc.2","docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 (Alto) · docs/AUDITORIA_CIERRE_2026-09-12.md §4 A-2 sin cambios · src/features/case/schemas.ts:1406 · src/features/case/actions.ts:1008","","","Must","1"
+"1063","E01-40","Story","Borrado lógico de expedientes","*Historia:* Como administrador del centro, quiero que eliminar un expediente lo oculte en vez de destruirlo, para poder recuperarlo ante un error y cumplir la política de retención de la Ley 1581.
+
+h4. Criterios de aceptación
+* Dado un expediente Cuando se elimina Entonces queda con deletedAt y no aparece en listados, búsqueda ni reportes
+* *(error)* Dado un expediente borrado Cuando se consulta por id Entonces se responde como no encontrado
+* Dado el borrado Cuando ocurre Entonces queda en audit_logs antes de ejecutarse
+* *(borde)* Dado un caso borrado con número X Cuando se crea uno nuevo Entonces no reutiliza el número X
+
+*Estimación:* 5 pts — Toca todas las lecturas de casos (filtro global) y requiere migración.
+*Hallazgos:* PP-A-8, GC-M6
+*Dependencias:* is blocked by E11-17 · blocks E01-41, E01-42
+*MoSCoW:* Should · *Rank:* 32
+
+*Evidencia:* docs/AUDITORIA_PREPRODUCCION_2026-08-25.md A-8 · CLAUDE.md Fase 3 (soft-delete ~20h) · docs/IMPLEMENTACION_SEMANA_4.md §6 decisión 2 (post-lanzamiento)","1002","High","5","nfr","","","","Backend","Base-de-Datos","","","","To Do","","","v1.1.0","docs/AUDITORIA_PREPRODUCCION_2026-08-25.md A-8 · CLAUDE.md Fase 3 (soft-delete ~20h) · docs/IMPLEMENTACION_SEMANA_4.md §6 decisión 2 (post-lanzamiento)","1064","1065","Should","32"
+"1064","E01-41","Story","Papelera y restauración de expedientes","*Historia:* Como administrador del centro, quiero ver los expedientes borrados y restaurar uno, para deshacer un borrado accidental sin pedir una restauración de base de datos.
+
+h4. Criterios de aceptación
+* Dado expedientes borrados Cuando abro la papelera Entonces los veo con fecha y autor del borrado
+* Dado un expediente en la papelera Cuando lo restauro Entonces vuelve a los listados y queda auditado
+* *(error)* Dado un usuario sin rol administrador Cuando intenta restaurar Entonces se rechaza
+
+*Estimación:* 5 pts — Pantalla nueva con permisos propios y efecto sobre Drive.
+*Hallazgos:* PP-A-8
+*Dependencias:* is blocked by E01-40
+*MoSCoW:* Could · *Rank:* 50
+
+*Evidencia:* docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §6 Fase post-launch · CLAUDE.md Fase 3 (capacidad de recuperación)","1002","Medium","5","feature","","","","Frontend","Backend","","","","To Do","","","v1.1.0","docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §6 Fase post-launch · CLAUDE.md Fase 3 (capacidad de recuperación)","","","Could","50"
+"1065","E01-42","Story","Borrado coordinado de la carpeta del expediente en Drive","*Historia:* Como administrador del centro, quiero que al borrar un expediente su carpeta de Drive vaya a una papelera del centro, para no dejar PDFs con cédula e ingresos huérfanos en Drive.
+
+h4. Criterios de aceptación
+* Dado un expediente con carpeta en Drive Cuando se borra Entonces la carpeta se mueve a la papelera del tenant
+* *(error)* Dado un fallo de Drive Cuando se borra Entonces el borrado lógico se completa y el fallo queda en Sentry
+* Dado una restauración Cuando ocurre Entonces la carpeta vuelve a su lugar
+*Hallazgos:* GC-M6
+*Dependencias:* is blocked by E01-40
+*MoSCoW:* Should · *Rank:* 33
+
+*Evidencia:* docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 deleteCase (Medio)","1002","Medium","3","nfr","","","","Backend","","","","","To Do","","","v1.1.0","docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 deleteCase (Medio)","","","Should","33"

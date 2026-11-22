@@ -1,0 +1,448 @@
+{
+  "epica": {
+    "id": "E04",
+    "titulo": "Multi-tenant y Branding por Centro",
+    "descripcion": "Dos centros de conciliación reales (Armonía Concertada y Constructores de Paz) sobre una misma base de código y una misma base de datos, aislados por tenantId; carpetas de Drive por centro; identidad visual por tenant; membrete, resolución, operadora y firma propios de cada centro en las 65 plantillas.",
+    "objetivo": "Que cada centro vea solo lo suyo y que cada documento salga con la identidad legal del centro que lo emite, nunca con la del otro.",
+    "prioridad": "Crítica",
+    "labels": [],
+    "evidencia": [
+      "docs/BRANDING_POR_CENTRO_2026-09-30.md",
+      "docs/AUDITORIA_CIERRE_2026-09-12.md §2",
+      "docs/CHECKPOINT_2026-10-09.md §2",
+      "src/lib/membrete-centro.ts"
+    ]
+  },
+  "items": [
+    {
+      "id": "E04-01",
+      "tipo": "Story",
+      "titulo": "Carpetas de Drive separadas por centro de conciliación",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que los documentos de mi centro se guarden en la carpeta de Drive de mi centro",
+        "para": "que el otro centro no pueda ver ni mezclar nuestros expedientes"
+      },
+      "ac": [
+        "Dado un caso de Armonía Cuando se suben sus documentos Entonces van a la carpeta de Armonía",
+        "[error] Dado un intento de subir a la carpeta de otro centro Cuando se valida Entonces se rechaza",
+        "Dado los nombres canónicos Armonía y Constructores de Paz Cuando se resuelve la carpeta Entonces coinciden con Drive"
+      ],
+      "puntos": 5,
+      "justificacion": "Separación de almacenamiento con validación cruzada y tests por centro.",
+      "prioridad": "Crítica",
+      "labels": ["seguridad"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-04",
+      "version": "v0.1.0",
+      "evidencia": [
+        "0b3c085 feat: separar carpetas de Google Drive por centro de conciliación",
+        "CHANGELOG.md [0.1.0] Drive folder separation"
+      ]
+    },
+    {
+      "id": "E04-02",
+      "tipo": "Bug",
+      "titulo": "La generación de documentos no validaba bien el centro del caso",
+      "bug": {
+        "entorno": "Producción/preview, marzo 2026",
+        "pasos": [
+          "Generar documentos de un caso desde una sesión de otro centro"
+        ],
+        "esperado": "Rechazo por centro distinto",
+        "actual": "La validación multi-tenant de la generación fallaba",
+        "severidad": "Alta",
+        "causaRaiz": "No documentada más allá del mensaje del commit.",
+        "fix": "29d6456 fix: corregir validación multi-tenant en generación de documentos",
+        "regresion": "No identificado en el commit."
+      },
+      "ac": [
+        "[error] Dado un caso de otro centro Cuando se generan sus documentos Entonces se rechaza",
+        "Dado un caso del propio centro Cuando se generan Entonces funciona"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["seguridad", "inferido"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W11",
+      "estado": "Done",
+      "resuelto": "2026-03-09",
+      "version": "v0.2.0",
+      "evidencia": ["29d6456"]
+    },
+    {
+      "id": "E04-03",
+      "tipo": "Story",
+      "titulo": "Identidad visual por centro y modo oscuro",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "ver los colores y el logo de mi centro y poder usar modo oscuro",
+        "para": "saber siempre en qué centro estoy trabajando"
+      },
+      "ac": [
+        "Dado una sesión en Armonía Cuando navego Entonces veo el logo y la paleta de Armonía",
+        "Dado el modo oscuro Cuando lo activo Entonces todas las pantallas lo respetan",
+        "[borde] Dado un cambio de centro Cuando se completa Entonces la identidad visual cambia sin recargar datos del anterior"
+      ],
+      "puntos": 5,
+      "justificacion": "Theming completo por tenant más dark mode en toda la app.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-18",
+      "version": "v0.2.0",
+      "evidencia": [
+        "4d9d3b7 feat: dark mode completo, identidad visual por tenant",
+        "f6f13dc fix: estandarizar CSS de plantillas y corregir dark mode"
+      ]
+    },
+    {
+      "id": "E04-04",
+      "tipo": "Bug",
+      "titulo": "Estructura de carpetas de Drive dispar y adjuntos que no subían",
+      "bug": {
+        "entorno": "Producción/preview, marzo 2026",
+        "pasos": ["Subir un adjunto a un caso", "Revisar la carpeta en Drive"],
+        "esperado": "Misma estructura de carpetas para todos los casos y adjunto subido",
+        "actual": "Estructuras distintas según el flujo y fallos en la subida de adjuntos",
+        "severidad": "Media",
+        "causaRaiz": "No documentada más allá del mensaje del commit.",
+        "fix": "d43892d fix: unificar estructura de carpetas en Google Drive y corregir subida de adjuntos",
+        "regresion": "No identificado en el commit."
+      },
+      "ac": [
+        "Dado un adjunto Cuando se sube Entonces queda en la carpeta del caso",
+        "Dado dos casos creados por flujos distintos Cuando se comparan sus carpetas Entonces tienen la misma estructura"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["inferido"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-18",
+      "version": "v0.2.0",
+      "evidencia": ["d43892d"]
+    },
+    {
+      "id": "E04-05",
+      "tipo": "Task",
+      "titulo": "Consolidar la configuración de centro en un solo módulo",
+      "tarea": {
+        "objetivo": "Eliminar la configuración de tenant duplicada en los formularios de auth.",
+        "alcance": "login, register, forgot-password y reset-password importan de @/lib/tenant-theme.",
+        "dod": "databaseInfo local eliminado; un único origen de la config de tenant."
+      },
+      "ac": [
+        "Dado los 4 formularios de auth Cuando se buscan definiciones de tenant Entonces solo importan de tenant-theme"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": ["820461c", "CHANGELOG.md [0.3.0] Tenant config consolidada"]
+    },
+    {
+      "id": "E04-06",
+      "tipo": "Task",
+      "titulo": "Revisar el material de Armonía y planificar el branding por centro",
+      "tarea": {
+        "objetivo": "Diseñar cómo cada plantilla obtiene la identidad del centro que la emite.",
+        "alcance": "Barrido de las 65 plantillas, datos faltantes de Armonía y requisitos de los assets de imagen.",
+        "dod": "docs/BRANDING_POR_CENTRO_2026-09-30.md con plan por fases y datos pendientes."
+      },
+      "ac": [
+        "Dado las 65 plantillas Cuando se barren Entonces se inventaría cada dato de centro escrito a mano",
+        "Dado los datos que faltan de Armonía Cuando se listan Entonces quedan como pendientes legales"
+      ],
+      "puntos": 2,
+      "prioridad": "Crítica",
+      "labels": ["spike"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-01",
+      "version": "v0.6.0",
+      "hallazgos": ["CIERRE-2"],
+      "evidencia": ["#82 74aec37", "docs/BRANDING_POR_CENTRO_2026-09-30.md"]
+    },
+    {
+      "id": "E04-07",
+      "tipo": "Story",
+      "titulo": "Placeholders de identidad del centro disponibles para las plantillas",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que el sistema conozca el nombre, resolución, dirección y contacto de cada centro",
+        "para": "que las plantillas dejen de tener escrita a mano la identidad de Constructores de Paz"
+      },
+      "ac": [
+        "Dado un caso de cada centro Cuando se mapea Entonces existen placeholders de nombre, resolución, dirección y contacto del centro",
+        "[error] Dado un centro sin un dato obligatorio de membrete Cuando se genera Entonces no se imprime un valor por defecto de otro centro",
+        "Dado el mapper Cuando se prueba por centro Entonces cada uno recibe su identidad"
+      ],
+      "puntos": 5,
+      "justificacion": "Modelo de datos de identidad de centro y su cableado al mapper.",
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["CIERRE-2"],
+      "evidencia": ["#121 9a94c0f", "docs/AUDITORIA_CIERRE_2026-09-12.md §2"]
+    },
+    {
+      "id": "E04-08",
+      "tipo": "Bug",
+      "titulo": "El membrete por centro nunca eligió por centro",
+      "bug": {
+        "entorno": "Producción y dev, octubre 2026",
+        "pasos": [
+          "Generar un documento de un caso de Armonía con el branding por centro activo"
+        ],
+        "esperado": "Membrete de Armonía",
+        "actual": "Siempre el membrete por defecto",
+        "severidad": "Alta",
+        "causaRaiz": "El mapper comparaba Case.tenantId (un cuid) contra el slug del centro; nunca coincidía.",
+        "fix": "#128 1173259: resolver el centro por slug",
+        "regresion": "Guardianes por centro descritos en CHECKPOINT_2026-10-09 §2."
+      },
+      "ac": [
+        "Dado un caso de Armonía Cuando se resuelve el centro Entonces se obtiene armonia",
+        "Dado un tenantId cuid Cuando se compara Entonces se traduce a slug antes"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#128 1173259", "docs/CHECKPOINT_2026-10-09.md §2"]
+    },
+    {
+      "id": "E04-09",
+      "tipo": "Story",
+      "titulo": "Pie de página y resolución de habilitación por centro",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "que el pie y la resolución de cada documento sean los de mi centro",
+        "para": "que el documento radicado acredite la habilitación correcta"
+      },
+      "ac": [
+        "Dado un caso de Constructores de Paz Cuando se genera Entonces el pie lleva sus datos",
+        "Dado un caso de Armonía Cuando se genera Entonces cita la resolución 0858 del 01-nov-2016",
+        "[error] Dado un dato de membrete faltante Cuando se genera Entonces la generación de ese centro se pausa en vez de imprimir uno falso"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#126 d0269a0", "docs/PENDIENTES_DECISION_LEGAL.md ítem 11"]
+    },
+    {
+      "id": "E04-10",
+      "tipo": "Story",
+      "titulo": "Nombre y resolución del centro en la prosa de las plantillas",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "que el nombre del centro dentro del texto sea el del centro que emite",
+        "para": "que ningún párrafo nombre al centro equivocado"
+      },
+      "ac": [
+        "Dado las 186 ocurrencias en prosa Cuando se generan para Armonía Entonces ninguna dice Constructores de Paz",
+        "Dado rótulo, nombre y entidad promotora Cuando se imprimen Entonces son tres campos distintos",
+        "[borde] Dado Designación del Conciliador Cuando se genera Entonces se mantiene intacta a propósito"
+      ],
+      "puntos": 5,
+      "justificacion": "186 sustituciones en prosa revisadas una a una.",
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-10",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#132 9423851"]
+    },
+    {
+      "id": "E04-11",
+      "tipo": "Story",
+      "titulo": "Armonía genera sus documentos con su propio membrete",
+      "historia": {
+        "rol": "conciliadora de Armonía",
+        "quiero": "generar las plantillas con el membrete de Armonía",
+        "para": "radicar documentos de mi centro sin corregirlos a mano"
+      },
+      "ac": [
+        "Dado un caso de Armonía Cuando genero Entonces 63 de 65 plantillas salen con el membrete de Armonía",
+        "[error] Dado una de las 2 plantillas que requieren la cuenta de consignación Cuando genero Entonces se bloquea con el motivo",
+        "Dado el corte por campo Cuando falta un dato puntual Entonces solo se bloquean las plantillas que lo usan"
+      ],
+      "puntos": 5,
+      "justificacion": "Habilitar un centro completo con bloqueo granular por campo.",
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Backend"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-10",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#133 fe50bc9", "docs/PENDIENTES_DECISION_LEGAL.md ítem 14"]
+    },
+    {
+      "id": "E04-12",
+      "tipo": "Story",
+      "titulo": "Bloque de la operadora por centro en las plantillas",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "que el bloque de firma de la operadora sea el correcto para el centro",
+        "para": "que el documento lo firme quien corresponde"
+      },
+      "ac": [
+        "Dado las 114 ocurrencias del bloque del operador Cuando se generan Entonces usan los datos del centro",
+        "Dado la operadora de los dos centros Cuando firma Entonces se usa un solo asset de firma",
+        "[borde] Dado Designación del Conciliador Cuando se genera Entonces conserva la firma de quien la emite"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-10",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#134 83338ec", "docs/PENDIENTES_DECISION_LEGAL.md ítem 12"]
+    },
+    {
+      "id": "E04-13",
+      "tipo": "Story",
+      "titulo": "Logos y firma de Armonía, sin fallback imprimible",
+      "historia": {
+        "rol": "conciliadora de Armonía",
+        "quiero": "que mis documentos lleven el logo y la firma de Armonía",
+        "para": "que no salga nunca un documento con imagen de relleno"
+      },
+      "ac": [
+        "Dado un caso de Armonía Cuando se genera Entonces usa sus 3 assets de imagen",
+        "[error] Dado un asset faltante Cuando se genera Entonces se bloquea en vez de imprimir el fallback",
+        "Dado Constructores de Paz Cuando se genera Entonces sus assets no cambian"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-10",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#135 72e6f19",
+        "tests/unit/documents/armonia-genera.test.ts",
+        "docs/BRANDING_POR_CENTRO_2026-09-30.md §4"
+      ]
+    },
+    {
+      "id": "E04-14",
+      "tipo": "Bug",
+      "titulo": "No se podían generar documentos en ninguno de los dos centros por la carpeta de Drive",
+      "bug": {
+        "entorno": "dev y producción (1.0.0-rc.1), octubre 2026",
+        "pasos": ["Generar cualquier documento de un caso"],
+        "esperado": "Los documentos se suben a la carpeta del centro",
+        "actual": "La generación fallaba en ambos centros",
+        "severidad": "Crítica",
+        "causaRaiz": "resolveCenterFolderName resolvía el centro por el cuid del tenant en vez de su slug (mismo patrón que E04-08, en otra ruta).",
+        "fix": "#146 e406962 + barrido de otras resoluciones por cuid",
+        "regresion": "Tests de resolución por slug y verificación manual en navegador."
+      },
+      "ac": [
+        "Dado un caso de cada centro Cuando se generan documentos Entonces se suben a su carpeta",
+        "Dado un tenantId cuid Cuando se resuelve la carpeta Entonces se usa el slug"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": ["bug-regresion", "doc-semana-12"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-18",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#146 e406962",
+        "docs/IMPLEMENTACION_SEMANA_12.md",
+        "CHANGELOG.md [1.0.0-rc.1] (#146)"
+      ]
+    },
+    {
+      "id": "E04-15",
+      "tipo": "Story",
+      "titulo": "Cuenta de consignación de Armonía en los autos por incumplimiento y reforma",
+      "historia": {
+        "rol": "conciliadora de Armonía",
+        "quiero": "que los autos de incumplimiento y de reforma del acuerdo indiquen la cuenta de Armonía donde consigna el deudor",
+        "para": "generar las 2 plantillas que hoy están bloqueadas para mi centro"
+      },
+      "ac": [
+        "Dado la entidad, NIT y número de cuenta de Armonía cargados Cuando genero Auto Solicitud por Incumplimiento Entonces se imprime esa cuenta",
+        "Dado lo mismo Cuando genero Auto Solicitud Reforma del Acuerdo Entonces se imprime esa cuenta",
+        "[error] Dado que falte cualquiera de los 3 datos Cuando genero Entonces sigue bloqueado con el motivo"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W46",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "hallazgos": ["LEGAL-14"],
+      "evidencia": [
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 14",
+        "src/lib/membrete-centro.ts (cuentaConsignacion)",
+        "#133"
+      ]
+    },
+    {
+      "id": "E04-16",
+      "tipo": "Task",
+      "titulo": "Decidir si cada centro usa su propia credencial de Google Drive",
+      "tarea": {
+        "objetivo": "Evaluar el riesgo de que una sola credencial de Drive sirva a los dos centros.",
+        "alcance": "Opciones: mantener una credencial con validación en la app, o una por centro. Impacto en runbook de rotación.",
+        "dod": "Decisión documentada en ARQUITECTURA.md y, si aplica, historia de implementación creada."
+      },
+      "ac": [
+        "Dado las dos opciones Cuando se evalúan Entonces queda escrita la decisión con su riesgo aceptado",
+        "[borde] Dado la rotación semanal del refresh token en modo Testing Cuando se decide Entonces se considera su costo doble"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["spike", "seguridad"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "hallazgos": ["PP-M-6"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md M-6",
+        "docs/RUNBOOK_ROTACION_DRIVE.md"
+      ]
+    }
+  ]
+}

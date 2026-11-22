@@ -110,6 +110,7 @@ import {
 } from '@/features/payment/actions';
 import { createRole, deleteRole, updateRole } from '@/features/role/actions';
 import { mockCookies } from '../__mocks__/next-headers';
+import { firmasDelCentro } from '../helpers/imagenes-privadas';
 
 import {
   crearTenantDePrueba,
@@ -546,6 +547,10 @@ beforeAll(async () => {
     P.EDITAR_ROLES,
     P.ELIMINAR_ROLES,
   ]);
+  // `batchGenerateDocuments` no genera sin las firmas del centro.
+  await prisma.imagenPrivada.createMany({
+    data: firmasDelCentro(centro.tenantId),
+  });
 });
 
 beforeEach(() => {

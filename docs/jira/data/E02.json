@@ -1,0 +1,1191 @@
+{
+  "epica": {
+    "id": "E02",
+    "titulo": "Generación de Documentos",
+    "descripcion": "Plantillas HTML (65 hoy: insolvency, conciliation, support-agreements) → placeholder-mapper → PDF vía Puppeteer/Chromium y DOCX vía html-to-docx → Google Drive. Dos rutas: automática al crear/cambiar de fase el caso (after() + lock) y manual desde /documents (batchGenerateDocuments, en tandas).",
+    "objetivo": "Que ningún documento que se radica ante un juzgado o centro salga con datos vacíos, equivocados o duplicados, y que generar un paquete completo no dependa de la suerte con el timeout de Vercel.",
+    "prioridad": "Crítica",
+    "labels": [],
+    "evidencia": [
+      "docs/ARQUITECTURA.md §6",
+      "docs/AUDITORIA_MODULO_GENERACION_2026-07.md",
+      "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §3",
+      "src/features/document/"
+    ]
+  },
+  "items": [
+    {
+      "id": "E02-01",
+      "tipo": "Story",
+      "titulo": "Generar documentos legales en PDF desde plantillas HTML",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "generar los documentos del trámite a partir de los datos del caso",
+        "para": "dejar de redactar a mano cada solicitud, auto y acta"
+      },
+      "ac": [
+        "Dado un caso completo Cuando genero el paquete de Solicitud Entonces obtengo los PDF con los datos del caso",
+        "Dado una plantilla con placeholders Cuando se renderiza Entonces cada {{VARIABLE}} se reemplaza por su valor",
+        "[error] Dado una plantilla inexistente Cuando se intenta generar Entonces el documento se marca como error",
+        "Dado los 5 paquetes (Solicitud, Admisión, Negociación, Terminación, Fracaso) Cuando elijo uno Entonces se generan sus plantillas"
+      ],
+      "puntos": 8,
+      "justificacion": "Pipeline completo nuevo (49 plantillas iniciales, mapper de 300+ variables, Chromium) rediseñado a HTML local.",
+      "prioridad": "Crítica",
+      "labels": ["feature"],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W08",
+      "estado": "Done",
+      "resuelto": "2026-02-21",
+      "version": "v0.1.0",
+      "evidencia": [
+        "df0ba7c feat: rediseñar sistema de generación de documentos a pipeline HTML local",
+        "CHANGELOG.md [0.1.0] Document generation"
+      ],
+      "subtareas": [
+        {
+          "id": "E02-01.1",
+          "titulo": "Plantillas HTML por paquete",
+          "descripcion": "49 plantillas en 5 paquetes."
+        },
+        {
+          "id": "E02-01.2",
+          "titulo": "Placeholder-mapper",
+          "descripcion": "Mapeo de 300+ variables desde el caso."
+        },
+        {
+          "id": "E02-01.3",
+          "titulo": "Render a PDF con Puppeteer",
+          "descripcion": "html-to-pdf y subida a Drive."
+        }
+      ]
+    },
+    {
+      "id": "E02-02",
+      "tipo": "Bug",
+      "titulo": "Nombres de archivo que colisionaban y variables sin resolver en la generación",
+      "bug": {
+        "entorno": "Desarrollo, febrero 2026",
+        "pasos": [
+          "Generar un paquete con varias plantillas de nombre parecido",
+          "Revisar los archivos y su contenido"
+        ],
+        "esperado": "Un archivo por plantilla, con todas las variables resueltas",
+        "actual": "Archivos que se pisaban entre sí y variables sin resolver o mal renderizadas",
+        "severidad": "Alta",
+        "causaRaiz": "Según los commits: nombres de archivo derivados sin unicidad y variables faltantes en el mapper. Detalle no documentado.",
+        "fix": "8d0cae4 (5 correcciones críticas) + 584feaf (colisión filenames, variables y rendering) + 1fa6eb8 (variables faltantes y logging)",
+        "regresion": "No identificado en los commits."
+      },
+      "ac": [
+        "Dado dos plantillas con nombre similar Cuando se generan Entonces producen dos archivos distintos",
+        "Dado una plantilla generada Cuando se revisa Entonces no quedan {{VARIABLES}} visibles"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W09",
+      "estado": "Done",
+      "resuelto": "2026-02-26",
+      "version": "v0.1.0",
+      "evidencia": ["8d0cae4", "584feaf", "1fa6eb8"]
+    },
+    {
+      "id": "E02-03",
+      "tipo": "Story",
+      "titulo": "Módulo /documents como punto principal de generación",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "elegir caso, paquete y formato desde una sola pantalla",
+        "para": "generar lo que necesito sin entrar al detalle de cada caso"
+      },
+      "ac": [
+        "Dado la pantalla /documents Cuando elijo un caso y un paquete Entonces veo las plantillas que se van a generar",
+        "Dado la generación terminada Cuando la reviso Entonces veo qué documentos se generaron",
+        "[error] Dado un usuario sin permiso de generar Cuando abre /documents Entonces no puede generar"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-07",
+      "version": "v0.1.0",
+      "evidencia": [
+        "2167f61 feat: mejorar módulo /documents como punto principal de generación"
+      ]
+    },
+    {
+      "id": "E02-04",
+      "tipo": "Story",
+      "titulo": "Salida en Word (.docx) y formulario previo a la generación",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "obtener los documentos también en Word y completar datos de último momento antes de generarlos",
+        "para": "poder ajustar la redacción en casos especiales sin rehacer el documento"
+      },
+      "ac": [
+        "Dado un paquete Cuando elijo formato Word Entonces obtengo archivos .docx",
+        "Dado el formato Ambos Cuando genero Entonces obtengo PDF y DOCX de cada plantilla",
+        "[borde] Dado un dato pedido en el formulario previo Cuando lo dejo vacío Entonces se advierte antes de generar"
+      ],
+      "puntos": 5,
+      "justificacion": "Segundo motor de salida (html-to-docx) con CSS de tablas distinto al de Chromium.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Documentos-PDF"],
+      "sprint": "2026-W14",
+      "estado": "Done",
+      "resuelto": "2026-03-30",
+      "version": "v0.2.0",
+      "evidencia": [
+        "0c4c660 feat: generación Word (.docx), formulario pre-generación",
+        "c7ddb75 docs: DOCX export exists"
+      ]
+    },
+    {
+      "id": "E02-05",
+      "tipo": "Story",
+      "titulo": "Check List por categoría, Certificado narrativo y Excel consolidado",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "el Check List agrupado por categoría, el certificado en prosa y un Excel consolidado del caso",
+        "para": "entregar al centro el soporte completo en el formato que piden"
+      },
+      "ac": [
+        "Dado un caso Cuando genero el Check List Entonces los ítems se agrupan por categoría",
+        "Dado el certificado Cuando se genera Entonces es narrativo, no una tabla",
+        "[borde] Dado un caso sin acreedores del tipo CYG Cuando genero Entonces los placeholders CYG no dejan huecos"
+      ],
+      "puntos": 5,
+      "justificacion": "Tres documentos distintos y un exportador Excel en un mismo cambio.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Documentos-PDF", "Backend"],
+      "sprint": "2026-W14",
+      "estado": "Done",
+      "resuelto": "2026-04-02",
+      "version": "v0.2.0",
+      "evidencia": [
+        "c8a56ff feat: mejoras documentos — Checklist categoría, Certificado narrativo, CYG placeholders, Excel consolidado"
+      ]
+    },
+    {
+      "id": "E02-06",
+      "tipo": "Story",
+      "titulo": "Plantillas actualizadas a la Ley 2445 de 2025 y documento de Restablecimiento",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que las plantillas citen la norma vigente e incluyan el documento de Restablecimiento",
+        "para": "no radicar documentos con fundamento normativo desactualizado"
+      },
+      "ac": [
+        "Dado las plantillas de insolvencia Cuando se generan Entonces citan la Ley 2445/2025 donde corresponde",
+        "Dado un caso que lo requiere Cuando genero Restablecimiento Entonces se produce el documento",
+        "[borde] Dado una plantilla sin cambio normativo Cuando se genera Entonces su texto no cambia"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W14",
+      "estado": "Done",
+      "resuelto": "2026-04-03",
+      "version": "v0.2.0",
+      "evidencia": [
+        "8e63bb0 feat: actualizar plantillas con Ley 2445/2025 y nuevo documento Restablecimiento"
+      ]
+    },
+    {
+      "id": "E02-07",
+      "tipo": "Story",
+      "titulo": "Plantillas de Conciliación con motor handlebars-lite",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "generar actas y constancias de conciliación con listas de partes, menores y cláusulas",
+        "para": "emitir los documentos del servicio de conciliación desde el sistema"
+      },
+      "ac": [
+        "Dado una conciliación con tres cláusulas Cuando genero el acta Entonces se imprimen las tres en orden con {{#each}}",
+        "Dado un bloque {{#if}} sin dato Cuando se renderiza Entonces el bloque no aparece",
+        "[borde] Dado una conciliación con menor de edad Cuando genero Entonces se incluyen las cláusulas de alimentos",
+        "Dado el gap de variables cerrado Cuando se genera cualquier plantilla de conciliación Entonces no quedan variables sin mapear"
+      ],
+      "puntos": 8,
+      "justificacion": "Servicio documental nuevo con motor de plantillas propio (bloques y arreglos).",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W15",
+      "estado": "Done",
+      "resuelto": "2026-04-09",
+      "version": "v0.2.0",
+      "evidencia": [
+        "fb3cabc feat: implementar servicio de Conciliación — plantillas, formulario y pipeline",
+        "04f2003 feat(conciliation): cerrar gap de variables",
+        "4613a98 feat(conciliation): motor handlebars-lite"
+      ],
+      "subtareas": [
+        {
+          "id": "E02-07.1",
+          "titulo": "Motor handlebars-lite ({{#each}}, {{#if}})",
+          "descripcion": "4613a98."
+        },
+        {
+          "id": "E02-07.2",
+          "titulo": "Mapper de conciliación y cierre del gap de variables",
+          "descripcion": "04f2003."
+        }
+      ]
+    },
+    {
+      "id": "E02-08",
+      "tipo": "Story",
+      "titulo": "Carpetas del expediente en Drive por sección y numeración por servicio",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que cada expediente tenga en Drive carpetas por sección y numeración por servicio",
+        "para": "encontrar los documentos de un caso en Drive sin buscar archivo por archivo"
+      },
+      "ac": [
+        "Dado un caso nuevo Cuando se generan documentos Entonces se suben a la subcarpeta de su sección (layout v1)",
+        "Dado un caso legacy en layout 0 Cuando se accede Entonces el migrador lazy lo trata sin romperlo",
+        "[borde] Dado un fallo al crear la subcarpeta Cuando se sube Entonces el documento cae en la carpeta del caso"
+      ],
+      "puntos": 5,
+      "justificacion": "Cambio de layout de almacenamiento con migrador lazy y compatibilidad hacia atrás.",
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "2026-W15",
+      "estado": "Done",
+      "resuelto": "2026-04-08",
+      "version": "v0.2.0",
+      "nota": "El versionado (archiveSupersededDocument) quedó como código muerto; ver E02-34/E02-35 (GD-A3).",
+      "evidencia": [
+        "4b9b7a0 feat(storage): layout v1 sectorizado para Drive",
+        "269db78 feat(storage): versionado, migrador lazy, centros DB, numeración por servicio"
+      ]
+    },
+    {
+      "id": "E02-09",
+      "tipo": "Story",
+      "titulo": "Vista previa de PDFs e imágenes dentro de la app",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "ver un PDF o un comprobante sin descargarlo",
+        "para": "revisar documentos rápido durante la atención"
+      },
+      "ac": [
+        "Dado un PDF del caso Cuando lo abro Entonces se muestra embebido",
+        "Dado una imagen JPG o PNG Cuando la abro Entonces se muestra embebida",
+        "[borde] Dado un formato no soportado Cuando lo abro Entonces se ofrece la descarga"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-14",
+      "version": "v0.2.0",
+      "evidencia": ["CHANGELOG.md [0.2.0] Inline document preview"]
+    },
+    {
+      "id": "E02-10",
+      "tipo": "Bug",
+      "titulo": "Assets, persistencia y límites de la generación inconsistentes entre rutas",
+      "bug": {
+        "entorno": "Código de julio 2026 (auditoría del módulo de documentos)",
+        "pasos": [
+          "Generar desde la ruta automática y desde la manual el mismo documento",
+          "Comparar assets y filas Document"
+        ],
+        "esperado": "Mismos assets por tipo de caso y misma persistencia",
+        "actual": "Assets no dependían del caseType, persistencia duplicada y generación sin rate limit",
+        "severidad": "Media",
+        "causaRaiz": "Dos rutas de generación con lógica copiada (hallazgos de AUDITORIA_MODULO_GENERACION_2026-07).",
+        "fix": "18d90cc fix(document): auditoría — assets por caseType, persistencia unificada, rate limiting",
+        "regresion": "Tests de persistencia compartida (persistence.ts)."
+      },
+      "ac": [
+        "Dado una conciliación Cuando se genera Entonces usa los assets de conciliación",
+        "Dado muchas generaciones seguidas de un usuario Cuando supera el límite Entonces se rechazan"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-10",
+      "version": "v0.4.0",
+      "evidencia": ["18d90cc", "docs/AUDITORIA_MODULO_GENERACION_2026-07.md"]
+    },
+    {
+      "id": "E02-11",
+      "tipo": "Bug",
+      "titulo": "Inyección de HTML (XSS) a través de los datos del caso en los documentos",
+      "bug": {
+        "entorno": "Todas las versiones hasta julio 2026",
+        "pasos": [
+          "Registrar un deudor con nombre '<img src=x onerror=...>'",
+          "Generar un documento"
+        ],
+        "esperado": "El nombre aparece escapado como texto",
+        "actual": "El HTML se interpreta dentro de la plantilla",
+        "severidad": "Crítica",
+        "causaRaiz": "~300 claves escalares en ~20 sub-mappers se interpolaban sin escapar; escapar valor por valor garantizaba omisiones.",
+        "fix": "758b733 — escape OWASP en el punto de fusión de mapCaseToPlaceholders + allowlist de 16 placeholders HTML del sistema",
+        "regresion": "Guardián del escape HTML con allowlist (52392a1, E14-06)."
+      },
+      "ac": [
+        "Dado un dato con etiquetas HTML Cuando se genera el documento Entonces se imprime escapado",
+        "Dado un placeholder HTML del sistema en la allowlist Cuando se genera Entonces conserva su marcado"
+      ],
+      "puntos": 5,
+      "justificacion": "Cambio transversal en el punto de fusión del mapper con allowlist y builders.",
+      "prioridad": "Crítica",
+      "labels": ["seguridad"],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-10",
+      "version": "v0.4.0",
+      "evidencia": [
+        "758b733 fix(document): escape HTML en placeholders + builders (P2)",
+        "CLAUDE.md Session 1 (P2 XSS)"
+      ]
+    },
+    {
+      "id": "E02-12",
+      "tipo": "Story",
+      "titulo": "Lock atómico que impide dos generaciones simultáneas del mismo paquete",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que un doble clic o dos compañeras generando a la vez no dupliquen documentos",
+        "para": "no tener dos versiones del mismo documento en el expediente"
+      },
+      "ac": [
+        "Dado N solicitudes simultáneas del mismo caso y tipo Cuando se reclaman Entonces exactamente una gana",
+        "[error] Dado una solicitud perdedora Cuando responde Entonces devuelve success:false con el requestId de la activa",
+        "[borde] Dado un lock de más de 10 minutos Cuando se intenta reclamar Entonces se libera y se re-reclama"
+      ],
+      "puntos": 5,
+      "justificacion": "Clave única parcial en Postgres (activeKey) diseñada para serverless sin cola externa.",
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-11",
+      "version": "v0.4.0",
+      "evidencia": [
+        "177cf24 feat(documents): P3 + P4",
+        "CLAUDE.md Session 2 (P3)"
+      ]
+    },
+    {
+      "id": "E02-13",
+      "tipo": "Story",
+      "titulo": "Generación inicial en segundo plano con aviso al terminar",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que crear un caso responda de inmediato y me avise cuando los documentos estén listos",
+        "para": "no esperar con la pantalla congelada mientras se generan los PDF"
+      },
+      "ac": [
+        "Dado un caso nuevo Cuando lo guardo Entonces la respuesta llega sin esperar la generación",
+        "Dado el job en after() Cuando termina Entonces recibo una notificación in-app con el resultado",
+        "[error] Dado un fallo de Drive Cuando se sube Entonces se reintenta 3 veces con backoff antes de marcar FAILED",
+        "Dado una solicitud Cuando se consulta getGenerationRequestStatus Entonces devuelve PENDING, PROCESSING, COMPLETED, COMPLETED_WITH_ERRORS o FAILED"
+      ],
+      "puntos": 5,
+      "justificacion": "Máquina de estados de la solicitud, after() de Next, retry y notificaciones.",
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-11",
+      "version": "v0.4.0",
+      "evidencia": [
+        "177cf24 feat(documents): P3 + P4",
+        "CLAUDE.md Session 2 (P4)",
+        "CHANGELOG.md [1.0.0-rc.1] Generación inicial en background"
+      ]
+    },
+    {
+      "id": "E02-14",
+      "tipo": "Bug",
+      "titulo": "Documentos legales con campos vacíos generados en silencio",
+      "bug": {
+        "entorno": "Producción hasta septiembre 2026",
+        "pasos": [
+          "Crear un caso sin el nombre del deudor",
+          "Generar la Solicitud desde /documents"
+        ],
+        "esperado": "La generación se bloquea e informa qué falta",
+        "actual": "El PDF sale con el campo en blanco (y filas de tabla eliminadas), indistinguible de uno correcto",
+        "severidad": "Crítica",
+        "causaRaiz": "replacePlaceholders vaciaba todo {{VAR}} no resuelto sin señal, y batchGenerateDocuments no invocaba validateDocumentRequirements ni validatePlaceholderCoverage. Además, una generación con todo skipped quedaba COMPLETED.",
+        "fix": "PR #4 17c7de2 (commit d476625): bloqueo por datos incompletos en ambas rutas y completeGenerationRequest marca COMPLETED_WITH_ERRORS si no produjo nada",
+        "regresion": "Tests de generación con caso incompleto en la ruta manual (PR #4)."
+      },
+      "ac": [
+        "[error] Dado un caso sin un dato requerido Cuando se genera Entonces el documento sale skipped con la lista de faltantes",
+        "Dado una generación en la que todos los documentos se saltaron Cuando termina Entonces su estado es COMPLETED_WITH_ERRORS"
+      ],
+      "puntos": 5,
+      "justificacion": "Cambia el contrato de las dos rutas de generación y el estado de la solicitud.",
+      "prioridad": "Crítica",
+      "labels": ["doc-semana-3"],
+      "componentes": ["Backend", "Documentos-PDF", "Testing"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-11",
+      "version": "v0.5.0",
+      "hallazgos": ["GD-C1", "GD-C2", "GD-M1"],
+      "evidencia": [
+        "PR #4 17c7de2 (d476625)",
+        "docs/IMPLEMENTACION_SEMANA_3.md §4",
+        "src/features/document/generation-request.ts:178-200"
+      ]
+    },
+    {
+      "id": "E02-15",
+      "tipo": "Story",
+      "titulo": "Lock en la generación manual y presupuesto de ejecución explícito",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que la generación manual tampoco se duplique y no se corte por el timeout por defecto",
+        "para": "confiar en que el paquete que pedí se generó una sola vez y completo"
+      },
+      "ac": [
+        "Dado dos generaciones manuales del mismo paquete Cuando se piden a la vez Entonces solo una corre (kind BATCH)",
+        "Dado /cases y /documents Cuando se ejecutan Entonces declaran maxDuration = 60",
+        "[borde] Dado un lote de 26 o 77 documentos Cuando se pide Entonces sigue sin caber en 60 s (queda en E02-32)"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["nfr", "doc-semana-3"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-11",
+      "version": "v0.5.0",
+      "hallazgos": ["GD-A4", "GD-A1"],
+      "evidencia": [
+        "PR #4 17c7de2 (6a95bc4)",
+        "docs/IMPLEMENTACION_SEMANA_3.md §5",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §4 (A-8 resuelto, A-5 reducido)"
+      ]
+    },
+    {
+      "id": "E02-16",
+      "tipo": "Bug",
+      "titulo": "Las fechas de fracaso salían pisadas en el merge final del mapper",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": ["Generar un documento de Fracaso con fecha registrada"],
+        "esperado": "DIA/MES/ANO_FRACASO con la fecha del caso",
+        "actual": "Valores pisados por duplicados muertos en el merge",
+        "severidad": "Alta",
+        "causaRaiz": "Claves duplicadas entre sub-mappers; la fusión final se quedaba con el valor equivocado.",
+        "fix": "62a0c19 (refs #18) + PR #24",
+        "regresion": "Test que blinda DIA/MES/ANO_FRACASO en el merge final."
+      },
+      "ac": [
+        "Dado un caso con fecha de fracaso Cuando se genera Entonces las tres claves usan esa fecha",
+        "Dado un duplicado nuevo de esas claves Cuando se agrega Entonces el test falla"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-19",
+      "version": "v0.6.0",
+      "evidencia": ["62a0c19", "#24 1ae9087", "issue #18"]
+    },
+    {
+      "id": "E02-17",
+      "tipo": "Bug",
+      "titulo": "Los totales de bienes de la Solicitud concatenaban en vez de sumar",
+      "bug": {
+        "entorno": "Producción, ruta automática de generación (creación de caso)",
+        "pasos": [
+          "Crear un caso con un inmueble de $100M",
+          "Revisar TOTAL_INMUEBLES en la Solicitud"
+        ],
+        "esperado": "$100.000.000",
+        "actual": "$1.000M o cifras de 15 dígitos con más activos",
+        "severidad": "Crítica",
+        "causaRaiz": "mapAssets sumaba Prisma.Decimal con +, y Decimal.valueOf() devuelve string: concatenaba.",
+        "fix": "e7af5bf (PR #41): Number() en cada sumando",
+        "regresion": "Test con Prisma.Decimal real comparando la salida completa del mapper entre Decimal y number."
+      },
+      "ac": [
+        "Dado activos Prisma.Decimal Cuando se suman Entonces el total es aritmético",
+        "Dado la misma entrada como Decimal y como number Cuando se mapea Entonces la salida es idéntica"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": [
+        "e7af5bf",
+        "#41 5db7b1e",
+        "CHANGELOG.md [1.0.0-rc.1] Fixed (Totales de bienes)"
+      ]
+    },
+    {
+      "id": "E02-18",
+      "tipo": "Bug",
+      "titulo": "Doble conversión de zona horaria y años de pago pisados en los documentos",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": ["Generar el acuerdo de pago de un caso con fecha de inicio"],
+        "esperado": "Fechas y años correctos",
+        "actual": "Fechas corridas por doble conversión y ANO_INICIO_PAGO/ANO_VIGENCIA sobrescritos",
+        "severidad": "Alta",
+        "causaRaiz": "La fecha se convertía de zona horaria dos veces y dos sub-mappers escribían las mismas claves de año.",
+        "fix": "7d74953 (Hallazgo 1) + 22939de (Hallazgo 2)",
+        "regresion": "Tests del contrato de colisiones del mapper (E14-06)."
+      },
+      "ac": [
+        "Dado una fecha de inicio Cuando se genera Entonces se imprime sin corrimiento",
+        "Dado ANO_INICIO_PAGO y ANO_VIGENCIA Cuando se generan Entonces conservan su valor propio"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W39",
+      "estado": "Done",
+      "resuelto": "2026-09-24",
+      "version": "v0.6.0",
+      "evidencia": ["7d74953", "22939de"]
+    },
+    {
+      "id": "E02-19",
+      "tipo": "Bug",
+      "titulo": "Representante, acreedores por posición y bloques condicionales mal resueltos",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": [
+          "Generar un documento con representante legal y menos acreedores que posiciones",
+          "Usar una plantilla con {{#if}} de dos tokens"
+        ],
+        "esperado": "NOMBRE_REPRESENTANTE presente, AC{n}_* completos y el detector reconoce los bloques",
+        "actual": "NOMBRE_REPRESENTANTE ausente, AC{n}_* incompletos y falsos 'placeholders sin resolver'",
+        "severidad": "Media",
+        "causaRaiz": "Clave faltante (se había intentado unificar con NOMBRE_REPRESENTANTE_LEGAL), relleno de posiciones vacías incompleto y regex del detector de un solo token.",
+        "fix": "d55ac1a (Hallazgo 5) + b4f4d59 (Hallazgo C) + d494d49 (Bug B)",
+        "regresion": "Tests del detector con bloques de dos tokens."
+      },
+      "ac": [
+        "Dado una plantilla con {{#if X Y}} Cuando se valida la cobertura Entonces no se reporta como sin resolver",
+        "Dado un caso con 2 acreedores Cuando una plantilla pide AC3_* Entonces se completan vacíos sin romper la frase"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W39",
+      "estado": "Done",
+      "resuelto": "2026-09-26",
+      "version": "v0.6.0",
+      "evidencia": ["d55ac1a", "b4f4d59", "d494d49"]
+    },
+    {
+      "id": "E02-20",
+      "tipo": "Bug",
+      "titulo": "El motor no reconocía {{#unless @last}} dentro de {{#each}}",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": [
+          "Generar una plantilla que separa ítems con comas usando @last"
+        ],
+        "esperado": "Comas entre ítems y no después del último",
+        "actual": "El bloque @last se ignoraba",
+        "severidad": "Media",
+        "causaRaiz": "handlebars-lite no implementaba @last en {{#unless}}/{{#if}}.",
+        "fix": "#51 b8126f2",
+        "regresion": "Tests de handlebars-lite con @last."
+      },
+      "ac": [
+        "Dado tres ítems Cuando se renderiza con @last Entonces aparecen dos separadores",
+        "Dado un solo ítem Cuando se renderiza Entonces no aparece separador"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#51 b8126f2"]
+    },
+    {
+      "id": "E02-21",
+      "tipo": "Bug",
+      "titulo": "La cobertura de placeholders contaba variables de bloque como faltantes",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": [
+          "Generar un documento con {{#each}}",
+          "Leer el porcentaje de cobertura"
+        ],
+        "esperado": "Cobertura sobre variables escalares",
+        "actual": "Las variables internas del bloque bajaban la cobertura y podían bloquear la generación",
+        "severidad": "Media",
+        "causaRaiz": "validatePlaceholderCoverage no distinguía variables de bloque.",
+        "fix": "#73 a7dc712",
+        "regresion": "coverage-bloques.test.ts."
+      },
+      "ac": [
+        "Dado una plantilla con variables solo dentro de {{#each}} Cuando se mide la cobertura Entonces es 100%",
+        "Dado una variable escalar faltante Cuando se mide Entonces sí se reporta"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#73 a7dc712",
+        "tests/unit/documents/coverage-bloques.test.ts"
+      ]
+    },
+    {
+      "id": "E02-22",
+      "tipo": "Story",
+      "titulo": "Generación automática en tres fases con un solo navegador",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que la generación al crear o admitir un caso sea más rápida",
+        "para": "que no se corte por el límite de tiempo de la plataforma"
+      },
+      "ac": [
+        "Dado la creación de un caso (3 documentos) Cuando se genera Entonces usa un solo Chromium para todos",
+        "Dado la admisión (6 documentos) Cuando se mide con Chromium real Entonces baja de ~3,4 s a ~2,1 s",
+        "[error] Dado un documento que falla al validar Cuando se prepara Entonces no se renderiza ni se sube"
+      ],
+      "puntos": 5,
+      "justificacion": "Reestructura generateFromTemplates en preparar → renderizar en lote → subir, con medición real.",
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "hallazgos": ["GD-A1"],
+      "evidencia": [
+        "#57 2a202f9",
+        "docs/AUDITORIA_MODULO_GENERACION_2026-07.md P1",
+        "CHANGELOG.md [1.0.0-rc.1] Changed"
+      ]
+    },
+    {
+      "id": "E02-23",
+      "tipo": "Story",
+      "titulo": "La Solicitud y el CYG listan todos los acreedores sin tope",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que la Solicitud y el CYG Trámite incluyan a todos los acreedores del caso",
+        "para": "no dejar acreedores fuera de un documento que el juez revisa"
+      },
+      "ac": [
+        "Dado un caso con 15 acreedores Cuando genero la Solicitud Entonces aparecen los 15 (antes tope de 3)",
+        "Dado el CYG Trámite Cuando hay más de 11 acreedores Entonces aparecen todos",
+        "[borde] Dado un caso con un solo acreedor Cuando genero Entonces la tabla no deja filas vacías",
+        "Dado los 264 slots numerados Cuando se retiran Entonces ninguna plantilla los referencia"
+      ],
+      "puntos": 8,
+      "justificacion": "Cadena de 3 PRs apilados con trampas de merge documentadas y retiro de 264 slots.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Documentos-PDF", "Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-01",
+      "version": "v0.6.0",
+      "nota": "Construido sobre la opción (1) asumida del ítem legal 5 (lista completa vs. tope con anexo).",
+      "evidencia": [
+        "#77 ce8dcb3",
+        "#78 a912f67",
+        "#79 f233b24",
+        "docs/PLAN_TODOS_LOS_ACREEDORES_2026-09-28.md",
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 5"
+      ],
+      "subtareas": [
+        {
+          "id": "E02-23.1",
+          "titulo": "Solicitud con todos los acreedores",
+          "descripcion": "#77."
+        },
+        {
+          "id": "E02-23.2",
+          "titulo": "CYG Trámite sin tope de 11",
+          "descripcion": "#78, apilado sobre #77."
+        },
+        {
+          "id": "E02-23.3",
+          "titulo": "Retirar los 264 slots numerados",
+          "descripcion": "#79, apilado sobre #78."
+        }
+      ]
+    },
+    {
+      "id": "E02-24",
+      "tipo": "Story",
+      "titulo": "Un oficio de suspensión por cada juzgado del caso",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "un oficio de suspensión por cada juzgado con proceso contra el deudor",
+        "para": "notificar a todos los juzgados sin editar el oficio a mano"
+      },
+      "ac": [
+        "Dado un caso con 3 procesos en juzgados distintos Cuando genero Entonces obtengo 3 oficios",
+        "Dado dos procesos en el mismo juzgado Cuando genero Entonces obtengo un oficio para ese juzgado",
+        "[borde] Dado un caso sin procesos Cuando genero Entonces no se produce oficio"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-01",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#80 672b3c3",
+        "tests/unit/documents/oficio-por-juzgado.test.ts"
+      ]
+    },
+    {
+      "id": "E02-25",
+      "tipo": "Bug",
+      "titulo": "Tres placeholders leían la fuente equivocada o ninguna",
+      "bug": {
+        "entorno": "dev, octubre 2026",
+        "pasos": ["Generar los documentos que usan esos 3 placeholders"],
+        "esperado": "Cada placeholder con el dato del campo correcto",
+        "actual": "Valor de otro campo o vacío",
+        "severidad": "Media",
+        "causaRaiz": "Mapeo a un campo equivocado o inexistente tras la reestructuración del formulario.",
+        "fix": "#104 46a196a",
+        "regresion": "Tests de los 3 placeholders."
+      },
+      "ac": [
+        "Dado los 3 campos diligenciados Cuando se genera Entonces cada placeholder muestra su dato",
+        "Dado un mapeo a campo inexistente Cuando corre la suite Entonces falla"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": ["#104 46a196a"]
+    },
+    {
+      "id": "E02-26",
+      "tipo": "Story",
+      "titulo": "Reintentos en la subida a Drive de la generación manual",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que un fallo momentáneo de Drive no me haga perder la generación manual",
+        "para": "no repetir un paquete completo por un error de red"
+      },
+      "ac": [
+        "Dado un error transitorio de Drive Cuando se sube un documento Entonces se reintenta con backoff (withRetry)",
+        "[error] Dado tres fallos seguidos Cuando se agotan los reintentos Entonces el documento se marca como error y queda en el logger",
+        "[borde] Dado un fallo al crear la subcarpeta Cuando se sube Entonces cae a la carpeta del caso sin reintento propio"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-03",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#110 b32e892",
+        "#86 2cc6a3c (backlog)",
+        "CLAUDE.md Fase 2 (Reintentos en la ruta manual — Resuelto)"
+      ]
+    },
+    {
+      "id": "E02-27",
+      "tipo": "Bug",
+      "titulo": "Toda fecha del formulario salía impresa un día antes",
+      "bug": {
+        "entorno": "Producción, octubre 2026",
+        "pasos": [
+          "Registrar una fecha 15/10/2026",
+          "Generar un documento que la imprime"
+        ],
+        "esperado": "15 de octubre de 2026",
+        "actual": "14 de octubre de 2026",
+        "severidad": "Crítica",
+        "causaRaiz": "Las fechas de solo día se guardaban a medianoche UTC y se formateaban en hora de Colombia (UTC-5).",
+        "fix": "#112 39560b3",
+        "regresion": "Tests de formato de fecha independientes de la zona horaria del runner."
+      },
+      "ac": [
+        "Dado una fecha de solo día Cuando se imprime Entonces es el mismo día que se capturó",
+        "Dado el runner en otra zona horaria Cuando corre la suite Entonces los tests de fecha pasan"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "evidencia": ["#112 39560b3"]
+    },
+    {
+      "id": "E02-28",
+      "tipo": "Bug",
+      "titulo": "Las 12 causas de insolvencia de la Solicitud salían siempre en NO",
+      "bug": {
+        "entorno": "Producción, octubre 2026",
+        "pasos": [
+          "Marcar causas de cesación en el formulario",
+          "Generar la Solicitud"
+        ],
+        "esperado": "SI en las causas marcadas",
+        "actual": "NO en las 12 causas",
+        "severidad": "Crítica",
+        "causaRaiz": "El mapper leía las causas desde una forma de dato que el formulario ya no producía.",
+        "fix": "#113 f58a9f2",
+        "regresion": "Test de las 12 causas de punta a punta (E14-08)."
+      },
+      "ac": [
+        "Dado causas marcadas Cuando se genera la Solicitud Entonces aparecen en SI",
+        "Dado ninguna causa marcada Cuando se genera Entonces todas en NO"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "evidencia": ["#113 f58a9f2"]
+    },
+    {
+      "id": "E02-29",
+      "tipo": "Bug",
+      "titulo": "El Paquete 3 no se podía generar y el formulario del Paquete 2 fallaba",
+      "bug": {
+        "entorno": "Producción, octubre 2026",
+        "pasos": [
+          "Generar el Paquete 3 desde /documents",
+          "Completar el formulario previo del Paquete 2"
+        ],
+        "esperado": "Ambos paquetes se generan",
+        "actual": "El Paquete 3 nunca generaba y el formulario del 2 fallaba siempre",
+        "severidad": "Alta",
+        "causaRaiz": "Validación del formulario previo y mapeo de paquete inconsistentes con las plantillas tras cambios del caso.",
+        "fix": "#118 580ddc7",
+        "regresion": "Tests de generación de los paquetes 2 y 3."
+      },
+      "ac": [
+        "Dado un caso completo Cuando genero el Paquete 3 Entonces se producen sus documentos",
+        "Dado el formulario del Paquete 2 Cuando lo envío completo Entonces no falla"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Frontend", "Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "evidencia": ["#118 580ddc7"]
+    },
+    {
+      "id": "E02-30",
+      "tipo": "Bug",
+      "titulo": "Check List: Parágrafos 1 y 2 sin resolver y CONOCE_NORMA incorrecto",
+      "bug": {
+        "entorno": "dev, octubre 2026",
+        "pasos": ["Generar el Check List de un caso"],
+        "esperado": "Parágrafos 1 y 2 con SI/NO según el caso y CONOCE_NORMA veraz",
+        "actual": "Parágrafos sin resolver y CONOCE_NORMA afirmaba algo no capturado",
+        "severidad": "Alta",
+        "causaRaiz": "Placeholders sin fuente en el formulario y un valor por defecto que afirmaba conocimiento de la norma.",
+        "fix": "#119 62a4c4b",
+        "regresion": "Tests del Check List."
+      },
+      "ac": [
+        "Dado un caso Cuando genero el Check List Entonces los Parágrafos 1 y 2 salen resueltos",
+        "Dado que el dato no se capturó Cuando se genera Entonces CONOCE_NORMA no afirma nada falso"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "nota": "El Parágrafo 3 sigue bloqueado por decisión legal (E11-10).",
+      "evidencia": ["#119 62a4c4b", "docs/PENDIENTES_DECISION_LEGAL.md §4"]
+    },
+    {
+      "id": "E02-31",
+      "tipo": "Bug",
+      "titulo": "Las cláusulas del Acuerdo de Apoyo desaparecían del documento",
+      "bug": {
+        "entorno": "Producción, octubre 2026",
+        "pasos": [
+          "Registrar un acuerdo de apoyo con cláusulas",
+          "Generar el acuerdo"
+        ],
+        "esperado": "Las cláusulas impresas",
+        "actual": "Las cláusulas no aparecían",
+        "severidad": "Alta",
+        "causaRaiz": "El mapper de apoyo no entregaba las cláusulas en la forma que la plantilla iteraba.",
+        "fix": "#120 1358728",
+        "regresion": "Test del documento de acuerdo de apoyo con cláusulas."
+      },
+      "ac": [
+        "Dado un acuerdo con 3 cláusulas Cuando se genera Entonces aparecen las 3",
+        "Dado un acuerdo sin cláusulas Cuando se genera Entonces no quedan encabezados vacíos"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "evidencia": ["#120 1358728"]
+    },
+    {
+      "id": "E02-32",
+      "tipo": "Story",
+      "titulo": "Generación de lotes grandes en tandas con reintento por tanda",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "generar todos los documentos de un caso de una vez y, si una parte falla, reintentar solo esa parte",
+        "para": "no quedarme sin el paquete completo cuando supera el tiempo de una invocación"
+      },
+      "ac": [
+        "Dado un lote de 77 documentos Cuando lo genero Entonces se divide en tandas que caben en maxDuration",
+        "Dado la generación en curso Cuando la miro Entonces veo el progreso por tanda",
+        "[error] Dado una tanda que falla Cuando la reintento Entonces solo se regenera esa tanda sin duplicar las demás",
+        "Dado todas las tandas Cuando terminan Entonces quedan bajo una sola DocumentGenerationRequest"
+      ],
+      "puntos": 8,
+      "justificacion": "Rediseño a N invocaciones bajo una solicitud, reintento sin duplicar y rate limit propio.",
+      "prioridad": "Alta",
+      "labels": ["nfr", "doc-semana-7"],
+      "componentes": ["Backend", "Frontend", "Testing"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["GD-A1"],
+      "evidencia": [
+        "#140 376d83b",
+        "issue #3",
+        "docs/IMPLEMENTACION_SEMANA_7.md §2",
+        "tests/unit/documents/batch-tandas.test.ts"
+      ],
+      "subtareas": [
+        {
+          "id": "E02-32.1",
+          "titulo": "Partición del lote en tandas",
+          "descripcion": "Una DocumentGenerationRequest, N invocaciones."
+        },
+        {
+          "id": "E02-32.2",
+          "titulo": "Reintento por tanda sin duplicar",
+          "descripcion": "§2.3 de la Semana 7."
+        },
+        {
+          "id": "E02-32.3",
+          "titulo": "Progreso visible en la UI",
+          "descripcion": "Estado por tanda."
+        }
+      ]
+    },
+    {
+      "id": "E02-33",
+      "tipo": "Story",
+      "titulo": "Requisitos mínimos de datos para cada plantilla de insolvencia y apoyo",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que cada plantilla de insolvencia y de acuerdo de apoyo declare los datos sin los cuales no se genera",
+        "para": "que ninguna de las ~66 plantillas sin reglas salga incompleta"
+      },
+      "ac": [
+        "[error] Dado una plantilla de insolvencia sin requisitos declarados Cuando se intenta generar Entonces no se genera (canGenerate false por defecto)",
+        "Dado los requisitos declarados en la propia definición de la plantilla Cuando se renombra el archivo Entonces la validación no se desactiva",
+        "[borde] Dado una plantilla de conciliación Cuando se genera Entonces no exige campos mínimos (decisión legal ítem 10)",
+        "Dado el set de reglas Cuando corre la suite Entonces cada plantilla de insolvencia y apoyo tiene al menos una regla"
+      ],
+      "puntos": 5,
+      "justificacion": "Recorrer ~50 plantillas definiendo sus datos mínimos; incertidumbre de dominio por cada documento.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Backend", "Documentos-PDF", "Testing"],
+      "sprint": "2026-W44",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "hallazgos": ["GD-A2"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §3 (Alto)",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §4 A-6 sin cambios",
+        "src/features/document/generate-documents.ts:152,222",
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 10"
+      ]
+    },
+    {
+      "id": "E02-34",
+      "tipo": "Task",
+      "titulo": "Definir con los centros la política de versiones al regenerar un documento",
+      "tarea": {
+        "objetivo": "Decidir qué pasa con un documento ya generado (y quizás radicado) cuando se vuelve a generar.",
+        "alcance": "Opciones: archivar en 04-Historial con supersededById, bloquear la regeneración de documentos radicados, o ambas. Consulta con la abogada y los dos centros.",
+        "dod": "Decisión escrita en docs/PENDIENTES_DECISION_LEGAL.md y criterios de E02-35 ajustados."
+      },
+      "ac": [
+        "Dado las opciones documentadas Cuando los centros responden Entonces la decisión queda registrada con fecha",
+        "Dado la decisión Cuando se refina E02-35 Entonces sus criterios la reflejan"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["spike", "legal-pendiente"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W44",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "hallazgos": ["GD-A3"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §6 (requiere decidir la política de versionado con los centros)"
+      ]
+    },
+    {
+      "id": "E02-35",
+      "tipo": "Story",
+      "titulo": "Regenerar un documento sin duplicarlo en Drive ni en la base",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que al regenerar un documento la versión anterior quede archivada y la vigente sea una sola",
+        "para": "no tener dos 'Solicitud de Insolvencia.pdf' distintas en el expediente"
+      },
+      "ac": [
+        "Dado un documento ya generado Cuando lo regenero Entonces la versión anterior pasa a 04-Historial con supersededById",
+        "Dado persistGeneratedDocuments Cuando crea filas Entonces guarda templateId",
+        "[error] Dado un fallo al archivar en Drive Cuando se regenera Entonces la nueva versión se guarda y el fallo queda en Sentry",
+        "Dado la ruta manual en tandas Cuando regenera Entonces aplica el mismo archivado"
+      ],
+      "puntos": 5,
+      "justificacion": "Cablear código muerto (archiveSupersededDocument) en dos rutas más persistir templateId.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W47",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "bloqueadoPor": ["E02-34"],
+      "nota": "Movido de v1.1.0 a v1.0 (2026-10-21): hallazgo Alto sin razón documentada para postergarlo (la anterior era de capacidad). Solo puede volver a v1.1.0 si E02-34 decide por escrito que un documento radicado nunca se regenera; esa decisión sería el riesgo bajo comprobado que hoy falta.",
+      "hallazgos": ["GD-A3"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §3 (Alto)",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §4 A-7 sin cambios",
+        "src/features/document/storage-helpers.ts:33 (sin consumidores)"
+      ]
+    },
+    {
+      "id": "E02-36",
+      "tipo": "Story",
+      "titulo": "Ver el estado de la generación en segundo plano desde el caso",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "ver en el caso si sus documentos se están generando, terminaron o fallaron",
+        "para": "enterarme de una generación colgada sin depender solo de la notificación"
+      },
+      "ac": [
+        "Dado una generación en PROCESSING Cuando abro la sección de documentos Entonces veo el estado y se actualiza solo",
+        "Dado una generación FAILED o COMPLETED_WITH_ERRORS Cuando la veo Entonces se muestra el detalle y cómo reintentar",
+        "[borde] Dado un caso sin solicitudes Cuando abro la sección Entonces no se hace polling"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W47",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Should",
+      "hallazgos": ["GD-M2", "PP-B-4"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §3 (Medio)",
+        "CLAUDE.md Quick Win 4",
+        "grep getGenerationRequestStatus en src/app: 0 consumidores (2026-10-21)"
+      ]
+    },
+    {
+      "id": "E02-37",
+      "tipo": "Bug",
+      "trivial": true,
+      "titulo": "Consultas de diagnóstico de plantillas sin filtro de centro volcadas a los logs",
+      "bug": {
+        "entorno": "Producción actual",
+        "pasos": ["Abrir /documents", "Revisar los Runtime Logs de Vercel"],
+        "esperado": "Ningún dato de otro centro en los logs",
+        "actual": "Conteos y nombres de plantillas de todos los tenants por console.log",
+        "severidad": "Media",
+        "causaRaiz": "documentTemplate.count() y findMany sin tenantId (document/actions.ts:316-330), con console.log.",
+        "fix": "Pendiente: añadir tenantId o eliminar las consultas de diagnóstico; migrar a logger.debug.",
+        "regresion": "Test de que la acción no consulta plantillas sin tenantId."
+      },
+      "ac": [
+        "Dado la acción de diagnóstico Cuando corre Entonces filtra por tenantId o no existe",
+        "Dado producción Cuando se abre /documents Entonces no se escriben conteos de plantillas en consola"
+      ],
+      "puntos": null,
+      "prioridad": "Media",
+      "labels": ["seguridad"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W44",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Should",
+      "hallazgos": ["GD-M5"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §3 (Medio)",
+        "src/features/document/actions.ts:316-330"
+      ]
+    }
+  ]
+}
