@@ -79,35 +79,6 @@ export const permissionGuardPropsSchema = z.object({
   permission: z.string(),
 });
 
-// Registration schemas
-export const registerSchema = z
-  .object({
-    name: z.string().min(1, 'El nombre es requerido'),
-    email: z.string().max(254, 'Email demasiado largo').email('Email inválido'),
-    password: passwordSchema,
-    confirmPassword: z.string(),
-    phone: z.string().min(1, 'El teléfono es requerido'),
-    address: z.string().min(1, 'La dirección es requerida'),
-    professionalCard: z.string().min(1, 'La tarjeta profesional es requerida'),
-    tenantId: z.string().min(1, 'El tenant es requerido'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
-  });
-
-export const registerResultSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  user: z
-    .object({
-      id: z.string(),
-      name: z.string(),
-      email: z.string(),
-    })
-    .optional(),
-});
-
 // Password reset schemas
 export const forgotPasswordSchema = z.object({
   email: z.string().max(254, 'Email demasiado largo').email('Email inválido'),
@@ -158,8 +129,6 @@ export type PermissionCheck = z.infer<typeof permissionCheckSchema>;
 export type PermissionGuardProps = z.infer<typeof permissionGuardPropsSchema>;
 
 // New types
-export type RegisterInput = z.infer<typeof registerSchema>;
-export type RegisterResult = z.infer<typeof registerResultSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type PasswordResetResult = z.infer<typeof passwordResetResultSchema>;

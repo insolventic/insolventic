@@ -3,7 +3,7 @@
  * Tests that Zod schemas reject SQL injection, XSS, oversized inputs, and malformed data.
  */
 
-import { loginSchema, registerSchema } from '@/features/auth/schemas';
+import { loginSchema } from '@/features/auth/schemas';
 import { uploadCaseDocumentInputSchema } from '@/features/document/schemas';
 
 describe('Input Validation — Security', () => {
@@ -142,29 +142,6 @@ describe('Input Validation — Security', () => {
         docName: 'Test',
       });
       expect(result.success).toBe(false);
-    });
-  });
-
-  describe('Registration field injection', () => {
-    it('should not allow prototype pollution via extra fields', () => {
-      const result = registerSchema.safeParse({
-        name: 'Test',
-        email: 'test@test.com',
-        password: 'SecurePass1!',
-        confirmPassword: 'SecurePass1!',
-        phone: '3001234567',
-        address: 'Test',
-        professionalCard: 'TP-001',
-        tenantId: 'test-tenant',
-        __proto__: { isAdmin: true },
-        constructor: { prototype: { isAdmin: true } },
-      });
-      // Extra fields should be stripped by Zod
-      if (result.success) {
-        const data = result.data as Record<string, unknown>;
-        expect(data).not.toHaveProperty('__proto__.isAdmin');
-        expect(data).not.toHaveProperty('isAdmin');
-      }
     });
   });
 });
