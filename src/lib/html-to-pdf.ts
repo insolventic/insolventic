@@ -11,6 +11,7 @@ import puppeteer from 'puppeteer-core';
 
 import { logger } from './logger';
 import { BRANDING_REF_PREFIX } from './branding-assets';
+import { esRefImagenPrivada } from './imagenes-privadas';
 
 // Dynamic import for serverless environments
 let chromium: typeof import('@sparticuz/chromium') | null = null;
@@ -262,6 +263,13 @@ export async function inlineAssets(
 
     // Skip already-inlined data URIs
     if (src.startsWith('data:')) continue;
+
+    // Una firma llega acá como data URI, puesta por el punto de entrada de la
+    // generación. Si llega el ref, ese punto de entrada no la resolvió: se
+    // corta en vez de generar un documento con la imagen rota.
+    if (esRefImagenPrivada(src)) {
+      throw new Error(`Firma sin resolver en la plantilla: ${src}`);
+    }
 
     const imgPath = resolveAssetPath(src);
 

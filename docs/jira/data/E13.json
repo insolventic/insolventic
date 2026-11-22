@@ -1,0 +1,639 @@
+{
+  "epica": {
+    "id": "E13",
+    "titulo": "Deuda Técnica",
+    "descripcion": "Refactors, performance y limpieza sin valor directo al usuario: división del placeholder-mapper, type-safety del módulo de documentos, código muerto, warnings de ESLint, console.* → logger, índices y tipos de base de datos.",
+    "objetivo": "Mantener el código entendible y seguro de cambiar para quien herede el sistema después de la tesis.",
+    "prioridad": "Media",
+    "labels": [],
+    "evidencia": [
+      "CLAUDE.md §Next Sessions (Fase 2, Quick Wins)",
+      "docs/PLAN_DIVISION_MAPPER.md",
+      "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md §4 (NO urgente)"
+    ]
+  },
+  "items": [
+    {
+      "id": "E13-01",
+      "tipo": "Task",
+      "titulo": "Limpiar archivos temporales y plantillas de referencia del repositorio",
+      "tarea": {
+        "objetivo": "Reducir ruido del repositorio.",
+        "alcance": "Borrar temporales y plantillas HTML de referencia.",
+        "dod": "Repo sin archivos temporales."
+      },
+      "ac": [
+        "Dado el repositorio Cuando se lista Entonces no hay archivos temporales versionados"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-16",
+      "version": "v0.2.0",
+      "evidencia": [
+        "0129217 chore: limpiar proyecto - eliminar archivos temporales y plantillas HTML de referencia"
+      ]
+    },
+    {
+      "id": "E13-02",
+      "tipo": "Bug",
+      "trivial": true,
+      "titulo": "La limpieza borró plantillas que la generación sí necesitaba",
+      "bug": {
+        "entorno": "dev, marzo 2026",
+        "pasos": ["Generar documentos después de la limpieza de E13-01"],
+        "esperado": "Las plantillas existen",
+        "actual": "Faltaban plantillas HTML necesarias",
+        "severidad": "Alta",
+        "causaRaiz": "Plantillas en uso borradas junto con las de referencia.",
+        "fix": "e576f89 fix: restaurar plantillas HTML necesarias para generación de documentos",
+        "regresion": "Ninguno en su momento; hoy lo cubriría el test de invariantes de plantillas (E14-10)."
+      },
+      "ac": [
+        "Dado las plantillas restauradas Cuando se genera Entonces no faltan archivos",
+        "Dado una plantilla borrada por error en el futuro Cuando corre CI Entonces E14-10 la detecta"
+      ],
+      "puntos": null,
+      "prioridad": "Alta",
+      "labels": ["bug-regresion"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-18",
+      "version": "v0.2.0",
+      "evidencia": ["e576f89"]
+    },
+    {
+      "id": "E13-03",
+      "tipo": "Task",
+      "titulo": "Quitar dependencias sin uso y la rama stg",
+      "tarea": {
+        "objetivo": "Simplificar dependencias y estrategia de ramas.",
+        "alcance": "Retirar cookies, libreoffice-convert, pizzip y jsdom; eliminar stg de workflows y docs; .vercelignore y .gitignore ajustados.",
+        "dod": "Solo main + dev; build sin las dependencias retiradas."
+      },
+      "ac": [
+        "Dado package.json Cuando se inspecciona Entonces no contiene las 4 dependencias retiradas"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": ["820461c", "CHANGELOG.md [0.3.0] Removed"]
+    },
+    {
+      "id": "E13-04",
+      "tipo": "Task",
+      "titulo": "Extraer los helpers de formato del mapper con pruebas directas",
+      "tarea": {
+        "objetivo": "Primer paso de la división del placeholder-mapper.",
+        "alcance": "12 helpers de formato a placeholders/format.ts con 84 casos de prueba.",
+        "dod": "Mapper sin cambios de salida (golden master verde)."
+      },
+      "ac": [
+        "Dado el golden master Cuando se extraen los helpers Entonces la salida del mapper no cambia"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": [
+        "31de443",
+        "911e1fb",
+        "src/features/document/placeholders/format.ts"
+      ]
+    },
+    {
+      "id": "E13-05",
+      "tipo": "Task",
+      "titulo": "Reemplazar el doble cast a CaseWithRelations por una función verificada",
+      "tarea": {
+        "objetivo": "Que el compilador verifique la forma del caso que entra a la generación.",
+        "alcance": "asCaseWithRelations() en vez de as unknown as en el entry point.",
+        "dod": "tsc verde; quedan 4 as unknown as en document/ (ver E13-18)."
+      },
+      "ac": [
+        "Dado un cambio en el include de Prisma Cuando no coincide con el tipo Entonces tsc falla"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": [
+        "5de0489",
+        "CLAUDE.md Fase 2 (type-safety, entry point centralizado)"
+      ]
+    },
+    {
+      "id": "E13-06",
+      "tipo": "Task",
+      "titulo": "Leer solo las columnas necesarias en el listado de casos",
+      "tarea": {
+        "objetivo": "Reducir el costo de /cases y de las comprobaciones de existencia.",
+        "alcance": "select acotado en el listado (no las 269 columnas) y select { id } en lecturas de existencia.",
+        "dod": "Tests de case-reads-select verdes."
+      },
+      "ac": [
+        "Dado el listado de casos Cuando consulta Entonces no selecciona las 269 columnas"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": [
+        "f87a5ec",
+        "697d2a0",
+        "tests/unit/cases/case-reads-select.test.ts"
+      ]
+    },
+    {
+      "id": "E13-07",
+      "tipo": "Task",
+      "titulo": "Carga diferida de gráficos y de la búsqueda global",
+      "tarea": {
+        "objetivo": "Bajar el First Load del dashboard y del header.",
+        "alcance": "recharts con next/dynamic (435 → 310 kB) y diálogo cmdk diferido; test que falla si el wrapper deja de filtrar.",
+        "dod": "Medición de First Load registrada en el commit."
+      },
+      "ac": [
+        "Dado el dashboard Cuando carga Entonces recharts no viaja en el chunk inicial"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": ["nfr"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "hallazgos": ["PP-B-3"],
+      "evidencia": [
+        "276eea4 perf(dashboard): cargar recharts de forma diferida (First Load 435 -> 310 kB)",
+        "3387b5f",
+        "e572146"
+      ]
+    },
+    {
+      "id": "E13-08",
+      "tipo": "Task",
+      "titulo": "Dividir el placeholder-mapper en sub-mappers (Pasos 2 a 9)",
+      "tarea": {
+        "objetivo": "Pasar de un archivo de 2.877 líneas a módulos por dominio.",
+        "alcance": "Listas simples, Formulario Definitivo, ingresos, escape, patrimonio, builders HTML, conciliación, apoyo y pares de colisión en src/features/document/placeholders/.",
+        "dod": "placeholder-mapper.ts en 1.051 líneas; golden master y contrato de colisiones verdes."
+      },
+      "ac": [
+        "Dado cada paso Cuando se mergea Entonces la salida del mapper es idéntica (golden master)",
+        "Dado el contrato de colisiones Cuando cambia Entonces se actualiza de forma explícita (19 → 16)"
+      ],
+      "puntos": 8,
+      "justificacion": "Nueve PRs secuenciales sobre el archivo más crítico de la generación.",
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-01",
+      "version": "v0.6.0",
+      "nota": "CLAUDE.md todavía lista este split como pendiente (~4h); está hecho (ver E13-23).",
+      "evidencia": [
+        "#52 d1320ae",
+        "#81 ee3e16c",
+        "#91 dabb91d",
+        "#92 7935704",
+        "#93 cbe191b",
+        "#94 045ba31",
+        "#95 decb40c",
+        "#96 8580427",
+        "#97 e6e3114",
+        "docs/PLAN_DIVISION_MAPPER.md",
+        "wc -l placeholder-mapper.ts = 1051 (2026-10-21)"
+      ],
+      "subtareas": [
+        {
+          "id": "E13-08.1",
+          "titulo": "Pasos 2-4: listas simples, Formulario Definitivo e ingresos",
+          "descripcion": "#52, #81, #91."
+        },
+        {
+          "id": "E13-08.2",
+          "titulo": "Pasos 5-6: patrimonio y builders HTML",
+          "descripcion": "#92, #94; escape a placeholders/escape.ts (#93)."
+        },
+        {
+          "id": "E13-08.3",
+          "titulo": "Pasos 7-9: conciliación, apoyo y pares de colisión",
+          "descripcion": "#95, #96, #97."
+        }
+      ]
+    },
+    {
+      "id": "E13-09",
+      "tipo": "Task",
+      "titulo": "Contexto de insolvencia y dispatcher por tipo de plantilla",
+      "tarea": {
+        "objetivo": "Preparar la migración de plantillas a contextos tipados.",
+        "alcance": "buildInsolvencyContext + dispatcher, sin migrar plantillas todavía.",
+        "dod": "insolvency-context.test.ts verde."
+      },
+      "ac": [
+        "Dado una plantilla de insolvencia Cuando se despacha Entonces recibe el contexto de insolvencia"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#74 99c59f0",
+        "tests/unit/documents/insolvency-context.test.ts"
+      ]
+    },
+    {
+      "id": "E13-10",
+      "tipo": "Task",
+      "titulo": "Compartir la fase de preparación entre la generación automática y la manual",
+      "tarea": {
+        "objetivo": "Que las dos rutas validen y rellenen igual.",
+        "alcance": "Fase 1 (validar + rellenar HTML) común; include de generación unificado en CASE_GENERATION_INCLUDE.",
+        "dod": "Ambas rutas llaman la misma función de preparación."
+      },
+      "ac": [
+        "Dado un caso incompleto Cuando se genera por cualquiera de las dos rutas Entonces el resultado de validación es el mismo"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": ["#85 12fc707", "#101 bd334c2"]
+    },
+    {
+      "id": "E13-11",
+      "tipo": "Task",
+      "titulo": "Borrar secciones del wizard y campos que nunca se renderizaban",
+      "tarea": {
+        "objetivo": "Eliminar código inalcanzable del formulario.",
+        "alcance": "6 secciones del wizard nunca renderizadas (#59), spouse-section y dependents-section muertos (#108), notificationOutsideBogota abandonado.",
+        "dod": "Build y suite verdes sin esos archivos."
+      },
+      "ac": [
+        "Dado el wizard Cuando se busca un componente borrado Entonces no hay imports"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-03",
+      "version": "v0.6.0",
+      "evidencia": ["#59 620e8b8", "#108 0cbb8ee", "68dad64"]
+    },
+    {
+      "id": "E13-12",
+      "tipo": "Task",
+      "titulo": "Borrar los modelos del Formulario Definitivo que nunca tuvieron captura",
+      "tarea": {
+        "objetivo": "Eliminar la doble representación de acreedores, bienes y procesos (Acreedor/Bien/ProcesoJudicial vs. Creditor/Asset/LegalProcess).",
+        "alcance": "3 modelos, migración DROP TABLE con guarda, 3 schemas Zod, nested-create, 4 funciones del mapper y 3 cards; verificación de 0 filas en producción (solo lectura).",
+        "dod": "Migración aplicada; ninguna plantilla consume sus placeholders (verificado sobre las ~92 claves)."
+      },
+      "ac": [
+        "Dado alguna base con filas en esas tablas Cuando corre la migración Entonces aborta",
+        "Dado las plantillas Cuando se barren Entonces ninguna usa placeholders de esos modelos"
+      ],
+      "puntos": 5,
+      "justificacion": "Migración destructiva con guarda, verificación en producción y barrido exhaustivo de placeholders.",
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Base-de-Datos", "Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "hallazgos": ["PP-M-3"],
+      "evidencia": [
+        "#100 93e1efe",
+        "CLAUDE.md Quick Win 5",
+        "migración 20261002000000_drop_formulario_definitivo_sin_ui"
+      ]
+    },
+    {
+      "id": "E13-13",
+      "tipo": "Task",
+      "titulo": "Dejar ESLint en cero warnings",
+      "tarea": {
+        "objetivo": "Eliminar los 23 warnings preexistentes (no 8) sin silenciar lo que esconde bugs.",
+        "alcance": "Variable available stale (bug latente: omitía otherIncomeAmount), verb y sus 15 campos muertos, useMemo de debts; 2 exhaustive-deps de reportes con disable razonado.",
+        "dod": "npm run lint = 0; cesacion-pagos-recalculo.test.tsx (4 casos) con dientes."
+      },
+      "ac": [
+        "Dado npm run lint Cuando corre Entonces reporta 0 warnings",
+        "Dado el memo de debts forzado a deps vacías Cuando corre el test nuevo Entonces fallan los 2 casos de regresión"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend", "Testing"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["PP-B-1"],
+      "evidencia": ["#124 4df5906", "CLAUDE.md Quick Win 2"]
+    },
+    {
+      "id": "E13-14",
+      "tipo": "Task",
+      "titulo": "Variables de entorno de ejemplo que dotenv sí entiende",
+      "tarea": {
+        "objetivo": "Que copiar .env.example funcione.",
+        "alcance": "Quitar ${VAR} (dotenv no expande) y documentar por qué GOOGLE_DRIVE_REDIRECT_URI existe siendo inerte.",
+        "dod": ".env.example sin interpolaciones."
+      },
+      "ac": [
+        "Dado .env.example copiado Cuando se arranca Entonces ninguna variable queda con ${...} literal"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-19",
+      "version": "v0.6.0",
+      "evidencia": ["5fee09f", "075fa28"]
+    },
+    {
+      "id": "E13-15",
+      "tipo": "Story",
+      "titulo": "Errores de casos y documentos visibles en Sentry",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que los fallos de casos y de generación lleguen a Sentry",
+        "para": "que un error en background no quede solo en los Runtime Logs donde nadie mira"
+      },
+      "ac": [
+        "Dado case/actions.ts y document/actions.ts Cuando se buscan console.* Entonces hay 0 (hoy 21 y 46)",
+        "[error] Dado un catch de generación en background Cuando falla Entonces usa logger.error con action y caseId",
+        "Dado un aviso PDF MISSING Cuando ocurre Entonces el documento se marca como error en el resultado"
+      ],
+      "puntos": 5,
+      "justificacion": "67 llamadas en los dos archivos más grandes, decidiendo nivel por nivel sin inundar Sentry.",
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "hallazgos": ["GC-B1", "GD-B1", "PP-M-4"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 y §3 (Bajo)",
+        "CLAUDE.md Fase 2 (console.log→logger)",
+        "grep -c console. → case/actions.ts 21, document/actions.ts 46 (2026-10-21)"
+      ]
+    },
+    {
+      "id": "E13-16",
+      "tipo": "Story",
+      "titulo": "Observabilidad en pagos, reportes, calendario, auditoría y notificaciones",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que los fallos de esos cinco módulos lleguen a Sentry",
+        "para": "no repetir el patrón que dejó /cases roto meses sin que nadie lo viera"
+      },
+      "ac": [
+        "Dado los 31 catch de los cinco módulos Cuando fallan Entonces registran con logger y no solo con console",
+        "[error] Dado un fallo de escritura de auditoría Cuando ocurre Entonces aparece en Sentry",
+        "Dado eventos esperados (validación de usuario) Cuando ocurren Entonces van en info/debug, no en error"
+      ],
+      "puntos": 5,
+      "justificacion": "3.215 líneas en cinco módulos con 31 bloques catch a revisar uno por uno.",
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "bloqueadoPor": ["E13-15"],
+      "hallazgos": ["CIERRE-5.4", "PP-M-4"],
+      "evidencia": ["docs/AUDITORIA_CIERRE_2026-09-12.md §5.1 y §5.4"]
+    },
+    {
+      "id": "E13-17",
+      "tipo": "Task",
+      "titulo": "Migrar a logger el resto de llamadas a console",
+      "tarea": {
+        "objetivo": "Cerrar la Fase 2 del roadmap de logging.",
+        "alcance": "Las ~200 referencias restantes de las 291 en src/ tras E13-15 y E13-16, sin emojis.",
+        "dod": "grep console. en src/ solo devuelve el propio logger."
+      },
+      "ac": [
+        "Dado src/ Cuando se busca console. Entonces solo aparece en src/lib/logger.ts",
+        "[borde] Dado logs de depuración Cuando se migran Entonces van a logger.debug"
+      ],
+      "puntos": 5,
+      "justificacion": "Cambio mecánico pero amplio (~200 sitios) con decisión de nivel en cada uno.",
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Backend", "Frontend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "bloqueadoPor": ["E13-16"],
+      "hallazgos": ["PP-M-4"],
+      "evidencia": [
+        "CLAUDE.md Fase 2 (334 refs originales)",
+        "grep console. en src/ = 291 (2026-10-21)"
+      ]
+    },
+    {
+      "id": "E13-18",
+      "tipo": "Task",
+      "titulo": "Eliminar los casts inseguros restantes del módulo de documentos",
+      "tarea": {
+        "objetivo": "Terminar la type-safety del módulo de documentos.",
+        "alcance": "Los 4 as unknown as restantes → Prisma.CaseGetPayload + transformador Decimal→number.",
+        "dod": "0 as unknown as en src/features/document."
+      },
+      "ac": [
+        "Dado src/features/document Cuando se busca as unknown as Entonces hay 0"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "evidencia": [
+        "CLAUDE.md Fase 2 (18× as unknown as originales)",
+        "grep as unknown as en document/ = 4 (2026-10-21)"
+      ]
+    },
+    {
+      "id": "E13-19",
+      "tipo": "Task",
+      "titulo": "Cargar el diálogo de creación de casos de forma diferida",
+      "tarea": {
+        "objetivo": "Que /cases no cargue el wizard de 1.494 líneas hasta que se abre.",
+        "alcance": "next/dynamic para el diálogo de creación.",
+        "dod": "First Load de /cases medido antes y después."
+      },
+      "ac": [
+        "Dado /cases Cuando carga Entonces el chunk del wizard no se descarga hasta abrir el diálogo"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["nfr"],
+      "componentes": ["Frontend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "hallazgos": ["PP-B-3"],
+      "evidencia": [
+        "CLAUDE.md Quick Win 3",
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md B-3"
+      ]
+    },
+    {
+      "id": "E13-20",
+      "tipo": "Task",
+      "titulo": "Borrar las 5 columnas muertas de conciliación",
+      "tarea": {
+        "objetivo": "Eliminar los singulares legacy que ya son arreglos JSON.",
+        "alcance": "concNombreMenor, concNumeroClausula, concNumeroClausulaAdicional, concTextoClausula, concTextoClausulaAdicional; verificación previa en producción como en E13-12.",
+        "dod": "Migración con guarda aplicada; plantillas sin cambios de salida."
+      },
+      "ac": [
+        "Dado alguna fila con dato en esas columnas Cuando corre la migración Entonces aborta",
+        "Dado las plantillas Cuando se generan Entonces su salida no cambia (los usos están dentro de {{#each}})"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "hallazgos": ["CONC-C-4"],
+      "evidencia": ["docs/AUDITORIA_FORMULARIO_CONCILIACION_2026-10-12.md §5.3"]
+    },
+    {
+      "id": "E13-21",
+      "tipo": "Task",
+      "titulo": "Tasa de interés en Decimal y enums para estados y fases",
+      "tarea": {
+        "objetivo": "Unificar tipos de montos y evitar strings libres en estados.",
+        "alcance": "Debt.interestRate Float → Decimal; status/kind/phase como enums de Postgres con migración.",
+        "dod": "Migración aplicada y mapper sin cambios de salida."
+      },
+      "ac": [
+        "Dado Debt.interestRate Cuando se inspecciona el schema Entonces es Decimal",
+        "[error] Dado una fase fuera del enum Cuando se escribe Entonces la base la rechaza"
+      ],
+      "puntos": 5,
+      "justificacion": "Migraciones de tipo sobre tablas con datos reales y su efecto en el mapper.",
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "hallazgos": ["PP-M-2"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md M-2",
+        "src/prisma/schema.prisma:631 interestRate Float (2026-10-21)"
+      ]
+    },
+    {
+      "id": "E13-22",
+      "tipo": "Task",
+      "titulo": "Índices sobre las claves foráneas que no los tienen",
+      "tarea": {
+        "objetivo": "Evitar escaneos completos en relaciones por caso.",
+        "alcance": "Verificar contra producción qué FKs no tienen índice (Debt no declara @@index) y crearlos con migración.",
+        "dod": "Cada FK listada en M-1 con índice en producción."
+      },
+      "ac": [
+        "Dado la lista de M-1 Cuando se verifica contra producción Entonces cada FK tiene índice",
+        "[borde] Dado un índice que ya exista por db push Cuando se migra Entonces se usa IF NOT EXISTS"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "hallazgos": ["PP-M-1"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md M-1",
+        "model Debt sin @@index (2026-10-21)",
+        "CLAUDE.md Fase 3 (14 índices en la deriva)"
+      ]
+    },
+    {
+      "id": "E13-23",
+      "tipo": "Task",
+      "titulo": "Actualizar el roadmap de CLAUDE.md y el README con lo ya hecho",
+      "tarea": {
+        "objetivo": "Que la documentación de entrada no mande a rehacer trabajo terminado.",
+        "alcance": "CLAUDE.md: split del mapper (hecho, 1.051 líneas), code-split del dashboard (310 kB), P1 batch (hecho #57). README: 405 tests → cifra actual, deploy.yml eliminado, BD por centro.",
+        "dod": "CLAUDE.md y README coherentes con el código al corte."
+      },
+      "ac": [
+        "Dado el roadmap de CLAUDE.md Cuando se lee Entonces no lista como pendiente el split del mapper",
+        "Dado el README Cuando se lee Entonces no menciona deploy.yml ni 405 tests"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W45",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Should",
+      "hallazgos": ["PP-B-5"],
+      "evidencia": [
+        "CLAUDE.md Fase 2 (split pendiente ~4h)",
+        "wc -l placeholder-mapper.ts = 1051",
+        "README.md (20 suites / 405 tests, deploy.yml, DATABASE_URL_ARMONIA)"
+      ]
+    }
+  ]
+}

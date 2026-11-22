@@ -1,0 +1,1336 @@
+{
+  "epica": {
+    "id": "E01",
+    "titulo": "Gestión de Casos y Máquina de Estados",
+    "descripcion": "Ciclo de vida del expediente para los tres servicios (Insolvencia, Conciliación, Acuerdo de Apoyo): formulario maestro (~400 campos), creación por tipo, edición con bloqueo optimista, fases y transiciones validadas en el servidor, reglas del trámite colombiano (Ley 1564/2012 arts. 531 y ss., Decreto 2677/2012) y bienes del deudor.",
+    "objetivo": "Que cada expediente nazca y evolucione cumpliendo los requisitos formales del trámite, sin depender de que la UI sea la única barrera.",
+    "prioridad": "Crítica",
+    "labels": [],
+    "evidencia": [
+      "README.md §Gestión de Casos",
+      "src/features/case/",
+      "docs/FORMULARIO_MAESTRO.md",
+      "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2"
+    ]
+  },
+  "items": [
+    {
+      "id": "E01-01",
+      "tipo": "Story",
+      "titulo": "Crear y listar expedientes de insolvencia aislados por centro",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar un expediente con los datos del deudor y verlo en el listado de mi centro",
+        "para": "dejar de llevar los casos en hojas sueltas y tener un único registro consultable"
+      },
+      "ac": [
+        "Dado que estoy autenticada en Armonía Cuando creo un caso con los datos obligatorios Entonces el caso queda guardado con el tenantId de Armonía y aparece en mi listado",
+        "Dado un caso creado en Constructores de Paz Cuando consulto el listado desde Armonía Entonces ese caso no aparece",
+        "[error] Dado un formulario con campos obligatorios vacíos Cuando intento guardar Entonces el caso no se crea y se señalan los campos faltantes",
+        "Dado un caso existente Cuando lo abro Entonces veo sus datos y su fase actual"
+      ],
+      "puntos": 8,
+      "justificacion": "Setup inicial del dominio completo (schema, server actions, UI de listado/detalle) sobre un stack nuevo; mucha superficie y aprendizaje.",
+      "prioridad": "Crítica",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos"],
+      "sprint": "2026-W06",
+      "estado": "Done",
+      "resuelto": "2026-02-08",
+      "version": "v0.1.0",
+      "evidencia": [
+        "83d2d71 feat: initial full project setup",
+        "CHANGELOG.md [0.1.0] Case management"
+      ],
+      "subtareas": [
+        {
+          "id": "E01-01.1",
+          "titulo": "Modelo Case/Debtor en Prisma con tenantId",
+          "descripcion": "Schema inicial y migración base."
+        },
+        {
+          "id": "E01-01.2",
+          "titulo": "Server actions de creación y lectura scoped por tenant",
+          "descripcion": "authenticateUser → permiso → query con tenantId."
+        },
+        {
+          "id": "E01-01.3",
+          "titulo": "UI de listado y detalle de casos",
+          "descripcion": "Tabla de casos y diálogo de detalle."
+        }
+      ]
+    },
+    {
+      "id": "E01-02",
+      "tipo": "Bug",
+      "titulo": "Bucle infinito de renderizado en la app",
+      "bug": {
+        "entorno": "Desarrollo local, febrero 2026 (pre-v0.1.0)",
+        "pasos": [
+          "Abrir la aplicación en una vista afectada",
+          "Observar re-renderizados continuos"
+        ],
+        "esperado": "La vista renderiza una vez por cambio de estado",
+        "actual": "La vista entra en un ciclo de renderizado infinito",
+        "severidad": "Alta",
+        "causaRaiz": "No registrada en el mensaje del commit (solo describe el síntoma). A confirmar con git show e6cdeb1.",
+        "fix": "e6cdeb1 fix: corregir bucle infinito de renderizado y mejorar generación de documentos",
+        "regresion": "No hay test asociado identificable en el commit."
+      },
+      "ac": [
+        "Dado la vista afectada Cuando se carga Entonces no se producen renderizados en bucle",
+        "Dado el fix aplicado Cuando se navega entre vistas Entonces no aparecen advertencias de actualización de estado infinita en consola"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W07",
+      "estado": "Done",
+      "resuelto": "2026-02-12",
+      "version": "v0.1.0",
+      "evidencia": ["e6cdeb1 fix: corregir bucle infinito de renderizado"]
+    },
+    {
+      "id": "E01-03",
+      "tipo": "Story",
+      "titulo": "Formulario definitivo completo del caso de insolvencia",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "capturar en un solo formulario todas las secciones de la solicitud (solicitante, cónyuge, ingresos, gastos, cesación de pagos, declaraciones)",
+        "para": "que la solicitud de insolvencia se pueda radicar sin volver a pedirle datos al deudor"
+      },
+      "ac": [
+        "Dado el formulario de creación Cuando completo todas las secciones Entonces se guardan en el caso y alimentan los placeholders de las plantillas",
+        "Dado un deudor con cónyuge Cuando marco la sección de cónyuge Entonces sus campos se habilitan y se persisten",
+        "[borde] Dado un deudor sin ingresos adicionales Cuando dejo esa sección vacía Entonces el caso se guarda sin errores",
+        "Dado el caso guardado Cuando lo reabro Entonces todas las secciones muestran lo capturado"
+      ],
+      "puntos": 8,
+      "justificacion": "~400 campos en múltiples secciones con su modelo de datos; el formulario más grande del sistema.",
+      "prioridad": "Crítica",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos"],
+      "sprint": "2026-W08",
+      "estado": "Done",
+      "resuelto": "2026-02-21",
+      "version": "v0.1.0",
+      "evidencia": [
+        "ba65470 feat: agregar formulario definitivo completo para casos de insolvencia",
+        "README.md (~400 campos)"
+      ]
+    },
+    {
+      "id": "E01-04",
+      "tipo": "Bug",
+      "titulo": "Creación de casos, eliminación en cascada y conversión Decimal fallaban",
+      "bug": {
+        "entorno": "Desarrollo/preview, febrero 2026",
+        "pasos": [
+          "Crear un caso con montos",
+          "Eliminar un caso con relaciones"
+        ],
+        "esperado": "El caso se crea con montos correctos y se elimina con sus relaciones",
+        "actual": "Fallos en creación, en el borrado en cascada y en la conversión de montos Decimal",
+        "severidad": "Alta",
+        "causaRaiz": "Según el commit: manejo incorrecto de Prisma.Decimal y de relaciones sin cascada. Detalle no documentado.",
+        "fix": "6fb7ae1 fix: corregir creación de casos, eliminación cascada y conversión Decimal",
+        "regresion": "No identificado en el commit."
+      },
+      "ac": [
+        "Dado un caso con montos decimales Cuando se guarda Entonces los montos se conservan sin pérdida",
+        "Dado un caso con deudas y bienes Cuando se elimina Entonces no quedan filas huérfanas"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W09",
+      "estado": "Done",
+      "resuelto": "2026-02-28",
+      "version": "v0.1.0",
+      "evidencia": [
+        "6fb7ae1 fix: corregir creación de casos, eliminación cascada y conversión Decimal"
+      ]
+    },
+    {
+      "id": "E01-05",
+      "tipo": "Story",
+      "titulo": "Validación completa del formulario de insolvencia y documentos obligatorios",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que el formulario me impida guardar una solicitud incompleta y me diga qué documentos son obligatorios",
+        "para": "no radicar solicitudes que el centro rechazaría por requisitos formales"
+      },
+      "ac": [
+        "Dado un caso sin un campo obligatorio Cuando intento guardar Entonces veo el error en ese campo",
+        "Dado un caso que requiere poder del apoderado Cuando no adjunto el poder Entonces se marca como documento faltante",
+        "[borde] Dado un documento condicional que no aplica al caso Cuando guardo Entonces no se exige",
+        "Dado el set de reglas Cuando corre la suite Entonces los 75 tests de validación pasan"
+      ],
+      "puntos": 5,
+      "justificacion": "Reglas de dominio legal con casos condicionales y 75 tests; incertidumbre de interpretación normativa.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Testing"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-04",
+      "version": "v0.1.0",
+      "evidencia": [
+        "a45f940 feat: validación completa formulario de insolvencia + documentos obligatorios",
+        "CHANGELOG.md [0.1.0] Form validation"
+      ]
+    },
+    {
+      "id": "E01-06",
+      "tipo": "Story",
+      "titulo": "Fases del expediente con transiciones y calendario de audiencias",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "mover el caso por sus fases (Solicitud, Admisión, Negociación, Terminación) y ver las audiencias en un calendario",
+        "para": "saber en qué punto está cada trámite y no perder una audiencia"
+      },
+      "ac": [
+        "Dado un caso en Solicitud Cuando lo paso a Admisión Entonces la fase cambia y queda registrada",
+        "Dado un caso con fecha de audiencia Cuando abro el calendario Entonces la audiencia aparece en su día",
+        "[error] Dado un usuario sin permiso de edición Cuando intenta cambiar la fase Entonces la acción se rechaza",
+        "Dado un rol limitado a sus casos Cuando abre el calendario Entonces solo ve las audiencias de sus casos"
+      ],
+      "puntos": 5,
+      "justificacion": "Dos módulos (fases y calendario) con reglas de visibilidad por rol.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W13",
+      "estado": "Done",
+      "resuelto": "2026-03-23",
+      "version": "v0.2.0",
+      "evidencia": [
+        "82812b5 feat: módulos completos — dashboard dinámico, fases, calendario, reportes, pagos, búsqueda global",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §5.7 (calendario aplica los 3 permisos)"
+      ]
+    },
+    {
+      "id": "E01-07",
+      "tipo": "Story",
+      "titulo": "Búsqueda global de expedientes, deudores y acreedores",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "buscar por nombre, cédula o número de caso desde cualquier pantalla",
+        "para": "encontrar un expediente en segundos durante una llamada o audiencia"
+      },
+      "ac": [
+        "Dado un deudor existente Cuando escribo dos letras de su nombre Entonces aparece en los resultados",
+        "Dado un número de caso Cuando lo busco Entonces el resultado abre el expediente",
+        "[borde] Dado un texto sin coincidencias Cuando busco Entonces veo un estado vacío, no un error"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W13",
+      "estado": "Done",
+      "resuelto": "2026-03-23",
+      "version": "v0.2.0",
+      "nota": "Salió sin control de permisos; eso se corrigió después en E03-22 (G-A1).",
+      "evidencia": [
+        "82812b5 (búsqueda global)",
+        "src/features/search/actions.ts"
+      ]
+    },
+    {
+      "id": "E01-08",
+      "tipo": "Story",
+      "titulo": "Simplificar el formulario del caso de 12 a 8 pestañas",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "un formulario con menos pestañas y el número de trámite generado automáticamente",
+        "para": "cargar un caso más rápido y sin campos que nadie usa"
+      },
+      "ac": [
+        "Dado el formulario de creación Cuando lo abro Entonces tiene 8 pestañas",
+        "Dado un caso nuevo Cuando lo guardo Entonces el número de trámite se genera solo",
+        "[borde] Dado un campo eliminado del formulario Cuando se genera un documento Entonces ninguna plantilla depende de él"
+      ],
+      "puntos": 5,
+      "justificacion": "Reestructuración del wizard más grande con riesgo de romper placeholders.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W13",
+      "estado": "Done",
+      "resuelto": "2026-03-29",
+      "version": "v0.2.0",
+      "evidencia": [
+        "5f11bf0 feat: simplificar formulario de caso — 12 a 8 tabs, auto-generar trámite"
+      ]
+    },
+    {
+      "id": "E01-09",
+      "tipo": "Story",
+      "titulo": "Flujo de creación separado por tipo de caso",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "que al crear un caso el formulario dependa del servicio elegido",
+        "para": "no ver campos de insolvencia cuando registro una conciliación"
+      },
+      "ac": [
+        "Dado que elijo Conciliación Cuando avanzo Entonces solo veo las secciones de conciliación",
+        "Dado que elijo Insolvencia Cuando avanzo Entonces veo el formulario maestro de insolvencia",
+        "[error] Dado un tipo de caso no soportado Cuando se envía al servidor Entonces se rechaza"
+      ],
+      "puntos": 5,
+      "justificacion": "Separación de flujos y reestructuración de plantillas por tipo.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W14",
+      "estado": "Done",
+      "resuelto": "2026-03-31",
+      "version": "v0.2.0",
+      "evidencia": [
+        "6ef0bc9 feat: separar flujo de creación por tipo de caso, reestructurar plantillas"
+      ]
+    },
+    {
+      "id": "E01-10",
+      "tipo": "Story",
+      "titulo": "Errores visibles por pestaña y mensajes de validación claros en el formulario",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "ver en qué pestaña está el error y un mensaje que explique qué corregir",
+        "para": "no tener que recorrer las 8 pestañas buscando por qué no guarda"
+      },
+      "ac": [
+        "Dado un error en la pestaña Ingresos Cuando intento guardar Entonces la pestaña Ingresos muestra un indicador",
+        "Dado un campo inválido Cuando pierdo el foco Entonces veo un mensaje en español que dice qué se espera",
+        "[borde] Dado que corrijo el último error de una pestaña Cuando paso a otra Entonces el indicador desaparece",
+        "Dado el formulario refactorizado Cuando genero la solicitud Entonces los 12 issues reportados de la Solicitud de Insolvencia no reaparecen"
+      ],
+      "puntos": 8,
+      "justificacion": "Tres commits grandes (Bloques 1-6, 7 páginas refactorizadas, indicadores) sobre todo el wizard.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W14",
+      "estado": "Done",
+      "resuelto": "2026-04-02",
+      "version": "v0.2.0",
+      "evidencia": [
+        "77898bd feat: mejoras integrales formulario (Bloques 1-6)",
+        "684304c fix: correcciones integrales Solicitud de Insolvencia — 12 issues",
+        "3a1621e feat: 7 páginas refactorizadas",
+        "e430e10 feat: indicadores de error en tabs"
+      ],
+      "subtareas": [
+        {
+          "id": "E01-10.1",
+          "titulo": "Bloques 1-6 del formulario",
+          "descripcion": "Mejoras de campos, fechas y validaciones (77898bd)."
+        },
+        {
+          "id": "E01-10.2",
+          "titulo": "Refactor de 7 páginas del formulario",
+          "descripcion": "3a1621e."
+        },
+        {
+          "id": "E01-10.3",
+          "titulo": "Indicadores de error por pestaña",
+          "descripcion": "e430e10."
+        }
+      ]
+    },
+    {
+      "id": "E01-11",
+      "tipo": "Story",
+      "titulo": "Formulario de creación de casos de Conciliación con listas dinámicas",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "registrar una conciliación con varias partes, menores y cláusulas",
+        "para": "generar el acta sin redactar a mano las listas"
+      },
+      "ac": [
+        "Dado una conciliación con dos convocados Cuando los agrego Entonces ambos se guardan como arreglo",
+        "Dado cláusulas adicionales Cuando las agrego y reordeno Entonces se conservan en ese orden",
+        "[borde] Dado una conciliación sin menores Cuando guardo Entonces la lista vacía no rompe la generación"
+      ],
+      "puntos": 5,
+      "justificacion": "Formulario dinámico con arrays más el motor que los consume.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W15",
+      "estado": "Done",
+      "resuelto": "2026-04-09",
+      "version": "v0.2.0",
+      "evidencia": [
+        "52eda1a feat(conciliation): activar formulario de creación de casos de conciliación",
+        "4613a98 feat(conciliation): motor handlebars-lite + formulario dinámico con arrays"
+      ]
+    },
+    {
+      "id": "E01-12",
+      "tipo": "Story",
+      "titulo": "Edición de casos con bloqueo optimista",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que si otra persona editó el caso mientras yo lo tenía abierto me avise",
+        "para": "no pisar sin saberlo los cambios de una compañera"
+      },
+      "ac": [
+        "Dado que abro un caso en versión 5 Cuando guardo sin que nadie más lo haya tocado Entonces se guarda y pasa a versión 6",
+        "[error] Dado que otra persona guardó la versión 6 Cuando guardo mi copia de la versión 5 Entonces veo un aviso de conflicto y el diálogo se cierra",
+        "Dado el campo version Cuando se envía el formulario Entonces viaja en el schema Zod"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-14",
+      "version": "v0.2.0",
+      "nota": "La implementación era opcional y no atómica; queda pendiente en E01-38 (GC-A2).",
+      "evidencia": ["CHANGELOG.md [0.2.0] Case edit with optimistic locking"]
+    },
+    {
+      "id": "E01-13",
+      "tipo": "Story",
+      "titulo": "Filtro por tipo de caso y estados vacíos en los listados",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "filtrar el listado por Insolvencia, Conciliación o Acuerdo de Apoyo",
+        "para": "revisar la carga de cada servicio por separado"
+      },
+      "ac": [
+        "Dado casos de los tres tipos Cuando filtro por Conciliación Entonces solo veo conciliaciones",
+        "[borde] Dado un filtro sin resultados Cuando lo aplico Entonces veo un estado vacío explicativo",
+        "Dado los listados de deudores y acreedores vacíos Cuando los abro Entonces veo el estado vacío"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-14",
+      "version": "v0.2.0",
+      "evidencia": ["CHANGELOG.md [0.2.0] Case type filter, Empty states"]
+    },
+    {
+      "id": "E01-14",
+      "tipo": "Story",
+      "titulo": "Módulo completo de Acuerdos de Apoyo",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar y documentar un acuerdo de apoyo",
+        "para": "atender el tercer servicio del centro dentro del mismo sistema"
+      },
+      "ac": [
+        "Dado el tipo Acuerdo de Apoyo Cuando creo el caso Entonces veo su formulario específico",
+        "Dado un acuerdo guardado Cuando genero documentos Entonces se usan las plantillas de support-agreements",
+        "[borde] Dado un acuerdo sin monto mensual Cuando genero Entonces el documento no imprime un monto inventado",
+        "Dado los campos apoyo_* Cuando se despliega Entonces existen en la base de producción"
+      ],
+      "puntos": 8,
+      "justificacion": "Servicio nuevo de punta a punta (formulario, persistencia, plantillas).",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos", "Documentos-PDF"],
+      "sprint": "2026-W17",
+      "estado": "Done",
+      "resuelto": "2026-04-20",
+      "version": "v0.4.0",
+      "evidencia": [
+        "19e4227 feat(apoyo): implementar modulo Acuerdos de Apoyo completo"
+      ],
+      "subtareas": [
+        {
+          "id": "E01-14.1",
+          "titulo": "Formulario y schema del acuerdo de apoyo",
+          "descripcion": "Campos apoyo_* en Case."
+        },
+        {
+          "id": "E01-14.2",
+          "titulo": "Plantillas de support-agreements",
+          "descripcion": "Plantillas y mapper de apoyo."
+        }
+      ]
+    },
+    {
+      "id": "E01-15",
+      "tipo": "Bug",
+      "titulo": "El listado /cases salía vacío en producción",
+      "bug": {
+        "entorno": "Producción (Vercel + Neon), detectado septiembre 2026",
+        "pasos": ["Iniciar sesión en producción", "Abrir /cases"],
+        "esperado": "El listado muestra los casos del centro",
+        "actual": "El listado sale vacío, sin error visible y sin evento en Sentry",
+        "severidad": "Crítica",
+        "causaRaiz": "Dos defectos encadenados: (1) caseSchema rechazaba null en 7 campos Json? y el catch devolvía lista vacía; (2) 29 columnas apoyo_* existían en schema.prisma (creadas con db push) pero ninguna migración las creaba, así que no estaban en producción.",
+        "fix": "a54d92e (6 arrays Json? aceptan null) + ebc500b (7º campo) + 8ec70d6 (migración de las 29 columnas apoyo_*)",
+        "regresion": "Verificación de deriva contra information_schema (scripts/verificar-deriva-esquema.sql) y smoke contra Postgres real (E14-05)."
+      },
+      "ac": [
+        "Dado casos con campos Json? nulos Cuando se lista /cases Entonces aparecen todos",
+        "Dado la base de producción Cuando se compara con schema.prisma Entonces las columnas apoyo_* existen",
+        "[error] Dado un fallo en getAllCases Cuando ocurre Entonces llega a Sentry en vez de devolver una lista vacía silenciosa"
+      ],
+      "puntos": 5,
+      "justificacion": "Diagnóstico mal encaminado dos veces (la base local se construía con db push); requirió comparar contra producción.",
+      "prioridad": "Crítica",
+      "labels": ["bug-regresion"],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-09",
+      "version": "v0.5.0",
+      "evidencia": [
+        "a54d92e",
+        "ebc500b",
+        "8ec70d6 fix(db): migración que crea las 29 columnas apoyo_*",
+        "docs/CHECKPOINT_2026-09-09.md §8",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §3"
+      ]
+    },
+    {
+      "id": "E01-16",
+      "tipo": "Story",
+      "titulo": "Máquina de estados del expediente validada en el servidor",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que ninguna fase se pueda saltar ni reabrir por fuera de las transiciones válidas",
+        "para": "que el estado de un expediente legal sea siempre jurídicamente coherente"
+      },
+      "ac": [
+        "[error] Dado un caso en Inicial Cuando se envía por POST directo a updateCase un cambio a Terminado Entonces el servidor lo rechaza",
+        "Dado un caso nuevo Cuando se crea Entonces nace siempre en fase Inicial aunque el cliente envíe otra",
+        "Dado una transición válida Cuando se usa updateCasePhase Entonces la fase cambia y se audita fase anterior y nueva",
+        "[error] Dado una fase inexistente Cuando se envía Entonces se rechaza por no pertenecer a CASE_PHASES"
+      ],
+      "puntos": 5,
+      "justificacion": "Extraer guards puros compartidos por dos rutas y escribir los tests de bypass que faltaban.",
+      "prioridad": "Crítica",
+      "labels": ["seguridad", "doc-semana-3"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-11",
+      "version": "v0.5.0",
+      "hallazgos": ["GC-C1", "GC-M3"],
+      "evidencia": [
+        "PR #4 17c7de2 (commit 9e0ed99)",
+        "docs/IMPLEMENTACION_SEMANA_3.md §2",
+        "src/features/case/actions.ts:565"
+      ]
+    },
+    {
+      "id": "E01-17",
+      "tipo": "Story",
+      "titulo": "Reglas del trámite colombiano aplicadas en el servidor con SMMLV por año",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que los topes legales (150 acreedores, 150 SMMLV, mínima cuantía de 40 SMMLV, 24 meses de gracia) se apliquen al crear y editar",
+        "para": "que no se radiquen expedientes que violan los requisitos formales de la Ley 1564/2012"
+      },
+      "ac": [
+        "[error] Dado un caso que supera el tope de 150 SMMLV Cuando se crea por POST directo Entonces el servidor lo rechaza con el error de la regla",
+        "Dado un caso radicado en 2025 Cuando se calcula la mínima cuantía Entonces se usa el SMMLV de 2025 ($1.423.500)",
+        "[borde] Dado un año sin decreto cargado Cuando se resuelve el SMMLV Entonces se usa el último año conocido y se marca como no confirmado",
+        "Dado una advertencia de regla Cuando se guarda el caso Entonces se devuelve al cliente sin bloquear"
+      ],
+      "puntos": 5,
+      "justificacion": "Cablear el módulo de reglas al servidor más corregir la base SMMLV (estaba en el valor de 2024); 23 tests.",
+      "prioridad": "Crítica",
+      "labels": ["doc-semana-3"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-11",
+      "version": "v0.5.0",
+      "hallazgos": ["GC-C2", "GC-A4"],
+      "nota": "Cerrado con pendiente jurídico: el SMMLV 2026 es transitorio (E11-09) y los umbrales requieren validación de abogado (E11-18).",
+      "evidencia": [
+        "PR #4 17c7de2 (commit ea5000f)",
+        "docs/IMPLEMENTACION_SEMANA_3.md §3",
+        "tests/unit/cases/case-business-rules.test.ts",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §4 (A-4 resuelto)"
+      ]
+    },
+    {
+      "id": "E01-18",
+      "tipo": "Bug",
+      "trivial": true,
+      "titulo": "La edición no persistía la otra causa de cesación (otherCauseDetail)",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": [
+          "Editar un caso",
+          "Escribir el detalle de 'otra causa'",
+          "Guardar y reabrir"
+        ],
+        "esperado": "El detalle queda guardado",
+        "actual": "El detalle se pierde",
+        "severidad": "Media",
+        "causaRaiz": "updateCaseSchema no declaraba otherCauseDetail y Zod lo descartaba.",
+        "fix": "36442db fix(casos): updateCaseSchema acepta otherCauseDetail",
+        "regresion": "Cubierto después por la guardia Zod<->Case de E05-04."
+      },
+      "ac": [
+        "Dado un caso editado con otherCauseDetail Cuando se guarda Entonces el valor persiste",
+        "Dado el schema de edición Cuando se compara con el de creación Entonces otherCauseDetail está en ambos"
+      ],
+      "puntos": null,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-19",
+      "version": "v0.6.0",
+      "evidencia": ["36442db"]
+    },
+    {
+      "id": "E01-19",
+      "tipo": "Story",
+      "titulo": "Bienes con valor comercial, patrimonio de familia y comparendos del vehículo",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar el valor comercial de un inmueble, si es patrimonio de familia y si un vehículo tiene comparendos o impuestos pendientes",
+        "para": "que el inventario de bienes de la solicitud refleje la situación real del deudor"
+      },
+      "ac": [
+        "Dado un inmueble Cuando lo registro Entonces puedo indicar valor comercial y patrimonio de familia (Ley 70/1931)",
+        "Dado un vehículo Cuando marco comparendos pendientes Entonces la casilla se guarda",
+        "[borde] Dado un tipo de bien Cuando lo elijo Entonces veo un ejemplo de cómo diligenciarlo",
+        "Dado la casilla de comparendos Cuando se genera la solicitud Entonces no imprime nada todavía (solo captura, pendiente del párrafo legal E11-12)"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Base-de-Datos"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#60 771f246",
+        "#68 c4be312",
+        "docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md"
+      ]
+    },
+    {
+      "id": "E01-20",
+      "tipo": "Bug",
+      "titulo": "El formulario de bienes arrastraba datos entre un bien y el siguiente",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": [
+          "Agregar un vehículo con placa",
+          "Agregar un segundo bien",
+          "Cambiar el tipo de bien a inmueble"
+        ],
+        "esperado": "El formulario queda en blanco y los campos del tipo anterior se limpian",
+        "actual": "El reset limpiaba 5 de 22 campos y los campos específicos del tipo sobrevivían al cambio de tipo",
+        "severidad": "Media",
+        "causaRaiz": "Las claves del reset no coincidían con los defaultValues, y los campos que el tipo muestra no eran los que el formulario retenía.",
+        "fix": "#69 30a7447 + #70 5a4b052",
+        "regresion": "Tests de reset y de cambio de tipo en el formulario de bienes."
+      },
+      "ac": [
+        "Dado que agrego un bien Cuando abro el formulario para el siguiente Entonces los 22 campos están vacíos",
+        "Dado un bien con campos de vehículo Cuando cambio el tipo a inmueble Entonces los campos de vehículo se limpian"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Frontend", "Testing"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#69 30a7447",
+        "#70 5a4b052",
+        "docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md filas 2 y 3"
+      ]
+    },
+    {
+      "id": "E01-21",
+      "tipo": "Story",
+      "titulo": "Procesos judiciales con lista única de 7 tipos y correo del juzgado",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "elegir el tipo de proceso de una lista única, escribir 'Otros' cuando no aplica y registrar el correo del juzgado",
+        "para": "poder oficiar a cada juzgado sin buscar su correo en otra parte"
+      },
+      "ac": [
+        "Dado un proceso judicial Cuando elijo el tipo Entonces la lista tiene los 7 tipos",
+        "Dado el tipo Otros Cuando escribo la descripción Entonces se persiste",
+        "[error] Dado un correo de juzgado mal formado Cuando guardo Entonces se marca el error"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Base-de-Datos"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#66 798b80e"]
+    },
+    {
+      "id": "E01-22",
+      "tipo": "Story",
+      "titulo": "Fecha de radicación desde el wizard y empleador como pagador de libranzas",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que la fecha de radicación se tome del wizard y que el empleador ya capturado se ofrezca como pagador de la libranza",
+        "para": "no escribir dos veces el mismo dato y evitar inconsistencias entre secciones"
+      },
+      "ac": [
+        "Dado la fecha de radicación capturada en el wizard Cuando se genera un documento Entonces se usa esa fecha",
+        "Dado un empleador en la Sección III Cuando agrego una libranza Entonces se me ofrece como pagador",
+        "[borde] Dado un deudor sin empleador Cuando agrego una libranza Entonces escribo el pagador a mano"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#63 e29a2e2", "#65 49d26cb"]
+    },
+    {
+      "id": "E01-23",
+      "tipo": "Story",
+      "titulo": "Desglose de gastos de manutención visible solo para la operadora",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "desglosar los servicios de manutención del deudor",
+        "para": "sustentar el gasto mensual sin exponer ese detalle a roles que no lo necesitan"
+      },
+      "ac": [
+        "Dado el rol operadora Cuando abro la sección de gastos Entonces veo el desglose",
+        "[error] Dado un rol sin ese acceso Cuando abre la sección Entonces no ve el desglose",
+        "Dado el desglose guardado Cuando reabro el caso Entonces se conserva"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Base-de-Datos"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#67 bc61ee9"]
+    },
+    {
+      "id": "E01-24",
+      "tipo": "Story",
+      "titulo": "Selector real de operador en el alta y la edición del caso",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "asignar el operador del caso desde una lista de usuarios de mi centro",
+        "para": "repartir la carga y que los documentos salgan con la operadora correcta"
+      },
+      "ac": [
+        "Dado el alta de un caso Cuando abro el selector Entonces veo los operadores de mi centro",
+        "Dado un caso existente Cuando cambio el operador Entonces se guarda",
+        "[error] Dado un operador de otro centro Cuando se envía su id Entonces el servidor lo rechaza (E03-26)"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-01",
+      "version": "v0.6.0",
+      "evidencia": ["#83/#84 cd974d9"]
+    },
+    {
+      "id": "E01-25",
+      "tipo": "Story",
+      "titulo": "Editar casos de conciliación y de acuerdo de apoyo",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "editar una conciliación o un acuerdo de apoyo después de creado",
+        "para": "corregir un dato sin tener que borrar y volver a crear el caso"
+      },
+      "ac": [
+        "Dado una conciliación Cuando abro editar Entonces veo su formulario con los datos cargados",
+        "Dado un acuerdo de apoyo editado Cuando guardo Entonces los cambios persisten",
+        "[error] Dado una edición concurrente Cuando guardo Entonces aplica el mismo control de versión que insolvencia"
+      ],
+      "puntos": 5,
+      "justificacion": "Dos formularios de edición nuevos con paridad de campos frente al alta.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-01",
+      "version": "v0.6.0",
+      "evidencia": ["#89 3093a65"]
+    },
+    {
+      "id": "E01-26",
+      "tipo": "Bug",
+      "titulo": "El diálogo de edición de insolvencia perdía campos entre el reset y el submit",
+      "bug": {
+        "entorno": "dev, octubre 2026",
+        "pasos": [
+          "Abrir edición de un caso de insolvencia",
+          "Guardar sin cambios",
+          "Comparar con el caso original"
+        ],
+        "esperado": "Paridad total con el schema de creación",
+        "actual": "Campos que el reset no cargaba o el submit no enviaba",
+        "severidad": "Alta",
+        "causaRaiz": "Deriva entre el reset del diálogo de edición y el schema de envío.",
+        "fix": "#102 89a0077",
+        "regresion": "Test de paridad reset/submit contra el schema."
+      },
+      "ac": [
+        "Dado un caso completo Cuando se edita y guarda sin cambios Entonces ningún campo cambia",
+        "Dado un campo nuevo en el schema Cuando falta en el reset Entonces el test de paridad falla"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["bug-regresion"],
+      "componentes": ["Frontend", "Testing"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": ["#102 89a0077"]
+    },
+    {
+      "id": "E01-27",
+      "tipo": "Story",
+      "titulo": "Suma adeudada de servicios suspendidos en el alta",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar cuánto se debe de cada servicio público suspendido",
+        "para": "que la solicitud informe el monto, no solo el servicio"
+      },
+      "ac": [
+        "Dado un servicio suspendido Cuando lo agrego Entonces puedo escribir la suma adeudada",
+        "[borde] Dado una suma vacía Cuando guardo Entonces el servicio se registra sin monto",
+        "Dado la suma guardada Cuando reabro el caso Entonces se muestra"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": ["#99 af900b2"]
+    },
+    {
+      "id": "E01-28",
+      "tipo": "Bug",
+      "titulo": "Las casillas Desconozco reventaban la creación y dejaban un caso huérfano",
+      "bug": {
+        "entorno": "dev, octubre 2026",
+        "pasos": [
+          "Crear un caso de insolvencia",
+          "Marcar Desconozco en la tasa de interés de una deuda",
+          "Guardar"
+        ],
+        "esperado": "El caso se crea con el dato marcado como desconocido",
+        "actual": "La creación falla a mitad de camino y deja un caso huérfano en la base",
+        "severidad": "Crítica",
+        "causaRaiz": "Las casillas no tenían columnas propias y el valor no numérico rompía la creación de las deudas después de crear el caso.",
+        "fix": "#117 b1db9f2 (migración 20261003000000_add_debt_unknown_flags)",
+        "regresion": "Test de creación con las casillas marcadas."
+      },
+      "ac": [
+        "Dado una deuda con tasa Desconozco Cuando se crea el caso Entonces se guarda con interestRateUnknown en true",
+        "Dado un fallo al crear deudas Cuando ocurre Entonces no queda un caso huérfano"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#117 b1db9f2",
+        "docs/DIAGNOSTICO_PROMOCION_MAIN_2026-10-08.md §3.1"
+      ]
+    },
+    {
+      "id": "E01-29",
+      "tipo": "Story",
+      "titulo": "Separador de miles en los 27 campos de dinero del formulario maestro",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "escribir los montos como 1.500.000 y no como 1500000",
+        "para": "leer y verificar las cifras igual que en los documentos del deudor"
+      },
+      "ac": [
+        "Dado cualquiera de los 27 campos de dinero Cuando escribo 1500000 Entonces se muestra 1.500.000",
+        "Dado el monto 1.500.000 Cuando se guarda Entonces Prisma recibe 1500000, no 1.5",
+        "[borde] Dado un monto con coma decimal Cuando se guarda Entonces se conserva la parte decimal",
+        "Dado los campos de dinero Cuando se renderizan Entonces no muestran los spinners del input numérico"
+      ],
+      "puntos": 5,
+      "justificacion": "27 campos y un bug de parseo en tres capas que solo cerró un test que llega hasta Prisma.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Testing"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-11",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#136 c678020",
+        "src/components/ui/money-input.tsx",
+        "src/features/case/monto.ts",
+        "CLAUDE.md Quick Win 9"
+      ]
+    },
+    {
+      "id": "E01-30",
+      "tipo": "Story",
+      "titulo": "Montos en formato colombiano en los campos de dinero fuera del formulario maestro",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "escribir la cuantía de la audiencia y el monto mensual del acuerdo de apoyo en formato 1.234,56",
+        "para": "que el documento no imprima $0 en silencio cuando escribo un monto con puntos"
+      },
+      "ac": [
+        "Dado la cuantía de conciliación Cuando escribo 1.234,56 Entonces se guarda 1234.56",
+        "Dado el monto mensual de apoyo Cuando escribo 1.500.000 Entonces el documento imprime $1.500.000",
+        "[error] Dado un monto no numérico Cuando se envía Entonces se rechaza con mensaje en vez de guardarse como $0",
+        "[borde] Dado formatCurrency con un valor NaN Cuando se formatea Entonces no imprime NaN en el documento"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature", "doc-semana-11"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-18",
+      "version": "v1.0.0-rc.1",
+      "nota": "HISTORIA DE REFERENCIA (3 pts) de todo el backlog.",
+      "evidencia": [
+        "#145 4e5a342",
+        "docs/IMPLEMENTACION_SEMANA_11.md",
+        "CHANGELOG.md [1.0.0-rc.1] (#145)"
+      ]
+    },
+    {
+      "id": "E01-31",
+      "tipo": "Bug",
+      "titulo": "Los totales de ingresos y deudas del wizard daban NaN con coma decimal",
+      "bug": {
+        "entorno": "dev y producción (1.0.0-rc.1 previo), octubre 2026",
+        "pasos": [
+          "Crear un caso",
+          "Escribir un ingreso como 1500,50",
+          "Mirar el total de ingresos"
+        ],
+        "esperado": "El total suma 1500.50",
+        "actual": "El total muestra NaN en pantalla",
+        "severidad": "Media",
+        "causaRaiz": "4 lugares sumaban con parseFloat sobre el texto con coma decimal en vez de usar parsearMonto.",
+        "fix": "#144 92b77ca",
+        "regresion": "Tests de los 4 cálculos con coma decimal; verificación manual contra Postgres local."
+      },
+      "ac": [
+        "Dado un monto con coma decimal Cuando se calcula el total Entonces el total es numérico",
+        "Dado el NaN en pantalla Cuando se guarda el caso Entonces nunca llega NaN al servidor (verificado)"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["doc-semana-10"],
+      "componentes": ["Frontend", "Testing"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-18",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#144 92b77ca", "docs/IMPLEMENTACION_SEMANA_10.md §2"]
+    },
+    {
+      "id": "E01-32",
+      "tipo": "Bug",
+      "titulo": "Las fechas históricas de conciliación se imprimían con la fecha de hoy",
+      "bug": {
+        "entorno": "Producción y dev, octubre 2026",
+        "pasos": [
+          "Crear una conciliación cuya solicitud se presentó hace un mes",
+          "Generar la citación"
+        ],
+        "esperado": "El documento imprime las fechas reales de solicitud, citación y desistimiento",
+        "actual": "El documento imprime la fecha de hoy como si esos hechos hubieran ocurrido hoy",
+        "severidad": "Crítica",
+        "causaRaiz": "No existían columnas para esas fechas y el mapper caía a new Date().",
+        "fix": "#138 658686e (interino) y #139 756342d (3 columnas DateTime reales)",
+        "regresion": "Test de cobertura bidireccional formulario<->plantilla (8fd4a35, 434a7a3)."
+      },
+      "ac": [
+        "Dado una fecha de solicitud informada Cuando se genera el documento Entonces imprime esa fecha",
+        "[error] Dado una fecha no informada Cuando se genera Entonces no imprime la fecha de hoy"
+      ],
+      "puntos": 5,
+      "justificacion": "Arreglo en dos tiempos (interino + columnas reales) con migración y guardián de cobertura.",
+      "prioridad": "Crítica",
+      "labels": ["doc-semana-5", "doc-semana-6"],
+      "componentes": ["Backend", "Base-de-Datos", "Documentos-PDF"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["CONC-C-1a"],
+      "evidencia": [
+        "#138 fe82fe6",
+        "#139 0a41c56",
+        "docs/AUDITORIA_FORMULARIO_CONCILIACION_2026-10-12.md §2",
+        "docs/IMPLEMENTACION_SEMANA_5.md",
+        "docs/IMPLEMENTACION_SEMANA_6.md"
+      ]
+    },
+    {
+      "id": "E01-33",
+      "tipo": "Story",
+      "titulo": "Datos de la audiencia virtual por Zoom en la conciliación",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "registrar el enlace, ID y clave de Zoom de la audiencia",
+        "para": "que la convocatoria llegue con el enlace y las partes puedan conectarse"
+      },
+      "ac": [
+        "Dado una audiencia virtual Cuando registro los 3 datos de Zoom Entonces se guardan",
+        "Dado los datos guardados Cuando genero la convocatoria Entonces incluye el enlace",
+        "[borde] Dado una audiencia presencial Cuando no hay datos de Zoom Entonces la convocatoria no deja huecos"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["doc-semana-5"],
+      "componentes": ["Frontend", "Documentos-PDF"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["CONC-C-3"],
+      "evidencia": [
+        "#138 c601c5f",
+        "docs/AUDITORIA_FORMULARIO_CONCILIACION_2026-10-12.md §3"
+      ]
+    },
+    {
+      "id": "E01-34",
+      "tipo": "Story",
+      "titulo": "Inputs para los 5 campos de conciliación que ya tenían columna",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "diligenciar los 5 campos que las plantillas usan y el formulario no mostraba",
+        "para": "que esos datos dejen de salir vacíos en el acta"
+      },
+      "ac": [
+        "Dado el formulario de conciliación Cuando lo abro Entonces veo los 5 campos",
+        "Dado los campos diligenciados Cuando genero Entonces aparecen en el documento",
+        "[borde] Dado un campo opcional vacío Cuando genero Entonces la frase no queda rota"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["doc-semana-5"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["CONC-C-2"],
+      "evidencia": [
+        "#138 48a620e",
+        "docs/AUDITORIA_FORMULARIO_CONCILIACION_2026-10-12.md §4"
+      ]
+    },
+    {
+      "id": "E01-35",
+      "tipo": "Story",
+      "titulo": "Aclaración de Acta con valores correcto e incorrecto",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "registrar qué se corrige en un acta y cuáles eran el valor incorrecto y el correcto",
+        "para": "emitir la Aclaración de Acta sin redactarla a mano"
+      },
+      "ac": [
+        "Dado un acta con un error Cuando registro la aclaración Entonces se guardan las 8 columnas nuevas",
+        "Dado la aclaración guardada Cuando genero el documento Entonces imprime valor incorrecto y correcto",
+        "[borde] Dado un acta sin aclaración Cuando genero otros documentos Entonces no se ven afectados"
+      ],
+      "puntos": 5,
+      "justificacion": "8 columnas nuevas con migración, Zod, formulario, mapper y cobertura.",
+      "prioridad": "Alta",
+      "labels": ["doc-semana-6"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos", "Documentos-PDF"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["CONC-C-1c"],
+      "evidencia": [
+        "#139 0a41c56",
+        "docs/AUDITORIA_FORMULARIO_CONCILIACION_2026-10-12.md §5.1",
+        "docs/IMPLEMENTACION_SEMANA_6.md"
+      ]
+    },
+    {
+      "id": "E01-36",
+      "tipo": "Story",
+      "titulo": "Selector de bienes en dos niveles: categoría y tipo",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "elegir primero la categoría del bien y después el tipo exacto",
+        "para": "no confundir tipos de bienes parecidos en una lista larga"
+      },
+      "ac": [
+        "Dado el formulario de bienes Cuando elijo la categoría Entonces solo veo los tipos de esa categoría",
+        "Dado un bien guardado con la versión anterior Cuando abro la edición Entonces se normaliza a categoría y tipo",
+        "[borde] Dado un tipo legacy sin categoría Cuando se carga Entonces no desaparece de la tabla"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature", "doc-semana-14"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W43",
+      "estado": "Done",
+      "resuelto": "2026-10-19",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#148 25d6d7e", "docs/IMPLEMENTACION_SEMANA_14.md §3"]
+    },
+    {
+      "id": "E01-37",
+      "tipo": "Bug",
+      "titulo": "Los bienes tipo Equipo desaparecían de la tabla de la Solicitud",
+      "bug": {
+        "entorno": "Producción (1.0.0-rc.1 previo)",
+        "pasos": [
+          "Registrar un bien tipo Equipo con el formulario anterior",
+          "Generar la Solicitud de Insolvencia"
+        ],
+        "esperado": "El equipo aparece en la tabla de bienes y en el total",
+        "actual": "No aparece en la tabla aunque sí se suma al total",
+        "severidad": "Alta",
+        "causaRaiz": "La tabla filtraba por los tipos del selector nuevo y EQUIPO no tenía correspondencia.",
+        "fix": "#148 25d6d7e",
+        "regresion": "Test de la tabla de bienes con tipo EQUIPO."
+      },
+      "ac": [
+        "Dado un bien EQUIPO Cuando se genera la Solicitud Entonces aparece en la tabla",
+        "Dado la tabla y el total Cuando se comparan Entonces suman lo mismo"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["doc-semana-14"],
+      "componentes": ["Documentos-PDF", "Testing"],
+      "sprint": "2026-W43",
+      "estado": "Done",
+      "resuelto": "2026-10-19",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#148 25d6d7e",
+        "docs/IMPLEMENTACION_SEMANA_14.md §3 (Bug real)"
+      ]
+    },
+    {
+      "id": "E01-38",
+      "tipo": "Bug",
+      "titulo": "El bloqueo optimista es opcional y no atómico",
+      "bug": {
+        "entorno": "Producción actual (1.0.0-rc.1)",
+        "pasos": [
+          "Abrir el mismo caso en dos sesiones (versión 5)",
+          "Guardar en ambas casi a la vez",
+          "O enviar updateCase sin version"
+        ],
+        "esperado": "La segunda escritura recibe conflicto",
+        "actual": "Ambas leen v=5, pasan el check y escriben; si el cliente no manda version el check se salta",
+        "severidad": "Alta",
+        "causaRaiz": "version es z.number().int().optional() (schemas.ts:1406) y el check es leer-luego-escribir (actions.ts:1008) en READ COMMITTED.",
+        "fix": "Pendiente: updateMany({ where: { id, tenantId, version } }) con count === 0 como conflicto, y version obligatorio.",
+        "regresion": "Test de dos escrituras concurrentes con la misma versión y de envío sin version."
+      },
+      "ac": [
+        "[error] Dado dos guardados concurrentes con version 5 Cuando ambos llegan Entonces exactamente uno falla con conflicto",
+        "[error] Dado un updateCase sin version Cuando se envía Entonces se rechaza",
+        "Dado un guardado normal Cuando no hay conflicto Entonces la versión se incrementa en la misma sentencia"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W44",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "hallazgos": ["GC-A2"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 (Alto)",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §4 A-2 sin cambios",
+        "src/features/case/schemas.ts:1406",
+        "src/features/case/actions.ts:1008"
+      ]
+    },
+    {
+      "id": "E01-39",
+      "tipo": "Bug",
+      "titulo": "Dos casos creados a la vez pueden recibir el mismo número",
+      "bug": {
+        "entorno": "Producción actual (1.0.0-rc.1)",
+        "pasos": [
+          "Dos operadoras crean un caso del mismo servicio al mismo tiempo"
+        ],
+        "esperado": "Cada caso recibe un número consecutivo distinto",
+        "actual": "Ambas calculan el mismo número; la segunda recibe 'Unique constraint failed'",
+        "severidad": "Media",
+        "causaRaiz": "caseNumber se calcula con findFirst + 1 sin transacción serializable ni secuencia (actions.ts:435-455).",
+        "fix": "Pendiente: reintento sobre P2002 con el siguiente número, u ordenar por caseNumber y usar secuencia por tenant y prefijo.",
+        "regresion": "Test que simula P2002 en la primera inserción y verifica el reintento."
+      },
+      "ac": [
+        "[error] Dado un P2002 por caseNumber Cuando se crea el caso Entonces se reintenta con el siguiente número sin error al usuario",
+        "Dado un caso cargado con número manual alto Cuando se crea el siguiente Entonces el contador no retrocede"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W44",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Should",
+      "hallazgos": ["GC-M1"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 (Medio)",
+        "src/features/case/actions.ts:435-455"
+      ]
+    },
+    {
+      "id": "E01-40",
+      "tipo": "Story",
+      "titulo": "Borrado lógico de expedientes",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que eliminar un expediente lo oculte en vez de destruirlo",
+        "para": "poder recuperarlo ante un error y cumplir la política de retención de la Ley 1581"
+      },
+      "ac": [
+        "Dado un expediente Cuando se elimina Entonces queda con deletedAt y no aparece en listados, búsqueda ni reportes",
+        "[error] Dado un expediente borrado Cuando se consulta por id Entonces se responde como no encontrado",
+        "Dado el borrado Cuando ocurre Entonces queda en audit_logs antes de ejecutarse",
+        "[borde] Dado un caso borrado con número X Cuando se crea uno nuevo Entonces no reutiliza el número X"
+      ],
+      "puntos": 5,
+      "justificacion": "Toca todas las lecturas de casos (filtro global) y requiere migración.",
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "bloqueadoPor": ["E11-17"],
+      "hallazgos": ["PP-A-8", "GC-M6"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md A-8",
+        "CLAUDE.md Fase 3 (soft-delete ~20h)",
+        "docs/IMPLEMENTACION_SEMANA_4.md §6 decisión 2 (post-lanzamiento)"
+      ]
+    },
+    {
+      "id": "E01-41",
+      "tipo": "Story",
+      "titulo": "Papelera y restauración de expedientes",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "ver los expedientes borrados y restaurar uno",
+        "para": "deshacer un borrado accidental sin pedir una restauración de base de datos"
+      },
+      "ac": [
+        "Dado expedientes borrados Cuando abro la papelera Entonces los veo con fecha y autor del borrado",
+        "Dado un expediente en la papelera Cuando lo restauro Entonces vuelve a los listados y queda auditado",
+        "[error] Dado un usuario sin rol administrador Cuando intenta restaurar Entonces se rechaza"
+      ],
+      "puntos": 5,
+      "justificacion": "Pantalla nueva con permisos propios y efecto sobre Drive.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "bloqueadoPor": ["E01-40"],
+      "hallazgos": ["PP-A-8"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §6 Fase post-launch",
+        "CLAUDE.md Fase 3 (capacidad de recuperación)"
+      ]
+    },
+    {
+      "id": "E01-42",
+      "tipo": "Story",
+      "titulo": "Borrado coordinado de la carpeta del expediente en Drive",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que al borrar un expediente su carpeta de Drive vaya a una papelera del centro",
+        "para": "no dejar PDFs con cédula e ingresos huérfanos en Drive"
+      },
+      "ac": [
+        "Dado un expediente con carpeta en Drive Cuando se borra Entonces la carpeta se mueve a la papelera del tenant",
+        "[error] Dado un fallo de Drive Cuando se borra Entonces el borrado lógico se completa y el fallo queda en Sentry",
+        "Dado una restauración Cuando ocurre Entonces la carpeta vuelve a su lugar"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "bloqueadoPor": ["E01-40"],
+      "hallazgos": ["GC-M6"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §2 deleteCase (Medio)"
+      ]
+    },
+    {
+      "id": "E01-43",
+      "tipo": "Story",
+      "titulo": "Validar en el servidor los documentos adjuntos obligatorios",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que el servidor verifique los adjuntos obligatorios y los condicionales de bienes",
+        "para": "que la regla no dependa solo del formulario"
+      },
+      "ac": [
+        "[error] Dado un caso sin un adjunto obligatorio Cuando se envía directo al servidor Entonces se rechaza",
+        "Dado un bien que exige tradición y libertad Cuando falta Entonces se reporta como faltante",
+        "Dado los flujos de carga y creación Cuando se unifican Entonces validateDocumentsComplete corre en el servidor"
+      ],
+      "puntos": 5,
+      "justificacion": "Requiere unificar el flujo de carga de archivos con el de creación del caso.",
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "evidencia": ["docs/IMPLEMENTACION_SEMANA_3.md §3.2 Brechas conocidas"]
+    }
+  ]
+}

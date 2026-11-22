@@ -21,6 +21,10 @@ jest.mock('next/cache', () => require('../../__mocks__/next-cache'));
 jest.mock('next/navigation', () => require('../../__mocks__/next-navigation'));
 
 import mockPrisma, { resetAllMocks } from '../../__mocks__/prisma';
+import {
+  findManyDeImagenes,
+  firmasDelCentro,
+} from '../../helpers/imagenes-privadas';
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: require('../../__mocks__/prisma').default,
@@ -132,6 +136,9 @@ async function correrLoteCompleto(tandas: string[][]) {
 describe('batchDocumentGeneration — el límite se cobra por lote, no por tanda', () => {
   beforeEach(() => {
     resetAllMocks();
+    mockPrisma.imagenPrivada.findMany.mockImplementation(
+      findManyDeImagenes(firmasDelCentro(TENANT_ID)),
+    );
     jest.clearAllMocks();
     claimCounter = 0;
     _resetRateLimitStore();

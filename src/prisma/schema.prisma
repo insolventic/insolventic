@@ -58,6 +58,7 @@ model Tenant {
   payments            Payment[]
   conciliationCenters ConciliationCenter[]
   generationRequests  DocumentGenerationRequest[]
+  imagenesPrivadas    ImagenPrivada[]
 }
 
 /// Centro de Conciliación — escalable, reemplaza el mapping hard-coded.
@@ -1104,4 +1105,25 @@ model Payment {
   @@index([tenantId, dueDate, status])
   @@index([tenantId, caseId, status])
   @@map("payments")
+}
+
+/// Firmas que las plantillas insertan y que no se versionan: el repositorio es
+/// público. Una fila por centro y tipo, nunca compartida entre centros aunque
+/// dos usen la misma imagen. Solo la lee `src/lib/imagenes-privadas.ts`; se
+/// carga con `scripts/imagenes-privadas/cargar.ts` (docs/RUNBOOK.md §7.3).
+model ImagenPrivada {
+  id        String   @id @default(cuid())
+  tenantId  String
+  /// Uno de `TIPOS_IMAGEN_PRIVADA` (`firma-operador`, `firma-director`).
+  tipo      String
+  /// `image/png` o `image/jpeg`, verificado contra el contenido al cargar.
+  mimeType  String
+  datos     Bytes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, tipo])
+  @@map("imagenes_privadas")
 }
