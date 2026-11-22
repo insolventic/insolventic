@@ -528,6 +528,21 @@ tabla vacía deja a los dos centros sin poder generar documentos.
 Para reemplazar una firma basta con volver a correr `cargar.ts` con el archivo
 nuevo; el cambio aplica desde la siguiente generación.
 
+**Huellas para el CI.** `scripts/imagenes-privadas/huellas.txt` guarda la huella
+`sha256` de cada archivo de la carpeta, y el CI de cada PR compara contra ella
+todos los archivos versionados: una copia de una firma corta el PR aunque tenga
+otro nombre. La huella no permite reconstruir la imagen, por eso la lista sí se
+versiona. Cada vez que se agrega o se reemplaza una firma, regenerarla desde la
+misma carpeta y commitear el `huellas.txt` resultante:
+
+```bash
+npx tsx scripts/imagenes-privadas/huellas.ts generar <carpeta>   # reescribe huellas.txt
+npx tsx scripts/imagenes-privadas/huellas.ts revisar             # lo que corre el CI
+```
+
+Una imagen incrustada en un PDF o un DOCX no conserva la huella y este control
+no la detecta.
+
 ---
 
 ## 8. Referencias

@@ -33,7 +33,8 @@ jobs:
       # §7.3). El repositorio es público y lo que entra queda en el historial
       # aunque se borre después, así que se corta en el PR, antes de mergear.
       # `.gitignore` evita el caso común; esto cubre un `git add -f`. El logo
-      # de firma de Constructores de Paz es un sello y va por ruta.
+      # de firma de Constructores de Paz es un sello y va por ruta. Una copia
+      # con otro nombre la corta el paso por huella, después de `npm ci`.
       - name: Sin firmas ni sellos en el repositorio
         run: |
           encontrados=$(git ls-files | grep -iE '(^|/)(firma|sello)[^/]*\.(png|jpe?g|gif|webp|bmp|tiff?|svg|pdf)$|^templates/branding/constructores-paz/logo-firma\.' || true)
@@ -49,6 +50,13 @@ jobs:
           cache: npm
 
       - run: npm ci --ignore-scripts
+
+      # El paso de arriba mira el nombre; este, el contenido. Compara cada
+      # archivo versionado contra las huellas sha256 de las firmas y sellos
+      # (`scripts/imagenes-privadas/huellas.txt`), así una copia con otro
+      # nombre también corta el PR. Cómo se actualiza la lista: RUNBOOK §7.3.
+      - name: Sin copias de firmas ni sellos (por huella)
+        run: npx tsx scripts/imagenes-privadas/huellas.ts revisar
 
       - name: Generate Prisma client
         run: npm run postinstall --if-present
