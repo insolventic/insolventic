@@ -96,8 +96,11 @@ jest.mock('@/lib/google-drive', () => ({
   },
 }));
 
+import { Prisma } from '@prisma/client';
+
 import { ADMIN_USER } from '../../helpers/fixtures';
 import { P } from '@/lib/permissions';
+import { logger } from '@/lib/logger';
 import { batchGenerateDocuments } from '@/features/document/actions';
 
 // 'armonia' en vez de TENANT.id (fixture compartido): resolveCenterFolderName
@@ -245,6 +248,99 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
       /no se pudo resolver la carpeta del caso \(Drive: 403 insufficientPermissions\)/,
     );
     expect(data.successfulDocuments).toBe(0);
+    expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
+    expect(mockPrisma.document.create).not.toHaveBeenCalled();
+  });
+
+  it('agotados los reintentos, el log del fallo de subida es el mismo de antes', async () => {
+    const errorSpy = jest.spyOn(logger, 'error');
+    mockUploadDocumentToCase.mockRejectedValue(
+      new Error('ETIMEDOUT: Drive no respondió'),
+    );
+
+    const resultPromise = batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: ['solicitud-insolvencia'],
+      outputFormat: 'pdf',
+    });
+    await jest.advanceTimersByTimeAsync(500);
+    await jest.advanceTimersByTimeAsync(1000);
+    await resultPromise;
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error uploading or saving document',
+      expect.objectContaining({
+        message: 'No se subió a Google Drive: ETIMEDOUT: Drive no respondió',
+        cause: expect.objectContaining({
+          message: 'ETIMEDOUT: Drive no respondió',
+        }),
+      }),
+      expect.objectContaining({
+        action: 'batch-generate-documents',
+        caseId: 'case-1',
+        variant: 'pdf',
+      }),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it('un fallo al guardar en BD no expone el mensaje crudo de Prisma', async () => {
+    const errorSpy = jest.spyOn(logger, 'error');
+    const errorDePrisma = new Error(
+      'Invalid `prisma.document.create()` invocation: tabla "Document"',
+    );
+    mockUploadDocumentToCase.mockResolvedValue({
+      fileId: 'file-1',
+      fileUrl: 'https://drive.example/file/file-1',
+    });
+    mockPrisma.document.create.mockRejectedValue(errorDePrisma);
+
+    const result = await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: ['solicitud-insolvencia'],
+      outputFormat: 'pdf',
+    });
+
+    const data = result.data as {
+      documents: Array<{ status: string; error?: string }>;
+    };
+    expect(data.documents[0].status).toBe('error');
+    expect(data.documents[0].error).toBe(
+      'No se pudo guardar el documento. Intenta generarlo de nuevo.',
+    );
+    // El detalle no se pierde: el error original va al log (y de ahí a Sentry).
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error saving generated document',
+      errorDePrisma,
+      expect.objectContaining({ caseId: 'case-1', variant: 'pdf' }),
+    );
+    errorSpy.mockRestore();
+  });
+
+  it('si falla el registro de la carpeta en BD, el motivo de Prisma no se muestra', async () => {
+    // El pretty-print de Prisma imprime los argumentos de la operación: acá,
+    // el ID de la carpeta de Drive y el del centro.
+    mockPrisma.documentFromDrive.upsert.mockRejectedValueOnce(
+      new Prisma.PrismaClientValidationError(
+        'Invalid `prisma.documentFromDrive.upsert()` invocation: googleDriveId: "case-folder-id", tenantId: "armonia"',
+        { clientVersion: 'test' },
+      ),
+    );
+
+    const result = await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: ['solicitud-insolvencia'],
+      outputFormat: 'pdf',
+    });
+
+    const data = result.data as {
+      documents: Array<{ status: string; error?: string }>;
+    };
+    expect(data.documents[0].status).toBe('error');
+    expect(data.documents[0].error).toBe(
+      'No se subió a Google Drive: no se pudo resolver la carpeta del caso.',
+    );
+    expect(data.documents[0].error).not.toContain('case-folder-id');
     expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
     expect(mockPrisma.document.create).not.toHaveBeenCalled();
   });
