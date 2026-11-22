@@ -229,6 +229,8 @@ estados en la tabla `document_generation_requests`.
    ```
 2. Interpretación:
    - `FAILED` con `error` → leer el mensaje; casi siempre es Drive (§3.4).
+     Si dice `Falta la firma … para <centro>`, ese centro no tiene la firma
+     cargada en la base (§7.3).
    - `PROCESSING` hace más de 10 minutos → job huérfano. El sistema los
      recupera solo: el lock se libera a los 10 min y la siguiente solicitud
      lo re-reclama. Si el usuario no puede esperar, reintentar desde la UI.
@@ -477,6 +479,54 @@ el mismo criterio de destino, evaluado antes de la primera consulta, también
 con `--tenant=`. A diferencia del seed **no tiene opt-in**: borrar no tiene
 mitigación, así que fuera de una base de prueba local se niega siempre, aunque
 esté `SEED_PERMITIR_BASE_REAL=1`.
+
+### 7.3 Firmas de los documentos (`imagenes_privadas`)
+
+Las firmas que insertan las plantillas no se versionan: el repositorio es
+público. Viven en la tabla `imagenes_privadas`, una fila por centro y tipo
+(`firma-operador`, `firma-director` y, en Constructores de Paz, `sello`: el
+logo que acompaña la firma), y solo las lee
+`src/lib/imagenes-privadas.ts` al generar. Si a un centro le falta una, ese
+centro no genera documentos: el usuario ve «Falta la firma del operador para
+<centro>. Contacta al administrador.» y Sentry registra el evento
+`documentos.imagen-privada` con `centro` y `clave`. El porqué del diseño está
+en `docs/DECISIONES.md` (2026-11-20).
+
+**Preparar los archivos**, fuera del repositorio (`privado/` está ignorado por
+git y sirve de carpeta local):
+
+```
+<carpeta>/armonia/firma-operador.png
+<carpeta>/armonia/firma-director.jpg
+<carpeta>/constructores-paz/firma-operador.png
+<carpeta>/constructores-paz/firma-director.jpg
+<carpeta>/constructores-paz/sello.png
+```
+
+La subcarpeta es el slug del centro y el nombre del archivo es el tipo. PNG o
+JPEG, hasta 1 MB; el formato se comprueba por el contenido. Si dos centros usan
+la misma firma, el archivo va en las dos subcarpetas: cada centro tiene su fila.
+
+**Cargar y verificar**, en este orden y con `DATABASE_URL` (y `DIRECT_URL`)
+apuntando a la base del entorno:
+
+```bash
+npx prisma migrate deploy                                           # 1. crea la tabla si falta
+npx tsx scripts/imagenes-privadas/cargar.ts <carpeta>               # 2. simulación: muestra qué cargaría
+npx tsx scripts/imagenes-privadas/cargar.ts <carpeta> --confirmar   # 3. escribe (upsert por centro y tipo)
+npx tsx scripts/imagenes-privadas/verificar.ts                      # 4. sale con 1 si a algún centro le falta algo
+```
+
+Los dos scripts imprimen el host de la base antes de hacer nada. `cargar.ts` es
+idempotente, valida todos los archivos antes de escribir (si uno no sirve no
+carga ninguno), se niega a leer archivos versionados en el repositorio e
+imprime por cada firma el tipo, el tamaño y una huella `sha256` corta, nunca el
+contenido. En producción la migración también corre en el build de Vercel, pero
+la carga y la verificación tienen que ir **antes** del deploy: un deploy con la
+tabla vacía deja a los dos centros sin poder generar documentos.
+
+Para reemplazar una firma basta con volver a correr `cargar.ts` con el archivo
+nuevo; el cambio aplica desde la siguiente generación.
 
 ---
 

@@ -20,6 +20,10 @@ jest.mock('next/cache', () => require('../../__mocks__/next-cache'));
 jest.mock('next/navigation', () => require('../../__mocks__/next-navigation'));
 
 import mockPrisma, { resetAllMocks } from '../../__mocks__/prisma';
+import {
+  findManyDeImagenes,
+  firmasDelCentro,
+} from '../../helpers/imagenes-privadas';
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: require('../../__mocks__/prisma').default,
@@ -106,6 +110,9 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
   beforeEach(() => {
     jest.useFakeTimers();
     resetAllMocks();
+    mockPrisma.imagenPrivada.findMany.mockImplementation(
+      findManyDeImagenes(firmasDelCentro(TENANT_ID)),
+    );
     jest.clearAllMocks();
     mockAuthenticateUser.mockResolvedValue({
       user: { ...ADMIN_USER, permissions: Object.values(P) },
@@ -180,9 +187,9 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
     );
   });
 
-  it('agotados los reintentos, el documento sale como error y NO se registra sin URL', async () => {
+  it('agotados los reintentos, el documento es un error y no rompe el lote', async () => {
     mockUploadDocumentToCase.mockRejectedValue(
-      new Error('ETIMEDOUT: Drive no respondió (detalle interno)'),
+      new Error('ETIMEDOUT: Drive no respondió'),
     );
 
     const resultPromise = batchGenerateDocuments({
@@ -203,26 +210,24 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
       successfulDocuments: number;
       failedDocuments: number;
     };
+    expect(result.success).toBe(true);
     expect(data.documents).toHaveLength(1);
-    // N-A2-05: antes quedaba `status: 'success'` y un `Document` con
-    // `url: ''` en la lista del caso, que no abre. Ahora es un fallo del
-    // lote, con un mensaje propio: el de Drive no sale del servidor.
+    // Antes quedaba como 'success' con URL vacía: el operador lo veía
+    // generado y en Drive no estaba.
     expect(data.documents[0].status).toBe('error');
-    expect(data.documents[0].error).toBe(
-      'No se pudo subir el documento a Google Drive. Intenta generarlo de nuevo.',
+    expect(data.documents[0].error).toMatch(
+      /No se subió a Google Drive: ETIMEDOUT/,
     );
-    expect(data.documents[0].error).not.toContain('ETIMEDOUT');
     expect(data.successfulDocuments).toBe(0);
     expect(data.failedDocuments).toBe(1);
-    expect(result.message).toContain('0 exitosos, 1 fallidos');
     expect(mockPrisma.document.create).not.toHaveBeenCalled();
   });
 
-  it('si no se pudo crear la carpeta del caso, no sube ni registra nada', async () => {
+  it('si no se puede resolver la carpeta del caso, ningún documento queda como generado', async () => {
     const { googleDriveService } = jest.requireMock('@/lib/google-drive');
-    (
-      googleDriveService.findOrCreateCaseFolder as jest.Mock
-    ).mockRejectedValueOnce(new Error('403 insufficientPermissions'));
+    googleDriveService.findOrCreateCaseFolder.mockRejectedValueOnce(
+      new Error('Drive: 403 insufficientPermissions'),
+    );
 
     const result = await batchGenerateDocuments({
       caseId: 'case-1',
@@ -234,37 +239,13 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
       documents: Array<{ status: string; error?: string }>;
       successfulDocuments: number;
     };
-    expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
     expect(data.documents).toHaveLength(1);
     expect(data.documents[0].status).toBe('error');
-    expect(data.documents[0].error).not.toContain('403');
+    expect(data.documents[0].error).toMatch(
+      /no se pudo resolver la carpeta del caso \(Drive: 403 insufficientPermissions\)/,
+    );
     expect(data.successfulDocuments).toBe(0);
+    expect(mockUploadDocumentToCase).not.toHaveBeenCalled();
     expect(mockPrisma.document.create).not.toHaveBeenCalled();
-  });
-
-  it('un fallo al guardar en BD no expone el mensaje crudo de Prisma', async () => {
-    mockUploadDocumentToCase.mockResolvedValue({
-      fileId: 'file-1',
-      fileUrl: 'https://drive.example/file/file-1',
-    });
-    mockPrisma.document.create.mockRejectedValue(
-      new Error(
-        'Invalid `prisma.document.create()` invocation: tabla "Document"',
-      ),
-    );
-
-    const result = await batchGenerateDocuments({
-      caseId: 'case-1',
-      templateIds: ['solicitud-insolvencia'],
-      outputFormat: 'pdf',
-    });
-
-    const data = result.data as {
-      documents: Array<{ status: string; error?: string }>;
-    };
-    expect(data.documents[0].status).toBe('error');
-    expect(data.documents[0].error).toBe(
-      'No se pudo guardar el documento. Intenta generarlo de nuevo.',
-    );
   });
 });

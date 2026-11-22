@@ -1,0 +1,100 @@
+{
+  "epica": {
+    "id": "E06",
+    "titulo": "Pagos y Trazabilidad",
+    "descripcion": "Cronogramas y pagos manuales del acuerdo, comprobantes adjuntos en Drive, estados pendiente/pagado/parcial/vencido y progreso por caso. (No confundir con los pagos de infraestructura, que viven en E10.)",
+    "objetivo": "Que el centro sepa en todo momento cuánto ha pagado cada deudor del acuerdo y pueda demostrarlo con el comprobante.",
+    "prioridad": "Media",
+    "labels": [],
+    "evidencia": [
+      "src/features/payment/",
+      "README.md §Trazabilidad de Pagos",
+      "docs/AUDITORIA_CIERRE_2026-09-12.md §5.7"
+    ]
+  },
+  "items": [
+    {
+      "id": "E06-01",
+      "tipo": "Story",
+      "titulo": "Registrar el cronograma y los pagos del acuerdo con su progreso",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar las cuotas del acuerdo y cada pago que hace el deudor",
+        "para": "saber si el deudor está al día y cuánto lleva pagado"
+      },
+      "ac": [
+        "Dado un acuerdo con 12 cuotas Cuando registro el cronograma Entonces veo las 12 cuotas pendientes",
+        "Dado un pago parcial Cuando lo registro Entonces la cuota queda en estado parcial",
+        "[borde] Dado una cuota vencida sin pago Cuando pasa la fecha Entonces queda en estado vencido",
+        "[error] Dado un rol limitado a sus casos Cuando consulta pagos Entonces solo ve los de sus casos"
+      ],
+      "puntos": 5,
+      "justificacion": "Modelo de pagos con estados, progreso por caso y scoping por rol en 11 acciones.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos"],
+      "sprint": "2026-W13",
+      "estado": "Done",
+      "resuelto": "2026-03-24",
+      "version": "v0.2.0",
+      "evidencia": [
+        "e777c30 feat: sistema completo de trazabilidad de pagos con registro, comprobantes y progreso por caso",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §5.7 (Pagos: 11 de 11 autenticadas)"
+      ]
+    },
+    {
+      "id": "E06-02",
+      "tipo": "Story",
+      "titulo": "Adjuntar el comprobante de cada pago",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "adjuntar el comprobante en PDF, JPG o PNG a cada pago",
+        "para": "tener el soporte del pago dentro del expediente"
+      },
+      "ac": [
+        "Dado un pago Cuando adjunto un PDF Entonces se sube a la carpeta /Comprobantes/ del caso en Drive",
+        "[error] Dado un archivo .exe Cuando lo adjunto Entonces se rechaza",
+        "Dado un comprobante subido Cuando lo abro Entonces se ve con la vista previa"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W13",
+      "estado": "Done",
+      "resuelto": "2026-03-24",
+      "version": "v0.2.0",
+      "evidencia": ["e777c30", "CHANGELOG.md [0.2.0] Payment receipt upload"]
+    },
+    {
+      "id": "E06-03",
+      "tipo": "Story",
+      "titulo": "Montos de pago en formato colombiano",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "escribir el monto de un pago como 1.500.000 en el detalle del caso y en reportes",
+        "para": "registrar pagos igual que el resto de montos del sistema"
+      },
+      "ac": [
+        "Dado el campo Monto del detalle del caso Cuando escribo 1.500.000 Entonces se guarda 1500000",
+        "Dado el campo Valor pagado del reporte Cuando escribo 1.500.000 Entonces se guarda 1500000",
+        "[error] Dado el envío Cuando se parsea Entonces usa parsearMonto y nunca parseFloat (que daría 1.5)",
+        "Dado los dos campos Cuando se renderizan Entonces usan MoneyInput"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend", "Testing"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "nota": "Hoy el bug es inalcanzable (type=number no deja escribir el punto); molesta la inconsistencia visual.",
+      "evidencia": [
+        "CLAUDE.md Quick Win 9",
+        "docs/IMPLEMENTACION_SEMANA_11.md §3 (tabla del barrido)",
+        "payment-tracking-section.tsx:565 y payment-tracking-report.tsx:1118 (type=number, verificado 2026-10-21)"
+      ]
+    }
+  ]
+}

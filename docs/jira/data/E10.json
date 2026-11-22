@@ -1,0 +1,839 @@
+{
+  "epica": {
+    "id": "E10",
+    "titulo": "CI/CD e Infraestructura",
+    "descripcion": "GitHub Actions (pr.yml, e2e.yml, release.yml), despliegue por la integración nativa Vercel-GitHub, migraciones gateadas por VERCEL_ENV, Neon (producción y branch de Preview), regla de autoría para el plan Hobby, y los pasos de infraestructura y pagos previos a la entrega.",
+    "objetivo": "Que cada cambio llegue a producción verificado y reversible, y que la infraestructura quede a nombre de quien la va a pagar y operar.",
+    "prioridad": "Alta",
+    "labels": [],
+    "evidencia": [
+      ".github/workflows/",
+      "vercel.json",
+      "CLAUDE.md Session 3",
+      "docs/DIAGNOSTICO_PROMOCION_MAIN_2026-10-08.md"
+    ]
+  },
+  "items": [
+    {
+      "id": "E10-01",
+      "tipo": "Story",
+      "titulo": "Despliegue automático a Vercel con migraciones de base",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que cada versión aprobada se despliegue sola",
+        "para": "recibir arreglos sin depender de un despliegue manual"
+      },
+      "ac": [
+        "Dado un push a la rama de producción Cuando corre el pipeline Entonces se despliega en Vercel",
+        "[borde] Dado una base existente sin historial de migraciones Cuando se despliega Entonces se aplica el baseline de 20260205212559_init",
+        "[error] Dado un build que se queda sin memoria Cuando corre en CI Entonces se usa el heap ampliado"
+      ],
+      "puntos": 5,
+      "justificacion": "Cinco commits de ajuste de pipeline, baseline de Prisma y cuenta de equipo de Vercel.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-02",
+      "version": "v0.1.0",
+      "evidencia": [
+        "fcd2670",
+        "7f73223",
+        "729a4c8 baseline migración Prisma",
+        "8f90c6d heap",
+        "668fdf1"
+      ]
+    },
+    {
+      "id": "E10-02",
+      "tipo": "Story",
+      "titulo": "Versionado semántico visible y releases automáticos",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "ver qué versión del sistema estoy usando",
+        "para": "reportar problemas indicando la versión exacta"
+      },
+      "ac": [
+        "Dado la app Cuando la abro Entonces veo la versión en la esquina con sufijo -dev fuera de producción",
+        "Dado un tag v* Cuando se publica Entonces se crea el release de GitHub con notas",
+        "[borde] Dado package.json Cuando cambia la versión Entonces es la única fuente de verdad"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Frontend"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-08",
+      "version": "v0.1.0",
+      "evidencia": [
+        "3cc0b73 feat: implementar sistema de versionamiento semántico v0.1.0",
+        "CHANGELOG.md [0.1.0] Versioning system"
+      ]
+    },
+    {
+      "id": "E10-03",
+      "tipo": "Story",
+      "titulo": "Pruebas automáticas obligatorias en cada pull request",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que ningún cambio se integre sin pasar las pruebas",
+        "para": "no recibir en producción regresiones que ya estaban cubiertas"
+      },
+      "ac": [
+        "Dado un PR Cuando se abre Entonces corre jest --ci",
+        "[error] Dado un test rojo Cuando corre el PR Entonces el check falla",
+        "Dado lint, prisma generate y build Cuando corre el PR Entonces también se ejecutan"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Testing"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-14",
+      "version": "v0.2.0",
+      "evidencia": [
+        "CHANGELOG.md [0.2.0] Tests en CI",
+        ".github/workflows/pr.yml"
+      ]
+    },
+    {
+      "id": "E10-04",
+      "tipo": "Story",
+      "titulo": "Pruebas de extremo a extremo en CI con base sembrada",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que los flujos principales se prueben en un navegador real en cada PR",
+        "para": "detectar roturas que las pruebas unitarias no ven"
+      },
+      "ac": [
+        "Dado un PR Cuando corre e2e.yml Entonces Playwright prueba los flujos con Postgres y seed determinístico",
+        "[error] Dado un fallo E2E Cuando ocurre Entonces se publican el reporte HTML y los traces",
+        "Dado workflow_dispatch Cuando se dispara a mano Entonces corre sobre la rama elegida"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Testing"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": ["820461c", "CHANGELOG.md [0.3.0] Workflow e2e.yml"]
+    },
+    {
+      "id": "E10-05",
+      "tipo": "Task",
+      "titulo": "Pruebas de carga con k6 y chequeo de deriva de schema",
+      "tarea": {
+        "objetivo": "Tener herramientas para medir carga y detectar deriva entre schema y base.",
+        "alcance": "Scripts k6 (tests/load) y chequeo de schema drift.",
+        "dod": "Scripts test:load:* disponibles."
+      },
+      "ac": [
+        "Dado los scripts de carga Cuando se ejecutan contra un entorno Entonces reportan latencias y errores"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": ["nfr"],
+      "componentes": ["Testing", "Infra-CI/CD"],
+      "sprint": "2026-W17",
+      "estado": "Done",
+      "resuelto": "2026-04-20",
+      "version": "v0.4.0",
+      "evidencia": [
+        "2c43446 chore(tests): add k6 load tests + schema drift check"
+      ]
+    },
+    {
+      "id": "E10-06",
+      "tipo": "Bug",
+      "titulo": "El build de despliegue fallaba desde abril por validar secretos al importar",
+      "bug": {
+        "entorno": "GitHub Actions / Vercel, abril-julio 2026",
+        "pasos": [
+          "Correr next build con vercel pull (sin variables sensitive)"
+        ],
+        "esperado": "El build termina",
+        "actual": "El build fallaba al importar auth.ts y email.ts",
+        "severidad": "Alta",
+        "causaRaiz": "JWT_SECRET y la config SMTP se validaban en import; next build recolecta page data sin secretos.",
+        "fix": "9768da7 (lazy-init SMTP) + a1eaf45 (lazy-init JWT_SECRET)",
+        "regresion": "Convención en CLAUDE.md: validar env vars en el primer uso, nunca en import."
+      },
+      "ac": [
+        "Dado un build sin secretos Cuando corre Entonces termina",
+        "[error] Dado una acción que usa JWT sin secreto Cuando se ejecuta Entonces falla en runtime con mensaje claro"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Backend", "Infra-CI/CD"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-11",
+      "version": "v0.4.0",
+      "evidencia": [
+        "9768da7",
+        "a1eaf45",
+        "CLAUDE.md Session 2 (CI Stabilization)"
+      ]
+    },
+    {
+      "id": "E10-07",
+      "tipo": "Task",
+      "titulo": "Actualizar el runtime de CI a Node 24 y las actions a v5",
+      "tarea": {
+        "objetivo": "Evitar la deprecación de runners y hacer visible el type-check.",
+        "alcance": "Node 20→24 en los 3 workflows, checkout/setup-node v4→v5, type-check explícito y npm audit visible no bloqueante.",
+        "dod": "Workflows verdes sin anotaciones de deprecación."
+      },
+      "ac": [
+        "Dado un PR Cuando corre pr.yml Entonces usa Node 24 y ejecuta tsc --noEmit"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-11",
+      "version": "v0.4.0",
+      "evidencia": ["f2798b0", "a050d2a", "b4ef6dc"]
+    },
+    {
+      "id": "E10-08",
+      "tipo": "Bug",
+      "titulo": "El despliegue prebuilt fallaba por un módulo de OpenTelemetry",
+      "bug": {
+        "entorno": "Vercel, agosto 2026",
+        "pasos": ["Desplegar con vercel deploy --prebuilt"],
+        "esperado": "Despliegue exitoso",
+        "actual": "Fallo en ~2 s con ENOENT @opentelemetry/api",
+        "severidad": "Alta",
+        "causaRaiz": "@opentelemetry/api no se externalizaba en el bundle.",
+        "fix": "ae6b2ae: serverExternalPackages ['@opentelemetry/api']",
+        "regresion": "Validado con preview nativo real (70868c6)."
+      },
+      "ac": [
+        "Dado un build en Vercel Cuando se despliega Entonces no aparece ENOENT @opentelemetry/api",
+        "Dado next.config.ts Cuando se inspecciona Entonces externaliza el paquete"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W33",
+      "estado": "Done",
+      "resuelto": "2026-08-12",
+      "version": "v0.4.0",
+      "evidencia": ["ae6b2ae", "CLAUDE.md Session 3"]
+    },
+    {
+      "id": "E10-09",
+      "tipo": "Story",
+      "titulo": "Migraciones aplicadas solo al desplegar producción",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que las migraciones corran solas en producción y nunca en un preview",
+        "para": "que un preview no altere la base real"
+      },
+      "ac": [
+        "Dado VERCEL_ENV=production Cuando corre el buildCommand Entonces ejecuta prisma migrate deploy",
+        "[error] Dado un preview Cuando se construye Entonces no ejecuta migraciones",
+        "Dado una migración fallida Cuando corre Entonces el build falla y no se publica"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Base-de-Datos"],
+      "sprint": "2026-W33",
+      "estado": "Done",
+      "resuelto": "2026-08-13",
+      "version": "v0.4.0",
+      "evidencia": [
+        "6090f1f build(vercel): run prisma migrate deploy in production build (gated by VERCEL_ENV)",
+        "vercel.json"
+      ]
+    },
+    {
+      "id": "E10-10",
+      "tipo": "Task",
+      "titulo": "Pasar el despliegue a la integración nativa de Vercel",
+      "tarea": {
+        "objetivo": "Dejar de tapar los previews nativos con un workflow que fallaba siempre.",
+        "alcance": "Eliminar .github/workflows/deploy.yml; validar preview de dev y promoción a main por fast-forward.",
+        "dod": "Preview de dev (70868c6) y producción Ready verde con migraciones corridas por el guard."
+      },
+      "ac": [
+        "Dado un push a dev Cuando Vercel construye Entonces el preview queda Ready sin workflow propio"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W34",
+      "estado": "Done",
+      "resuelto": "2026-08-18",
+      "version": "v0.4.0",
+      "evidencia": ["70868c6", "c53fbc5", "CLAUDE.md Session 3"]
+    },
+    {
+      "id": "E10-11",
+      "tipo": "Bug",
+      "titulo": "El build de CI se quedaba sin memoria",
+      "bug": {
+        "entorno": "GitHub Actions, septiembre 2026",
+        "pasos": ["Abrir un PR", "Esperar el paso de build"],
+        "esperado": "Build verde",
+        "actual": "OOM del proceso de Node",
+        "severidad": "Alta",
+        "causaRaiz": "Límite de heap por defecto insuficiente para el build en el runner.",
+        "fix": "#5 1ad141b",
+        "regresion": "CI verde en los PR siguientes."
+      },
+      "ac": [
+        "Dado un PR Cuando corre el build Entonces termina sin OOM",
+        "Dado el workflow Cuando se inspecciona Entonces fija el límite de memoria"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W36",
+      "estado": "Done",
+      "resuelto": "2026-09-04",
+      "version": "v0.5.0",
+      "evidencia": [
+        "#5 1ad141b fix(ci): resolver el OOM del build en GitHub Actions"
+      ]
+    },
+    {
+      "id": "E10-12",
+      "tipo": "Bug",
+      "titulo": "Los despliegues de producción fallaban al migrar por el pooler",
+      "bug": {
+        "entorno": "Producción (Vercel + Neon), septiembre 2026",
+        "pasos": ["Promover a main con una migración pendiente"],
+        "esperado": "migrate deploy corre y el despliegue queda Ready",
+        "actual": "La migración iba por el pooler de Neon y fallaba, bloqueando producción",
+        "severidad": "Crítica",
+        "causaRaiz": "El datasource no declaraba directUrl; migrate deploy usaba DATABASE_URL (pooler).",
+        "fix": "#13 e9dd65a + commit de punta autorado c73454d",
+        "regresion": "Segunda verificación en producción documentada (aa1acc5)."
+      },
+      "ac": [
+        "Dado una migración pendiente Cuando se despliega producción Entonces corre por DIRECT_URL",
+        "Dado el schema Cuando se inspecciona Entonces declara directUrl"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Base-de-Datos"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-10",
+      "version": "v0.5.0",
+      "evidencia": [
+        "#13 e9dd65a",
+        "1c4bdf5",
+        "aa1acc5",
+        "docs/CHECKPOINT_2026-09-09.md"
+      ]
+    },
+    {
+      "id": "E10-13",
+      "tipo": "Task",
+      "titulo": "Regla permanente de autoría de commits para desbloquear los despliegues",
+      "tarea": {
+        "objetivo": "Que el plan Hobby de Vercel no bloquee despliegues por autor de commit.",
+        "alcance": "Regla en CLAUDE.md (MaxitoJM en sus dos formas o Insolventic en la punta), chequeo previo al push y commits de punta autorados.",
+        "dod": "Regla escrita y despliegues de producción desbloqueados."
+      },
+      "ac": [
+        "Dado un push a main o dev Cuando se verifica el autor de la punta Entonces es una de las identidades permitidas",
+        "Dado un commit Cuando se revisa el cuerpo Entonces no tiene trailers de agente"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-10",
+      "version": "v0.5.0",
+      "evidencia": [
+        "596dae6",
+        "88dfd2e",
+        "f2497a8",
+        "c73454d",
+        "CLAUDE.md §Autoría de commits",
+        "issue #7"
+      ]
+    },
+    {
+      "id": "E10-14",
+      "tipo": "Bug",
+      "titulo": "El hook de pre-commit fallaba en Windows",
+      "bug": {
+        "entorno": "Máquina de desarrollo Windows, septiembre 2026",
+        "pasos": ["Hacer git commit en Windows con el hook de husky"],
+        "esperado": "El hook corre",
+        "actual": "Falla por comillas en el PATH y obligaba a --no-verify",
+        "severidad": "Media",
+        "causaRaiz": "Comillas en el PATH que el script de husky no manejaba.",
+        "fix": "5a7bec3 (issue #17)",
+        "regresion": "Commits posteriores sin --no-verify."
+      },
+      "ac": [
+        "Dado Windows Cuando se hace commit Entonces el hook corre sin --no-verify",
+        "Dado Linux/macOS Cuando se hace commit Entonces el hook sigue funcionando"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-19",
+      "version": "v0.6.0",
+      "evidencia": ["5a7bec3", "issue #17", "75c783b"]
+    },
+    {
+      "id": "E10-15",
+      "tipo": "Task",
+      "titulo": "Alinear versiones de Prisma y silenciar el aviso de encoding del build",
+      "tarea": {
+        "objetivo": "Eliminar ruido del build y desalineación de versiones.",
+        "alcance": "prisma y @prisma/client en 6.19.3; aviso Can't resolve 'encoding' de html-to-docx sin instalar dependencias.",
+        "dod": "Build sin esos avisos."
+      },
+      "ac": [
+        "Dado npm run build Cuando corre Entonces no muestra el aviso de encoding"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": ["50d96ed", "1c068a1"]
+    },
+    {
+      "id": "E10-16",
+      "tipo": "Task",
+      "titulo": "Correr los quality-checks también en cada push a dev",
+      "tarea": {
+        "objetivo": "Que un push directo a dev no esquive lint, types y tests.",
+        "alcance": "Trigger push en pr.yml para dev.",
+        "dod": "quality-checks visible en los pushes a dev."
+      },
+      "ac": ["Dado un push a dev Cuando llega Entonces corre quality-checks"],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-28",
+      "version": "v0.6.0",
+      "evidencia": [
+        "3eccc72 ci(pr.yml): correr quality-checks tambien en push a dev"
+      ]
+    },
+    {
+      "id": "E10-17",
+      "tipo": "Task",
+      "titulo": "Cachear los navegadores de Playwright en CI",
+      "tarea": {
+        "objetivo": "Detener la degradación del paso de instalación (28 s → 572 s) que agotaba el timeout del job.",
+        "alcance": "actions/cache de ~/.cache/ms-playwright por versión de @playwright/test; en cache-hit solo install-deps.",
+        "dod": "Cache-hit visible y job dentro de su timeout."
+      },
+      "ac": [
+        "Dado una corrida con caché Cuando arranca Entonces no descarga el navegador"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-03",
+      "version": "v0.6.0",
+      "evidencia": ["#111 a9802ee", "CLAUDE.md Quick Win 6"]
+    },
+    {
+      "id": "E10-18",
+      "tipo": "Task",
+      "titulo": "Plan de despliegue en dos tiempos y diagnóstico de promoción a main",
+      "tarea": {
+        "objetivo": "Promover a producción sin romper por migraciones destructivas.",
+        "alcance": "Plan para el DROP COLUMN de #40 (código primero, migración después) e inventario de 8 migraciones desde la última promoción.",
+        "dod": "docs/DEPLOY_PR40.md y docs/DIAGNOSTICO_PROMOCION_MAIN_2026-10-08.md."
+      },
+      "ac": [
+        "Dado una migración destructiva Cuando se promueve Entonces sigue el plan en dos tiempos"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Base-de-Datos"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#58 7733272",
+        "cd685cf",
+        "docs/DEPLOY_PR40.md",
+        "docs/DIAGNOSTICO_PROMOCION_MAIN_2026-10-08.md"
+      ]
+    },
+    {
+      "id": "E10-19",
+      "tipo": "Bug",
+      "titulo": "El historial de migraciones no se podía aplicar sobre una base vacía",
+      "bug": {
+        "entorno": "Base nueva / restauración, octubre 2026",
+        "pasos": ["Crear una base vacía", "Ejecutar prisma migrate deploy"],
+        "esperado": "La base queda construida",
+        "actual": "La cadena de migraciones fallaba antes de terminar",
+        "severidad": "Alta",
+        "causaRaiz": "Migraciones que asumían objetos creados por db push y nunca migrados.",
+        "fix": "#122 2f1375c",
+        "regresion": "tests/db/migraciones-desde-cero.db.test.ts con BRECHA_CONOCIDA (guardián bidireccional)."
+      },
+      "ac": [
+        "Dado una base vacía Cuando se aplica el historial Entonces termina sin error",
+        "Dado deriva nueva o cerrada Cuando corre el guardián Entonces falla y lo señala"
+      ],
+      "puntos": 5,
+      "justificacion": "Reparar el replay sin tocar producción e inventariar 30 statements de deriva restante.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Base-de-Datos", "Testing"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#122 2f1375c", "CLAUDE.md Fase 3 (deriva)"]
+    },
+    {
+      "id": "E10-20",
+      "tipo": "Bug",
+      "titulo": "La prueba contra base real se saltaba por el límite de Docker Hub",
+      "bug": {
+        "entorno": "GitHub Actions, octubre 2026",
+        "pasos": ["Abrir un PR que toca la base", "Ver el job de e2e.yml"],
+        "esperado": "test:db corre",
+        "actual": "Initialize containers fallaba con toomanyrequests y test:db quedaba skipped (parecido a passed)",
+        "severidad": "Alta",
+        "causaRaiz": "Pull anónimo de postgres:16-alpine sujeto al rate limit por IP compartida del runner.",
+        "fix": "#127 92b416b: PostgreSQL 16 preinstalado del runner, con CREATEDB y OWNER",
+        "regresion": "La prueba de humo del paso imprime la versión de PostgreSQL."
+      },
+      "ac": [
+        "Dado un PR Cuando corre e2e.yml Entonces test:db usa el Postgres del runner",
+        "Dado el replay de migraciones Cuando crea y borra su base Entonces tiene permiso CREATEDB"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Testing"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#127 92b416b",
+        "CLAUDE.md Quick Win 7",
+        "docs/CHECKPOINT_2026-10-09.md §3"
+      ]
+    },
+    {
+      "id": "E10-21",
+      "tipo": "Task",
+      "titulo": "Separar la base de Preview de la de producción",
+      "tarea": {
+        "objetivo": "Que los previews no escriban en la base de producción.",
+        "alcance": "Branch propio de Neon para Preview en Vercel y runbook actualizado.",
+        "dod": "Preview apunta a su branch; documentado en el runbook."
+      },
+      "ac": [
+        "Dado un deploy de preview Cuando escribe datos Entonces lo hace en el branch de Preview"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Infra-CI/CD", "Base-de-Datos"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "nota": "La configuración vive en Vercel/Neon, fuera del repo; la evidencia es el commit de documentación.",
+      "evidencia": [
+        "0dad100 docs(runbook): Preview ya tiene su propio branch de Neon",
+        "docs/DIAGNOSTICO_PROMOCION_MAIN_2026-10-08.md §2.1"
+      ]
+    },
+    {
+      "id": "E10-22",
+      "tipo": "Bug",
+      "titulo": "El CI no corría en PRs apilados sobre otra rama",
+      "bug": {
+        "entorno": "GitHub Actions, octubre 2026",
+        "pasos": ["Abrir un PR cuya base es una rama de feature"],
+        "esperado": "Corren quality-checks y playwright",
+        "actual": "Ningún workflow se encolaba y el PR mostraba solo checks verdes ajenos",
+        "severidad": "Media",
+        "causaRaiz": "pull_request con filtro branches: [dev, main] en pr.yml y e2e.yml.",
+        "fix": "#142 (cc3d2de): quitar el filtro branches del trigger pull_request",
+        "regresion": "PR apilado de prueba con los dos workflows corriendo."
+      },
+      "ac": [
+        "Dado un PR apilado Cuando se abre Entonces corren pr.yml y e2e.yml",
+        "Dado un PR a dev Cuando se abre Entonces sigue corriendo igual"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["doc-semana-9"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#142 7edc0cf",
+        "CLAUDE.md Quick Win 8",
+        "docs/IMPLEMENTACION_SEMANA_9.md §2.2"
+      ]
+    },
+    {
+      "id": "E10-23",
+      "tipo": "Task",
+      "titulo": "Publicar la versión 1.0.0-rc.1",
+      "tarea": {
+        "objetivo": "Marcar el primer candidato a lanzamiento.",
+        "alcance": "Versión en package.json y entradas del CHANGELOG de los PR #126 a #149.",
+        "dod": "1.0.0-rc.1 en package.json y CHANGELOG; promovido a main."
+      },
+      "ac": ["Dado main Cuando se consulta la versión Entonces es 1.0.0-rc.1"],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": ["doc-semana-9"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#142 (2a35e51)",
+        "#143 21f0c08",
+        "8b817c5",
+        "CHANGELOG.md [1.0.0-rc.1]"
+      ]
+    },
+    {
+      "id": "E10-24",
+      "tipo": "Task",
+      "titulo": "Probar una restauración real del backup de producción",
+      "tarea": {
+        "objetivo": "Que el procedimiento de restauración del runbook deje de ser teórico.",
+        "alcance": "Verificar PITR/backups de Neon, restaurar a una instancia nueva, validar datos y medir el tiempo; documentar en RUNBOOK §3.1.",
+        "dod": "Restauración ejecutada y registrada con fecha, punto de restauración y tiempo total."
+      },
+      "ac": [
+        "Dado un punto de restauración Cuando se restaura a una instancia nueva Entonces la app de preview funciona contra ella",
+        "[error] Dado la restauración Cuando se ejecuta Entonces nunca se hace encima de la base productiva",
+        "Dado el resultado Cuando se documenta Entonces incluye el RTO medido"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Base-de-Datos", "Infra-CI/CD"],
+      "sprint": "2026-W48",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "hallazgos": ["PP-A-4"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md A-4",
+        "docs/IMPLEMENTACION_SEMANA_2.md (A-4 sigue abierto)",
+        "docs/RUNBOOK.md §3.1"
+      ]
+    },
+    {
+      "id": "E10-25",
+      "tipo": "Story",
+      "titulo": "Desplegar sin reescribir el autor del commit",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que cualquier cambio aprobado se despliegue sin trucos manuales",
+        "para": "no depender de una sola persona que sepa hacer el amend de autor"
+      },
+      "ac": [
+        "Dado un push a main con autor MaxitoJM Cuando Vercel lo recibe Entonces el despliegue no queda Blocked",
+        "[error] Dado un autor no vinculado Cuando se despliega Entonces el bloqueo se documenta en el runbook",
+        "Dado la decisión (vincular la cuenta de MaxitoJM o pasar a Vercel Pro) Cuando se toma Entonces queda registrada con su costo"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W48",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "evidencia": [
+        "issue #7",
+        "CLAUDE.md Session 3 (Pendiente a futuro)",
+        "docs/IMPLEMENTACION_SEMANA_4.md §6 decisión 6",
+        "docs/CHECKPOINT_2026-10-09.md §6"
+      ]
+    },
+    {
+      "id": "E10-26",
+      "tipo": "Task",
+      "titulo": "Transferir las cuentas de infraestructura a los centros",
+      "tarea": {
+        "objetivo": "Que Vercel, Neon, Upstash, Sentry, Google Cloud (Drive) y GitHub queden a nombre de quien opera y paga el sistema.",
+        "alcance": "Inventario de cuentas y variables, transferencia o invitación, rotación de credenciales tras el traspaso.",
+        "dod": "Inventario firmado por los centros y credenciales rotadas."
+      },
+      "ac": [
+        "Dado el inventario de servicios Cuando se transfiere cada uno Entonces el centro es propietario",
+        "[error] Dado una credencial compartida durante el traspaso Cuando termina Entonces se rota",
+        "Dado el despliegue tras la transferencia Cuando se hace Entonces producción sigue Ready"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W48",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "bloqueadoPor": ["E10-25"],
+      "nota": "No hay evidencia en el repo; proviene del contexto de la tarea (regla de Maxi: infraestructura y pagos al final).",
+      "evidencia": [
+        "Brief de la tarea (transferencia de cuenta) — sin documento en el repo",
+        "README.md §Variables de Entorno (servicios involucrados)"
+      ]
+    },
+    {
+      "id": "E10-27",
+      "tipo": "Task",
+      "titulo": "Proteger la rama main con PR y checks obligatorios",
+      "tarea": {
+        "objetivo": "Que nada llegue a main sin pasar por PR y CI.",
+        "alcance": "Hoy imposible: repo privado bajo cuenta de usuario en plan Free (rulesets → 403). Requiere GitHub Pro, organización o repo público.",
+        "dod": "Branch protection activa en main o riesgo aceptado por escrito."
+      },
+      "ac": [
+        "Dado un push directo a main Cuando se intenta Entonces GitHub lo rechaza",
+        "[borde] Dado que no se pague el plan Cuando se decide Entonces el riesgo queda aceptado por escrito"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "bloqueadoPor": ["E10-26"],
+      "hallazgos": ["PP-M-8"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md M-8",
+        "docs/CHECKPOINT_2026-09-01.md (M-8: 404/403, plan Free)"
+      ]
+    },
+    {
+      "id": "E10-28",
+      "tipo": "Task",
+      "titulo": "Decidir cómo cerrar la deriva entre migraciones y schema",
+      "tarea": {
+        "objetivo": "Elegir entre migración de catch-up idempotente y baseline/squash del historial.",
+        "alcance": "Evaluar las dos salidas contra Neon (30 statements: 3 tablas, 5 columnas, 14 índices, 7 FKs, 1 DropEnum).",
+        "dod": "Decisión escrita en CLAUDE.md con la ventana de ejecución."
+      },
+      "ac": [
+        "Dado las dos opciones Cuando se evalúan con acceso a Neon Entonces se elige una con su plan de rollback",
+        "[borde] Dado la opción baseline Cuando se elige Entonces el plan incluye migrate resolve --applied por cada base"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["spike"],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "evidencia": [
+        "CLAUDE.md Fase 3 (deriva, bloqueado: necesita Neon)",
+        "docs/CHECKPOINT_2026-10-09.md §6"
+      ]
+    },
+    {
+      "id": "E10-29",
+      "tipo": "Task",
+      "titulo": "Cerrar la deriva entre el historial de migraciones y el schema",
+      "tarea": {
+        "objetivo": "Que una base construida desde cero sea idéntica a schema.prisma.",
+        "alcance": "Implementar la opción elegida en E10-28 y vaciar BRECHA_CONOCIDA.",
+        "dod": "migrate diff entre replay y schema vacío; el guardián falla por 'ya no está roto' y se actualiza."
+      },
+      "ac": [
+        "Dado una base vacía Cuando se aplica el historial Entonces coincide con schema.prisma",
+        "[error] Dado producción Cuando se aplica el cambio Entonces es no-op o queda marcado como aplicado sin tocar datos"
+      ],
+      "puntos": 5,
+      "justificacion": "Toca el historial de migraciones con riesgo directo sobre producción si se elige baseline.",
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "bloqueadoPor": ["E10-28"],
+      "evidencia": [
+        "CLAUDE.md Fase 3",
+        "tests/db/migraciones-desde-cero.db.test.ts (BRECHA_CONOCIDA)"
+      ]
+    },
+    {
+      "id": "E10-30",
+      "tipo": "Task",
+      "titulo": "Publicar la versión 1.0.0 y entregarla a los centros",
+      "tarea": {
+        "objetivo": "Cerrar el ciclo de lanzamiento.",
+        "alcance": "Promover dev a main, tag v1.0.0, release de GitHub, CHANGELOG [1.0.0], verificación de autoría de la punta.",
+        "dod": "Producción Ready en 1.0.0 y health check con el commit del tag."
+      },
+      "ac": [
+        "Dado UAT firmado y backup probado Cuando se promueve Entonces main queda en 1.0.0",
+        "[error] Dado un autor de punta no permitido Cuando se va a pushear Entonces el chequeo de CLAUDE.md lo detiene"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W48",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "bloqueadoPor": ["E14-14", "E10-24", "E10-26"],
+      "evidencia": [
+        "README.md §Versionado",
+        ".github/workflows/release.yml",
+        "CLAUDE.md §Verificación obligatoria antes de pushear"
+      ]
+    }
+  ]
+}

@@ -26,6 +26,10 @@ jest.mock('@/lib/google-drive', () => ({
 jest.mock('@/lib/retry', () => ({
   withRetry: jest.fn((fn: () => unknown) => fn()),
 }));
+jest.mock('@/lib/prisma', () => ({
+  __esModule: true,
+  default: require('../../__mocks__/prisma').default,
+}));
 
 import { htmlToPdf, batchHtmlToPdf } from '@/lib/html-to-pdf';
 import { googleDriveService } from '@/lib/google-drive';
@@ -33,15 +37,31 @@ import {
   generateDocumentsForAdmission,
   generateDocumentsForNewCase,
 } from '@/features/document/generate-documents';
+import { ImagenPrivadaFaltanteError } from '@/lib/imagenes-privadas';
 import { makeCase } from '../../helpers/mapper-fixtures';
+import mockPrisma from '../../__mocks__/prisma';
+import {
+  dataUriDePrueba,
+  findManyDeImagenes,
+  firmasDelCentro,
+} from '../../helpers/imagenes-privadas';
 
 const mockBatchHtmlToPdf = batchHtmlToPdf as jest.Mock;
 const mockUploadFile = googleDriveService.uploadFile as jest.Mock;
 const mockCreateFolderHierarchy =
   googleDriveService.createFolderHierarchy as jest.Mock;
 
+/** El `tenantId` que `makeCase` pone a todos los expedientes. */
+const TENANT_DEL_CASO = (makeCase() as { tenantId: string }).tenantId;
+
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPrisma.imagenPrivada.findMany.mockImplementation(
+    findManyDeImagenes([
+      ...firmasDelCentro(TENANT_DEL_CASO),
+      ...firmasDelCentro('otro-centro'),
+    ]),
+  );
   // `{ ok, failed }` desde P-4: la funcion ya no devuelve un array mas corto
   // cuando un documento se cae, lo nombra.
   mockBatchHtmlToPdf.mockImplementation(
@@ -192,6 +212,86 @@ describe('generateFromTemplates — pipeline en 3 fases (P1)', () => {
 
     expect(mockUploadFile).toHaveBeenCalledTimes(6);
     expect(mockCreateFolderHierarchy).toHaveBeenCalledTimes(1);
+  });
+
+  // Antes un documento sin carpeta donde subirse salía como 'success' con
+  // googleDriveUrl vacío: generado para la UI, ausente en Drive.
+  it('sin carpeta del caso, los documentos que había que subir quedan como error', async () => {
+    const caseData = makeCase({ type: 'INSOLVENCY' });
+    const result = await generateDocumentsForAdmission(caseData as never, '');
+
+    expect(result.filter((d) => d.status === 'success')).toHaveLength(0);
+    const errores = result.filter((d) => d.status === 'error');
+    expect(errores).toHaveLength(6);
+    expect(
+      errores.every((d) => d.error?.startsWith('No se subió a Google Drive')),
+    ).toBe(true);
+    expect(mockUploadFile).not.toHaveBeenCalled();
+  });
+});
+
+describe('firmas del centro en la generación automática', () => {
+  const htmlDe = (templateId: string): string => {
+    const [docs] = mockBatchHtmlToPdf.mock.calls[0] as [
+      Array<{ filename: string; html: string }>,
+    ];
+    const doc = docs.find((d) => d.filename.startsWith(templateId));
+    if (!doc) throw new Error(`${templateId} no llegó a la conversión`);
+    return doc.html;
+  };
+
+  it('el documento lleva la firma del centro del expediente como data URI', async () => {
+    await generateDocumentsForAdmission(
+      makeCase({ type: 'INSOLVENCY' }) as never,
+      'case-folder-id',
+    );
+
+    const html = htmlDe('designacion-conciliador');
+    expect(html).toContain(
+      dataUriDePrueba(`${TENANT_DEL_CASO}/firma-director`),
+    );
+    expect(html).not.toContain(dataUriDePrueba('otro-centro/firma-director'));
+  });
+
+  it('ningún documento llega a la conversión con un ref de firma sin resolver', async () => {
+    await generateDocumentsForAdmission(
+      makeCase({ type: 'INSOLVENCY' }) as never,
+      'case-folder-id',
+    );
+
+    const [docs] = mockBatchHtmlToPdf.mock.calls[0] as [
+      Array<{ html: string }>,
+    ];
+    expect(docs.length).toBeGreaterThan(0);
+    for (const doc of docs) expect(doc.html).not.toContain('imagen-privada:');
+  });
+
+  it('si al centro le falta una firma, falla antes de crear la carpeta o convertir nada', async () => {
+    mockPrisma.imagenPrivada.findMany.mockImplementation(
+      findManyDeImagenes(
+        firmasDelCentro(TENANT_DEL_CASO).filter(
+          (f) => f.tipo !== 'firma-operador',
+        ),
+      ),
+    );
+    mockPrisma.tenant.findUnique.mockResolvedValueOnce({
+      name: 'Centro de Prueba',
+      slug: 'centro-prueba',
+    });
+
+    const generar = generateDocumentsForNewCase(
+      makeCase({ type: 'INSOLVENCY' }) as never,
+      { uploadToGoogleDrive: true },
+      'Centro de Prueba',
+    );
+
+    await expect(generar).rejects.toBeInstanceOf(ImagenPrivadaFaltanteError);
+    await expect(generar).rejects.toThrow(
+      'Falta la firma del operador para Centro de Prueba. Contacta al administrador.',
+    );
+    expect(mockCreateFolderHierarchy).not.toHaveBeenCalled();
+    expect(mockBatchHtmlToPdf).not.toHaveBeenCalled();
+    expect(mockUploadFile).not.toHaveBeenCalled();
   });
 });
 

@@ -15,6 +15,10 @@ jest.mock('next/cache', () => require('../../__mocks__/next-cache'));
 jest.mock('next/navigation', () => require('../../__mocks__/next-navigation'));
 
 import mockPrisma, { resetAllMocks } from '../../__mocks__/prisma';
+import {
+  findManyDeImagenes,
+  firmasDelCentro,
+} from '../../helpers/imagenes-privadas';
 jest.mock('@/lib/prisma', () => ({
   __esModule: true,
   default: require('../../__mocks__/prisma').default,
@@ -93,15 +97,15 @@ jest.mock('@/lib/html-to-pdf', () => ({
 
 jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
-    createFolderHierarchy: jest.fn().mockResolvedValue('center-folder-id'),
-    // Sin estos tres la carpeta del caso fallaba y el documento se "subía" sin
-    // carpeta; desde N-A2-05 eso es un fallo del lote, no un éxito con url ''.
+    // La carpeta del caso tiene que resolverse: sin ella el documento es un
+    // error (no se registra sin URL) y el test dejaría de probar las tandas.
     listFoldersAndFiles: jest.fn().mockResolvedValue({
       folders: [{ id: 'docgen-id', name: 'documentos-generados' }],
       files: [],
     }),
     findOrCreateCaseFolder: jest.fn().mockResolvedValue('case-folder-id'),
     getFolderUrl: jest.fn((id: string) => `https://drive.example/folder/${id}`),
+    createFolderHierarchy: jest.fn().mockResolvedValue('center-folder-id'),
     uploadDocumentToCase: jest.fn().mockResolvedValue({
       fileId: 'file-1',
       fileUrl: 'https://drive.example/file/file-1',
@@ -132,6 +136,9 @@ const activeRow = (overrides: Record<string, unknown> = {}) => ({
 describe('batchGenerateDocuments — troceo en tandas (GD-A1)', () => {
   beforeEach(() => {
     resetAllMocks();
+    mockPrisma.imagenPrivada.findMany.mockImplementation(
+      findManyDeImagenes(firmasDelCentro(TENANT_ID)),
+    );
     jest.clearAllMocks();
     mockAuthenticateUser.mockResolvedValue({
       user: { ...ADMIN_USER, permissions: Object.values(P) },
@@ -263,5 +270,41 @@ describe('batchGenerateDocuments — troceo en tandas (GD-A1)', () => {
     expect(mockPrisma.document.create).not.toHaveBeenCalled();
     expect(mockClaim).not.toHaveBeenCalled();
     expect(mockRecordProgress).not.toHaveBeenCalled();
+  });
+  it('si al centro le falta una firma, el lote falla antes de empezar: ni Drive, ni PDF, ni filas, y el lock se libera', async () => {
+    mockClaim.mockResolvedValue({ claimed: true, request: activeRow() });
+    mockPrisma.imagenPrivada.findMany.mockImplementation(
+      findManyDeImagenes(
+        firmasDelCentro(TENANT_ID).filter((f) => f.tipo !== 'firma-director'),
+      ),
+    );
+    mockPrisma.tenant.findUnique.mockResolvedValue({
+      name: 'Armonía Concertada',
+      slug: 'armonia',
+    });
+    const { batchHtmlToPdf } = jest.requireMock('@/lib/html-to-pdf') as {
+      batchHtmlToPdf: jest.Mock;
+    };
+    const { googleDriveService } = jest.requireMock('@/lib/google-drive') as {
+      googleDriveService: Record<string, jest.Mock>;
+    };
+
+    const result = await batchGenerateDocuments({
+      caseId: 'case-1',
+      templateIds: ['solicitud-insolvencia', 'auto-admision'],
+      isFinalTanda: true,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      message:
+        'Falta la firma del director para Armonía Concertada. Contacta al administrador.',
+      data: null,
+    });
+    expect(batchHtmlToPdf).not.toHaveBeenCalled();
+    expect(googleDriveService.createFolderHierarchy).not.toHaveBeenCalled();
+    expect(googleDriveService.uploadDocumentToCase).not.toHaveBeenCalled();
+    expect(mockPrisma.document.create).not.toHaveBeenCalled();
+    expect(mockFail).toHaveBeenCalledWith('req-1', expect.any(Error));
   });
 });

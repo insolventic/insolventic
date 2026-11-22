@@ -10,6 +10,12 @@ import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import { logger } from '@/lib/logger';
+import {
+  aplicarImagenesPrivadas,
+  ImagenPrivadaFaltanteError,
+  resolverImagenesPrivadas,
+  tiposRequeridos,
+} from '@/lib/imagenes-privadas';
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
 import { canGenerateDocument } from '../case/validation-rules';
@@ -926,14 +932,6 @@ export async function planBatchGeneration(input: {
   }
 }
 
-/**
- * Lo que ve el usuario cuando un documento del lote no llegó a Drive. No
- * lleva el `message` del error: puede traer detalles de la API de Google o
- * de la red que no le sirven y no deben salir del servidor (va al logger).
- */
-const ERROR_SUBIDA_DRIVE =
-  'No se pudo subir el documento a Google Drive. Intenta generarlo de nuevo.';
-
 export async function batchGenerateDocuments(input: {
   caseId: string;
   templateIds?: string[];
@@ -1120,8 +1118,16 @@ export async function batchGenerateDocuments(input: {
       },
     };
 
-    const placeholders = mapCaseToPlaceholders(
-      asCaseWithRelations(transformedCaseData),
+    // Las firmas del centro se leen una vez para todo el lote y antes de tocar
+    // Drive o convertir el primer documento: si falta una, el lote no empieza.
+    const placeholders = aplicarImagenesPrivadas(
+      mapCaseToPlaceholders(asCaseWithRelations(transformedCaseData)),
+      await resolverImagenesPrivadas(
+        caseData.tenantId,
+        tiposRequeridos(
+          tenantSlugDelCaso(asCaseWithRelations(transformedCaseData)),
+        ),
+      ),
     );
 
     // Read HTML templates, replace placeholders, generate PDFs
@@ -1150,6 +1156,8 @@ export async function batchGenerateDocuments(input: {
     // Create case folder in Google Drive for storage
     let caseFolderId = '';
     let caseFolderUrl = '';
+    /** Por qué no hay carpeta, para decirlo en cada documento que no se sube. */
+    let errorDeCarpeta = '';
 
     try {
       const caseFolder = await createCaseFolderInGoogleDrive(
@@ -1169,10 +1177,14 @@ export async function batchGenerateDocuments(input: {
         });
       }
     } catch (driveError) {
-      console.warn(
-        'Google Drive folder creation failed, continuing without upload:',
-        driveError,
-      );
+      // Se sigue con el lote para que cada documento diga por qué no se
+      // subió, pero ninguno puede quedar como generado sin estar en Drive.
+      errorDeCarpeta =
+        driveError instanceof Error ? driveError.message : String(driveError);
+      logger.error('Drive case folder resolution failed', driveError, {
+        action: 'batch-generate-documents',
+        caseId: caseData.id,
+      });
     }
 
     const documents: Array<{
@@ -1233,6 +1245,7 @@ export async function batchGenerateDocuments(input: {
           placeholders,
           batchExtraCtx,
           variant,
+          { caseId: caseData.id },
         );
 
         // C-3: esta ruta —la que más usan los operadores desde /documents— no
@@ -1281,10 +1294,20 @@ export async function batchGenerateDocuments(input: {
           displayName,
         });
       } catch (readError) {
-        console.error(
-          `[batchGenerateDocuments] FAILED to read template ${template.name} from ${getTemplatePath(template)}:`,
-          readError,
-        );
+        // Un fallo de lectura ya quedo en el log, con codigo y expediente,
+        // dentro de readTemplateFile. Aca solo falta lo que no es lectura.
+        // Por nombre y no por instanceof: los tests mockean el modulo.
+        if (
+          !(readError instanceof Error) ||
+          readError.name !== 'PlantillaNoDisponibleError'
+        ) {
+          logger.error('Error preparing template', readError, {
+            action: 'batch-generate-documents',
+            caseId: caseData.id,
+            templateId: template.id,
+            templatePath: getTemplatePath(template),
+          });
+        }
         documents.push({
           templateId: template.id,
           templateName: displayName,
@@ -1426,88 +1449,76 @@ export async function batchGenerateDocuments(input: {
           /\.pdf$/,
           `.${variant.ext}`,
         );
+
+        // Sin carpeta del caso no hay dónde subir. Antes el documento se
+        // registraba igual, como 'success' con URL vacía: el operador lo veía
+        // generado y en Drive no estaba. El fallo ya quedó en el log arriba.
+        if (!caseFolderId) {
+          documents.push({
+            templateId: htmlDoc.template.id,
+            templateName: htmlDoc.displayName,
+            documentId: '',
+            documentName: variantDocName,
+            documentUrl: '',
+            status: 'error',
+            error: `No se subió a Google Drive: no se pudo resolver la carpeta del caso${errorDeCarpeta ? ` (${errorDeCarpeta})` : ''}.`,
+          });
+          continue;
+        }
+
         try {
-          let fileId = '';
-          let fileUrl = '';
+          const { googleDriveService } = await import('@/lib/google-drive');
 
-          if (caseFolderId) {
+          // Igual que createDocumentSubfolder (ruta automatica): la
+          // subcarpeta no lleva reintento propio, degrada a la carpeta
+          // del caso si falla (find-or-create en el siguiente intento
+          // la reconstruye; no vale la pena bloquear la subida por esto).
+          let targetFolderId = caseFolderId;
+          if (htmlDoc.template.folderPath.length > 0) {
             try {
-              const { googleDriveService } = await import('@/lib/google-drive');
-
-              // Igual que createDocumentSubfolder (ruta automatica): la
-              // subcarpeta no lleva reintento propio, degrada a la carpeta
-              // del caso si falla (find-or-create en el siguiente intento
-              // la reconstruye; no vale la pena bloquear la subida por esto).
-              let targetFolderId = caseFolderId;
-              if (htmlDoc.template.folderPath.length > 0) {
-                try {
-                  targetFolderId =
-                    await googleDriveService.createFolderHierarchy(
-                      htmlDoc.template.folderPath,
-                      caseFolderId,
-                    );
-                } catch (folderError) {
-                  logger.warn(
-                    'Error creating Drive subfolder, falling back to case folder',
-                    {
-                      action: 'batch-generate-documents',
-                      folderPath: htmlDoc.template.folderPath.join('/'),
-                      reason:
-                        folderError instanceof Error
-                          ? folderError.message
-                          : String(folderError),
-                    },
-                  );
-                }
-              }
-
-              // Reintento con backoff (mismo patron que la ruta automatica,
-              // src/features/document/generate-documents.ts): un fallo
-              // transitorio de Drive no debe dejar el documento sin subir
-              // cuando un reintento lo hubiera resuelto.
-              const uploadResult = await withRetry(
-                () =>
-                  googleDriveService.uploadDocumentToCase(
-                    variantDocName,
-                    variant.buffer,
-                    targetFolderId,
-                  ),
+              targetFolderId = await googleDriveService.createFolderHierarchy(
+                htmlDoc.template.folderPath,
+                caseFolderId,
+              );
+            } catch (folderError) {
+              logger.warn(
+                'Error creating Drive subfolder, falling back to case folder',
                 {
-                  label: `upload:${variantDocName}`,
-                  isRetryable: isRetryableDriveError,
+                  action: 'batch-generate-documents',
+                  folderPath: htmlDoc.template.folderPath.join('/'),
+                  reason:
+                    folderError instanceof Error
+                      ? folderError.message
+                      : String(folderError),
                 },
               );
-              fileId = uploadResult.fileId;
-              fileUrl = uploadResult.fileUrl;
-            } catch (uploadError) {
-              logger.warn('Drive upload failed', {
-                action: 'batch-generate-documents',
-                template: htmlDoc.template.name,
-                variant: variant.ext,
-                reason:
-                  uploadError instanceof Error
-                    ? uploadError.message
-                    : String(uploadError),
-              });
             }
           }
 
-          // Sin archivo en Drive no hay documento que registrar. Antes se
-          // creaba igual un `Document` con `url: ''` y el lote lo contaba como
-          // exitoso: el usuario veía "Generación completada" y en la lista un
-          // documento que no abre. Cubre también la carpeta del caso que no se
-          // pudo crear (`caseFolderId` vacío): ahí no se intenta subir nada.
-          if (!fileId) {
-            documents.push({
-              templateId: htmlDoc.template.id,
-              templateName: htmlDoc.displayName,
-              documentId: '',
-              documentName: variantDocName,
-              documentUrl: '',
-              status: 'error',
-              error: ERROR_SUBIDA_DRIVE,
-            });
-            continue;
+          // Reintento con backoff (mismo patron que la ruta automatica,
+          // src/features/document/generate-documents.ts): un fallo
+          // transitorio de Drive no debe dejar el documento sin subir
+          // cuando un reintento lo hubiera resuelto. Agotado el reintento,
+          // el documento es un error: no se registra sin URL.
+          let uploadResult: { fileId: string; fileUrl: string };
+          try {
+            uploadResult = await withRetry(
+              () =>
+                googleDriveService.uploadDocumentToCase(
+                  variantDocName,
+                  variant.buffer,
+                  targetFolderId,
+                ),
+              {
+                label: `upload:${variantDocName}`,
+                isRetryable: isRetryableDriveError,
+              },
+            );
+          } catch (uploadError) {
+            throw new Error(
+              `No se subió a Google Drive: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`,
+              { cause: uploadError },
+            );
           }
 
           const document = await prisma.document.create({
@@ -1516,8 +1527,8 @@ export async function batchGenerateDocuments(input: {
               type: 'generated',
               status: 'Generado',
               uploadDate: new Date(),
-              url: fileUrl,
-              googleDriveId: fileId,
+              url: uploadResult.fileUrl,
+              googleDriveId: uploadResult.fileId,
               caseId: caseData.id,
               tenantId,
               fileName: variantDocName,
@@ -1531,12 +1542,13 @@ export async function batchGenerateDocuments(input: {
             templateName: htmlDoc.displayName,
             documentId: document.id,
             documentName: variantDocName,
-            documentUrl: fileUrl,
+            documentUrl: uploadResult.fileUrl,
             status: 'success',
           });
         } catch (saveError) {
-          logger.error('Error saving document', saveError, {
+          logger.error('Error uploading or saving document', saveError, {
             action: 'batch-generate-documents',
+            caseId: caseData.id,
             template: htmlDoc.template.name,
             variant: variant.ext,
           });
@@ -1547,10 +1559,10 @@ export async function batchGenerateDocuments(input: {
             documentName: variantDocName,
             documentUrl: '',
             status: 'error',
-            // El detalle va al logger de arriba; al usuario, un mensaje
-            // propio (el de Prisma puede traer nombres de tablas y valores).
             error:
-              'No se pudo guardar el documento. Intenta generarlo de nuevo.',
+              saveError instanceof Error
+                ? saveError.message
+                : 'Error guardando documento',
           });
         }
       }
@@ -1632,9 +1644,13 @@ export async function batchGenerateDocuments(input: {
       },
     };
   } catch (error) {
-    logger.error('Error in batch document generation', error, {
-      action: 'batch-generate-documents',
-    });
+    // La falta de una firma ya dejó su evento, con el centro y la firma, en
+    // `resolverImagenesPrivadas`; repetirlo acá solo duplica la alerta.
+    if (!(error instanceof ImagenPrivadaFaltanteError)) {
+      logger.error('Error in batch document generation', error, {
+        action: 'batch-generate-documents',
+      });
+    }
 
     // C-4: liberar el lock para que el usuario pueda reintentar; si esto
     // fallara, el recuperador de huérfanos lo libera a los 10 min.
