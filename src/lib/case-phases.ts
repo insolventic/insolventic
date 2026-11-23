@@ -239,10 +239,21 @@ export function getPhaseOrder(phase: string | null | undefined): number {
   return getPhaseDefinition(phase).order;
 }
 
+/**
+ * Una fase nula o desconocida (legacy, de antes de C-1) se trata como
+ * 'Inicial', igual que en `validatePhaseTransition` y que en la etiqueta
+ * (`getPhaseDefinition`). Antes se buscaba el valor crudo: el diálogo
+ * mostraba «Inicial» y a la vez «No hay transiciones disponibles», y el
+ * expediente quedaba sin salida aunque el servidor sí aceptaba moverlo
+ * (N1, auditoría 2026-10-27).
+ */
 export function getValidTransitions(
   currentPhase: string | null | undefined,
 ): string[] {
-  return PHASE_TRANSITIONS[currentPhase ?? 'Inicial'] ?? [];
+  const from = isKnownPhase(currentPhase)
+    ? (currentPhase as string)
+    : INITIAL_CASE_PHASE;
+  return PHASE_TRANSITIONS[from] ?? [];
 }
 
 export function getPackageForPhase(phase: string | null | undefined): number {

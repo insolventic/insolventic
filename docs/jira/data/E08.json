@@ -1,0 +1,178 @@
+{
+  "epica": {
+    "id": "E08",
+    "titulo": "Reportes y Analítica",
+    "descripcion": "Dashboard por módulos, reportes de estado de casos, consolidados por servicio y trazabilidad de pagos con exportación a Excel, con visibilidad por rol.",
+    "objetivo": "Que la dirección de cada centro vea su carga y su recaudo sin pedirle cifras a nadie.",
+    "prioridad": "Media",
+    "labels": [],
+    "resueltoDerivado": {
+      "regla": "fecha del último hijo cerrado",
+      "fecha": "2026-04-16",
+      "desde": ["E08-06"]
+    },
+    "evidencia": ["src/features/report/", "src/app/reports/", "README.md"]
+  },
+  "items": [
+    {
+      "id": "E08-01",
+      "tipo": "Story",
+      "titulo": "Dashboard por módulos con ayuda contextual",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "un tablero de inicio con accesos a cada módulo y ayudas que expliquen qué hace cada uno",
+        "para": "aprender a usar el sistema sin capacitación previa"
+      },
+      "ac": [
+        "Dado el dashboard Cuando entro Entonces veo los 6 módulos de tareas",
+        "Dado un módulo Cuando paso el cursor sobre su ayuda Entonces veo qué hace",
+        "[borde] Dado un rol sin acceso a un módulo Cuando veo el dashboard Entonces ese módulo no aparece"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-06",
+      "version": "v0.1.0",
+      "evidencia": [
+        "9c0cc1e feat: agregar tooltips de ayuda contextual en el dashboard",
+        "CHANGELOG.md [0.1.0] Dashboard"
+      ]
+    },
+    {
+      "id": "E08-02",
+      "tipo": "Story",
+      "titulo": "Dashboard dinámico y reportes de casos",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "ver gráficos de casos por fase, tipo y operador",
+        "para": "repartir la carga y detectar casos estancados"
+      },
+      "ac": [
+        "Dado casos en varias fases Cuando abro el dashboard Entonces veo la distribución por fase",
+        "Dado el reporte de casos Cuando filtro por fechas Entonces se recalcula al pulsar Filtrar",
+        "[error] Dado un rol sin permiso de reportes Cuando entra a /reports Entonces es redirigido"
+      ],
+      "puntos": 5,
+      "justificacion": "Gráficos y consultas agregadas sobre todo el modelo de casos.",
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W13",
+      "estado": "Done",
+      "resuelto": "2026-03-23",
+      "version": "v0.2.0",
+      "evidencia": [
+        "82812b5 feat: módulos completos — dashboard dinámico, ... reportes"
+      ]
+    },
+    {
+      "id": "E08-03",
+      "tipo": "Story",
+      "titulo": "Reporte consolidado de recaudo: recaudado, pendiente y vencido",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "un consolidado de lo recaudado, pendiente y vencido de los acuerdos",
+        "para": "saber cómo va el cumplimiento de los acuerdos del centro"
+      },
+      "ac": [
+        "Dado pagos registrados Cuando abro el consolidado Entonces veo recaudado, pendiente y vencido",
+        "[borde] Dado un caso sin cronograma Cuando se consolida Entonces no suma cero como pendiente",
+        "Dado un rol limitado Cuando abre el consolidado Entonces solo suma sus casos"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W13",
+      "estado": "Done",
+      "resuelto": "2026-03-24",
+      "version": "v0.2.0",
+      "evidencia": [
+        "e777c30",
+        "README.md §Trazabilidad de Pagos (reporte consolidado)"
+      ]
+    },
+    {
+      "id": "E08-04",
+      "tipo": "Story",
+      "titulo": "Reportes consolidados por tipo de servicio",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "reportes separados por insolvencia, conciliación y acuerdo de apoyo",
+        "para": "medir cada servicio por su propia lógica"
+      },
+      "ac": [
+        "Dado casos de los tres servicios Cuando genero el consolidado Entonces cada servicio tiene su sección",
+        "Dado la numeración por servicio Cuando se reporta Entonces cada caso conserva su prefijo",
+        "[borde] Dado un servicio sin casos Cuando se reporta Entonces aparece en cero"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W15",
+      "estado": "Done",
+      "resuelto": "2026-04-08",
+      "version": "v0.2.0",
+      "evidencia": [
+        "269db78 feat(storage): ... numeración por servicio y reportes consolidados"
+      ]
+    },
+    {
+      "id": "E08-05",
+      "tipo": "Story",
+      "titulo": "El reporte de estado no muestra montos engañosos en conciliación y apoyo",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que el reporte de estado no muestre montos donde el servicio no los tiene",
+        "para": "no leer cifras que no significan nada"
+      },
+      "ac": [
+        "Dado un caso de conciliación Cuando aparece en el reporte Entonces no muestra monto (showMonetary false)",
+        "Dado un caso de insolvencia Cuando aparece Entonces sí muestra monto",
+        "[borde] Dado un acuerdo de apoyo Cuando aparece Entonces no muestra monto"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-14",
+      "version": "v0.2.0",
+      "evidencia": [
+        "CHANGELOG.md [0.2.0] Reporte Estado de Casos (showMonetary)"
+      ]
+    },
+    {
+      "id": "E08-06",
+      "tipo": "Story",
+      "titulo": "Exportar la trazabilidad de pagos a Excel",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "descargar la trazabilidad de pagos en Excel",
+        "para": "compartirla con la dirección o el juzgado"
+      },
+      "ac": [
+        "Dado el reporte de pagos Cuando exporto Entonces descargo un Excel con hojas Resumen y Pagos",
+        "[error] Dado exportaciones repetidas en poco tiempo Cuando supero el límite Entonces se rechazan",
+        "Dado un rol limitado Cuando exporta Entonces el archivo solo incluye sus casos"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": [
+        "820461c",
+        "CHANGELOG.md [0.3.0] Exportación a Excel del reporte de Trazabilidad de Pagos"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+# Huellas sha256 de las firmas y sellos de los centros (docs/RUNBOOK.md §7.3).
+# Se genera con `npx tsx scripts/imagenes-privadas/huellas.ts generar <carpeta>`.
+438e0b363b2aef5a4704acddd4667c58961eba2cde30e177301714a6e749af35  armonia/firma-director.jpg
+fb836070a245c837394df47a745dc315811ceddce10261e644c23a6cee4747ee  armonia/firma-operador.png
+438e0b363b2aef5a4704acddd4667c58961eba2cde30e177301714a6e749af35  constructores-paz/firma-director.jpg
+af011f830bfb6d6a78c87fb3a3b157fd7e8e3108b4534a5c0c87242bb9e61aef  constructores-paz/firma-operador.png
+ba29322f5d4e803e06a19b595ead17028488523f3f43af40579e1f6b5640e945  constructores-paz/sello.png

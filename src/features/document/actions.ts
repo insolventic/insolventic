@@ -9,6 +9,12 @@ import { createAuditLog } from '@/features/audit-log/actions';
 import { resolveCenterFolderName } from '@/lib/centro-conciliacion';
 import { tenantSlugDelCaso } from './placeholders/tenant-slug';
 import { logger } from '@/lib/logger';
+import {
+  aplicarImagenesPrivadas,
+  ImagenPrivadaFaltanteError,
+  resolverImagenesPrivadas,
+  tiposRequeridos,
+} from '@/lib/imagenes-privadas';
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
 import { canGenerateDocument } from '../case/validation-rules';
@@ -1112,8 +1118,16 @@ export async function batchGenerateDocuments(input: {
       },
     };
 
-    const placeholders = mapCaseToPlaceholders(
-      asCaseWithRelations(transformedCaseData),
+    // Las firmas del centro se leen una vez para todo el lote y antes de tocar
+    // Drive o convertir el primer documento: si falta una, el lote no empieza.
+    const placeholders = aplicarImagenesPrivadas(
+      mapCaseToPlaceholders(asCaseWithRelations(transformedCaseData)),
+      await resolverImagenesPrivadas(
+        caseData.tenantId,
+        tiposRequeridos(
+          tenantSlugDelCaso(asCaseWithRelations(transformedCaseData)),
+        ),
+      ),
     );
 
     // Read HTML templates, replace placeholders, generate PDFs
@@ -1170,8 +1184,14 @@ export async function batchGenerateDocuments(input: {
     } catch (driveError) {
       // Se sigue con el lote para que cada documento diga por qué no se
       // subió, pero ninguno puede quedar como generado sin estar en Drive.
-      errorDeCarpeta =
-        driveError instanceof Error ? driveError.message : String(driveError);
+      // Este bloque también registra la carpeta en BD: un error de Prisma
+      // trae el ID de la carpeta y del centro, así que de ese no se muestra
+      // el motivo (queda en el log de abajo).
+      errorDeCarpeta = esErrorDePrisma(driveError)
+        ? ''
+        : driveError instanceof Error
+          ? driveError.message
+          : String(driveError);
       logger.error('Drive case folder resolution failed', driveError, {
         action: 'batch-generate-documents',
         caseId: caseData.id,
@@ -1449,10 +1469,7 @@ export async function batchGenerateDocuments(input: {
           `.${variant.ext}`,
         );
 
-        // Sin carpeta del caso no hay dónde subir. Antes el documento se
-        // registraba igual, como 'success' con URL vacía: el operador lo veía
-        // generado y en Drive no estaba. El fallo ya quedó en el log arriba.
-        if (!caseFolderId) {
+        const registrarFallo = (error: string) =>
           documents.push({
             templateId: htmlDoc.template.id,
             templateName: htmlDoc.displayName,
@@ -1460,8 +1477,16 @@ export async function batchGenerateDocuments(input: {
             documentName: variantDocName,
             documentUrl: '',
             status: 'error',
-            error: `No se subió a Google Drive: no se pudo resolver la carpeta del caso${errorDeCarpeta ? ` (${errorDeCarpeta})` : ''}.`,
+            error,
           });
+
+        // Sin carpeta del caso no hay dónde subir. Antes el documento se
+        // registraba igual, como 'success' con URL vacía: el operador lo veía
+        // generado y en Drive no estaba. El fallo ya quedó en el log arriba.
+        if (!caseFolderId) {
+          registrarFallo(
+            `No se subió a Google Drive: no se pudo resolver la carpeta del caso${errorDeCarpeta ? ` (${errorDeCarpeta})` : ''}.`,
+          );
           continue;
         }
 
@@ -1545,10 +1570,21 @@ export async function batchGenerateDocuments(input: {
               },
             );
           } catch (uploadError) {
-            throw new Error(
+            // El motivo de Drive se muestra: le dice al operador qué revisar
+            // y no trae datos del caso (`google-drive.ts` envuelve cada error
+            // en un texto fijo). El fallo al guardar, abajo, no se muestra.
+            const errorDeSubida = new Error(
               `No se subió a Google Drive: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`,
               { cause: uploadError },
             );
+            logger.error('Error uploading or saving document', errorDeSubida, {
+              action: 'batch-generate-documents',
+              caseId: caseData.id,
+              template: htmlDoc.template.name,
+              variant: variant.ext,
+            });
+            registrarFallo(errorDeSubida.message);
+            continue;
           }
 
           const document = await prisma.document.create({
@@ -1576,24 +1612,18 @@ export async function batchGenerateDocuments(input: {
             status: 'success',
           });
         } catch (saveError) {
-          logger.error('Error uploading or saving document', saveError, {
+          // El mensaje de Prisma imprime los datos de la operación (nombre
+          // del documento, IDs de Drive): va completo al log y a Sentry, no
+          // al usuario.
+          logger.error('Error saving generated document', saveError, {
             action: 'batch-generate-documents',
             caseId: caseData.id,
             template: htmlDoc.template.name,
             variant: variant.ext,
           });
-          documents.push({
-            templateId: htmlDoc.template.id,
-            templateName: htmlDoc.displayName,
-            documentId: '',
-            documentName: variantDocName,
-            documentUrl: '',
-            status: 'error',
-            error:
-              saveError instanceof Error
-                ? saveError.message
-                : 'Error guardando documento',
-          });
+          registrarFallo(
+            'No se pudo guardar el documento. Intenta generarlo de nuevo.',
+          );
         }
       }
     }
@@ -1674,9 +1704,13 @@ export async function batchGenerateDocuments(input: {
       },
     };
   } catch (error) {
-    logger.error('Error in batch document generation', error, {
-      action: 'batch-generate-documents',
-    });
+    // La falta de una firma ya dejó su evento, con el centro y la firma, en
+    // `resolverImagenesPrivadas`; repetirlo acá solo duplica la alerta.
+    if (!(error instanceof ImagenPrivadaFaltanteError)) {
+      logger.error('Error in batch document generation', error, {
+        action: 'batch-generate-documents',
+      });
+    }
 
     // C-4: liberar el lock para que el usuario pueda reintentar; si esto
     // fallara, el recuperador de huérfanos lo libera a los 10 min.
@@ -1946,6 +1980,15 @@ export async function uploadCaseDocument(input: {
       error: 'No se pudo guardar el archivo. Inténtalo de nuevo más tarde.',
     };
   }
+}
+
+/**
+ * Si el error viene del cliente de Prisma. Se mira el `name` (todas sus clases
+ * de error empiezan por `PrismaClient`) y no `instanceof`, para no depender de
+ * qué copia del runtime lanzó el error.
+ */
+function esErrorDePrisma(error: unknown): boolean {
+  return error instanceof Error && error.name.startsWith('PrismaClient');
 }
 
 /**

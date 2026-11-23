@@ -7,6 +7,7 @@ import type { PrismaClient } from '@prisma/client';
 import { authenticateUser } from '@/features/auth/actions';
 import { findUserIdsWhoCanSeeCase } from '@/features/case/case-access';
 import prisma from '@/lib/prisma';
+import { AVISO_SIN_CASO_EN_PAPELERA } from '@/lib/papelera';
 import { P } from '@/lib/permissions';
 import { emailService } from '@/lib/email';
 import { logger } from '@/lib/logger';
@@ -52,6 +53,7 @@ export async function getNotifications(
       userId: userId || user.id,
       tenantId,
       ...(type && { type }),
+      ...AVISO_SIN_CASO_EN_PAPELERA,
     };
 
     const [notificationsRaw, total] = await Promise.all([
@@ -180,7 +182,12 @@ export async function getUnreadCount(): Promise<{
   try {
     const { user, tenantId } = await authenticateUser();
     const count = await prisma.notification.count({
-      where: { userId: user.id, tenantId, read: false },
+      where: {
+        userId: user.id,
+        tenantId,
+        read: false,
+        ...AVISO_SIN_CASO_EN_PAPELERA,
+      },
     });
     return { success: true, data: count };
   } catch {

@@ -10,8 +10,16 @@ import { isRetryableDriveError } from '@/lib/drive-errors';
 import { logger } from '@/lib/logger';
 import { htmlToPdf, batchHtmlToPdf } from '@/lib/html-to-pdf';
 import {
+  aplicarImagenesPrivadas,
+  resolverImagenesPrivadas,
+  tiposRequeridos,
+  type ImagenesPrivadas,
+} from '@/lib/imagenes-privadas';
+import { tenantSlugDelCaso } from './placeholders/tenant-slug';
+import {
   mapCaseToPlaceholders,
   buildTemplateContext,
+  type PlaceholderMap,
 } from './placeholder-mapper';
 import {
   templateVariants,
@@ -35,6 +43,36 @@ import {
 import { generateAndUploadExcel } from './generate-excel';
 import { resolveCaseFolder } from './case-folder';
 import type { CaseWithRelations } from '../case/schemas';
+
+/**
+ * Los placeholders del expediente con las firmas de su centro ya resueltas.
+ *
+ * Va al principio de cada punto de entrada, antes de crear carpetas o de
+ * convertir el primer documento: si al centro le falta una firma, la
+ * generación no empieza (`ImagenPrivadaFaltanteError`). `imagenes` permite
+ * reusar las que el llamador ya resolvió para no leerlas dos veces.
+ */
+async function placeholdersConFirmas(
+  caseData: CaseWithRelations,
+  imagenes?: ImagenesPrivadas,
+): Promise<PlaceholderMap> {
+  const firmas = imagenes ?? (await firmasDelCentro(caseData));
+  return aplicarImagenesPrivadas(mapCaseToPlaceholders(caseData), firmas);
+}
+
+/**
+ * Las firmas del centro dueño del expediente. `CaseWithRelations` no declara
+ * `tenantId`, pero la fila de `Case` siempre lo trae (FK obligatoria).
+ */
+function firmasDelCentro(
+  caseData: CaseWithRelations,
+): Promise<ImagenesPrivadas> {
+  const { tenantId } = caseData as { tenantId?: unknown };
+  return resolverImagenesPrivadas(
+    typeof tenantId === 'string' ? tenantId : '',
+    tiposRequeridos(tenantSlugDelCaso(caseData)),
+  );
+}
 
 /**
  * Result of document generation
@@ -701,8 +739,9 @@ async function generateFromTemplates(
   caseData: CaseWithRelations,
   caseFolderId: string,
   options: GenerationOptions,
+  imagenes?: ImagenesPrivadas,
 ): Promise<GeneratedDocument[]> {
-  const placeholders = mapCaseToPlaceholders(caseData);
+  const placeholders = await placeholdersConFirmas(caseData, imagenes);
   const extraContext = buildTemplateContext(caseData);
   const subfolderCache = new Map<string, string>();
   const layoutVersion =
@@ -836,6 +875,10 @@ export async function generateDocumentsForNewCase(
     'INSOLVENCY';
   const templates = getTemplatesForCaseCreation(caseType);
 
+  // Las firmas se resuelven antes de crear la carpeta: sin ellas no se genera
+  // nada y no debe quedar una carpeta vacía en Drive.
+  const imagenes = await firmasDelCentro(caseData);
+
   // La carpeta del caso la decide resolveCaseFolder: la guardada si ya tiene
   // (los adjuntos del alta pueden haberla creado antes), o la v1 nueva, que
   // queda guardada con su layoutVersion. Antes se recalculaba aquí con el año
@@ -861,6 +904,7 @@ export async function generateDocumentsForNewCase(
     caseData,
     caseFolderId,
     mergedOptions,
+    imagenes,
   );
 
   // Generate consolidated Excel and upload
@@ -996,7 +1040,7 @@ export async function regenerateDocument(
   }
 
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
-  const placeholders = mapCaseToPlaceholders(caseData);
+  const placeholders = await placeholdersConFirmas(caseData);
 
   return generateDocument(
     template,
@@ -1018,7 +1062,7 @@ export async function generateSpecificDocuments(
 ): Promise<GeneratedDocument[]> {
   const { getTemplateById } = await import('./templates-config');
   const mergedOptions = { ...defaultOptions, ...options, caseFolderId };
-  const placeholders = mapCaseToPlaceholders(caseData);
+  const placeholders = await placeholdersConFirmas(caseData);
   const subfolderCache = new Map<string, string>();
   const documents: GeneratedDocument[] = [];
 
@@ -1070,7 +1114,7 @@ export async function previewDocument(
   // Misma Fase 1 compartida. Sin variantes: se previsualiza un documento.
   const { html: filledHtml, unresolved } = await prepareTemplate(
     template,
-    mapCaseToPlaceholders(caseData),
+    await placeholdersConFirmas(caseData),
     buildTemplateContext(caseData),
     SIN_VARIANTE,
     { caseId: caseData.id },

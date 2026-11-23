@@ -1,0 +1,1410 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gantt INSOLVENTIC</title>
+<meta name="description" content="Diagrama de Gantt del proyecto de grado INSOLVENTIC, generado desde docs/gantt/datos.mjs con corte al 21 oct 2026.">
+<style>
+:root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--grid:#eef2f7;--bg:#f8fafc;--card:#ffffff;--today:#dc2626;--crit:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,sans-serif}
+.page{padding:24px 16px 48px;max-width:1562px;margin:0 auto}
+h1{font-size:22px;margin:0 0 2px;letter-spacing:-.01em}
+h2{font-size:16px;margin:32px 0 10px}
+.sub{color:var(--muted);margin:0 0 4px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:16px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.kpi .v{font-size:18px;font-weight:650;margin-top:2px}
+.kpi .s{font-size:12px;color:var(--muted)}
+.pbar{display:inline-block;vertical-align:middle;width:90px;height:7px;background:#e5e7eb;border-radius:4px;overflow:hidden}
+.pbar>div{height:100%}
+.kpi .pbar{width:100%;margin-top:6px}
+.legend{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-bottom:10px}
+.lg-row{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:3px 0}
+.lg-row b{width:54px;font-size:11px;text-transform:uppercase;color:var(--muted)}
+.lg{display:inline-flex;align-items:center;gap:6px;font-size:12px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.lg .sw{margin:0}
+.swb{display:inline-block;width:30px;height:12px;border-radius:3px;position:relative}
+.swm{display:inline-block;width:10px;height:10px;background:#111827;transform:rotate(45deg)}
+.swhoy{display:inline-block;width:2px;height:14px;background:var(--today)}
+.toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 8px;font-size:12px;color:var(--muted)}
+.toolbar label{display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.scroll{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:8px}
+.chart{position:relative;width:1522px}
+table.g{position:relative;z-index:1;border-collapse:separate;border-spacing:0;table-layout:fixed;width:1522px}
+table.g td,table.g th{padding:0;border-bottom:1px solid var(--grid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.g td.tl,table.g th.tl{width:980px;background:transparent}
+.sticky{position:sticky;z-index:3;background:var(--card)}
+th.lh{font-size:11px;text-align:left;padding:0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;background:#f1f5f9}
+thead th{background:#f1f5f9!important;border-bottom:1px solid var(--line)!important}
+.h1 th{height:22px}.h2 th{height:32px}
+.segs,.cols,.loads{display:flex;position:relative}
+.seg{font-size:11px;font-weight:600;text-align:center;line-height:22px;color:#334155;border-left:1px solid #cbd5e1;overflow:hidden;white-space:nowrap}
+.seg-ant{background:#e2e8f0}.seg-s1{background:#dbeafe}.seg-rec{background:#f1f5f9;color:var(--muted)}.seg-s2{background:#fce7f3}
+.col{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;line-height:1.15;border-left:1px solid var(--line);height:32px}
+.col b{font-size:10.5px}.col span{color:var(--muted);font-size:9px}
+.col-ant b{text-transform:capitalize;color:#475569}
+.col.is-hoy{background:#fee2e2}
+.hoy-label{position:absolute;top:-21px;transform:translateX(-50%);background:var(--today);color:#fff;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:3px;white-space:nowrap}
+td.c-id{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;color:var(--muted);padding-left:8px!important}
+td.c-nombre{padding:0 6px!important;font-size:12.5px}
+td.c-estado{padding:0 4px!important}
+td.c-num{text-align:right;padding-right:8px!important;font-variant-numeric:tabular-nums;font-size:12px}
+.track{position:relative;height:24px}
+tr.row:hover td{background-color:#f8fafc}
+tr.row:hover td.tl{background:rgba(15,23,42,.035)}
+tr.hl td.sticky{background:#fef9c3}
+tr.hl td.tl{background:rgba(250,204,21,.18)}
+tr.phase td{background:color-mix(in srgb,var(--c) 9%,transparent);border-top:1px solid color-mix(in srgb,var(--c) 30%,transparent);height:26px}
+tr.phase td.sticky{background:color-mix(in srgb,var(--c) 9%,#fff)}
+.phase-name{font-weight:650;padding:0 8px!important;font-size:12.5px}
+.phase-name .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:7px}
+.phase-meta{font-weight:400;color:var(--muted);font-size:11.5px;margin-left:10px}
+.phasebar{position:absolute;top:10px;height:6px;border-radius:3px;background:color-mix(in srgb,var(--c) 25%,transparent);overflow:hidden}
+.phasebar::after{content:"";position:absolute;inset:0;width:var(--p);background:var(--c)}
+.gapnote{position:absolute;top:4px;z-index:3;font-size:8.5px;color:#475569;font-style:italic;text-align:center;white-space:nowrap;line-height:16px;background:#fff;border:1px solid var(--line);border-radius:3px}
+.chip{display:inline-block;font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:10px}
+.chip.ok{background:#dcfce7;color:#166534}.chip.run{background:#dbeafe;color:#1e40af}.chip.todo{background:#f1f5f9;color:#475569}
+.tag{display:inline-block;font-size:9.5px;padding:0 5px;border-radius:3px;margin-left:4px;vertical-align:1px;font-weight:600}
+.tag.est{background:#fef3c7;color:#92400e}.tag.inf{background:#ede9fe;color:#5b21b6}.tag.dato{background:#e0f2fe;color:#075985}
+.tag.buf{background:#f1f5f9;color:#475569}.tag.crit{background:#fee2e2;color:#b91c1c}
+.bar,.swb{border-radius:3px}
+.bar{position:absolute;top:6px;height:12px;cursor:pointer;z-index:2}
+.completado{background:var(--c)}
+.en_progreso{background:linear-gradient(90deg,var(--c) 0 var(--p),transparent var(--p)),repeating-linear-gradient(45deg,color-mix(in srgb,var(--c) 45%,#fff) 0 3px,color-mix(in srgb,var(--c) 18%,#fff) 3px 6px);box-shadow:inset 0 0 0 1px var(--c)}
+.pendiente{background:color-mix(in srgb,var(--c) 30%,#fff);box-shadow:inset 0 0 0 1.5px var(--c);background-image:repeating-linear-gradient(90deg,transparent 0 5px,rgba(255,255,255,.55) 5px 7px)}
+.buffer{background:repeating-linear-gradient(45deg,#94a3b8 0 2px,#f1f5f9 2px 6px);box-shadow:inset 0 0 0 1px #94a3b8}
+.crit{outline:2px solid var(--crit);outline-offset:1px}
+.ms{position:absolute;top:6px;width:12px;height:12px;margin-left:-6px;transform:rotate(45deg);background:var(--c);z-index:2;cursor:pointer}
+.ms.todo{background:#fff;box-shadow:inset 0 0 0 2px var(--c)}
+.ms.crit{outline:none;box-shadow:inset 0 0 0 2px var(--crit),0 0 0 2px #fff;background:#fecaca}
+.overlay{position:absolute;inset:0;z-index:0;pointer-events:none}
+.overlay.top{z-index:4}
+.vl{position:absolute;top:54px;bottom:0;width:1px;background:var(--grid)}
+.vl.segline{background:#94a3b8;width:1.5px}
+.region{position:absolute;top:54px;bottom:0}
+.r-ant{background:rgba(100,116,139,.06)}
+.r-rec{background:repeating-linear-gradient(135deg,rgba(148,163,184,.16) 0 4px,transparent 4px 9px)}
+.hoy{position:absolute;top:54px;bottom:0;width:2px;background:var(--today);opacity:.85}
+tfoot td{height:24px;border-top:1px solid var(--line)}
+.foot-name{font-size:11px;color:var(--muted);padding:0 8px!important}
+.load{font-size:10px;text-align:center;line-height:24px;font-variant-numeric:tabular-nums}
+.load.lo{background:#ecfdf5;color:#047857}.load.mid{background:#fef3c7;color:#92400e}.load.hi{background:#fee2e2;color:#b91c1c;font-weight:700}
+.hide{display:none}
+#tip{position:fixed;z-index:50;max-width:380px;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.45;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none}
+#tip h4{margin:0 0 6px;font-size:13px;color:#fff}
+#tip .r{display:flex;gap:8px}#tip .r span:first-child{color:#94a3b8;min-width:92px}
+#tip .sw{width:10px;height:10px}
+table.detail{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);font-size:12px}
+table.detail th{background:#f1f5f9;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#475569;padding:6px 8px;border-bottom:1px solid var(--line)}
+table.detail td{padding:5px 8px;border-bottom:1px solid var(--grid);vertical-align:top}
+table.detail td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.detail td.src{font-size:11px;color:#334155;max-width:360px}
+table.detail tr.is-crit td:first-child{box-shadow:inset 3px 0 0 var(--crit)}
+table.compact{width:auto;min-width:640px}
+.muted{color:var(--muted)}
+.lvl{font-size:11px;font-weight:600;padding:1px 6px;border-radius:3px;white-space:nowrap}
+.lvl.alta,.lvl.muy-alto,.lvl.alto{background:#fee2e2;color:#b91c1c}.lvl.media,.lvl.medio{background:#fef3c7;color:#92400e}.lvl.baja,.lvl.bajo{background:#ecfdf5;color:#047857}
+.cp{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.cp ol{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.cp li{background:#fee2e2;color:#7f1d1d;border-radius:4px;padding:3px 8px;font-size:12px}
+.cp li+li::before{content:"→";color:var(--crit);margin:0 8px 0 -4px;font-weight:700}
+.cp ul{margin:8px 0 0 18px;padding:0}
+.notes{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 16px}
+.notes li{margin:4px 0}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11.5px;background:#f1f5f9;padding:0 4px;border-radius:3px}
+@media (max-width:700px){.page{padding:16px}h1{font-size:19px}}
+@page{size:A4 landscape;margin:7mm}
+@media print{
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body{background:#fff;font-size:11px}
+ .page{padding:0;max-width:none}
+ .noprint,#tip{display:none!important}
+ .scroll{overflow:visible;border:none;border-radius:0}
+ .chart{zoom:.70}
+ .sticky{position:static}
+ tr{break-inside:avoid}
+ .kpis{grid-template-columns:repeat(6,1fr)}
+ .print-break{break-before:page}
+ table.detail{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>INSOLVENTIC — Diagrama de Gantt — Proyecto de grado</h1>
+<p class="sub">Sistema web de gestión de expedientes de insolvencia, conciliación y acuerdos de apoyo</p>
+<p class="sub">Maximiliano Malavera, Julián Sánchez, José Suárez · Corte: <b>21 oct 2026</b> (S12) · Generado desde <code>docs/gantt/datos.mjs</code></p>
+</header>
+<div class="kpis">
+<div class="kpi"><div class="k">Periodo académico</div><div class="v">25 semanas</div><div class="s">03 ago 2026 → 28 mar 2027<br>17 en 2026-2 + 8 en 2027-1</div></div>
+<div class="kpi"><div class="k">Antecedentes</div><div class="v">nov 2025 – jul 2026</div><div class="s">Trabajo previo con fechas reales, fuera de las 25 semanas</div></div>
+<div class="kpi"><div class="k">Avance total (esfuerzo)</div><div class="v">78%</div><div class="pbar"><div style="width:78%;background:#059669"></div></div><div class="s">1036 h equivalentes, 71 tareas</div></div>
+<div class="kpi"><div class="k">Avance del periodo académico</div><div class="v">67%</div><div class="pbar"><div style="width:67%;background:#2563eb"></div></div><div class="s">S1–S25 · 689 h</div></div>
+<div class="kpi"><div class="k">Corte 2026-2 (29 nov)</div><div class="v">81% esfuerzo</div><div class="s">17/25 semanas = 68 % del calendario · meta académica 70 %</div></div>
+<div class="kpi"><div class="k">Próximo hito</div><div class="v">v1.0.0-rc.2</div><div class="s">08 nov 2026 · S14 (estimado)</div></div>
+</div>
+<div class="legend">
+<div class="lg-row"><b>Fases</b><span class="lg"><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</span><span class="lg"><i class="sw" style="background:#2563eb"></i>Análisis y diseño</span><span class="lg"><i class="sw" style="background:#d97706"></i>Construcción y remediación</span><span class="lg"><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</span><span class="lg"><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</span><span class="lg"><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</span></div>
+<div class="lg-row"><b>Estado</b>
+<span class="lg"><i class="swb completado" style="--c:#475569"></i>Completado (evidencia git)</span>
+<span class="lg"><i class="swb en_progreso" style="--c:#475569;--p:60%"></i>En progreso</span>
+<span class="lg"><i class="swb pendiente" style="--c:#475569"></i>Pendiente (estimado)</span>
+<span class="lg"><i class="swb buffer"></i>Buffer / contingencia</span>
+<span class="lg"><i class="swb completado crit" style="--c:#475569"></i>Ruta crítica</span>
+<span class="lg"><i class="swm"></i>Hito</span>
+<span class="lg"><i class="swhoy"></i>HOY (21 oct 2026)</span>
+</div></div>
+<div class="toolbar noprint">
+<label><input type="checkbox" data-f="st-completado" checked> Completadas</label>
+<label><input type="checkbox" data-f="st-en_progreso" checked> En progreso</label>
+<label><input type="checkbox" data-f="st-pendiente" checked> Pendientes</label>
+<label><input type="checkbox" id="solo-crit"> Solo ruta crítica e hitos</label>
+<span>· Pasa el cursor por una barra para ver el detalle; se resaltan sus dependencias (amarillo).</span>
+</div>
+<div class="scroll"><div class="chart">
+<div class="overlay"><div class="vl" style="left:542px"></div><div class="vl" style="left:570px"></div><div class="vl" style="left:598px"></div><div class="vl" style="left:626px"></div><div class="vl" style="left:654px"></div><div class="vl" style="left:682px"></div><div class="vl" style="left:710px"></div><div class="vl" style="left:738px"></div><div class="vl" style="left:766px"></div><div class="vl segline" style="left:794px"></div><div class="vl" style="left:822px"></div><div class="vl" style="left:850px"></div><div class="vl" style="left:878px"></div><div class="vl" style="left:906px"></div><div class="vl" style="left:934px"></div><div class="vl" style="left:962px"></div><div class="vl" style="left:990px"></div><div class="vl" style="left:1018px"></div><div class="vl" style="left:1046px"></div><div class="vl" style="left:1074px"></div><div class="vl" style="left:1102px"></div><div class="vl" style="left:1130px"></div><div class="vl" style="left:1158px"></div><div class="vl" style="left:1186px"></div><div class="vl" style="left:1214px"></div><div class="vl" style="left:1242px"></div><div class="vl segline" style="left:1270px"></div><div class="vl segline" style="left:1298px"></div><div class="vl" style="left:1326px"></div><div class="vl" style="left:1354px"></div><div class="vl" style="left:1382px"></div><div class="vl" style="left:1410px"></div><div class="vl" style="left:1438px"></div><div class="vl" style="left:1466px"></div><div class="vl" style="left:1494px"></div><div class="region r-ant" style="left:542px;width:252px"></div><div class="region r-rec" style="left:1270px;width:28px"></div></div>
+<div class="overlay top"><div class="hoy" style="left:1112.0px"></div></div>
+<table class="g"><colgroup><col style="width:46px"><col style="width:330px"><col style="width:80px"><col style="width:42px"><col style="width:44px"><col style="width:980px"></colgroup><thead>
+<tr class="h1"><th class="sticky lh" colspan="5" style="left:0"></th><th class="tl"><div class="segs"><div class="seg seg-ant" style="width:252px">Antecedentes · escala mensual</div><div class="seg seg-s1" style="width:476px">Semestre 2026-2 · S1–S17 · escala semanal</div><div class="seg seg-rec" style="width:28px">Rec.</div><div class="seg seg-s2" style="width:224px">Semestre 2027-1 · S18–S25</div></div></th></tr>
+<tr class="h2"><th class="sticky lh" style="left:0px;width:46px">ID</th><th class="sticky lh" style="left:46px;width:330px">Tarea</th><th class="sticky lh" style="left:376px;width:80px">Estado</th><th class="sticky lh" style="left:456px;width:42px">%</th><th class="sticky lh" style="left:498px;width:44px">h</th><th class="tl"><div class="cols"><div class="col col-ant" style="width:28px" title="03 nov 2025 – 30 nov 2025"><b>nov</b><span>25</span></div><div class="col col-ant" style="width:28px" title="01 dic 2025 – 31 dic 2025"><b>dic</b><span>25</span></div><div class="col col-ant" style="width:28px" title="01 ene 2026 – 31 ene 2026"><b>ene</b><span>26</span></div><div class="col col-ant" style="width:28px" title="01 feb 2026 – 28 feb 2026"><b>feb</b><span>26</span></div><div class="col col-ant" style="width:28px" title="01 mar 2026 – 31 mar 2026"><b>mar</b><span>26</span></div><div class="col col-ant" style="width:28px" title="01 abr 2026 – 30 abr 2026"><b>abr</b><span>26</span></div><div class="col col-ant" style="width:28px" title="01 may 2026 – 31 may 2026"><b>may</b><span>26</span></div><div class="col col-ant" style="width:28px" title="01 jun 2026 – 30 jun 2026"><b>jun</b><span>26</span></div><div class="col col-ant" style="width:28px" title="01 jul 2026 – 02 ago 2026"><b>jul</b><span>26</span></div><div class="col col-s1" style="width:28px" title="03 ago 2026 – 09 ago 2026"><b>S1</b><span>03/08</span></div><div class="col col-s1" style="width:28px" title="10 ago 2026 – 16 ago 2026"><b>S2</b><span>10/08</span></div><div class="col col-s1" style="width:28px" title="17 ago 2026 – 23 ago 2026"><b>S3</b><span>17/08</span></div><div class="col col-s1" style="width:28px" title="24 ago 2026 – 30 ago 2026"><b>S4</b><span>24/08</span></div><div class="col col-s1" style="width:28px" title="31 ago 2026 – 06 sep 2026"><b>S5</b><span>31/08</span></div><div class="col col-s1" style="width:28px" title="07 sep 2026 – 13 sep 2026"><b>S6</b><span>07/09</span></div><div class="col col-s1" style="width:28px" title="14 sep 2026 – 20 sep 2026"><b>S7</b><span>14/09</span></div><div class="col col-s1" style="width:28px" title="21 sep 2026 – 27 sep 2026"><b>S8</b><span>21/09</span></div><div class="col col-s1" style="width:28px" title="28 sep 2026 – 04 oct 2026"><b>S9</b><span>28/09</span></div><div class="col col-s1" style="width:28px" title="05 oct 2026 – 11 oct 2026"><b>S10</b><span>05/10</span></div><div class="col col-s1" style="width:28px" title="12 oct 2026 – 18 oct 2026"><b>S11</b><span>12/10</span></div><div class="col col-s1 is-hoy" style="width:28px" title="19 oct 2026 – 25 oct 2026"><b>S12</b><span>19/10</span></div><div class="col col-s1" style="width:28px" title="26 oct 2026 – 01 nov 2026"><b>S13</b><span>26/10</span></div><div class="col col-s1" style="width:28px" title="02 nov 2026 – 08 nov 2026"><b>S14</b><span>02/11</span></div><div class="col col-s1" style="width:28px" title="09 nov 2026 – 15 nov 2026"><b>S15</b><span>09/11</span></div><div class="col col-s1" style="width:28px" title="16 nov 2026 – 22 nov 2026"><b>S16</b><span>16/11</span></div><div class="col col-s1" style="width:28px" title="23 nov 2026 – 29 nov 2026"><b>S17</b><span>23/11</span></div><div class="col col-rec" style="width:28px" title="30 nov 2026 – 31 ene 2027"><b>Rec.</b><span>dic–ene</span></div><div class="col col-s2" style="width:28px" title="01 feb 2027 – 07 feb 2027"><b>S18</b><span>01/02</span></div><div class="col col-s2" style="width:28px" title="08 feb 2027 – 14 feb 2027"><b>S19</b><span>08/02</span></div><div class="col col-s2" style="width:28px" title="15 feb 2027 – 21 feb 2027"><b>S20</b><span>15/02</span></div><div class="col col-s2" style="width:28px" title="22 feb 2027 – 28 feb 2027"><b>S21</b><span>22/02</span></div><div class="col col-s2" style="width:28px" title="01 mar 2027 – 07 mar 2027"><b>S22</b><span>01/03</span></div><div class="col col-s2" style="width:28px" title="08 mar 2027 – 14 mar 2027"><b>S23</b><span>08/03</span></div><div class="col col-s2" style="width:28px" title="15 mar 2027 – 21 mar 2027"><b>S24</b><span>15/03</span></div><div class="col col-s2" style="width:28px" title="22 mar 2027 – 28 mar 2027"><b>S25</b><span>22/03</span></div><div class="hoy-label" style="left:570.0px">HOY 21/10</div></div></th></tr>
+</thead><tbody><tr class="phase" style="--c:#111827">
+<td colspan="5" class="sticky phase-name" style="left:0"><span class="dot"></span>Hitos<span class="phase-meta"></span></td>
+<td class="tl"><div class="track"></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H01">
+<td class="c-id sticky" style="left:0px">H01</td>
+<td class="c-nombre sticky" style="left:46px">◆ Creación del repositorio </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H01" style="--c:#111827;left:20.5px"></div></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H02">
+<td class="c-id sticky" style="left:0px">H02</td>
+<td class="c-nombre sticky" style="left:46px">◆ MVP etiquetado v0.1.0 </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H02" style="--c:#111827;left:118.8px"></div></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H03">
+<td class="c-id sticky" style="left:0px">H03</td>
+<td class="c-nombre sticky" style="left:46px">◆ v0.3.0: alertas, Sentry y E2E en CI </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H03" style="--c:#111827;left:154.5px"></div></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H04">
+<td class="c-id sticky" style="left:0px">H04</td>
+<td class="c-nombre sticky" style="left:46px">◆ Inicio del semestre 2026-2 (S1) <span class="tag dato">dato</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H04" style="--c:#111827;left:254.0px"></div></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H05">
+<td class="c-id sticky" style="left:0px">H05</td>
+<td class="c-nombre sticky" style="left:46px">◆ Auditoría pre-producción </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H05" style="--c:#111827;left:342.0px"></div></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H06">
+<td class="c-id sticky" style="left:0px">H06</td>
+<td class="c-nombre sticky" style="left:46px">◆ Auditorías pre-launch y de cierre; producción estable </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H06" style="--c:#111827;left:410.0px"></div></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H07">
+<td class="c-id sticky" style="left:0px">H07</td>
+<td class="c-nombre sticky" style="left:46px">◆ Auditoría del formulario de conciliación </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H07" style="--c:#111827;left:534.0px"></div></div></td>
+</tr><tr class="row st-completado  is-hito" data-id="H08">
+<td class="c-id sticky" style="left:0px">H08</td>
+<td class="c-nombre sticky" style="left:46px">◆ Release candidate v1.0.0-rc.1 </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms done " data-id="H08" style="--c:#111827;left:558.0px"></div></div></td>
+</tr><tr class="row st-pendiente  is-hito" data-id="H09">
+<td class="c-id sticky" style="left:0px">H09</td>
+<td class="c-nombre sticky" style="left:46px">◆ v1.0.0-rc.2 <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms todo " data-id="H09" style="--c:#111827;left:642.0px"></div></div></td>
+</tr><tr class="row st-pendiente is-crit is-hito" data-id="H10">
+<td class="c-id sticky" style="left:0px">H10</td>
+<td class="c-nombre sticky" style="left:46px">◆ UAT firmado por ambos centros <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms todo crit" data-id="H10" style="--c:#111827;left:698.0px"></div></div></td>
+</tr><tr class="row st-pendiente is-crit is-hito" data-id="H11">
+<td class="c-id sticky" style="left:0px">H11</td>
+<td class="c-nombre sticky" style="left:46px">◆ Release 1.0.0 + corte del 70 % (fin de 2026-2) <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms todo crit" data-id="H11" style="--c:#111827;left:726.0px"></div></div></td>
+</tr><tr class="row st-pendiente  is-hito" data-id="H12">
+<td class="c-id sticky" style="left:0px">H12</td>
+<td class="c-nombre sticky" style="left:46px">◆ Inicio del semestre 2027-1 (S18) <span class="tag dato">dato</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms todo " data-id="H12" style="--c:#111827;left:758.0px"></div></div></td>
+</tr><tr class="row st-pendiente  is-hito" data-id="H13">
+<td class="c-id sticky" style="left:0px">H13</td>
+<td class="c-nombre sticky" style="left:46px">◆ v1.1.0 <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms todo " data-id="H13" style="--c:#111827;left:894.0px"></div></div></td>
+</tr><tr class="row st-pendiente is-crit is-hito" data-id="H14">
+<td class="c-id sticky" style="left:0px">H14</td>
+<td class="c-nombre sticky" style="left:46px">◆ Entrega del documento final <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms todo crit" data-id="H14" style="--c:#111827;left:950.0px"></div></div></td>
+</tr><tr class="row st-pendiente is-crit is-hito" data-id="H15">
+<td class="c-id sticky" style="left:0px">H15</td>
+<td class="c-nombre sticky" style="left:46px">◆ Sustentación <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px"></td>
+<td class="c-num sticky" style="left:498px"></td>
+<td class="tl"><div class="track"><div class="ms todo crit" data-id="H15" style="--c:#111827;left:970.0px"></div></div></td>
+</tr><tr class="phase" style="--c:#64748b">
+<td colspan="5" class="sticky phase-name" style="left:0"><span class="dot"></span>Antecedentes (trabajo previo)<span class="phase-meta">03 nov 2025 → 12 jul 2026 · 347 h · 100%</span></td>
+<td class="tl"><div class="track"><div class="phasebar" style="--c:#64748b;left:0.0px;width:234.2px;--p:100%"></div><div class="gapnote" style="left:168.0px;width:56px">pausa may–jun</div></div></td>
+</tr><tr class="row st-completado  " data-id="A01">
+<td class="c-id sticky" style="left:0px">A01</td>
+<td class="c-nombre sticky" style="left:46px">Análisis y diseño inicial (equipo de tesis) <span class="tag inf">inferido</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">40</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="A01" style="--c:#64748b;left:0.0px;width:85.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="A02">
+<td class="c-id sticky" style="left:0px">A02</td>
+<td class="c-nombre sticky" style="left:46px">Prototipo base: auth, casos y documentos HTML </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">58</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="A02" style="--c:#64748b;left:85.0px;width:27.9px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="A03">
+<td class="c-id sticky" style="left:0px">A03</td>
+<td class="c-nombre sticky" style="left:46px">Pruebas, hardening y v0.1.0 </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">40</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="A03" style="--c:#64748b;left:112.9px;width:12.6px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="A04">
+<td class="c-id sticky" style="left:0px">A04</td>
+<td class="c-nombre sticky" style="left:46px">RBAC, auditoría, dashboard, pagos y reportes </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">59</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="A04" style="--c:#64748b;left:125.5px;width:12.6px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="A05">
+<td class="c-id sticky" style="left:0px">A05</td>
+<td class="c-nombre sticky" style="left:46px">Conciliación, DOCX, alertas y Sentry (v0.2–v0.3) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">106</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="A05" style="--c:#64748b;left:138.2px;width:19.5px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="A06">
+<td class="c-id sticky" style="left:0px">A06</td>
+<td class="c-nombre sticky" style="left:46px">Acuerdos de Apoyo y pruebas de carga k6 </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">12</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="A06" style="--c:#64748b;left:157.7px;width:6.5px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="A07">
+<td class="c-id sticky" style="left:0px">A07</td>
+<td class="c-nombre sticky" style="left:46px">Auditoría de documentos (P2–P4) y logger </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">32</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="A07" style="--c:#64748b;left:228.2px;width:5.9px;--p:100%"></div></div></td>
+</tr><tr class="phase" style="--c:#2563eb">
+<td colspan="5" class="sticky phase-name" style="left:0"><span class="dot"></span>Análisis y diseño<span class="phase-meta">10 ago 2026 → 25 oct 2026 · 20 h · 88%</span></td>
+<td class="tl"><div class="track"><div class="phasebar" style="--c:#2563eb;left:280.0px;width:308.0px;--p:88%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="T01">
+<td class="c-id sticky" style="left:0px">T01</td>
+<td class="c-nombre sticky" style="left:46px">Requisitos, MER, diccionario y diagramas </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="T01" style="--c:#2563eb;left:280.0px;width:28.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="T02">
+<td class="c-id sticky" style="left:0px">T02</td>
+<td class="c-nombre sticky" style="left:46px">Diseño de las 5 fases nuevas del expediente </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">2</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="T02" style="--c:#2563eb;left:408.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="T03">
+<td class="c-id sticky" style="left:0px">T03</td>
+<td class="c-nombre sticky" style="left:46px">Diseño del branding por centro </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">2</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="T03" style="--c:#2563eb;left:484.0px;width:8.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="T04">
+<td class="c-id sticky" style="left:0px">T04</td>
+<td class="c-nombre sticky" style="left:46px">Diseño del apoderado del acreedor (CYG) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">2</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="T04" style="--c:#2563eb;left:520.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-en_progreso  " data-id="T05">
+<td class="c-id sticky" style="left:0px">T05</td>
+<td class="c-nombre sticky" style="left:46px">Backlog Jira, proceso Scrum y cronograma </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip run">En progreso</span></td>
+<td class="c-num sticky" style="left:456px">70%</td>
+<td class="c-num sticky" style="left:498px">8</td>
+<td class="tl"><div class="track"><div class="bar en_progreso " data-id="T05" style="--c:#2563eb;left:560.0px;width:28.0px;--p:70%"></div></div></td>
+</tr><tr class="phase" style="--c:#d97706">
+<td colspan="5" class="sticky phase-name" style="left:0"><span class="dot"></span>Construcción y remediación<span class="phase-meta">26 ago 2026 → 21 feb 2027 · 396 h · 87%</span></td>
+<td class="tl"><div class="track"><div class="phasebar" style="--c:#d97706;left:344.0px;width:496.0px;--p:87%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C01">
+<td class="c-id sticky" style="left:0px">C01</td>
+<td class="c-nombre sticky" style="left:46px">Seguridad crítica (Semana 1) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">10</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C01" style="--c:#d97706;left:344.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C02">
+<td class="c-id sticky" style="left:0px">C02</td>
+<td class="c-nombre sticky" style="left:46px">Rate limit, health check y runbook (Semana 2) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">12</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C02" style="--c:#d97706;left:344.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C03">
+<td class="c-id sticky" style="left:0px">C03</td>
+<td class="c-nombre sticky" style="left:46px">Lógica de negocio en el servidor (PR #4) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">25</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C03" style="--c:#d97706;left:372.0px;width:40.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C04">
+<td class="c-id sticky" style="left:0px">C04</td>
+<td class="c-nombre sticky" style="left:46px">Apoderados del deudor, sesión y rendimiento </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">29</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C04" style="--c:#d97706;left:420.0px;width:28.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C05">
+<td class="c-id sticky" style="left:0px">C05</td>
+<td class="c-nombre sticky" style="left:46px">Fechas y placeholders de documentos </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">7</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C05" style="--c:#d97706;left:448.0px;width:28.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C06">
+<td class="c-id sticky" style="left:0px">C06</td>
+<td class="c-nombre sticky" style="left:46px">Ronda del formulario maestro </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">47</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C06" style="--c:#d97706;left:476.0px;width:24.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C07">
+<td class="c-id sticky" style="left:0px">C07</td>
+<td class="c-nombre sticky" style="left:46px">Cinco fases nuevas del expediente (PR #40) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">21</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C07" style="--c:#d97706;left:476.0px;width:12.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C08">
+<td class="c-id sticky" style="left:0px">C08</td>
+<td class="c-nombre sticky" style="left:46px">División del placeholder-mapper </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">23</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C08" style="--c:#d97706;left:480.0px;width:20.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C09">
+<td class="c-id sticky" style="left:0px">C09</td>
+<td class="c-nombre sticky" style="left:46px">Generación: todos los acreedores y un navegador </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">26</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C09" style="--c:#d97706;left:480.0px;width:20.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C10">
+<td class="c-id sticky" style="left:0px">C10</td>
+<td class="c-nombre sticky" style="left:46px">Correcciones de documentos (fechas, causas, apoyo) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">19</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C10" style="--c:#d97706;left:504.0px;width:16.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C11">
+<td class="c-id sticky" style="left:0px">C11</td>
+<td class="c-nombre sticky" style="left:46px">Membrete y branding por centro </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">30</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C11" style="--c:#d97706;left:520.0px;width:8.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C12">
+<td class="c-id sticky" style="left:0px">C12</td>
+<td class="c-nombre sticky" style="left:46px">Apoderado del acreedor: modelo y captura </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">9</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C12" style="--c:#d97706;left:520.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C13">
+<td class="c-id sticky" style="left:0px">C13</td>
+<td class="c-nombre sticky" style="left:46px">Separador de miles y ESLint en cero </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">11</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C13" style="--c:#d97706;left:520.0px;width:12.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C14">
+<td class="c-id sticky" style="left:0px">C14</td>
+<td class="c-nombre sticky" style="left:46px">Bloqueantes de seguridad pre-entrega </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">28</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C14" style="--c:#d97706;left:552.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C15">
+<td class="c-id sticky" style="left:0px">C15</td>
+<td class="c-nombre sticky" style="left:46px">Formulario de conciliación completo </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">15</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C15" style="--c:#d97706;left:552.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C16">
+<td class="c-id sticky" style="left:0px">C16</td>
+<td class="c-nombre sticky" style="left:46px">Generación de lotes grandes en tandas </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">9</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C16" style="--c:#d97706;left:552.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C17">
+<td class="c-id sticky" style="left:0px">C17</td>
+<td class="c-nombre sticky" style="left:46px">Montos, carpeta de Drive y apoderado único </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">15</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C17" style="--c:#d97706;left:556.0px;width:8.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="C18">
+<td class="c-id sticky" style="left:0px">C18</td>
+<td class="c-nombre sticky" style="left:46px">Bienes en dos niveles y notificaciones </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">9</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="C18" style="--c:#d97706;left:560.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="C19">
+<td class="c-id sticky" style="left:0px">C19</td>
+<td class="c-nombre sticky" style="left:46px">Riesgos de código: bloqueo optimista y requisitos <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">15</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="C19" style="--c:#d97706;left:588.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="C20">
+<td class="c-id sticky" style="left:0px">C20</td>
+<td class="c-nombre sticky" style="left:46px">Bloquear el CYG con apoderado contradictorio <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="C20" style="--c:#d97706;left:616.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="C21">
+<td class="c-id sticky" style="left:0px">C21</td>
+<td class="c-nombre sticky" style="left:46px">Documentos de Rechazo y de Retiro <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="C21" style="--c:#d97706;left:616.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="C22">
+<td class="c-id sticky" style="left:0px">C22</td>
+<td class="c-nombre sticky" style="left:46px">Resolver conflicto de apoderado en la UI <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="C22" style="--c:#d97706;left:644.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="C23">
+<td class="c-id sticky" style="left:0px">C23</td>
+<td class="c-nombre sticky" style="left:46px">Regenerar documentos sin duplicados <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="C23" style="--c:#d97706;left:672.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="C24">
+<td class="c-id sticky" style="left:0px">C24</td>
+<td class="c-nombre sticky" style="left:46px">Estado de la generación visible en el caso <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">3</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="C24" style="--c:#d97706;left:672.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="X02">
+<td class="c-id sticky" style="left:0px">X02</td>
+<td class="c-nombre sticky" style="left:46px">v1.1: borrado lógico de expedientes <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">9</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="X02" style="--c:#d97706;left:784.0px;width:56.0px;--p:0%"></div></div></td>
+</tr><tr class="phase" style="--c:#7c3aed">
+<td colspan="5" class="sticky phase-name" style="left:0"><span class="dot"></span>Infraestructura y despliegue<span class="phase-meta">12 ago 2026 → 28 feb 2027 · 100 h · 61%</span></td>
+<td class="tl"><div class="track"><div class="phasebar" style="--c:#7c3aed;left:288.0px;width:580.0px;--p:61%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="I01">
+<td class="c-id sticky" style="left:0px">I01</td>
+<td class="c-nombre sticky" style="left:46px">Deploy nativo Vercel y migraciones gateadas </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">8</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="I01" style="--c:#7c3aed;left:288.0px;width:28.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="I02">
+<td class="c-id sticky" style="left:0px">I02</td>
+<td class="c-nombre sticky" style="left:46px">CI: memoria del build y pruebas E2E </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">4</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="I02" style="--c:#7c3aed;left:380.0px;width:28.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="I03">
+<td class="c-id sticky" style="left:0px">I03</td>
+<td class="c-nombre sticky" style="left:46px">Incidentes de producción y regla de autoría </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">13</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="I03" style="--c:#7c3aed;left:392.0px;width:20.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="I04">
+<td class="c-id sticky" style="left:0px">I04</td>
+<td class="c-nombre sticky" style="left:46px">Runbooks de Drive y BD; robustez del build </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">9</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="I04" style="--c:#7c3aed;left:436.0px;width:12.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="I05">
+<td class="c-id sticky" style="left:0px">I05</td>
+<td class="c-nombre sticky" style="left:46px">Observabilidad y CI (Sentry, versión, caché) </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">11</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="I05" style="--c:#7c3aed;left:476.0px;width:24.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="I06">
+<td class="c-id sticky" style="left:0px">I06</td>
+<td class="c-nombre sticky" style="left:46px">Migraciones desde cero y Postgres en CI </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">13</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="I06" style="--c:#7c3aed;left:516.0px;width:8.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="I07">
+<td class="c-id sticky" style="left:0px">I07</td>
+<td class="c-nombre sticky" style="left:46px">CI en PRs apilados y versión rc.1 </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">3</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="I07" style="--c:#7c3aed;left:552.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="I08">
+<td class="c-id sticky" style="left:0px">I08</td>
+<td class="c-nombre sticky" style="left:46px">Desplegar sin reescribir el autor (plan Vercel) <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">2</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="I08" style="--c:#7c3aed;left:700.0px;width:12.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="I09">
+<td class="c-id sticky" style="left:0px">I09</td>
+<td class="c-nombre sticky" style="left:46px">Prueba real de restauración del backup <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">3</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="I09" style="--c:#7c3aed;left:700.0px;width:16.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="I10">
+<td class="c-id sticky" style="left:0px">I10</td>
+<td class="c-nombre sticky" style="left:46px">Verificación operativa en producción <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">3</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="I10" style="--c:#7c3aed;left:700.0px;width:20.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="I11">
+<td class="c-id sticky" style="left:0px">I11</td>
+<td class="c-nombre sticky" style="left:46px">Transferir cuentas a los centros <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">3</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="I11" style="--c:#7c3aed;left:708.0px;width:16.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="I12">
+<td class="c-id sticky" style="left:0px">I12</td>
+<td class="c-nombre sticky" style="left:46px">Publicar 1.0.0 y entregar a los centros <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">1</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="I12" style="--c:#7c3aed;left:720.0px;width:8.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="B01">
+<td class="c-id sticky" style="left:0px">B01</td>
+<td class="c-nombre sticky" style="left:46px">Contingencia del release (solo si se desliza) <span class="tag est">estimado</span><span class="tag buf">buffer</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">0</td>
+<td class="tl"><div class="track"><div class="bar buffer " data-id="B01" style="--c:#7c3aed;left:728.0px;width:5.3px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="X01">
+<td class="c-id sticky" style="left:0px">X01</td>
+<td class="c-nombre sticky" style="left:46px">Estabilización y operación asistida <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">8</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="X01" style="--c:#7c3aed;left:756.0px;width:56.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="X04">
+<td class="c-id sticky" style="left:0px">X04</td>
+<td class="c-nombre sticky" style="left:46px">v1.1: observabilidad y seguridad <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">11</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="X04" style="--c:#7c3aed;left:756.0px;width:84.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="X03">
+<td class="c-id sticky" style="left:0px">X03</td>
+<td class="c-nombre sticky" style="left:46px">v1.1: cerrar la deriva de migraciones <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">8</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="X03" style="--c:#7c3aed;left:812.0px;width:56.0px;--p:0%"></div></div></td>
+</tr><tr class="phase" style="--c:#059669">
+<td colspan="5" class="sticky phase-name" style="left:0"><span class="dot"></span>Calidad, pruebas y cumplimiento<span class="phase-meta">19 sep 2026 → 07 mar 2027 · 97 h · 39%</span></td>
+<td class="tl"><div class="track"><div class="phasebar" style="--c:#059669;left:440.0px;width:456.0px;--p:39%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="Q01">
+<td class="c-id sticky" style="left:0px">Q01</td>
+<td class="c-nombre sticky" style="left:46px">Red de pruebas: Postgres real y golden master </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">12</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="Q01" style="--c:#059669;left:440.0px;width:8.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="Q04">
+<td class="c-id sticky" style="left:0px">Q04</td>
+<td class="c-nombre sticky" style="left:46px">Fundamento normativo y pendientes legales </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="Q04" style="--c:#059669;left:488.0px;width:36.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="Q02">
+<td class="c-id sticky" style="left:0px">Q02</td>
+<td class="c-nombre sticky" style="left:46px">Plan de pruebas y verificación E2E de documentos </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">3</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="Q02" style="--c:#059669;left:496.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="Q03">
+<td class="c-id sticky" style="left:0px">Q03</td>
+<td class="c-nombre sticky" style="left:46px">Suite formulario → BD → documento </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="Q03" style="--c:#059669;left:516.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-completado  " data-id="Q05">
+<td class="c-id sticky" style="left:0px">Q05</td>
+<td class="c-nombre sticky" style="left:46px">Ley 1581: privacidad, términos, ARCO y manual </td>
+<td class="c-estado sticky" style="left:376px"><span class="chip ok">Completado</span></td>
+<td class="c-num sticky" style="left:456px">100%</td>
+<td class="c-num sticky" style="left:498px">11</td>
+<td class="tl"><div class="track"><div class="bar completado " data-id="Q05" style="--c:#059669;left:552.0px;width:4.0px;--p:100%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="Q06">
+<td class="c-id sticky" style="left:0px">Q06</td>
+<td class="c-nombre sticky" style="left:46px">Política de versiones al regenerar (spike) <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">2</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="Q06" style="--c:#059669;left:588.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="Q07">
+<td class="c-id sticky" style="left:0px">Q07</td>
+<td class="c-nombre sticky" style="left:46px">Legal I: SMMLV 2026 y Check List Parágrafo 3 <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">4</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="Q07" style="--c:#059669;left:616.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="Q08">
+<td class="c-id sticky" style="left:0px">Q08</td>
+<td class="c-nombre sticky" style="left:46px">Cierre técnico de rc.2 (Sentry y docs) <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">2</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="Q08" style="--c:#059669;left:616.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="Q09">
+<td class="c-id sticky" style="left:0px">Q09</td>
+<td class="c-nombre sticky" style="left:46px">Legal II: umbrales y cuenta de Armonía <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">4</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="Q09" style="--c:#059669;left:644.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="Q10">
+<td class="c-id sticky" style="left:0px">Q10</td>
+<td class="c-nombre sticky" style="left:46px">Ley 1581: retención, privacidad y ARCO <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">8</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="Q10" style="--c:#059669;left:644.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="Q11">
+<td class="c-id sticky" style="left:0px">Q11</td>
+<td class="c-nombre sticky" style="left:46px">Prueba E2E de aislamiento entre centros <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">3</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="Q11" style="--c:#059669;left:672.0px;width:12.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="Q12">
+<td class="c-id sticky" style="left:0px">Q12</td>
+<td class="c-nombre sticky" style="left:46px">UAT con guion por rol en ambos centros <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">6</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="Q12" style="--c:#059669;left:680.0px;width:20.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="Q13">
+<td class="c-id sticky" style="left:0px">Q13</td>
+<td class="c-nombre sticky" style="left:46px">Buffer: correcciones post-UAT <span class="tag est">estimado</span><span class="tag buf">buffer</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">5</td>
+<td class="tl"><div class="track"><div class="bar buffer " data-id="Q13" style="--c:#059669;left:700.0px;width:28.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="X05">
+<td class="c-id sticky" style="left:0px">X05</td>
+<td class="c-nombre sticky" style="left:46px">v1.1: pendientes legales <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">15</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="X05" style="--c:#059669;left:784.0px;width:112.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="X06">
+<td class="c-id sticky" style="left:0px">X06</td>
+<td class="c-nombre sticky" style="left:46px">v1.1: deuda técnica y pruebas <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">15</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="X06" style="--c:#059669;left:840.0px;width:56.0px;--p:0%"></div></div></td>
+</tr><tr class="phase" style="--c:#db2777">
+<td colspan="5" class="sticky phase-name" style="left:0"><span class="dot"></span>Documentación de tesis y cierre<span class="phase-meta">26 oct 2026 → 28 mar 2027 · 76 h · 0%</span></td>
+<td class="tl"><div class="track"><div class="phasebar" style="--c:#db2777;left:588.0px;width:392.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="D01">
+<td class="c-id sticky" style="left:0px">D01</td>
+<td class="c-nombre sticky" style="left:46px">Informe de avance del 70 % <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">12</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="D01" style="--c:#db2777;left:588.0px;width:140.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="D02">
+<td class="c-id sticky" style="left:0px">D02</td>
+<td class="c-nombre sticky" style="left:46px">Documento final de tesis <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">40</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="D02" style="--c:#db2777;left:756.0px;width:196.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="D03">
+<td class="c-id sticky" style="left:0px">D03</td>
+<td class="c-nombre sticky" style="left:46px">Guía y manuales de mantenimiento (v1.1) <span class="tag est">estimado</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">8</td>
+<td class="tl"><div class="track"><div class="bar pendiente " data-id="D03" style="--c:#db2777;left:868.0px;width:56.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="D04">
+<td class="c-id sticky" style="left:0px">D04</td>
+<td class="c-nombre sticky" style="left:46px">Actas de aceptación de los centros <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">4</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="D04" style="--c:#db2777;left:896.0px;width:56.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente is-crit " data-id="D05">
+<td class="c-id sticky" style="left:0px">D05</td>
+<td class="c-nombre sticky" style="left:46px">Preparación de la sustentación <span class="tag est">estimado</span><span class="tag crit">crítica</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">12</td>
+<td class="tl"><div class="track"><div class="bar pendiente crit" data-id="D05" style="--c:#db2777;left:924.0px;width:48.0px;--p:0%"></div></div></td>
+</tr><tr class="row st-pendiente  " data-id="D06">
+<td class="c-id sticky" style="left:0px">D06</td>
+<td class="c-nombre sticky" style="left:46px">Buffer de cierre <span class="tag est">estimado</span><span class="tag buf">buffer</span></td>
+<td class="c-estado sticky" style="left:376px"><span class="chip todo">Pendiente</span></td>
+<td class="c-num sticky" style="left:456px">0%</td>
+<td class="c-num sticky" style="left:498px">4</td>
+<td class="tl"><div class="track"><div class="bar buffer " data-id="D06" style="--c:#db2777;left:952.0px;width:28.0px;--p:0%"></div></div></td>
+</tr></tbody><tfoot><tr class="foot"><td colspan="5" class="sticky foot-name" style="left:0">Carga planificada restante (h/semana, sin buffers)</td><td class="tl"><div class="loads"><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load" style="width:28px"></div><div class="load lo" style="width:28px" title="S12: 2 h planificadas">2</div><div class="load mid" style="width:28px" title="S13: 19 h planificadas">19</div><div class="load mid" style="width:28px" title="S14: 20 h planificadas">20</div><div class="load mid" style="width:28px" title="S15: 20 h planificadas">20</div><div class="load mid" style="width:28px" title="S16: 20 h planificadas">20</div><div class="load lo" style="width:28px" title="S17: 14 h planificadas">14</div><div class="load" style="width:28px"></div><div class="load lo" style="width:28px" title="S18: 13 h planificadas">13</div><div class="load hi" style="width:28px" title="S19: 22 h planificadas">22</div><div class="load hi" style="width:28px" title="S20: 22 h planificadas">22</div><div class="load hi" style="width:28px" title="S21: 21 h planificadas">21</div><div class="load hi" style="width:28px" title="S22: 21 h planificadas">21</div><div class="load lo" style="width:28px" title="S23: 12 h planificadas">12</div><div class="load lo" style="width:28px" title="S24: 15 h planificadas">15</div><div class="load lo" style="width:28px" title="S25: 5 h planificadas">5</div></div></td></tr></tfoot></table>
+</div></div>
+
+<h2>Ruta crítica (de hoy a la sustentación)</h2>
+<div class="cp"><ol><li>C12 Apoderado del acreedor (hecho)</li><li>C20 Bloqueo del CYG · S14</li><li>C22 Conflicto de apoderado en la UI · S15</li><li>Q12 UAT en ambos centros · S16</li><li>I12 Release 1.0.0 · S17 (29 nov)</li><li>D02 Documento final · S18–S24</li><li>D05 Sustentación · S25</li></ol>
+<ul><li>Rama que converge: Q11 Aislamiento entre centros → Q12 UAT</li><li>Rama que converge: I08 Plan de Vercel → I11 Transferencia de cuentas → I12 Release</li><li>Rama que converge: I09 Restauración del backup → I12 Release</li><li>Rama que converge: D01 Informe del 70 % → H11 Corte 2026-2 → D02 Documento final</li><li>Rama que converge: H10 UAT firmado + H13 v1.1.0 → D04 Actas de aceptación → H15 Sustentación</li>
+<li>Fuera de la ruta crítica, a propósito: Q07, Q09, Q10 y C21 (legal-pendiente; si la respuesta no llega pasan a v1.1, ver R1) y C24 (Should, primer ítem en moverse si falta capacidad, ver R2).</li></ul></div>
+
+<h2>Resumen por fase</h2>
+<table class="detail compact"><thead><tr><th>Fase</th><th>Inicio</th><th>Fin</th><th>Tareas</th><th>Horas</th><th>Avance</th></tr></thead><tbody><tr><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td><td>03 nov 2025</td><td>12 jul 2026</td><td class="n">7</td><td class="n">347</td><td><div class="pbar"><div style="width:100%;background:#64748b"></div></div> 100%</td></tr><tr><td><i class="sw" style="background:#2563eb"></i>Análisis y diseño</td><td>10 ago 2026</td><td>25 oct 2026</td><td class="n">5</td><td class="n">20</td><td><div class="pbar"><div style="width:88%;background:#2563eb"></div></div> 88%</td></tr><tr><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td><td>26 ago 2026</td><td>21 feb 2027</td><td class="n">25</td><td class="n">396</td><td><div class="pbar"><div style="width:87%;background:#d97706"></div></div> 87%</td></tr><tr><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td><td>12 ago 2026</td><td>28 feb 2027</td><td class="n">15</td><td class="n">100</td><td><div class="pbar"><div style="width:61%;background:#7c3aed"></div></div> 61%</td></tr><tr><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td><td>19 sep 2026</td><td>07 mar 2027</td><td class="n">14</td><td class="n">97</td><td><div class="pbar"><div style="width:39%;background:#059669"></div></div> 39%</td></tr><tr><td><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</td><td>26 oct 2026</td><td>28 mar 2027</td><td class="n">5</td><td class="n">76</td><td><div class="pbar"><div style="width:0%;background:#db2777"></div></div> 0%</td></tr></tbody></table>
+
+<h2 class="print-break">Riesgos y su impacto en el cronograma</h2>
+<table class="detail"><thead><tr><th>ID</th><th>Riesgo</th><th>Prob.</th><th>Impacto</th><th>Impacto en el cronograma</th><th>Mitigación</th><th>Fuente</th></tr></thead><tbody><tr><td>R1</td><td>Las respuestas legales (abogada, centros) no llegan a tiempo: SMMLV, Check List P3, umbrales, textos de Rechazo/Retiro, Ley 1581.</td><td><span class="lvl alta">Alta</span></td><td><span class="lvl alto">Alto</span></td><td>Q07, Q09, Q10 y C21 (S14–S15) pasan a v1.1 en 2027-1. El release 1.0.0 no se mueve (no dependen de él), pero sale sin esos documentos.</td><td>Enviar una sola hoja con reglas y valores a confirmar al inicio de S13; registrar respuestas en PENDIENTES_DECISION_LEGAL.md.</td><td class="src">PROCESO_SCRUM §6 R1, R11, R13</td></tr><tr><td>R2</td><td>Capacidad al tope en S13–S17: 16 pts/semana + informe del 70 % ≈ 19–20 h/semana, justo en parciales y finales.</td><td><span class="lvl alta">Alta</span></td><td><span class="lvl alto">Alto</span></td><td>Release y corte del 70 % +1 semana (consume la contingencia B01, 30 nov – 11 dic).</td><td>C24 (Should, 3 pts) es el primero en pasar a v1.1; recalibrar la velocidad al cerrar S14 (PROCESO_SCRUM §5.2).</td><td class="src">PROCESO_SCRUM §5.1, R9 · este Gantt (fila de carga)</td></tr><tr><td>R3</td><td>Los centros no tienen agenda para ejecutar y firmar el UAT en S16.</td><td><span class="lvl media">Media</span></td><td><span class="lvl alto">Alto</span></td><td>Sin UAT no hay release (I12 depende de H10): +1 semana.</td><td>Agendar al cerrar S14 y enviar el guion una semana antes; permitir firmas por separado; I09/I11 siguen en paralelo.</td><td class="src">PROCESO_SCRUM §6 R10</td></tr><tr><td>R4</td><td>El backup de producción nunca se ha restaurado: el runbook es teórico.</td><td><span class="lvl media">Media</span></td><td><span class="lvl muy-alto">Muy alto</span></td><td>Si falla en S17, el release espera la corrección (contingencia B01).</td><td>I09 antes del release; si se puede, adelantarlo a S15.</td><td class="src">PROCESO_SCRUM §6 R5</td></tr><tr><td>R5</td><td>El plan Hobby de Vercel bloquea deploys por el autor del commit.</td><td><span class="lvl alta">Alta</span></td><td><span class="lvl medio">Medio</span></td><td>Cada deploy requiere un amend manual; si se olvida, el release de S17 queda Blocked.</td><td>Regla de autoría de CLAUDE.md; solución de fondo en I08 (vincular la cuenta o pasar a Pro).</td><td class="src">issue #7 · CLAUDE.md Session 3</td></tr><tr><td>R6</td><td>Desarrollador único: el conocimiento está en una persona y en los documentos de sesión.</td><td><span class="lvl alta">Alta</span></td><td><span class="lvl alto">Alto</span></td><td>Cualquier ausencia detiene la ruta crítica.</td><td>Runbooks, manual, CLAUDE.md al día (Q08) y transferencia de cuentas (I11).</td><td class="src">PROCESO_SCRUM §6 R3</td></tr><tr><td>R7</td><td>Reconocimiento académico del trabajo previo (Antecedentes, nov 2025 – jul 2026) ante el director y el jurado.</td><td><span class="lvl media">Media</span></td><td><span class="lvl alto">Alto</span></td><td>No mueve el software. Si no se acuerda pronto, obliga a reescribir el informe del 70 % (D01).</td><td>Acordarlo con el director al inicio de S13 y presentarlo como prototipo previo con fechas reales. El historial de git no se modifica.</td><td class="src">Este Gantt (decisión de enfoque)</td></tr><tr><td>R8</td><td>Cerrar la deriva de migraciones requiere acceso a Neon y una ventana segura.</td><td><span class="lvl baja">Baja</span></td><td><span class="lvl alto">Alto</span></td><td>X03 (S20–S21) puede quedar documentada sin cerrarse; no bloquea la sustentación.</td><td>Guardián BRECHA_CONOCIDA en tests/db; decidir el camino (catch-up vs. baseline) en el spike E10-28.</td><td class="src">CLAUDE.md Fase 3 · PROCESO_SCRUM §6 R6</td></tr><tr><td>R9</td><td>Receso de diciembre y enero: producción sin cobertura y pérdida de contexto.</td><td><span class="lvl media">Media</span></td><td><span class="lvl medio">Medio</span></td><td>S18–S19 se dedican a estabilizar antes de abrir v1.1.</td><td>Alertas proactivas activas, runbook de incidentes, X01 al regreso.</td><td class="src">Este Gantt</td></tr><tr><td>R10</td><td>Decisiones del cliente sin ratificar: bloqueo duro vs. marca de agua; generación individual vs. por lote.</td><td><span class="lvl media">Media</span></td><td><span class="lvl medio">Medio</span></td><td>Cambia el alcance de C19, C24 y Q12; puede reabrir trabajo en S16.</td><td>Llevar ambas preguntas a la review de S13 con ejemplos.</td><td class="src">PROCESO_SCRUM §6 R12</td></tr><tr><td>R11</td><td>Las fechas de entrega del documento final y de la sustentación no están confirmadas.</td><td><span class="lvl media">Media</span></td><td><span class="lvl medio">Medio</span></td><td>H14/H15 pueden moverse dentro de 2027-1; D02 y D05 se reajustan.</td><td>Confirmar el calendario de 2027-1 en cuanto se publique y actualizar datos.mjs.</td><td class="src">Este Gantt</td></tr></tbody></table>
+
+<h2 class="print-break">Tabla de tareas</h2>
+<table class="detail"><thead><tr><th>ID</th><th>Fase</th><th>Tarea</th><th>Inicio</th><th>Fin</th><th>Sem. inicio</th><th>Duración</th><th>Depende de</th><th>Estado</th><th>%</th><th>Horas</th><th>Base</th><th>Fuente</th></tr></thead><tbody><tr class="">
+<td>A01</td><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td>
+<td>Análisis y diseño inicial (equipo de tesis)</td>
+<td>03 nov 2025</td><td>01 feb 2026</td><td>Ant. nov-25</td>
+<td class="n">13 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">40</td>
+<td>Inferido</td><td class="src">docs/diseno/Diagrama de Gantt - Insolventic.png · Jira E00-01…E00-08 (fechas inferidas, PROCESO_SCRUM §5.1)<br><span class="muted">Jira: E00-01, E00-08</span></td></tr><tr class="">
+<td>A02</td><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td>
+<td>Prototipo base: auth, casos y documentos HTML</td>
+<td>02 feb 2026</td><td>01 mar 2026</td><td>Ant. feb-26</td>
+<td class="n">4 sem</td><td>A01</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">58</td>
+<td>Evidencia (repo)</td><td class="src">72493d9 · 83d2d71 · df0ba7c · ba65470 · fcd2670</td></tr><tr class="">
+<td>A03</td><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td>
+<td>Pruebas, hardening y v0.1.0</td>
+<td>02 mar 2026</td><td>15 mar 2026</td><td>Ant. mar-26</td>
+<td class="n">2 sem</td><td>A02</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">40</td>
+<td>Evidencia (repo)</td><td class="src">c40cfb7 (111 tests) · abfc674 · 0b3c085 · 3cc0b73</td></tr><tr class="">
+<td>A04</td><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td>
+<td>RBAC, auditoría, dashboard, pagos y reportes</td>
+<td>16 mar 2026</td><td>29 mar 2026</td><td>Ant. mar-26</td>
+<td class="n">2 sem</td><td>A03</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">59</td>
+<td>Evidencia (repo)</td><td class="src">eaf4df4 · 6323d88 · 82812b5 · e777c30</td></tr><tr class="">
+<td>A05</td><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td>
+<td>Conciliación, DOCX, alertas y Sentry (v0.2–v0.3)</td>
+<td>30 mar 2026</td><td>19 abr 2026</td><td>Ant. mar-26</td>
+<td class="n">3 sem</td><td>A04</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">106</td>
+<td>Evidencia (repo)</td><td class="src">CHANGELOG [0.2.0] y [0.3.0] · 820461c</td></tr><tr class="">
+<td>A06</td><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td>
+<td>Acuerdos de Apoyo y pruebas de carga k6</td>
+<td>20 abr 2026</td><td>26 abr 2026</td><td>Ant. abr-26</td>
+<td class="n">1 sem</td><td>A05</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">12</td>
+<td>Evidencia (repo)</td><td class="src">19e4227 · 2c43446</td></tr><tr class="">
+<td>A07</td><td><i class="sw" style="background:#64748b"></i>Antecedentes (trabajo previo)</td>
+<td>Auditoría de documentos (P2–P4) y logger</td>
+<td>06 jul 2026</td><td>12 jul 2026</td><td>Ant. jul-26</td>
+<td class="n">1 sem</td><td>A06</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">32</td>
+<td>Evidencia (repo)</td><td class="src">docs/AUDITORIA_MODULO_GENERACION_2026-07.md · 758b733 · 177cf24 · 40a5a59</td></tr><tr class="">
+<td>T01</td><td><i class="sw" style="background:#2563eb"></i>Análisis y diseño</td>
+<td>Requisitos, MER, diccionario y diagramas</td>
+<td>10 ago 2026</td><td>16 ago 2026</td><td>S2</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">6</td>
+<td>Evidencia (repo)</td><td class="src">660fffd (REQUISITOS_INSOLVENTIC.xlsx) · 849d96b (diccionario, MER, clases) · 7280aa9 (componentes)<br><span class="muted">Jira: E09-13</span></td></tr><tr class="">
+<td>T02</td><td><i class="sw" style="background:#2563eb"></i>Análisis y diseño</td>
+<td>Diseño de las 5 fases nuevas del expediente</td>
+<td>11 sep 2026</td><td>11 sep 2026</td><td>S6</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">2</td>
+<td>Evidencia (repo)</td><td class="src">9da5173 · docs/DISENO_FASES_NUEVAS_2026-09-11.md<br><span class="muted">Jira: E12-01</span></td></tr><tr class="">
+<td>T03</td><td><i class="sw" style="background:#2563eb"></i>Análisis y diseño</td>
+<td>Diseño del branding por centro</td>
+<td>30 sep 2026</td><td>01 oct 2026</td><td>S9</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">2</td>
+<td>Evidencia (repo)</td><td class="src">#82 74aec37 · docs/BRANDING_POR_CENTRO_2026-09-30.md<br><span class="muted">Jira: E04-06</span></td></tr><tr class="">
+<td>T04</td><td><i class="sw" style="background:#2563eb"></i>Análisis y diseño</td>
+<td>Diseño del apoderado del acreedor (CYG)</td>
+<td>09 oct 2026</td><td>09 oct 2026</td><td>S10</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">2</td>
+<td>Evidencia (repo)</td><td class="src">bfaa37a · docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md<br><span class="muted">Jira: E05-11</span></td></tr><tr class="">
+<td>T05</td><td><i class="sw" style="background:#2563eb"></i>Análisis y diseño</td>
+<td>Backlog Jira, proceso Scrum y cronograma</td>
+<td>19 oct 2026</td><td>25 oct 2026</td><td>S12</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip run">En progreso</span></td><td class="n">70%</td><td class="n">8</td>
+<td>Evidencia (repo)</td><td class="src">docs/jira/ y docs/IMPLEMENTACION_SEMANA_6–15.md (sin commitear) · docs/gantt/</td></tr><tr class="">
+<td>C01</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Seguridad crítica (Semana 1)</td>
+<td>26 ago 2026</td><td>26 ago 2026</td><td>S4</td>
+<td class="n">1 sem</td><td>H05</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">10</td>
+<td>Evidencia (repo)</td><td class="src">docs/IMPLEMENTACION_SEMANA_1.md · bfdeb47 · 9e037be · a9a1e4d · c507501<br><span class="muted">Jira: E03-11, E03-15</span></td></tr><tr class="">
+<td>C02</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Rate limit, health check y runbook (Semana 2)</td>
+<td>26 ago 2026</td><td>26 ago 2026</td><td>S4</td>
+<td class="n">1 sem</td><td>H05</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">12</td>
+<td>Evidencia (repo)</td><td class="src">docs/IMPLEMENTACION_SEMANA_2.md · 8a8a1ae · 57fd2c5 · f542f22<br><span class="muted">Jira: E03-16, E09-03, E09-05</span></td></tr><tr class="">
+<td>C03</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Lógica de negocio en el servidor (PR #4)</td>
+<td>02 sep 2026</td><td>11 sep 2026</td><td>S5</td>
+<td class="n">2 sem</td><td>C01</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">25</td>
+<td>Evidencia (repo)</td><td class="src">docs/IMPLEMENTACION_SEMANA_3.md · PR #4 17c7de2<br><span class="muted">Jira: E01-16, E01-17, E02-14, E02-15, E14-04</span></td></tr><tr class="">
+<td>C04</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Apoderados del deudor, sesión y rendimiento</td>
+<td>14 sep 2026</td><td>20 sep 2026</td><td>S7</td>
+<td class="n">1 sem</td><td>C03</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">29</td>
+<td>Evidencia (repo)</td><td class="src">e05e409 · issue #9 · e7af5bf · f87a5ec · 276eea4<br><span class="muted">Jira: E05-04, E03-18, E13-04, E13-07</span></td></tr><tr class="">
+<td>C05</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Fechas y placeholders de documentos</td>
+<td>21 sep 2026</td><td>27 sep 2026</td><td>S8</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">7</td>
+<td>Evidencia (repo)</td><td class="src">7d74953 · d55ac1a<br><span class="muted">Jira: E02-18, E02-19</span></td></tr><tr class="">
+<td>C06</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Ronda del formulario maestro</td>
+<td>28 sep 2026</td><td>03 oct 2026</td><td>S9</td>
+<td class="n">1 sem</td><td>C04</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">47</td>
+<td>Evidencia (repo)</td><td class="src">PRs #60–#103 · docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md<br><span class="muted">Jira: E01-19, E01-27, E05-05, E05-10</span></td></tr><tr class="">
+<td>C07</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Cinco fases nuevas del expediente (PR #40)</td>
+<td>28 sep 2026</td><td>30 sep 2026</td><td>S9</td>
+<td class="n">1 sem</td><td>T02</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">21</td>
+<td>Evidencia (repo)</td><td class="src">#40 a0ac5d7 · docs/DEPLOY_PR40.md<br><span class="muted">Jira: E12-02, E12-06</span></td></tr><tr class="">
+<td>C08</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>División del placeholder-mapper</td>
+<td>29 sep 2026</td><td>03 oct 2026</td><td>S9</td>
+<td class="n">1 sem</td><td>Q01</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">23</td>
+<td>Evidencia (repo)</td><td class="src">#52 d1320ae · #100 93e1efe · docs/PLAN_DIVISION_MAPPER.md<br><span class="muted">Jira: E13-08, E13-12</span></td></tr><tr class="">
+<td>C09</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Generación: todos los acreedores y un navegador</td>
+<td>29 sep 2026</td><td>03 oct 2026</td><td>S9</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">26</td>
+<td>Evidencia (repo)</td><td class="src">#57 2a202f9 · #77 ce8dcb3 · #110 b32e892<br><span class="muted">Jira: E02-20, E02-26</span></td></tr><tr class="">
+<td>C10</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Correcciones de documentos (fechas, causas, apoyo)</td>
+<td>05 oct 2026</td><td>08 oct 2026</td><td>S10</td>
+<td class="n">1 sem</td><td>Q02</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">19</td>
+<td>Evidencia (repo)</td><td class="src">#112 · #113 · #117 · #118 · #119 · #120<br><span class="muted">Jira: E02-27, E02-31, E01-28</span></td></tr><tr class="">
+<td>C11</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Membrete y branding por centro</td>
+<td>09 oct 2026</td><td>10 oct 2026</td><td>S10</td>
+<td class="n">1 sem</td><td>T03</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">30</td>
+<td>Evidencia (repo)</td><td class="src">#121 · #126 · #128 · #132–#135 · docs/CHECKPOINT_2026-10-09.md<br><span class="muted">Jira: E04-07, E04-13</span></td></tr><tr class="">
+<td>C12</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Apoderado del acreedor: modelo y captura</td>
+<td>09 oct 2026</td><td>09 oct 2026</td><td>S10</td>
+<td class="n">1 sem</td><td>T04</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">9</td>
+<td>Evidencia (repo)</td><td class="src">#130 af53a6f · #131 613e327<br><span class="muted">Jira: E05-12, E05-13</span></td></tr><tr class="">
+<td>C13</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Separador de miles y ESLint en cero</td>
+<td>09 oct 2026</td><td>11 oct 2026</td><td>S10</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">11</td>
+<td>Evidencia (repo)</td><td class="src">#136 c678020 · #124 4df5906 · #123 33ec217<br><span class="muted">Jira: E01-29, E13-13, E03-21</span></td></tr><tr class="">
+<td>C14</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Bloqueantes de seguridad pre-entrega</td>
+<td>17 oct 2026</td><td>17 oct 2026</td><td>S11</td>
+<td class="n">1 sem</td><td>H07</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">28</td>
+<td>Evidencia (repo)</td><td class="src">docs/IMPLEMENTACION_SEMANA_4.md y _7.md · #137 7ab6b5e · #140 376d83b<br><span class="muted">Jira: E03-22, E03-29</span></td></tr><tr class="">
+<td>C15</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Formulario de conciliación completo</td>
+<td>17 oct 2026</td><td>17 oct 2026</td><td>S11</td>
+<td class="n">1 sem</td><td>H07</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">15</td>
+<td>Evidencia (repo)</td><td class="src">docs/IMPLEMENTACION_SEMANA_5.md y _6.md · #138 fe82fe6 · #139 0a41c56<br><span class="muted">Jira: E01-32, E01-35</span></td></tr><tr class="">
+<td>C16</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Generación de lotes grandes en tandas</td>
+<td>17 oct 2026</td><td>17 oct 2026</td><td>S11</td>
+<td class="n">1 sem</td><td>C09</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">9</td>
+<td>Evidencia (repo)</td><td class="src">#140 376d83b · issue #3 · docs/IMPLEMENTACION_SEMANA_7.md<br><span class="muted">Jira: E02-32</span></td></tr><tr class="">
+<td>C17</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Montos, carpeta de Drive y apoderado único</td>
+<td>18 oct 2026</td><td>19 oct 2026</td><td>S11</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">15</td>
+<td>Evidencia (repo)</td><td class="src">#144 · #145 · #146 · #147 · docs/IMPLEMENTACION_SEMANA_10–13.md<br><span class="muted">Jira: E01-30, E01-31, E04-14, E05-14</span></td></tr><tr class="">
+<td>C18</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Bienes en dos niveles y notificaciones</td>
+<td>19 oct 2026</td><td>19 oct 2026</td><td>S12</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">9</td>
+<td>Evidencia (repo)</td><td class="src">#148 25d6d7e · #149 b29166c · docs/IMPLEMENTACION_SEMANA_14–15.md<br><span class="muted">Jira: E01-36, E01-37, E07-07</span></td></tr><tr class="">
+<td>C19</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Riesgos de código: bloqueo optimista y requisitos</td>
+<td>26 oct 2026</td><td>01 nov 2026</td><td>S13</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">15</td>
+<td>Estimado</td><td class="src">Jira sprint W44 (PROCESO_SCRUM §5.5)<br><span class="muted">Jira: E01-38, E01-39, E02-33, E03-30, E14-10, E02-37</span></td></tr><tr class="is-crit">
+<td>C20</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Bloquear el CYG con apoderado contradictorio <span class="tag crit">crítica</span></td>
+<td>02 nov 2026</td><td>08 nov 2026</td><td>S14</td>
+<td class="n">1 sem</td><td>C12</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">6</td>
+<td>Estimado</td><td class="src">Jira sprint W45<br><span class="muted">Jira: E05-15</span></td></tr><tr class="">
+<td>C21</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Documentos de Rechazo y de Retiro</td>
+<td>02 nov 2026</td><td>08 nov 2026</td><td>S14</td>
+<td class="n">1 sem</td><td>C07</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">6</td>
+<td>Estimado</td><td class="src">Jira sprint W45 · legal-pendiente (R1)<br><span class="muted">Jira: E12-07</span></td></tr><tr class="is-crit">
+<td>C22</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Resolver conflicto de apoderado en la UI <span class="tag crit">crítica</span></td>
+<td>09 nov 2026</td><td>15 nov 2026</td><td>S15</td>
+<td class="n">1 sem</td><td>C20</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">6</td>
+<td>Estimado</td><td class="src">Jira sprint W46<br><span class="muted">Jira: E05-16</span></td></tr><tr class="">
+<td>C23</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Regenerar documentos sin duplicados</td>
+<td>16 nov 2026</td><td>22 nov 2026</td><td>S16</td>
+<td class="n">1 sem</td><td>Q06</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">6</td>
+<td>Estimado</td><td class="src">Jira sprint W47<br><span class="muted">Jira: E02-35</span></td></tr><tr class="">
+<td>C24</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>Estado de la generación visible en el caso</td>
+<td>16 nov 2026</td><td>22 nov 2026</td><td>S16</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">3</td>
+<td>Estimado</td><td class="src">Jira sprint W47 · Should: primer ítem en moverse si falta capacidad<br><span class="muted">Jira: E02-36</span></td></tr><tr class="">
+<td>X02</td><td><i class="sw" style="background:#d97706"></i>Construcción y remediación</td>
+<td>v1.1: borrado lógico de expedientes</td>
+<td>08 feb 2027</td><td>21 feb 2027</td><td>S19</td>
+<td class="n">2 sem</td><td>Q10</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">9</td>
+<td>Estimado</td><td class="src">Jira v1.1.0 · CLAUDE.md Fase 3 (soft-delete)<br><span class="muted">Jira: E01-40, E01-42</span></td></tr><tr class="">
+<td>I01</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Deploy nativo Vercel y migraciones gateadas</td>
+<td>12 ago 2026</td><td>18 ago 2026</td><td>S2</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">8</td>
+<td>Evidencia (repo)</td><td class="src">ae6b2ae · 6090f1f · 70868c6 · CLAUDE.md Session 3<br><span class="muted">Jira: E10-08, E10-09, E10-10</span></td></tr><tr class="">
+<td>I02</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>CI: memoria del build y pruebas E2E</td>
+<td>04 sep 2026</td><td>10 sep 2026</td><td>S5</td>
+<td class="n">1 sem</td><td>I01</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">4</td>
+<td>Evidencia (repo)</td><td class="src">#5 1ad141b · #12 2360250<br><span class="muted">Jira: E10-11, E14-03</span></td></tr><tr class="">
+<td>I03</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Incidentes de producción y regla de autoría</td>
+<td>07 sep 2026</td><td>11 sep 2026</td><td>S6</td>
+<td class="n">1 sem</td><td>I01</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">13</td>
+<td>Evidencia (repo)</td><td class="src">docs/CHECKPOINT_2026-09-09.md · a54d92e · #13 e9dd65a · 596dae6<br><span class="muted">Jira: E01-15, E09-06, E10-12, E10-13</span></td></tr><tr class="">
+<td>I04</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Runbooks de Drive y BD; robustez del build</td>
+<td>18 sep 2026</td><td>20 sep 2026</td><td>S7</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">9</td>
+<td>Evidencia (repo)</td><td class="src">1b7f7cd · 516bac9 · 5a7bec3 · 50d96ed<br><span class="muted">Jira: E09-07, E09-08, E10-14, E10-15</span></td></tr><tr class="">
+<td>I05</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Observabilidad y CI (Sentry, versión, caché)</td>
+<td>28 sep 2026</td><td>03 oct 2026</td><td>S9</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">11</td>
+<td>Evidencia (repo)</td><td class="src">#38 cb4c525 · #55 db9c215 · #109 da6e928 · #111 a9802ee · 3eccc72<br><span class="muted">Jira: E09-09, E09-11, E10-16, E10-17</span></td></tr><tr class="">
+<td>I06</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Migraciones desde cero y Postgres en CI</td>
+<td>08 oct 2026</td><td>09 oct 2026</td><td>S10</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">13</td>
+<td>Evidencia (repo)</td><td class="src">#58 7733272 · #122 2f1375c · #127 92b416b · 0dad100 · docs/DIAGNOSTICO_PROMOCION_MAIN_2026-10-08.md<br><span class="muted">Jira: E10-18, E10-21</span></td></tr><tr class="">
+<td>I07</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>CI en PRs apilados y versión rc.1</td>
+<td>17 oct 2026</td><td>17 oct 2026</td><td>S11</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">3</td>
+<td>Evidencia (repo)</td><td class="src">#142 7edc0cf · 2a35e51<br><span class="muted">Jira: E10-22, E10-23</span></td></tr><tr class="is-crit">
+<td>I08</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Desplegar sin reescribir el autor (plan Vercel) <span class="tag crit">crítica</span></td>
+<td>23 nov 2026</td><td>25 nov 2026</td><td>S17</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">2</td>
+<td>Estimado</td><td class="src">Jira sprint W48 · issue #7<br><span class="muted">Jira: E10-25</span></td></tr><tr class="is-crit">
+<td>I09</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Prueba real de restauración del backup <span class="tag crit">crítica</span></td>
+<td>23 nov 2026</td><td>26 nov 2026</td><td>S17</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">3</td>
+<td>Estimado</td><td class="src">Jira sprint W48 · docs/RUNBOOK.md<br><span class="muted">Jira: E10-24</span></td></tr><tr class="">
+<td>I10</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Verificación operativa en producción</td>
+<td>23 nov 2026</td><td>27 nov 2026</td><td>S17</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">3</td>
+<td>Estimado</td><td class="src">Jira sprint W48<br><span class="muted">Jira: E09-17, E09-19, E09-20</span></td></tr><tr class="is-crit">
+<td>I11</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Transferir cuentas a los centros <span class="tag crit">crítica</span></td>
+<td>25 nov 2026</td><td>28 nov 2026</td><td>S17</td>
+<td class="n">1 sem</td><td>I08</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">3</td>
+<td>Estimado</td><td class="src">Jira sprint W48 (inferido)<br><span class="muted">Jira: E10-26</span></td></tr><tr class="is-crit">
+<td>I12</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Publicar 1.0.0 y entregar a los centros <span class="tag crit">crítica</span></td>
+<td>28 nov 2026</td><td>29 nov 2026</td><td>S17</td>
+<td class="n">1 sem</td><td>H10, I09, I11</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">1</td>
+<td>Estimado</td><td class="src">Jira sprint W48<br><span class="muted">Jira: E10-30</span></td></tr><tr class="">
+<td>B01</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Contingencia del release (solo si se desliza)</td>
+<td>30 nov 2026</td><td>11 dic 2026</td><td>Receso</td>
+<td class="n">2 sem</td><td>I12</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">0</td>
+<td>Estimado</td><td class="src">Reserva fuera de las 25 semanas: absorbe R2/R3 sin mover el corte académico más de 2 semanas</td></tr><tr class="">
+<td>X01</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>Estabilización y operación asistida</td>
+<td>01 feb 2027</td><td>14 feb 2027</td><td>S18</td>
+<td class="n">2 sem</td><td>I12</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">8</td>
+<td>Estimado</td><td class="src">Estimado: primeras semanas tras el receso (R9)</td></tr><tr class="">
+<td>X04</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>v1.1: observabilidad y seguridad</td>
+<td>01 feb 2027</td><td>21 feb 2027</td><td>S18</td>
+<td class="n">3 sem</td><td>I11</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">11</td>
+<td>Estimado</td><td class="src">Jira v1.1.0<br><span class="muted">Jira: E13-15, E09-18, E07-08, E10-27</span></td></tr><tr class="">
+<td>X03</td><td><i class="sw" style="background:#7c3aed"></i>Infraestructura y despliegue</td>
+<td>v1.1: cerrar la deriva de migraciones</td>
+<td>15 feb 2027</td><td>28 feb 2027</td><td>S20</td>
+<td class="n">2 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">8</td>
+<td>Estimado</td><td class="src">Jira v1.1.0 · CLAUDE.md Fase 3 (requiere acceso a Neon)<br><span class="muted">Jira: E10-28, E10-29</span></td></tr><tr class="">
+<td>Q01</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Red de pruebas: Postgres real y golden master</td>
+<td>19 sep 2026</td><td>20 sep 2026</td><td>S7</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">12</td>
+<td>Evidencia (repo)</td><td class="src">73841cc · 5ad7934 · e572146<br><span class="muted">Jira: E14-05, E14-06, E14-07</span></td></tr><tr class="">
+<td>Q04</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Fundamento normativo y pendientes legales</td>
+<td>01 oct 2026</td><td>09 oct 2026</td><td>S9</td>
+<td class="n">2 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">6</td>
+<td>Evidencia (repo)</td><td class="src">#90 fe7e1df · 0f15dbf · #129 1683150 · docs/PENDIENTES_DECISION_LEGAL.md<br><span class="muted">Jira: E11-03, E11-06</span></td></tr><tr class="">
+<td>Q02</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Plan de pruebas y verificación E2E de documentos</td>
+<td>03 oct 2026</td><td>03 oct 2026</td><td>S9</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">3</td>
+<td>Evidencia (repo)</td><td class="src">docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md · docs/TESTS.md<br><span class="muted">Jira: E14-09</span></td></tr><tr class="">
+<td>Q03</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Suite formulario → BD → documento</td>
+<td>08 oct 2026</td><td>08 oct 2026</td><td>S10</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">6</td>
+<td>Evidencia (repo)</td><td class="src">#116 925c007<br><span class="muted">Jira: E14-08</span></td></tr><tr class="">
+<td>Q05</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Ley 1581: privacidad, términos, ARCO y manual</td>
+<td>17 oct 2026</td><td>17 oct 2026</td><td>S11</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n">100%</td><td class="n">11</td>
+<td>Evidencia (repo)</td><td class="src">#141 6aa58d1 · docs/PROCEDIMIENTO_ARCO.md · docs/MANUAL_USUARIO.md<br><span class="muted">Jira: E11-01, E11-02, E09-14, E09-15</span></td></tr><tr class="">
+<td>Q06</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Política de versiones al regenerar (spike)</td>
+<td>26 oct 2026</td><td>01 nov 2026</td><td>S13</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">2</td>
+<td>Estimado</td><td class="src">Jira sprint W44 · legal-pendiente<br><span class="muted">Jira: E02-34</span></td></tr><tr class="">
+<td>Q07</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Legal I: SMMLV 2026 y Check List Parágrafo 3</td>
+<td>02 nov 2026</td><td>08 nov 2026</td><td>S14</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">4</td>
+<td>Estimado</td><td class="src">Jira sprint W45 · legal-pendiente (R1)<br><span class="muted">Jira: E11-09, E11-10</span></td></tr><tr class="">
+<td>Q08</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Cierre técnico de rc.2 (Sentry y docs)</td>
+<td>02 nov 2026</td><td>08 nov 2026</td><td>S14</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">2</td>
+<td>Estimado</td><td class="src">Jira sprint W45<br><span class="muted">Jira: E09-16, E13-23</span></td></tr><tr class="">
+<td>Q09</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Legal II: umbrales y cuenta de Armonía</td>
+<td>09 nov 2026</td><td>15 nov 2026</td><td>S15</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">4</td>
+<td>Estimado</td><td class="src">Jira sprint W46 · legal-pendiente (R1)<br><span class="muted">Jira: E11-18, E04-15</span></td></tr><tr class="">
+<td>Q10</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Ley 1581: retención, privacidad y ARCO</td>
+<td>09 nov 2026</td><td>15 nov 2026</td><td>S15</td>
+<td class="n">1 sem</td><td>Q05</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">8</td>
+<td>Estimado</td><td class="src">Jira sprint W46 · legal-pendiente (R1)<br><span class="muted">Jira: E11-17, E11-13, E11-14, E11-15</span></td></tr><tr class="is-crit">
+<td>Q11</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Prueba E2E de aislamiento entre centros <span class="tag crit">crítica</span></td>
+<td>16 nov 2026</td><td>18 nov 2026</td><td>S16</td>
+<td class="n">1 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">3</td>
+<td>Estimado</td><td class="src">Jira sprint W47<br><span class="muted">Jira: E14-13</span></td></tr><tr class="is-crit">
+<td>Q12</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>UAT con guion por rol en ambos centros <span class="tag crit">crítica</span></td>
+<td>18 nov 2026</td><td>22 nov 2026</td><td>S16</td>
+<td class="n">1 sem</td><td>Q11, C22</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">6</td>
+<td>Estimado</td><td class="src">Jira sprint W47 (R3)<br><span class="muted">Jira: E14-14</span></td></tr><tr class="">
+<td>Q13</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>Buffer: correcciones post-UAT</td>
+<td>23 nov 2026</td><td>29 nov 2026</td><td>S17</td>
+<td class="n">1 sem</td><td>Q12</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">5</td>
+<td>Estimado</td><td class="src">Holgura del sprint W48 (12/16 pts usados ⇒ 4 pts libres)</td></tr><tr class="">
+<td>X05</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>v1.1: pendientes legales</td>
+<td>08 feb 2027</td><td>07 mar 2027</td><td>S19</td>
+<td class="n">4 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">15</td>
+<td>Estimado</td><td class="src">Jira v1.1.0 · legal-pendiente · issue #16<br><span class="muted">Jira: E11-07, E11-08, E12-08, E11-11, E11-16</span></td></tr><tr class="">
+<td>X06</td><td><i class="sw" style="background:#059669"></i>Calidad, pruebas y cumplimiento</td>
+<td>v1.1: deuda técnica y pruebas</td>
+<td>22 feb 2027</td><td>07 mar 2027</td><td>S21</td>
+<td class="n">2 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">15</td>
+<td>Estimado</td><td class="src">Jira v1.1.0 (ítems Should)<br><span class="muted">Jira: E06-03, E13-16, E13-22, E14-11, E14-15</span></td></tr><tr class="is-crit">
+<td>D01</td><td><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</td>
+<td>Informe de avance del 70 % <span class="tag crit">crítica</span></td>
+<td>26 oct 2026</td><td>29 nov 2026</td><td>S13</td>
+<td class="n">5 sem</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">12</td>
+<td>Estimado</td><td class="src">Estimado: entregable académico del semestre 2026-2</td></tr><tr class="is-crit">
+<td>D02</td><td><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</td>
+<td>Documento final de tesis <span class="tag crit">crítica</span></td>
+<td>01 feb 2027</td><td>21 mar 2027</td><td>S18</td>
+<td class="n">7 sem</td><td>D01, I12</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">40</td>
+<td>Estimado</td><td class="src">Estimado · Gantt original: &quot;Documento final y actas de aceptación&quot;</td></tr><tr class="">
+<td>D03</td><td><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</td>
+<td>Guía y manuales de mantenimiento (v1.1)</td>
+<td>01 mar 2027</td><td>14 mar 2027</td><td>S22</td>
+<td class="n">2 sem</td><td>X01</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">8</td>
+<td>Estimado</td><td class="src">Estimado · Gantt original: &quot;Guía y manuales de mantenimiento&quot; · docs/RUNBOOK.md</td></tr><tr class="is-crit">
+<td>D04</td><td><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</td>
+<td>Actas de aceptación de los centros <span class="tag crit">crítica</span></td>
+<td>08 mar 2027</td><td>21 mar 2027</td><td>S23</td>
+<td class="n">2 sem</td><td>H10, H13</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">4</td>
+<td>Estimado</td><td class="src">Estimado · Gantt original: &quot;actas de aceptación&quot;</td></tr><tr class="is-crit">
+<td>D05</td><td><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</td>
+<td>Preparación de la sustentación <span class="tag crit">crítica</span></td>
+<td>15 mar 2027</td><td>26 mar 2027</td><td>S24</td>
+<td class="n">2 sem</td><td>D02</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">12</td>
+<td>Estimado</td><td class="src">Estimado</td></tr><tr class="">
+<td>D06</td><td><i class="sw" style="background:#db2777"></i>Documentación de tesis y cierre</td>
+<td>Buffer de cierre</td>
+<td>22 mar 2027</td><td>28 mar 2027</td><td>S25</td>
+<td class="n">1 sem</td><td>D02</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n">0%</td><td class="n">4</td>
+<td>Estimado</td><td class="src">Holgura para correcciones del jurado</td></tr><tr class="">
+<td>H01</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Creación del repositorio</td>
+<td>23 nov 2025</td><td>—</td><td>Ant. nov-25</td>
+<td class="n">hito</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Evidencia (repo)</td><td class="src">74736d6 first commit</td></tr><tr class="">
+<td>H02</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>MVP etiquetado v0.1.0</td>
+<td>08 mar 2026</td><td>—</td><td>Ant. mar-26</td>
+<td class="n">hito</td><td>A03</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Evidencia (repo)</td><td class="src">3cc0b73 · CHANGELOG [0.1.0]</td></tr><tr class="">
+<td>H03</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>v0.3.0: alertas, Sentry y E2E en CI</td>
+<td>16 abr 2026</td><td>—</td><td>Ant. abr-26</td>
+<td class="n">hito</td><td>A05</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Evidencia (repo)</td><td class="src">820461c · CHANGELOG [0.3.0]</td></tr><tr class="">
+<td>H04</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Inicio del semestre 2026-2 (S1)</td>
+<td>03 ago 2026</td><td>—</td><td>S1</td>
+<td class="n">hito</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Dato del autor</td><td class="src">Calendario académico (dato del autor)</td></tr><tr class="">
+<td>H05</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Auditoría pre-producción</td>
+<td>25 ago 2026</td><td>—</td><td>S4</td>
+<td class="n">hito</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Evidencia (repo)</td><td class="src">docs/AUDITORIA_PREPRODUCCION_2026-08-25.md</td></tr><tr class="">
+<td>H06</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Auditorías pre-launch y de cierre; producción estable</td>
+<td>11 sep 2026</td><td>—</td><td>S6</td>
+<td class="n">hito</td><td>C03, I03</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Evidencia (repo)</td><td class="src">17c7de2 (AUDITORIA_INTEGRAL_PRE_LAUNCH) · 96f478d (AUDITORIA_CIERRE) · main d2f7cef</td></tr><tr class="">
+<td>H07</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Auditoría del formulario de conciliación</td>
+<td>12 oct 2026</td><td>—</td><td>S11</td>
+<td class="n">hito</td><td>—</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Evidencia (repo)</td><td class="src">docs/AUDITORIA_FORMULARIO_CONCILIACION_2026-10-12.md</td></tr><tr class="">
+<td>H08</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Release candidate v1.0.0-rc.1</td>
+<td>18 oct 2026</td><td>—</td><td>S11</td>
+<td class="n">hito</td><td>I07</td>
+<td><span class="chip ok">Completado</span></td><td class="n"></td><td class="n"></td>
+<td>Evidencia (repo)</td><td class="src">2a35e51 · CHANGELOG [1.0.0-rc.1]</td></tr><tr class="">
+<td>H09</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>v1.0.0-rc.2</td>
+<td>08 nov 2026</td><td>—</td><td>S14</td>
+<td class="n">hito</td><td>C19, C20, C21, Q07, Q08</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n"></td><td class="n"></td>
+<td>Estimado</td><td class="src">Jira Fix Version v1.0.0-rc.2 (PROCESO_SCRUM §4.8, §5.5)</td></tr><tr class="is-crit">
+<td>H10</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>UAT firmado por ambos centros <span class="tag crit">crítica</span></td>
+<td>22 nov 2026</td><td>—</td><td>S16</td>
+<td class="n">hito</td><td>Q12</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n"></td><td class="n"></td>
+<td>Estimado</td><td class="src">Jira E14-14 (sprint W47)</td></tr><tr class="is-crit">
+<td>H11</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Release 1.0.0 + corte del 70 % (fin de 2026-2) <span class="tag crit">crítica</span></td>
+<td>29 nov 2026</td><td>—</td><td>S17</td>
+<td class="n">hito</td><td>I12, D01</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n"></td><td class="n"></td>
+<td>Estimado</td><td class="src">Jira E10-30 (sprint W48) · requisito académico del 70 %</td></tr><tr class="">
+<td>H12</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Inicio del semestre 2027-1 (S18)</td>
+<td>01 feb 2027</td><td>—</td><td>S18</td>
+<td class="n">hito</td><td>—</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n"></td><td class="n"></td>
+<td>Dato del autor</td><td class="src">Calendario académico (dato del autor)</td></tr><tr class="">
+<td>H13</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>v1.1.0</td>
+<td>07 mar 2027</td><td>—</td><td>S22</td>
+<td class="n">hito</td><td>X02, X03, X04, X05, X06</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n"></td><td class="n"></td>
+<td>Estimado</td><td class="src">Jira Fix Version v1.1.0 (ítems Should)</td></tr><tr class="is-crit">
+<td>H14</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Entrega del documento final <span class="tag crit">crítica</span></td>
+<td>21 mar 2027</td><td>—</td><td>S24</td>
+<td class="n">hito</td><td>D02</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n"></td><td class="n"></td>
+<td>Estimado</td><td class="src">Estimado (fecha a confirmar con la universidad)</td></tr><tr class="is-crit">
+<td>H15</td><td><i class="sw" style="background:#111827"></i>Hitos</td>
+<td>Sustentación <span class="tag crit">crítica</span></td>
+<td>26 mar 2027</td><td>—</td><td>S25</td>
+<td class="n">hito</td><td>D05, D04</td>
+<td><span class="chip todo">Pendiente</span></td><td class="n"></td><td class="n"></td>
+<td>Estimado</td><td class="src">Estimado (fecha a confirmar con la universidad)</td></tr></tbody></table>
+
+<h2>Notas de método</h2>
+<div class="notes"><ul>
+<li><b>Pasado = evidencia, futuro = estimación.</b> Cada tarea completada cita commit, PR o documento del repo. Las pendientes salen del plan Jira (<code>docs/jira/PROCESO_SCRUM.md</code> §5.5, escenario bajo de 16 pts/semana) o se marcan <span class="tag est">estimado</span>.</li>
+<li><b>Horas</b> = puntos Jira × 1.1 h (16 pts ≈ 17,5 h/semana, dentro de 15–20 h/semana (desarrollador único con IA, en paralelo con carga universitaria)). En lo completado es <b>esfuerzo equivalente retroactivo</b>, no horas medidas. Las semanas S9 (W40) y S11 (W42) fueron sesiones intensivas con IA y Jira las excluye de la velocidad (§5.1), así que ese esfuerzo está inflado frente a una semana normal.</li>
+<li><b>Fechas académicas</b> (S1 = 03 ago 2026, S18 = 01 feb 2027): las da el autor. El receso entre semestres no cuenta dentro de las 25 semanas.</li>
+<li><b>Antecedentes</b>: trabajo anterior al semestre 2026-2, con sus fechas reales de git. La fase de análisis y diseño inicial (A01) tiene fechas <span class="tag inf">inferido</span>: el Gantt original del equipo no trae fechas de calendario. En mayo y junio de 2026 no hay commits.</li>
+<li>Los documentos <code>IMPLEMENTACION_SEMANA_N.md</code> <b>no</b> son semanas de calendario (las 4 a 15 ocurrieron entre el 17 y el 19 de octubre). Aquí solo se usan como evidencia.</li>
+<li>El historial de git no se modifica: este cronograma se ajusta al repositorio, no al revés.</li>
+<li>Para regenerar: editar <code>docs/gantt/datos.mjs</code> y correr <code>node docs/gantt/generar.mjs</code>.</li>
+</ul></div>
+</div>
+<div id="tip"></div>
+<script>
+const T={"H01":{"id":"H01","nombre":"Creación del repositorio","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"23 nov 2025","fin":"23 nov 2025","semana":"Ant. nov-25","duracion":0,"deps":[],"estado":"Completado","avance":100,"horas":0,"base":"Evidencia (repo)","fuente":"74736d6 first commit","jira":[],"critica":false},"H02":{"id":"H02","nombre":"MVP etiquetado v0.1.0","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"08 mar 2026","fin":"08 mar 2026","semana":"Ant. mar-26","duracion":0,"deps":["A03 Pruebas, hardening y v0.1.0"],"estado":"Completado","avance":100,"horas":0,"base":"Evidencia (repo)","fuente":"3cc0b73 · CHANGELOG [0.1.0]","jira":[],"critica":false},"H03":{"id":"H03","nombre":"v0.3.0: alertas, Sentry y E2E en CI","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"16 abr 2026","fin":"16 abr 2026","semana":"Ant. abr-26","duracion":0,"deps":["A05 Conciliación, DOCX, alertas y Sentry (v0.2–v0.3)"],"estado":"Completado","avance":100,"horas":0,"base":"Evidencia (repo)","fuente":"820461c · CHANGELOG [0.3.0]","jira":[],"critica":false},"H04":{"id":"H04","nombre":"Inicio del semestre 2026-2 (S1)","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"03 ago 2026","fin":"03 ago 2026","semana":"S1","duracion":0,"deps":[],"estado":"Completado","avance":100,"horas":0,"base":"Dato del autor","fuente":"Calendario académico (dato del autor)","jira":[],"critica":false},"H05":{"id":"H05","nombre":"Auditoría pre-producción","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"25 ago 2026","fin":"25 ago 2026","semana":"S4","duracion":0,"deps":[],"estado":"Completado","avance":100,"horas":0,"base":"Evidencia (repo)","fuente":"docs/AUDITORIA_PREPRODUCCION_2026-08-25.md","jira":[],"critica":false},"H06":{"id":"H06","nombre":"Auditorías pre-launch y de cierre; producción estable","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"11 sep 2026","fin":"11 sep 2026","semana":"S6","duracion":0,"deps":["C03 Lógica de negocio en el servidor (PR #4)","I03 Incidentes de producción y regla de autoría"],"estado":"Completado","avance":100,"horas":0,"base":"Evidencia (repo)","fuente":"17c7de2 (AUDITORIA_INTEGRAL_PRE_LAUNCH) · 96f478d (AUDITORIA_CIERRE) · main d2f7cef","jira":[],"critica":false},"H07":{"id":"H07","nombre":"Auditoría del formulario de conciliación","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"12 oct 2026","fin":"12 oct 2026","semana":"S11","duracion":0,"deps":[],"estado":"Completado","avance":100,"horas":0,"base":"Evidencia (repo)","fuente":"docs/AUDITORIA_FORMULARIO_CONCILIACION_2026-10-12.md","jira":[],"critica":false},"H08":{"id":"H08","nombre":"Release candidate v1.0.0-rc.1","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"18 oct 2026","fin":"18 oct 2026","semana":"S11","duracion":0,"deps":["I07 CI en PRs apilados y versión rc.1"],"estado":"Completado","avance":100,"horas":0,"base":"Evidencia (repo)","fuente":"2a35e51 · CHANGELOG [1.0.0-rc.1]","jira":[],"critica":false},"H09":{"id":"H09","nombre":"v1.0.0-rc.2","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"08 nov 2026","fin":"08 nov 2026","semana":"S14","duracion":0,"deps":["C19 Riesgos de código: bloqueo optimista y requisitos","C20 Bloquear el CYG con apoderado contradictorio","C21 Documentos de Rechazo y de Retiro","Q07 Legal I: SMMLV 2026 y Check List Parágrafo 3","Q08 Cierre técnico de rc.2 (Sentry y docs)"],"estado":"Pendiente","avance":0,"horas":0,"base":"Estimado","fuente":"Jira Fix Version v1.0.0-rc.2 (PROCESO_SCRUM §4.8, §5.5)","jira":[],"critica":false},"H10":{"id":"H10","nombre":"UAT firmado por ambos centros","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"22 nov 2026","fin":"22 nov 2026","semana":"S16","duracion":0,"deps":["Q12 UAT con guion por rol en ambos centros"],"estado":"Pendiente","avance":0,"horas":0,"base":"Estimado","fuente":"Jira E14-14 (sprint W47)","jira":[],"critica":true},"H11":{"id":"H11","nombre":"Release 1.0.0 + corte del 70 % (fin de 2026-2)","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"29 nov 2026","fin":"29 nov 2026","semana":"S17","duracion":0,"deps":["I12 Publicar 1.0.0 y entregar a los centros","D01 Informe de avance del 70 %"],"estado":"Pendiente","avance":0,"horas":0,"base":"Estimado","fuente":"Jira E10-30 (sprint W48) · requisito académico del 70 %","jira":[],"critica":true},"H12":{"id":"H12","nombre":"Inicio del semestre 2027-1 (S18)","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"01 feb 2027","fin":"01 feb 2027","semana":"S18","duracion":0,"deps":[],"estado":"Pendiente","avance":0,"horas":0,"base":"Dato del autor","fuente":"Calendario académico (dato del autor)","jira":[],"critica":false},"H13":{"id":"H13","nombre":"v1.1.0","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"07 mar 2027","fin":"07 mar 2027","semana":"S22","duracion":0,"deps":["X02 v1.1: borrado lógico de expedientes","X03 v1.1: cerrar la deriva de migraciones","X04 v1.1: observabilidad y seguridad","X05 v1.1: pendientes legales","X06 v1.1: deuda técnica y pruebas"],"estado":"Pendiente","avance":0,"horas":0,"base":"Estimado","fuente":"Jira Fix Version v1.1.0 (ítems Should)","jira":[],"critica":false},"H14":{"id":"H14","nombre":"Entrega del documento final","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"21 mar 2027","fin":"21 mar 2027","semana":"S24","duracion":0,"deps":["D02 Documento final de tesis"],"estado":"Pendiente","avance":0,"horas":0,"base":"Estimado","fuente":"Estimado (fecha a confirmar con la universidad)","jira":[],"critica":true},"H15":{"id":"H15","nombre":"Sustentación","fase":"Hitos","color":"#111827","tipo":"hito","inicio":"26 mar 2027","fin":"26 mar 2027","semana":"S25","duracion":0,"deps":["D05 Preparación de la sustentación","D04 Actas de aceptación de los centros"],"estado":"Pendiente","avance":0,"horas":0,"base":"Estimado","fuente":"Estimado (fecha a confirmar con la universidad)","jira":[],"critica":true},"A01":{"id":"A01","nombre":"Análisis y diseño inicial (equipo de tesis)","fase":"Antecedentes (trabajo previo)","color":"#64748b","tipo":"tarea","inicio":"03 nov 2025","fin":"01 feb 2026","semana":"Ant. nov-25","duracion":13,"deps":[],"estado":"Completado","avance":100,"horas":40,"base":"Inferido","fuente":"docs/diseno/Diagrama de Gantt - Insolventic.png · Jira E00-01…E00-08 (fechas inferidas, PROCESO_SCRUM §5.1)","jira":["E00-01","E00-08"],"critica":false},"A02":{"id":"A02","nombre":"Prototipo base: auth, casos y documentos HTML","fase":"Antecedentes (trabajo previo)","color":"#64748b","tipo":"tarea","inicio":"02 feb 2026","fin":"01 mar 2026","semana":"Ant. feb-26","duracion":4,"deps":["A01 Análisis y diseño inicial (equipo de tesis)"],"estado":"Completado","avance":100,"horas":58,"base":"Evidencia (repo)","fuente":"72493d9 · 83d2d71 · df0ba7c · ba65470 · fcd2670","jira":[],"critica":false},"A03":{"id":"A03","nombre":"Pruebas, hardening y v0.1.0","fase":"Antecedentes (trabajo previo)","color":"#64748b","tipo":"tarea","inicio":"02 mar 2026","fin":"15 mar 2026","semana":"Ant. mar-26","duracion":2,"deps":["A02 Prototipo base: auth, casos y documentos HTML"],"estado":"Completado","avance":100,"horas":40,"base":"Evidencia (repo)","fuente":"c40cfb7 (111 tests) · abfc674 · 0b3c085 · 3cc0b73","jira":[],"critica":false},"A04":{"id":"A04","nombre":"RBAC, auditoría, dashboard, pagos y reportes","fase":"Antecedentes (trabajo previo)","color":"#64748b","tipo":"tarea","inicio":"16 mar 2026","fin":"29 mar 2026","semana":"Ant. mar-26","duracion":2,"deps":["A03 Pruebas, hardening y v0.1.0"],"estado":"Completado","avance":100,"horas":59,"base":"Evidencia (repo)","fuente":"eaf4df4 · 6323d88 · 82812b5 · e777c30","jira":[],"critica":false},"A05":{"id":"A05","nombre":"Conciliación, DOCX, alertas y Sentry (v0.2–v0.3)","fase":"Antecedentes (trabajo previo)","color":"#64748b","tipo":"tarea","inicio":"30 mar 2026","fin":"19 abr 2026","semana":"Ant. mar-26","duracion":3,"deps":["A04 RBAC, auditoría, dashboard, pagos y reportes"],"estado":"Completado","avance":100,"horas":106,"base":"Evidencia (repo)","fuente":"CHANGELOG [0.2.0] y [0.3.0] · 820461c","jira":[],"critica":false},"A06":{"id":"A06","nombre":"Acuerdos de Apoyo y pruebas de carga k6","fase":"Antecedentes (trabajo previo)","color":"#64748b","tipo":"tarea","inicio":"20 abr 2026","fin":"26 abr 2026","semana":"Ant. abr-26","duracion":1,"deps":["A05 Conciliación, DOCX, alertas y Sentry (v0.2–v0.3)"],"estado":"Completado","avance":100,"horas":12,"base":"Evidencia (repo)","fuente":"19e4227 · 2c43446","jira":[],"critica":false},"A07":{"id":"A07","nombre":"Auditoría de documentos (P2–P4) y logger","fase":"Antecedentes (trabajo previo)","color":"#64748b","tipo":"tarea","inicio":"06 jul 2026","fin":"12 jul 2026","semana":"Ant. jul-26","duracion":1,"deps":["A06 Acuerdos de Apoyo y pruebas de carga k6"],"estado":"Completado","avance":100,"horas":32,"base":"Evidencia (repo)","fuente":"docs/AUDITORIA_MODULO_GENERACION_2026-07.md · 758b733 · 177cf24 · 40a5a59","jira":[],"critica":false},"T01":{"id":"T01","nombre":"Requisitos, MER, diccionario y diagramas","fase":"Análisis y diseño","color":"#2563eb","tipo":"tarea","inicio":"10 ago 2026","fin":"16 ago 2026","semana":"S2","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":6,"base":"Evidencia (repo)","fuente":"660fffd (REQUISITOS_INSOLVENTIC.xlsx) · 849d96b (diccionario, MER, clases) · 7280aa9 (componentes)","jira":["E09-13"],"critica":false},"T02":{"id":"T02","nombre":"Diseño de las 5 fases nuevas del expediente","fase":"Análisis y diseño","color":"#2563eb","tipo":"tarea","inicio":"11 sep 2026","fin":"11 sep 2026","semana":"S6","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":2,"base":"Evidencia (repo)","fuente":"9da5173 · docs/DISENO_FASES_NUEVAS_2026-09-11.md","jira":["E12-01"],"critica":false},"T03":{"id":"T03","nombre":"Diseño del branding por centro","fase":"Análisis y diseño","color":"#2563eb","tipo":"tarea","inicio":"30 sep 2026","fin":"01 oct 2026","semana":"S9","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":2,"base":"Evidencia (repo)","fuente":"#82 74aec37 · docs/BRANDING_POR_CENTRO_2026-09-30.md","jira":["E04-06"],"critica":false},"T04":{"id":"T04","nombre":"Diseño del apoderado del acreedor (CYG)","fase":"Análisis y diseño","color":"#2563eb","tipo":"tarea","inicio":"09 oct 2026","fin":"09 oct 2026","semana":"S10","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":2,"base":"Evidencia (repo)","fuente":"bfaa37a · docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md","jira":["E05-11"],"critica":false},"T05":{"id":"T05","nombre":"Backlog Jira, proceso Scrum y cronograma","fase":"Análisis y diseño","color":"#2563eb","tipo":"tarea","inicio":"19 oct 2026","fin":"25 oct 2026","semana":"S12","duracion":1,"deps":[],"estado":"En progreso","avance":70,"horas":8,"base":"Evidencia (repo)","fuente":"docs/jira/ y docs/IMPLEMENTACION_SEMANA_6–15.md (sin commitear) · docs/gantt/","jira":[],"critica":false},"C01":{"id":"C01","nombre":"Seguridad crítica (Semana 1)","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"26 ago 2026","fin":"26 ago 2026","semana":"S4","duracion":1,"deps":["H05 Auditoría pre-producción"],"estado":"Completado","avance":100,"horas":10,"base":"Evidencia (repo)","fuente":"docs/IMPLEMENTACION_SEMANA_1.md · bfdeb47 · 9e037be · a9a1e4d · c507501","jira":["E03-11","E03-15"],"critica":false},"C02":{"id":"C02","nombre":"Rate limit, health check y runbook (Semana 2)","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"26 ago 2026","fin":"26 ago 2026","semana":"S4","duracion":1,"deps":["H05 Auditoría pre-producción"],"estado":"Completado","avance":100,"horas":12,"base":"Evidencia (repo)","fuente":"docs/IMPLEMENTACION_SEMANA_2.md · 8a8a1ae · 57fd2c5 · f542f22","jira":["E03-16","E09-03","E09-05"],"critica":false},"C03":{"id":"C03","nombre":"Lógica de negocio en el servidor (PR #4)","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"02 sep 2026","fin":"11 sep 2026","semana":"S5","duracion":2,"deps":["C01 Seguridad crítica (Semana 1)"],"estado":"Completado","avance":100,"horas":25,"base":"Evidencia (repo)","fuente":"docs/IMPLEMENTACION_SEMANA_3.md · PR #4 17c7de2","jira":["E01-16","E01-17","E02-14","E02-15","E14-04"],"critica":false},"C04":{"id":"C04","nombre":"Apoderados del deudor, sesión y rendimiento","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"14 sep 2026","fin":"20 sep 2026","semana":"S7","duracion":1,"deps":["C03 Lógica de negocio en el servidor (PR #4)"],"estado":"Completado","avance":100,"horas":29,"base":"Evidencia (repo)","fuente":"e05e409 · issue #9 · e7af5bf · f87a5ec · 276eea4","jira":["E05-04","E03-18","E13-04","E13-07"],"critica":false},"C05":{"id":"C05","nombre":"Fechas y placeholders de documentos","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"21 sep 2026","fin":"27 sep 2026","semana":"S8","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":7,"base":"Evidencia (repo)","fuente":"7d74953 · d55ac1a","jira":["E02-18","E02-19"],"critica":false},"C06":{"id":"C06","nombre":"Ronda del formulario maestro","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"28 sep 2026","fin":"03 oct 2026","semana":"S9","duracion":1,"deps":["C04 Apoderados del deudor, sesión y rendimiento"],"estado":"Completado","avance":100,"horas":47,"base":"Evidencia (repo)","fuente":"PRs #60–#103 · docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md","jira":["E01-19","E01-27","E05-05","E05-10"],"critica":false},"C07":{"id":"C07","nombre":"Cinco fases nuevas del expediente (PR #40)","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"28 sep 2026","fin":"30 sep 2026","semana":"S9","duracion":1,"deps":["T02 Diseño de las 5 fases nuevas del expediente"],"estado":"Completado","avance":100,"horas":21,"base":"Evidencia (repo)","fuente":"#40 a0ac5d7 · docs/DEPLOY_PR40.md","jira":["E12-02","E12-06"],"critica":false},"C08":{"id":"C08","nombre":"División del placeholder-mapper","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"29 sep 2026","fin":"03 oct 2026","semana":"S9","duracion":1,"deps":["Q01 Red de pruebas: Postgres real y golden master"],"estado":"Completado","avance":100,"horas":23,"base":"Evidencia (repo)","fuente":"#52 d1320ae · #100 93e1efe · docs/PLAN_DIVISION_MAPPER.md","jira":["E13-08","E13-12"],"critica":false},"C09":{"id":"C09","nombre":"Generación: todos los acreedores y un navegador","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"29 sep 2026","fin":"03 oct 2026","semana":"S9","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":26,"base":"Evidencia (repo)","fuente":"#57 2a202f9 · #77 ce8dcb3 · #110 b32e892","jira":["E02-20","E02-26"],"critica":false},"C10":{"id":"C10","nombre":"Correcciones de documentos (fechas, causas, apoyo)","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"05 oct 2026","fin":"08 oct 2026","semana":"S10","duracion":1,"deps":["Q02 Plan de pruebas y verificación E2E de documentos"],"estado":"Completado","avance":100,"horas":19,"base":"Evidencia (repo)","fuente":"#112 · #113 · #117 · #118 · #119 · #120","jira":["E02-27","E02-31","E01-28"],"critica":false},"C11":{"id":"C11","nombre":"Membrete y branding por centro","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"09 oct 2026","fin":"10 oct 2026","semana":"S10","duracion":1,"deps":["T03 Diseño del branding por centro"],"estado":"Completado","avance":100,"horas":30,"base":"Evidencia (repo)","fuente":"#121 · #126 · #128 · #132–#135 · docs/CHECKPOINT_2026-10-09.md","jira":["E04-07","E04-13"],"critica":false},"C12":{"id":"C12","nombre":"Apoderado del acreedor: modelo y captura","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"09 oct 2026","fin":"09 oct 2026","semana":"S10","duracion":1,"deps":["T04 Diseño del apoderado del acreedor (CYG)"],"estado":"Completado","avance":100,"horas":9,"base":"Evidencia (repo)","fuente":"#130 af53a6f · #131 613e327","jira":["E05-12","E05-13"],"critica":false},"C13":{"id":"C13","nombre":"Separador de miles y ESLint en cero","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"09 oct 2026","fin":"11 oct 2026","semana":"S10","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":11,"base":"Evidencia (repo)","fuente":"#136 c678020 · #124 4df5906 · #123 33ec217","jira":["E01-29","E13-13","E03-21"],"critica":false},"C14":{"id":"C14","nombre":"Bloqueantes de seguridad pre-entrega","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"17 oct 2026","fin":"17 oct 2026","semana":"S11","duracion":1,"deps":["H07 Auditoría del formulario de conciliación"],"estado":"Completado","avance":100,"horas":28,"base":"Evidencia (repo)","fuente":"docs/IMPLEMENTACION_SEMANA_4.md y _7.md · #137 7ab6b5e · #140 376d83b","jira":["E03-22","E03-29"],"critica":false},"C15":{"id":"C15","nombre":"Formulario de conciliación completo","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"17 oct 2026","fin":"17 oct 2026","semana":"S11","duracion":1,"deps":["H07 Auditoría del formulario de conciliación"],"estado":"Completado","avance":100,"horas":15,"base":"Evidencia (repo)","fuente":"docs/IMPLEMENTACION_SEMANA_5.md y _6.md · #138 fe82fe6 · #139 0a41c56","jira":["E01-32","E01-35"],"critica":false},"C16":{"id":"C16","nombre":"Generación de lotes grandes en tandas","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"17 oct 2026","fin":"17 oct 2026","semana":"S11","duracion":1,"deps":["C09 Generación: todos los acreedores y un navegador"],"estado":"Completado","avance":100,"horas":9,"base":"Evidencia (repo)","fuente":"#140 376d83b · issue #3 · docs/IMPLEMENTACION_SEMANA_7.md","jira":["E02-32"],"critica":false},"C17":{"id":"C17","nombre":"Montos, carpeta de Drive y apoderado único","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"18 oct 2026","fin":"19 oct 2026","semana":"S11","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":15,"base":"Evidencia (repo)","fuente":"#144 · #145 · #146 · #147 · docs/IMPLEMENTACION_SEMANA_10–13.md","jira":["E01-30","E01-31","E04-14","E05-14"],"critica":false},"C18":{"id":"C18","nombre":"Bienes en dos niveles y notificaciones","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"19 oct 2026","fin":"19 oct 2026","semana":"S12","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":9,"base":"Evidencia (repo)","fuente":"#148 25d6d7e · #149 b29166c · docs/IMPLEMENTACION_SEMANA_14–15.md","jira":["E01-36","E01-37","E07-07"],"critica":false},"C19":{"id":"C19","nombre":"Riesgos de código: bloqueo optimista y requisitos","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"26 oct 2026","fin":"01 nov 2026","semana":"S13","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":15,"base":"Estimado","fuente":"Jira sprint W44 (PROCESO_SCRUM §5.5)","jira":["E01-38","E01-39","E02-33","E03-30","E14-10","E02-37"],"critica":false},"C20":{"id":"C20","nombre":"Bloquear el CYG con apoderado contradictorio","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"02 nov 2026","fin":"08 nov 2026","semana":"S14","duracion":1,"deps":["C12 Apoderado del acreedor: modelo y captura"],"estado":"Pendiente","avance":0,"horas":6,"base":"Estimado","fuente":"Jira sprint W45","jira":["E05-15"],"critica":true},"C21":{"id":"C21","nombre":"Documentos de Rechazo y de Retiro","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"02 nov 2026","fin":"08 nov 2026","semana":"S14","duracion":1,"deps":["C07 Cinco fases nuevas del expediente (PR #40)"],"estado":"Pendiente","avance":0,"horas":6,"base":"Estimado","fuente":"Jira sprint W45 · legal-pendiente (R1)","jira":["E12-07"],"critica":false},"C22":{"id":"C22","nombre":"Resolver conflicto de apoderado en la UI","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"09 nov 2026","fin":"15 nov 2026","semana":"S15","duracion":1,"deps":["C20 Bloquear el CYG con apoderado contradictorio"],"estado":"Pendiente","avance":0,"horas":6,"base":"Estimado","fuente":"Jira sprint W46","jira":["E05-16"],"critica":true},"C23":{"id":"C23","nombre":"Regenerar documentos sin duplicados","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"16 nov 2026","fin":"22 nov 2026","semana":"S16","duracion":1,"deps":["Q06 Política de versiones al regenerar (spike)"],"estado":"Pendiente","avance":0,"horas":6,"base":"Estimado","fuente":"Jira sprint W47","jira":["E02-35"],"critica":false},"C24":{"id":"C24","nombre":"Estado de la generación visible en el caso","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"16 nov 2026","fin":"22 nov 2026","semana":"S16","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":3,"base":"Estimado","fuente":"Jira sprint W47 · Should: primer ítem en moverse si falta capacidad","jira":["E02-36"],"critica":false},"X02":{"id":"X02","nombre":"v1.1: borrado lógico de expedientes","fase":"Construcción y remediación","color":"#d97706","tipo":"tarea","inicio":"08 feb 2027","fin":"21 feb 2027","semana":"S19","duracion":2,"deps":["Q10 Ley 1581: retención, privacidad y ARCO"],"estado":"Pendiente","avance":0,"horas":9,"base":"Estimado","fuente":"Jira v1.1.0 · CLAUDE.md Fase 3 (soft-delete)","jira":["E01-40","E01-42"],"critica":false},"I01":{"id":"I01","nombre":"Deploy nativo Vercel y migraciones gateadas","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"12 ago 2026","fin":"18 ago 2026","semana":"S2","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":8,"base":"Evidencia (repo)","fuente":"ae6b2ae · 6090f1f · 70868c6 · CLAUDE.md Session 3","jira":["E10-08","E10-09","E10-10"],"critica":false},"I02":{"id":"I02","nombre":"CI: memoria del build y pruebas E2E","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"04 sep 2026","fin":"10 sep 2026","semana":"S5","duracion":1,"deps":["I01 Deploy nativo Vercel y migraciones gateadas"],"estado":"Completado","avance":100,"horas":4,"base":"Evidencia (repo)","fuente":"#5 1ad141b · #12 2360250","jira":["E10-11","E14-03"],"critica":false},"I03":{"id":"I03","nombre":"Incidentes de producción y regla de autoría","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"07 sep 2026","fin":"11 sep 2026","semana":"S6","duracion":1,"deps":["I01 Deploy nativo Vercel y migraciones gateadas"],"estado":"Completado","avance":100,"horas":13,"base":"Evidencia (repo)","fuente":"docs/CHECKPOINT_2026-09-09.md · a54d92e · #13 e9dd65a · 596dae6","jira":["E01-15","E09-06","E10-12","E10-13"],"critica":false},"I04":{"id":"I04","nombre":"Runbooks de Drive y BD; robustez del build","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"18 sep 2026","fin":"20 sep 2026","semana":"S7","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":9,"base":"Evidencia (repo)","fuente":"1b7f7cd · 516bac9 · 5a7bec3 · 50d96ed","jira":["E09-07","E09-08","E10-14","E10-15"],"critica":false},"I05":{"id":"I05","nombre":"Observabilidad y CI (Sentry, versión, caché)","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"28 sep 2026","fin":"03 oct 2026","semana":"S9","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":11,"base":"Evidencia (repo)","fuente":"#38 cb4c525 · #55 db9c215 · #109 da6e928 · #111 a9802ee · 3eccc72","jira":["E09-09","E09-11","E10-16","E10-17"],"critica":false},"I06":{"id":"I06","nombre":"Migraciones desde cero y Postgres en CI","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"08 oct 2026","fin":"09 oct 2026","semana":"S10","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":13,"base":"Evidencia (repo)","fuente":"#58 7733272 · #122 2f1375c · #127 92b416b · 0dad100 · docs/DIAGNOSTICO_PROMOCION_MAIN_2026-10-08.md","jira":["E10-18","E10-21"],"critica":false},"I07":{"id":"I07","nombre":"CI en PRs apilados y versión rc.1","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"17 oct 2026","fin":"17 oct 2026","semana":"S11","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":3,"base":"Evidencia (repo)","fuente":"#142 7edc0cf · 2a35e51","jira":["E10-22","E10-23"],"critica":false},"I08":{"id":"I08","nombre":"Desplegar sin reescribir el autor (plan Vercel)","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"23 nov 2026","fin":"25 nov 2026","semana":"S17","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":2,"base":"Estimado","fuente":"Jira sprint W48 · issue #7","jira":["E10-25"],"critica":true},"I09":{"id":"I09","nombre":"Prueba real de restauración del backup","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"23 nov 2026","fin":"26 nov 2026","semana":"S17","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":3,"base":"Estimado","fuente":"Jira sprint W48 · docs/RUNBOOK.md","jira":["E10-24"],"critica":true},"I10":{"id":"I10","nombre":"Verificación operativa en producción","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"23 nov 2026","fin":"27 nov 2026","semana":"S17","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":3,"base":"Estimado","fuente":"Jira sprint W48","jira":["E09-17","E09-19","E09-20"],"critica":false},"I11":{"id":"I11","nombre":"Transferir cuentas a los centros","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"25 nov 2026","fin":"28 nov 2026","semana":"S17","duracion":1,"deps":["I08 Desplegar sin reescribir el autor (plan Vercel)"],"estado":"Pendiente","avance":0,"horas":3,"base":"Estimado","fuente":"Jira sprint W48 (inferido)","jira":["E10-26"],"critica":true},"I12":{"id":"I12","nombre":"Publicar 1.0.0 y entregar a los centros","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"28 nov 2026","fin":"29 nov 2026","semana":"S17","duracion":1,"deps":["H10 UAT firmado por ambos centros","I09 Prueba real de restauración del backup","I11 Transferir cuentas a los centros"],"estado":"Pendiente","avance":0,"horas":1,"base":"Estimado","fuente":"Jira sprint W48","jira":["E10-30"],"critica":true},"B01":{"id":"B01","nombre":"Contingencia del release (solo si se desliza)","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"buffer","inicio":"30 nov 2026","fin":"11 dic 2026","semana":"Receso","duracion":2,"deps":["I12 Publicar 1.0.0 y entregar a los centros"],"estado":"Pendiente","avance":0,"horas":0,"base":"Estimado","fuente":"Reserva fuera de las 25 semanas: absorbe R2/R3 sin mover el corte académico más de 2 semanas","jira":[],"critica":false},"X01":{"id":"X01","nombre":"Estabilización y operación asistida","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"01 feb 2027","fin":"14 feb 2027","semana":"S18","duracion":2,"deps":["I12 Publicar 1.0.0 y entregar a los centros"],"estado":"Pendiente","avance":0,"horas":8,"base":"Estimado","fuente":"Estimado: primeras semanas tras el receso (R9)","jira":[],"critica":false},"X03":{"id":"X03","nombre":"v1.1: cerrar la deriva de migraciones","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"15 feb 2027","fin":"28 feb 2027","semana":"S20","duracion":2,"deps":[],"estado":"Pendiente","avance":0,"horas":8,"base":"Estimado","fuente":"Jira v1.1.0 · CLAUDE.md Fase 3 (requiere acceso a Neon)","jira":["E10-28","E10-29"],"critica":false},"X04":{"id":"X04","nombre":"v1.1: observabilidad y seguridad","fase":"Infraestructura y despliegue","color":"#7c3aed","tipo":"tarea","inicio":"01 feb 2027","fin":"21 feb 2027","semana":"S18","duracion":3,"deps":["I11 Transferir cuentas a los centros"],"estado":"Pendiente","avance":0,"horas":11,"base":"Estimado","fuente":"Jira v1.1.0","jira":["E13-15","E09-18","E07-08","E10-27"],"critica":false},"Q01":{"id":"Q01","nombre":"Red de pruebas: Postgres real y golden master","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"19 sep 2026","fin":"20 sep 2026","semana":"S7","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":12,"base":"Evidencia (repo)","fuente":"73841cc · 5ad7934 · e572146","jira":["E14-05","E14-06","E14-07"],"critica":false},"Q02":{"id":"Q02","nombre":"Plan de pruebas y verificación E2E de documentos","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"03 oct 2026","fin":"03 oct 2026","semana":"S9","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":3,"base":"Evidencia (repo)","fuente":"docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md · docs/TESTS.md","jira":["E14-09"],"critica":false},"Q03":{"id":"Q03","nombre":"Suite formulario → BD → documento","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"08 oct 2026","fin":"08 oct 2026","semana":"S10","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":6,"base":"Evidencia (repo)","fuente":"#116 925c007","jira":["E14-08"],"critica":false},"Q04":{"id":"Q04","nombre":"Fundamento normativo y pendientes legales","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"01 oct 2026","fin":"09 oct 2026","semana":"S9","duracion":2,"deps":[],"estado":"Completado","avance":100,"horas":6,"base":"Evidencia (repo)","fuente":"#90 fe7e1df · 0f15dbf · #129 1683150 · docs/PENDIENTES_DECISION_LEGAL.md","jira":["E11-03","E11-06"],"critica":false},"Q05":{"id":"Q05","nombre":"Ley 1581: privacidad, términos, ARCO y manual","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"17 oct 2026","fin":"17 oct 2026","semana":"S11","duracion":1,"deps":[],"estado":"Completado","avance":100,"horas":11,"base":"Evidencia (repo)","fuente":"#141 6aa58d1 · docs/PROCEDIMIENTO_ARCO.md · docs/MANUAL_USUARIO.md","jira":["E11-01","E11-02","E09-14","E09-15"],"critica":false},"Q06":{"id":"Q06","nombre":"Política de versiones al regenerar (spike)","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"26 oct 2026","fin":"01 nov 2026","semana":"S13","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":2,"base":"Estimado","fuente":"Jira sprint W44 · legal-pendiente","jira":["E02-34"],"critica":false},"Q07":{"id":"Q07","nombre":"Legal I: SMMLV 2026 y Check List Parágrafo 3","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"02 nov 2026","fin":"08 nov 2026","semana":"S14","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":4,"base":"Estimado","fuente":"Jira sprint W45 · legal-pendiente (R1)","jira":["E11-09","E11-10"],"critica":false},"Q08":{"id":"Q08","nombre":"Cierre técnico de rc.2 (Sentry y docs)","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"02 nov 2026","fin":"08 nov 2026","semana":"S14","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":2,"base":"Estimado","fuente":"Jira sprint W45","jira":["E09-16","E13-23"],"critica":false},"Q09":{"id":"Q09","nombre":"Legal II: umbrales y cuenta de Armonía","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"09 nov 2026","fin":"15 nov 2026","semana":"S15","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":4,"base":"Estimado","fuente":"Jira sprint W46 · legal-pendiente (R1)","jira":["E11-18","E04-15"],"critica":false},"Q10":{"id":"Q10","nombre":"Ley 1581: retención, privacidad y ARCO","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"09 nov 2026","fin":"15 nov 2026","semana":"S15","duracion":1,"deps":["Q05 Ley 1581: privacidad, términos, ARCO y manual"],"estado":"Pendiente","avance":0,"horas":8,"base":"Estimado","fuente":"Jira sprint W46 · legal-pendiente (R1)","jira":["E11-17","E11-13","E11-14","E11-15"],"critica":false},"Q11":{"id":"Q11","nombre":"Prueba E2E de aislamiento entre centros","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"16 nov 2026","fin":"18 nov 2026","semana":"S16","duracion":1,"deps":[],"estado":"Pendiente","avance":0,"horas":3,"base":"Estimado","fuente":"Jira sprint W47","jira":["E14-13"],"critica":true},"Q12":{"id":"Q12","nombre":"UAT con guion por rol en ambos centros","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"18 nov 2026","fin":"22 nov 2026","semana":"S16","duracion":1,"deps":["Q11 Prueba E2E de aislamiento entre centros","C22 Resolver conflicto de apoderado en la UI"],"estado":"Pendiente","avance":0,"horas":6,"base":"Estimado","fuente":"Jira sprint W47 (R3)","jira":["E14-14"],"critica":true},"Q13":{"id":"Q13","nombre":"Buffer: correcciones post-UAT","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"buffer","inicio":"23 nov 2026","fin":"29 nov 2026","semana":"S17","duracion":1,"deps":["Q12 UAT con guion por rol en ambos centros"],"estado":"Pendiente","avance":0,"horas":5,"base":"Estimado","fuente":"Holgura del sprint W48 (12/16 pts usados ⇒ 4 pts libres)","jira":[],"critica":false},"X05":{"id":"X05","nombre":"v1.1: pendientes legales","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"08 feb 2027","fin":"07 mar 2027","semana":"S19","duracion":4,"deps":[],"estado":"Pendiente","avance":0,"horas":15,"base":"Estimado","fuente":"Jira v1.1.0 · legal-pendiente · issue #16","jira":["E11-07","E11-08","E12-08","E11-11","E11-16"],"critica":false},"X06":{"id":"X06","nombre":"v1.1: deuda técnica y pruebas","fase":"Calidad, pruebas y cumplimiento","color":"#059669","tipo":"tarea","inicio":"22 feb 2027","fin":"07 mar 2027","semana":"S21","duracion":2,"deps":[],"estado":"Pendiente","avance":0,"horas":15,"base":"Estimado","fuente":"Jira v1.1.0 (ítems Should)","jira":["E06-03","E13-16","E13-22","E14-11","E14-15"],"critica":false},"D01":{"id":"D01","nombre":"Informe de avance del 70 %","fase":"Documentación de tesis y cierre","color":"#db2777","tipo":"tarea","inicio":"26 oct 2026","fin":"29 nov 2026","semana":"S13","duracion":5,"deps":[],"estado":"Pendiente","avance":0,"horas":12,"base":"Estimado","fuente":"Estimado: entregable académico del semestre 2026-2","jira":[],"critica":true},"D02":{"id":"D02","nombre":"Documento final de tesis","fase":"Documentación de tesis y cierre","color":"#db2777","tipo":"tarea","inicio":"01 feb 2027","fin":"21 mar 2027","semana":"S18","duracion":7,"deps":["D01 Informe de avance del 70 %","I12 Publicar 1.0.0 y entregar a los centros"],"estado":"Pendiente","avance":0,"horas":40,"base":"Estimado","fuente":"Estimado · Gantt original: \"Documento final y actas de aceptación\"","jira":[],"critica":true},"D03":{"id":"D03","nombre":"Guía y manuales de mantenimiento (v1.1)","fase":"Documentación de tesis y cierre","color":"#db2777","tipo":"tarea","inicio":"01 mar 2027","fin":"14 mar 2027","semana":"S22","duracion":2,"deps":["X01 Estabilización y operación asistida"],"estado":"Pendiente","avance":0,"horas":8,"base":"Estimado","fuente":"Estimado · Gantt original: \"Guía y manuales de mantenimiento\" · docs/RUNBOOK.md","jira":[],"critica":false},"D04":{"id":"D04","nombre":"Actas de aceptación de los centros","fase":"Documentación de tesis y cierre","color":"#db2777","tipo":"tarea","inicio":"08 mar 2027","fin":"21 mar 2027","semana":"S23","duracion":2,"deps":["H10 UAT firmado por ambos centros","H13 v1.1.0"],"estado":"Pendiente","avance":0,"horas":4,"base":"Estimado","fuente":"Estimado · Gantt original: \"actas de aceptación\"","jira":[],"critica":true},"D05":{"id":"D05","nombre":"Preparación de la sustentación","fase":"Documentación de tesis y cierre","color":"#db2777","tipo":"tarea","inicio":"15 mar 2027","fin":"26 mar 2027","semana":"S24","duracion":2,"deps":["D02 Documento final de tesis"],"estado":"Pendiente","avance":0,"horas":12,"base":"Estimado","fuente":"Estimado","jira":[],"critica":true},"D06":{"id":"D06","nombre":"Buffer de cierre","fase":"Documentación de tesis y cierre","color":"#db2777","tipo":"buffer","inicio":"22 mar 2027","fin":"28 mar 2027","semana":"S25","duracion":1,"deps":["D02 Documento final de tesis"],"estado":"Pendiente","avance":0,"horas":4,"base":"Estimado","fuente":"Holgura para correcciones del jurado","jira":[],"critica":false}};
+const DEPEND={"H01":[],"H02":[],"H03":[],"H04":[],"H05":["C01","C02"],"H06":[],"H07":["C14","C15"],"H08":[],"H09":[],"H10":["I12","D04"],"H11":[],"H12":[],"H13":["D04"],"H14":[],"H15":[],"A01":["A02"],"A02":["A03"],"A03":["H02","A04"],"A04":["A05"],"A05":["H03","A06"],"A06":["A07"],"A07":[],"T01":[],"T02":["C07"],"T03":["C11"],"T04":["C12"],"T05":[],"C01":["C03"],"C02":[],"C03":["H06","C04"],"C04":["C06"],"C05":[],"C06":[],"C07":["C21"],"C08":[],"C09":["C16"],"C10":[],"C11":[],"C12":["C20"],"C13":[],"C14":[],"C15":[],"C16":[],"C17":[],"C18":[],"C19":["H09"],"C20":["H09","C22"],"C21":["H09"],"C22":["Q12"],"C23":[],"C24":[],"X02":["H13"],"I01":["I02","I03"],"I02":[],"I03":["H06"],"I04":[],"I05":[],"I06":[],"I07":["H08"],"I08":["I11"],"I09":["I12"],"I10":[],"I11":["I12","X04"],"I12":["H11","B01","X01","D02"],"B01":[],"X01":["D03"],"X03":["H13"],"X04":["H13"],"Q01":["C08"],"Q02":["C10"],"Q03":[],"Q04":[],"Q05":["Q10"],"Q06":["C23"],"Q07":["H09"],"Q08":["H09"],"Q09":[],"Q10":["X02"],"Q11":["Q12"],"Q12":["H10","Q13"],"Q13":[],"X05":["H13"],"X06":["H13"],"D01":["H11","D02"],"D02":["H14","D05","D06"],"D03":[],"D04":["H15"],"D05":["H15"],"D06":[]};
+const tip=document.getElementById('tip');
+const filas=[...document.querySelectorAll('tr.row')];
+const porId=Object.fromEntries(filas.map(r=>[r.dataset.id,r]));
+function e(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function mostrar(id,ev){const t=T[id];if(!t)return;
+ const fila=(k,v)=>v===''||v==null?'':'<div class="r"><span>'+k+'</span><span>'+v+'</span></div>';
+ tip.innerHTML='<h4><i class="sw" style="background:'+t.color+'"></i>'+e(t.id+' · '+t.nombre)+'</h4>'+
+  fila('Fase',e(t.fase))+fila('Fechas',t.tipo==='hito'?e(t.inicio):e(t.inicio+' → '+t.fin))+fila('Semana inicio',e(t.semana))+
+  (t.tipo==='hito'?'':fila('Duración',t.duracion+' sem'))+fila('Estado',e(t.estado)+(t.tipo==='hito'?'':' · '+t.avance+'%'))+
+  (t.tipo==='hito'?'':fila('Horas',t.horas+' h'))+fila('Depende de',t.deps.length?t.deps.map(e).join('<br>'):'—')+
+  fila('Base',e(t.base))+fila('Fuente',e(t.fuente))+(t.jira.length?fila('Jira',e(t.jira.join(', '))):'')+
+  (t.critica?fila('Ruta crítica','sí'):'');
+ tip.style.display='block';mover(ev);
+ filas.forEach(r=>r.classList.remove('hl'));
+ [...t.deps.map(x=>x.split(' ')[0]),...(DEPEND[id]||[])].forEach(x=>porId[x]&&porId[x].classList.add('hl'));}
+function mover(ev){const w=tip.offsetWidth,h=tip.offsetHeight;let x=ev.clientX+14,y=ev.clientY+14;
+ if(x+w>innerWidth-8)x=ev.clientX-w-14;if(y+h>innerHeight-8)y=ev.clientY-h-14;tip.style.left=x+'px';tip.style.top=y+'px';}
+document.querySelectorAll('.bar,.ms').forEach(b=>{b.addEventListener('mouseenter',ev=>mostrar(b.dataset.id,ev));b.addEventListener('mousemove',mover);
+ b.addEventListener('mouseleave',()=>{tip.style.display='none';filas.forEach(r=>r.classList.remove('hl'));});});
+function filtrar(){const on=[...document.querySelectorAll('[data-f]')].filter(c=>c.checked).map(c=>c.dataset.f);
+ const crit=document.getElementById('solo-crit').checked;
+ filas.forEach(r=>{const st=on.some(f=>r.classList.contains(f));const c=!crit||r.classList.contains('is-crit')||r.classList.contains('is-hito');r.classList.toggle('hide',!(st&&c));});}
+document.querySelectorAll('.toolbar input').forEach(i=>i.addEventListener('change',filtrar));
+</script>
+</body>
+</html>
