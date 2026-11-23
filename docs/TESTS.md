@@ -1,6 +1,6 @@
 # Plan y Reporte de Pruebas — INSOLVENTIC
 
-> Estado: **217 suites / 3055 tests ✅** (medido el 2026-11-22 en `fix/validacion-deudor-mensajes` con `dev` integrado, con `npx jest --ci`; excluye `tests/db` y `tests/e2e`, que corren aparte). El conteo lo vigila `tests/unit/docs/conteo-de-tests.test.ts`: falla si esta cifra, la del README o la de `CLAUDE.md` se despegan de la realidad o entre sí. Antes de ese test las tres decían números distintos y ninguno era el correcto — este documento afirmaba 27 suites / 447 tests, de agosto de 2026.
+> Estado: **217 suites / 3055 tests ✅** (medido el 2026-11-22 con `npx jest --ci`; excluye `tests/db` y `tests/e2e`, que corren aparte). El conteo lo vigila `tests/unit/docs/conteo-de-tests.test.ts`: falla si esta cifra, la del README o la de `CLAUDE.md` se despegan de la realidad o entre sí. Antes de ese test las tres decían números distintos y ninguno era el correcto — este documento afirmaba 27 suites / 447 tests, de agosto de 2026.
 >
 > ⚠️ **El inventario de la sección 3 cubre 27 de esas 217 suites**: las que existían cuando se escribió, en agosto de 2026 (y esas 27 hoy tienen 511 casos, no 447). No es el inventario completo del proyecto, es la lista de las suites del núcleo; reconstruirlo entero es trabajo propio, y no está hecho.
 >
