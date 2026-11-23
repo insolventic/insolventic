@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+import { google, type drive_v3 } from 'googleapis';
 import { Readable } from 'stream';
 
 import { logger } from '@/lib/logger';
@@ -38,6 +38,38 @@ function errorDeDrive(
     retryable: isRetryableDriveError(error),
   });
   return new Error(mensaje, { cause: error });
+}
+
+/** Elementos por página al listar: el máximo que acepta Drive. */
+const PAGINA_DE_DRIVE = 1000;
+
+/**
+ * Carpetas padre por consulta en `listarArbolesPorNiveles`. Cada una suma
+ * unos 45 caracteres al `q` (`'<id>' in parents or `): 40 lo dejan muy por
+ * debajo del largo que acepta Drive.
+ */
+export const PADRES_POR_CONSULTA = 40;
+
+/** El árbol de una carpeta, con el formato de `listAllFoldersAndFilesRecursively`. */
+export interface ArbolDeCarpeta {
+  folders: Array<{
+    id: string;
+    name: string;
+    path: string[];
+    parentId: string;
+    createdTime?: string;
+    modifiedTime?: string;
+  }>;
+  files: Array<{
+    id: string;
+    name: string;
+    mimeType?: string;
+    size?: string;
+    path: string[];
+    parentId: string;
+    createdTime?: string;
+    modifiedTime?: string;
+  }>;
 }
 
 /** Para el log de una carpeta duplicada: de qué caso y centro es. */
@@ -334,32 +366,162 @@ class GoogleDriveService {
     return `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
 
+  /**
+   * Todas las páginas de un `files.list`. Drive devuelve como máximo
+   * `pageSize` elementos por página (100 si no se pide otro valor) y el resto
+   * solo con `nextPageToken`: sin recorrerlas, una carpeta con más de 100
+   * elementos se leía a medias y en silencio.
+   */
+  private async listarTodasLasPaginas(params: {
+    q: string;
+    fields: string;
+    orderBy?: string;
+  }): Promise<drive_v3.Schema$File[]> {
+    const archivos: drive_v3.Schema$File[] = [];
+    let pageToken: string | undefined;
+    do {
+      const respuesta = await this.drive.files.list({
+        q: params.q,
+        fields: `nextPageToken, ${params.fields}`,
+        orderBy: params.orderBy,
+        pageSize: PAGINA_DE_DRIVE,
+        pageToken,
+      });
+      archivos.push(...(respuesta.data.files ?? []));
+      pageToken = respuesta.data.nextPageToken ?? undefined;
+    } while (pageToken);
+    return archivos;
+  }
+
   async listFoldersAndFiles(parentFolderId?: string) {
     try {
       const folderId = parentFolderId || process.env.GOOGLE_DRIVE_FOLDER_ID!;
 
-      const foldersResponse = await this.drive.files.list({
-        q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      const folders = await this.listarTodasLasPaginas({
+        q: `'${sanitizeDriveQueryValue(folderId)}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id,name,createdTime,modifiedTime)',
         orderBy: 'name',
       });
 
-      const filesResponse = await this.drive.files.list({
-        q: `'${folderId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
+      const files = await this.listarTodasLasPaginas({
+        q: `'${sanitizeDriveQueryValue(folderId)}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
         fields: 'files(id,name,mimeType,size,createdTime,modifiedTime,parents)',
         orderBy: 'name',
       });
 
-      return {
-        folders: foldersResponse.data.files || [],
-        files: filesResponse.data.files || [],
-      };
+      return { folders, files };
     } catch (error) {
       throw errorDeDrive('Error al listar contenido de Google Drive', error, {
         action: 'drive-list',
         folderId: parentFolderId,
       });
     }
+  }
+
+  /**
+   * El árbol completo de varias carpetas a la vez, nivel por nivel.
+   *
+   * En lugar de dos consultas por carpeta, cada consulta pide los hijos de
+   * hasta `padresPorConsulta` carpetas (`'a' in parents or 'b' in parents …`),
+   * en tandas de tamaño fijo para no pasar el largo máximo del `q` de Drive, y
+   * con todas sus páginas. Con N carpetas y P niveles son unas
+   * P · N / padresPorConsulta consultas, en vez de dos por carpeta.
+   *
+   * Las raíces se recorren en lotes de `padresPorConsulta`. Con `hasta` (una
+   * marca de `Date.now()`), deja de consultar al pasarla: las raíces que no
+   * terminó de leer van en `incompletas` y su árbol queda a medias, para que
+   * el llamador no lo use. Una consulta que falla marca incompletas las raíces
+   * de esa tanda y sigue con el resto.
+   *
+   * Cada árbol tiene el formato de `listAllFoldersAndFilesRecursively`: la
+   * ruta de una carpeta incluye su nombre; la de un archivo, la de su carpeta.
+   */
+  async listarArbolesPorNiveles(
+    raices: string[],
+    opciones: { hasta?: number; padresPorConsulta?: number } = {},
+  ): Promise<{
+    arboles: Map<string, ArbolDeCarpeta>;
+    incompletas: Set<string>;
+  }> {
+    const porConsulta = opciones.padresPorConsulta ?? PADRES_POR_CONSULTA;
+    const arboles = new Map<string, ArbolDeCarpeta>();
+    const incompletas = new Set<string>();
+    const ubicacion = new Map<string, { raiz: string; ruta: string[] }>();
+    const vencido = () =>
+      opciones.hasta !== undefined && Date.now() >= opciones.hasta;
+
+    const unicas = [...new Set(raices)];
+    for (const raiz of unicas) {
+      arboles.set(raiz, { folders: [], files: [] });
+      ubicacion.set(raiz, { raiz, ruta: [] });
+    }
+
+    for (let i = 0; i < unicas.length; i += porConsulta) {
+      const lote = unicas.slice(i, i + porConsulta);
+      let nivel = [...lote];
+      while (nivel.length > 0) {
+        const siguiente: string[] = [];
+        for (let j = 0; j < nivel.length; j += porConsulta) {
+          if (vencido()) {
+            for (const r of unicas.slice(i)) incompletas.add(r);
+            return { arboles, incompletas };
+          }
+          const tanda = nivel.slice(j, j + porConsulta);
+          const enTanda = new Set(tanda);
+          let hijos: drive_v3.Schema$File[];
+          try {
+            hijos = await this.listarTodasLasPaginas({
+              q: `(${tanda.map((id) => `'${sanitizeDriveQueryValue(id)}' in parents`).join(' or ')}) and trashed=false`,
+              fields:
+                'files(id,name,mimeType,size,parents,createdTime,modifiedTime)',
+            });
+          } catch (error) {
+            for (const id of tanda) incompletas.add(ubicacion.get(id)!.raiz);
+            logger.warn('No se pudo listar una tanda de carpetas de Drive', {
+              action: 'drive-list-niveles',
+              carpetas: tanda.length,
+              reason: error instanceof Error ? error.message : String(error),
+            });
+            continue;
+          }
+          for (const hijo of hijos) {
+            const padre = hijo.parents?.find((p) => enTanda.has(p));
+            if (!padre || !hijo.id || !hijo.name) continue;
+            // Un elemento con dos padres, o ya visto: una sola vez.
+            if (ubicacion.has(hijo.id)) continue;
+            const { raiz, ruta } = ubicacion.get(padre)!;
+            const arbol = arboles.get(raiz)!;
+            if (hijo.mimeType === 'application/vnd.google-apps.folder') {
+              const rutaHijo = [...ruta, hijo.name];
+              ubicacion.set(hijo.id, { raiz, ruta: rutaHijo });
+              arbol.folders.push({
+                id: hijo.id,
+                name: hijo.name,
+                path: rutaHijo,
+                parentId: padre,
+                createdTime: hijo.createdTime || undefined,
+                modifiedTime: hijo.modifiedTime || undefined,
+              });
+              siguiente.push(hijo.id);
+            } else {
+              ubicacion.set(hijo.id, { raiz, ruta });
+              arbol.files.push({
+                id: hijo.id,
+                name: hijo.name,
+                mimeType: hijo.mimeType || undefined,
+                size: hijo.size || undefined,
+                path: [...ruta],
+                parentId: padre,
+                createdTime: hijo.createdTime || undefined,
+                modifiedTime: hijo.modifiedTime || undefined,
+              });
+            }
+          }
+        }
+        nivel = siguiente;
+      }
+    }
+    return { arboles, incompletas };
   }
 
   async listAllFoldersAndFilesRecursively(parentFolderId?: string): Promise<{
