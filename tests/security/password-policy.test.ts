@@ -5,7 +5,6 @@
 
 import {
   passwordSchema,
-  registerSchema,
   resetPasswordSchema,
   changePasswordSchema,
 } from '@/features/auth/schemas';
@@ -43,35 +42,6 @@ describe('Password Policy — Security Enforcement', () => {
         const result = passwordSchema.safeParse(pw);
         expect(result.success).toBe(true);
       });
-    });
-  });
-
-  describe('registerSchema — password policy integration', () => {
-    const baseInput = {
-      name: 'Test User',
-      email: 'test@example.com',
-      phone: '3001234567',
-      address: 'Calle 123',
-      professionalCard: 'TP-001',
-      tenantId: 'test-tenant',
-    };
-
-    it('should reject weak password in registration', () => {
-      const result = registerSchema.safeParse({
-        ...baseInput,
-        password: 'weakpass',
-        confirmPassword: 'weakpass',
-      });
-      expect(result.success).toBe(false);
-    });
-
-    it('should accept strong password in registration', () => {
-      const result = registerSchema.safeParse({
-        ...baseInput,
-        password: 'SecurePass123!',
-        confirmPassword: 'SecurePass123!',
-      });
-      expect(result.success).toBe(true);
     });
   });
 

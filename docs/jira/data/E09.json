@@ -1,0 +1,572 @@
+{
+  "epica": {
+    "id": "E09",
+    "titulo": "Operación y Observabilidad",
+    "descripcion": "Logger estructurado con redacción de PII, Sentry (cliente, servidor, edge) con scrub compartido, health check y smoke test post-deploy, runbooks de incidentes y de rotación de credenciales, y la documentación de traspaso.",
+    "objetivo": "Que un fallo en producción se vea en minutos y que cualquiera pueda operar el sistema con los runbooks, sin depender de la memoria de Maxi.",
+    "prioridad": "Alta",
+    "labels": ["nfr"],
+    "evidencia": [
+      "src/lib/logger.ts",
+      "src/lib/sentry-scrub.ts",
+      "docs/RUNBOOK.md",
+      "docs/IMPLEMENTACION_SEMANA_2.md"
+    ]
+  },
+  "items": [
+    {
+      "id": "E09-01",
+      "tipo": "Story",
+      "titulo": "Errores de la app reportados a Sentry y métricas de uso",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que los errores de la aplicación lleguen a un panel de monitoreo",
+        "para": "que un fallo se detecte sin esperar a que un usuario lo reporte"
+      },
+      "ac": [
+        "Dado un error en servidor Cuando ocurre Entonces se envía a Sentry",
+        "[borde] Dado un entorno sin DSN Cuando ocurre un error Entonces degrada a consola sin romper",
+        "Dado el layout Cuando carga Entonces inyecta Vercel Analytics y Speed Insights"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Frontend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.3.0",
+      "evidencia": [
+        "820461c",
+        "CHANGELOG.md [0.3.0] Observabilidad — Sentry, Vercel Analytics"
+      ]
+    },
+    {
+      "id": "E09-02",
+      "tipo": "Story",
+      "titulo": "Logger estructurado con redacción automática de datos personales",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "logs en JSON con requestId y sin datos personales",
+        "para": "investigar incidentes sin exponer cédulas, correos ni tokens"
+      },
+      "ac": [
+        "Dado un contexto con password, token, email, phone o cedula Cuando se registra Entonces aparecen como [REDACTED]",
+        "Dado un logger.error Cuando ocurre Entonces va a consola JSON y a Sentry",
+        "[borde] Dado LOG_LEVEL=warn en producción Cuando se llama logger.info Entonces no se emite",
+        "Dado una petición Cuando se registra un log Entonces incluye el requestId"
+      ],
+      "puntos": 5,
+      "justificacion": "Infraestructura de logging propia con redacción, niveles y migración de rutas críticas (~50 refs).",
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-11",
+      "version": "v0.4.0",
+      "evidencia": [
+        "40a5a59 feat(observability): logger infrastructure + refactor de rutas críticas (Fase 2.1)",
+        "854e694 auto-inyección de requestId",
+        "CLAUDE.md §Logger Pattern"
+      ]
+    },
+    {
+      "id": "E09-03",
+      "tipo": "Bug",
+      "titulo": "La política de contenido bloqueaba el envío de errores del navegador a Sentry",
+      "bug": {
+        "entorno": "Producción hasta agosto 2026",
+        "pasos": [
+          "Provocar un error en el navegador",
+          "Buscar el evento en Sentry"
+        ],
+        "esperado": "El evento llega",
+        "actual": "La CSP bloqueaba la conexión al dominio de ingest",
+        "severidad": "Alta",
+        "causaRaiz": "connect-src de la CSP no incluía el dominio de ingest de Sentry.",
+        "fix": "c51ea96",
+        "regresion": "Test de headers que verifica el dominio en connect-src."
+      },
+      "ac": [
+        "Dado la CSP Cuando se inspecciona Entonces connect-src incluye el ingest de Sentry",
+        "Dado un error de cliente Cuando ocurre Entonces la petición a Sentry no es bloqueada"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["doc-semana-2"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-A-7"],
+      "evidencia": ["c51ea96", "docs/IMPLEMENTACION_SEMANA_2.md §2"]
+    },
+    {
+      "id": "E09-04",
+      "tipo": "Story",
+      "titulo": "Health check y prueba de humo después de cada despliegue",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que después de cada despliegue se verifique automáticamente que la app y la base responden",
+        "para": "detectar un despliegue roto antes que los usuarios"
+      },
+      "ac": [
+        "Dado /api/health Cuando la base responde Entonces devuelve 200 sin caché",
+        "[error] Dado la base caída Cuando se consulta Entonces responde error dentro del timeout y limpia el temporizador",
+        "Dado un despliegue Cuando termina Entonces corre el smoke test"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["nfr", "doc-semana-2"],
+      "componentes": ["Backend", "Infra-CI/CD"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-A-5"],
+      "evidencia": [
+        "57fd2c5 feat(ops): health check + smoke test post-deploy (A-5)",
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §4 (health verificado)"
+      ]
+    },
+    {
+      "id": "E09-05",
+      "tipo": "Task",
+      "titulo": "Runbook de incidentes, rollback y despliegue de emergencia",
+      "tarea": {
+        "objetivo": "Que un incidente se pueda atender con un procedimiento escrito.",
+        "alcance": "Rollback de deploy, caída de BD/Drive/SMTP, despliegue manual de emergencia.",
+        "dod": "docs/RUNBOOK.md publicado; los ⟨COMPLETAR⟩ de contactos quedan señalados."
+      },
+      "ac": [
+        "Dado un deploy roto Cuando se sigue el runbook Entonces se puede volver a la versión anterior"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["doc-semana-2"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-M-10"],
+      "evidencia": [
+        "f542f22 docs(ops): runbook de incidentes, rollback y despliegue de emergencia (M-10)"
+      ]
+    },
+    {
+      "id": "E09-06",
+      "tipo": "Bug",
+      "titulo": "Sentry no capturaba ningún error del servidor",
+      "bug": {
+        "entorno": "Producción, septiembre 2026",
+        "pasos": [
+          "Provocar un error en una server action",
+          "Buscarlo en Sentry"
+        ],
+        "esperado": "El error aparece",
+        "actual": "Ningún evento de servidor llegaba",
+        "severidad": "Alta",
+        "causaRaiz": "instrumentation.ts no estaba cableado, así que la config de servidor nunca se inicializaba.",
+        "fix": "ba24ec1",
+        "regresion": "Verificación con evento de prueba durante el incidente de /cases."
+      },
+      "ac": [
+        "Dado un error de servidor Cuando ocurre Entonces llega a Sentry",
+        "Dado el arranque del servidor Cuando inicia Entonces instrumentation.ts registra Sentry"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-07",
+      "version": "v0.5.0",
+      "evidencia": [
+        "ba24ec1 feat(observability): cablear instrumentation.ts — sin esto Sentry no captura nada en servidor"
+      ]
+    },
+    {
+      "id": "E09-07",
+      "tipo": "Task",
+      "titulo": "Runbook de rotación del refresh token de Google Drive",
+      "tarea": {
+        "objetivo": "Que la renovación del token de Drive (modo Testing, 7 días) no dependa de una persona.",
+        "alcance": "Procedimiento con OAuth Playground y referencias corregidas en ARQUITECTURA §9.",
+        "dod": "docs/RUNBOOK_ROTACION_DRIVE.md mergeado (#21)."
+      },
+      "ac": [
+        "Dado el token vencido Cuando se sigue el runbook Entonces Drive vuelve a funcionar"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": [
+        "1b7f7cd",
+        "979099b",
+        "#21 dcb0d9a",
+        "docs/RUNBOOK_ROTACION_DRIVE.md"
+      ]
+    },
+    {
+      "id": "E09-08",
+      "tipo": "Task",
+      "titulo": "Runbook de variables de la base de datos y rotación de su contraseña",
+      "tarea": {
+        "objetivo": "Documentar DATABASE_URL vs DIRECT_URL y cómo rotar neondb_owner.",
+        "alcance": "Runbook de env vars y enlace desde RUNBOOK.md.",
+        "dod": "docs/RUNBOOK_ENV_VARS.md publicado."
+      },
+      "ac": [
+        "Dado una rotación de credenciales Cuando se sigue el runbook Entonces producción y migraciones siguen funcionando"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Base-de-Datos"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-19",
+      "version": "v0.6.0",
+      "evidencia": [
+        "516bac9",
+        "dfe17fc",
+        "de5b894 (rotación de Neon resuelta)",
+        "docs/RUNBOOK_ENV_VARS.md"
+      ]
+    },
+    {
+      "id": "E09-09",
+      "tipo": "Bug",
+      "titulo": "Datos sensibles podían llegar a Sentry en excepciones y breadcrumbs",
+      "bug": {
+        "entorno": "Producción, septiembre 2026",
+        "pasos": [
+          "Provocar una excepción cuyo mensaje o extra contiene datos personales"
+        ],
+        "esperado": "El evento llega con los datos redactados",
+        "actual": "El scrub solo cubría cookies, headers y query params",
+        "severidad": "Alta",
+        "causaRaiz": "beforeSend no recorría exception values, breadcrumbs ni extra.",
+        "fix": "#55 db9c215",
+        "regresion": "Tests de sentry-scrub sobre excepciones, breadcrumbs y extra."
+      },
+      "ac": [
+        "Dado un breadcrumb con un correo Cuando se envía Entonces el correo está redactado",
+        "Dado un extra con token Cuando se envía Entonces está redactado"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#55 db9c215", "src/lib/sentry-scrub.ts"]
+    },
+    {
+      "id": "E09-10",
+      "tipo": "Story",
+      "titulo": "Un solo camino de reporte a Sentry y sin eventos duplicados",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "que cada fallo genere un solo evento en Sentry con su contexto",
+        "para": "no confundir la cantidad real de incidentes"
+      },
+      "ac": [
+        "Dado un fallo de generación Cuando ocurre Entonces se registra un solo evento (antes dos)",
+        "Dado logger.error con action Cuando se envía Entonces action llega como tag",
+        "[borde] Dado el cron de alertas Cuando falla Entonces usa logger.error con entrega garantizada (waitUntil + flush)"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#38 cb4c525",
+        "CHANGELOG.md [1.0.0-rc.1] Changed (Un solo wrapper de Sentry)"
+      ]
+    },
+    {
+      "id": "E09-11",
+      "tipo": "Story",
+      "titulo": "Saber qué commit está desplegado desde el health check",
+      "historia": {
+        "rol": "responsable técnico del sistema",
+        "quiero": "consultar qué versión exacta está en producción",
+        "para": "confirmar que un arreglo ya está desplegado"
+      },
+      "ac": [
+        "Dado el header autorizado Cuando consulto /api/health Entonces veo el commit desplegado",
+        "[error] Dado una petición sin el header Cuando consulto Entonces no se expone el commit",
+        "Dado el smoke test Cuando corre Entonces puede verificar el commit esperado"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-03",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#109 da6e928",
+        "docs/IMPLEMENTACION_SEMANA_2.md (Fuera de alcance: decisión pendiente)"
+      ]
+    },
+    {
+      "id": "E09-12",
+      "tipo": "Bug",
+      "trivial": true,
+      "titulo": "El error de Chromium sugería una variable CHROME_PATH que no se usa",
+      "bug": {
+        "entorno": "dev, septiembre 2026",
+        "pasos": ["Provocar un fallo al lanzar Chromium"],
+        "esperado": "Un mensaje que no prometa una configuración inexistente",
+        "actual": "El mensaje decía que se podía fijar CHROME_PATH",
+        "severidad": "Baja",
+        "causaRaiz": "Texto de error desactualizado.",
+        "fix": "18b8de8",
+        "regresion": "Ninguno."
+      },
+      "ac": [
+        "Dado un fallo de Chromium Cuando se registra Entonces el mensaje no menciona CHROME_PATH",
+        "Dado el mensaje Cuando se lee Entonces indica una acción real"
+      ],
+      "puntos": null,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-19",
+      "version": "v0.6.0",
+      "evidencia": ["18b8de8"]
+    },
+    {
+      "id": "E09-13",
+      "tipo": "Task",
+      "titulo": "Documentación técnica para la revisión del cliente",
+      "tarea": {
+        "objetivo": "Entregar a los centros una descripción verificable del sistema.",
+        "alcance": "Diccionario de datos, ERD en 3 vistas, diagrama de clases, de componentes, requisitos funcionales/no funcionales (Excel) e índice en README.",
+        "dod": "Documentos en docs/ y enlazados desde el README."
+      },
+      "ac": [
+        "Dado el README Cuando se abre Entonces enlaza todos los documentos técnicos"
+      ],
+      "puntos": 5,
+      "justificacion": "Seis entregables de documentación verificados contra el código.",
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W33",
+      "estado": "Done",
+      "resuelto": "2026-08-12",
+      "version": "v0.4.0",
+      "evidencia": [
+        "849d96b",
+        "7280aa9",
+        "660fffd",
+        "c541b75",
+        "docs/DICCIONARIO_DATOS.md",
+        "docs/MODELO_ENTIDAD_RELACION.md"
+      ]
+    },
+    {
+      "id": "E09-14",
+      "tipo": "Task",
+      "titulo": "Manual de usuario y variables de entorno al día para el traspaso",
+      "tarea": {
+        "objetivo": "Que los centros y quien herede el sistema tengan documentación fiel a lo que hace hoy.",
+        "alcance": "MANUAL_USUARIO.md reescrito, documentación de variables de entorno y verificación de ARQUITECTURA §2.",
+        "dod": "Mergeado en #141 con la lista exacta de ⟨COMPLETAR⟩ que dependen de terceros."
+      },
+      "ac": [
+        "Dado el manual Cuando se compara con la app Entonces describe las pantallas actuales"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["doc-semana-8"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#141 6aa58d1 (c296f88, 7d58d34)",
+        "docs/IMPLEMENTACION_SEMANA_8.md §2.4-2.5"
+      ]
+    },
+    {
+      "id": "E09-15",
+      "tipo": "Task",
+      "titulo": "Sincronizar ARQUITECTURA.md con el sistema real",
+      "tarea": {
+        "objetivo": "Corregir afirmaciones desactualizadas de la arquitectura.",
+        "alcance": "§2 describía una BD por centro que no existe; diagrama de §1 corregido.",
+        "dod": "ARQUITECTURA.md coincide con el código (una base, aislamiento por tenantId)."
+      },
+      "ac": [
+        "Dado ARQUITECTURA §1 y §2 Cuando se comparan con el código Entonces no hay contradicciones"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["doc-semana-9"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["PP-B-5"],
+      "evidencia": [
+        "c6ee3d0 docs(arquitectura): §2 describia una BD por centro que no existe",
+        "#142 (7aa5f44)",
+        "docs/IMPLEMENTACION_SEMANA_9.md §2.1"
+      ]
+    },
+    {
+      "id": "E09-16",
+      "tipo": "Task",
+      "titulo": "Cerrar formalmente el endpoint temporal de prueba de Sentry",
+      "tarea": {
+        "objetivo": "Dejar trazado el cierre de G-M1.",
+        "alcance": "Confirmar que /api/sentry-test-temporal no existe en dev ni main y que el evento de prueba se vio en Sentry; borrar su test si quedara.",
+        "dod": "Nota de cierre en la auditoría con el commit/fecha."
+      },
+      "ac": [
+        "Dado src/app/api Cuando se lista Entonces solo existen cron y health",
+        "Dado la búsqueda en el historial Cuando se ejecuta Entonces se documenta en qué rama vivió el endpoint"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": ["inferido"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W45",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Should",
+      "hallazgos": ["G-M1"],
+      "nota": "El endpoint no aparece en src/app/api ni en el historial de dev (verificado 2026-10-21); la auditoría lo vio en la rama fix/sentry-init. Falta solo el registro del cierre.",
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §4 (Medio)",
+        "ls src/app/api → cron, health (2026-10-21)"
+      ]
+    },
+    {
+      "id": "E09-17",
+      "tipo": "Task",
+      "titulo": "Confirmar el límite de intentos distribuido en producción",
+      "tarea": {
+        "objetivo": "Que el rate limiting de login no esté degradado a memoria en producción.",
+        "alcance": "Verificar UPSTASH_REDIS_REST_URL/TOKEN en Vercel (production y preview) y que el warn de degradación no aparezca en Sentry.",
+        "dod": "Captura de la configuración y 7 días sin el warn en Sentry."
+      },
+      "ac": [
+        "Dado producción Cuando se revisan las variables Entonces Upstash está configurado",
+        "[error] Dado el warn de degradación en Sentry Cuando aparece Entonces se trata como incidente"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W48",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "hallazgos": ["G-B1"],
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §4 (Bajo)",
+        "docs/IMPLEMENTACION_SEMANA_2.md (Requiere acción tuya, punto 1)"
+      ]
+    },
+    {
+      "id": "E09-18",
+      "tipo": "Task",
+      "titulo": "Alertas de Sentry para fallos del cron y de la generación",
+      "tarea": {
+        "objetivo": "Que un fallo del cron de alertas o de una generación avise a alguien.",
+        "alcance": "Reglas de alerta en Sentry por tag action (generation-job, cron) con destinatario definido.",
+        "dod": "Alerta de prueba recibida."
+      },
+      "ac": [
+        "Dado un fallo de generación Cuando ocurre Entonces llega una alerta",
+        "Dado un fallo del cron Cuando ocurre Entonces llega una alerta"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md §5 Checklist (Alerta configurada para fallos del cron y errores de generación)"
+      ]
+    },
+    {
+      "id": "E09-19",
+      "tipo": "Task",
+      "titulo": "Completar los datos pendientes del runbook y verificar Sentry de punta a punta",
+      "tarea": {
+        "objetivo": "Que el runbook sea usable por un tercero.",
+        "alcance": "Contactos, proveedor de BD, URL de Sentry; error de prueba de cliente y de servidor visibles.",
+        "dod": "Sin ⟨COMPLETAR⟩ en RUNBOOK.md y evidencia de los dos eventos de prueba."
+      },
+      "ac": [
+        "Dado RUNBOOK.md Cuando se busca ⟨COMPLETAR⟩ Entonces no hay resultados",
+        "Dado un error de prueba de cliente y otro de servidor Cuando se disparan Entonces ambos aparecen en Sentry"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W48",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Should",
+      "evidencia": [
+        "docs/IMPLEMENTACION_SEMANA_2.md (Requiere acción tuya, puntos 2 y 3)"
+      ]
+    },
+    {
+      "id": "E09-20",
+      "tipo": "Task",
+      "titulo": "Actualizar el runbook de variables para Preview con branch propio",
+      "tarea": {
+        "objetivo": "Que el runbook de env vars refleje que Preview tiene su propio branch de Neon.",
+        "alcance": "Reescribir §4 de RUNBOOK_ENV_VARS.md y quitar el ⟨VERIFICAR⟩ de §2.",
+        "dod": "Runbook coherente con la infraestructura actual."
+      },
+      "ac": [
+        "Dado RUNBOOK_ENV_VARS.md Cuando se lee §4 Entonces describe dos branches (producción y preview)"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W48",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Should",
+      "evidencia": [
+        "docs/CHECKPOINT_2026-10-09.md §6",
+        "0dad100 docs(runbook): Preview ya tiene su propio branch de Neon"
+      ]
+    }
+  ]
+}

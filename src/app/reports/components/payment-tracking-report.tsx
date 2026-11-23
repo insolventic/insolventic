@@ -29,6 +29,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { MoneyInputField } from '@/components/ui/money-input';
+import { parsearMonto } from '@/features/case/monto';
 import {
   Select,
   SelectContent,
@@ -59,6 +61,7 @@ import {
   errorDeTamanoTrasRechazo,
   MAX_ARCHIVO_MB,
 } from '@/lib/limite-archivos';
+import { registrarRechazoPorTamano } from '@/lib/rechazo-tamano';
 import type {
   PaymentTrackingData,
   PaymentWithRelations,
@@ -954,7 +957,8 @@ function RegisterPaymentDialog({
   };
 
   const handleSubmit = async () => {
-    if (!selectedCaseId || !amount || parseFloat(amount) <= 0) {
+    const monto = parsearMonto(amount);
+    if (!selectedCaseId || monto === undefined || !(monto > 0)) {
       setError('Selecciona un caso e ingresa un monto válido.');
       return;
     }
@@ -964,7 +968,7 @@ function RegisterPaymentDialog({
     try {
       const result = await registerPayment({
         caseId: selectedCaseId,
-        amount: parseFloat(amount),
+        amount: monto,
         paymentDate,
         paymentMethod: method || undefined,
         observations: observations || undefined,
@@ -983,6 +987,7 @@ function RegisterPaymentDialog({
       const errorDeTamano =
         receiptFile &&
         errorDeTamanoTrasRechazo(error, new Blob([receiptFile]).size);
+      if (errorDeTamano) registrarRechazoPorTamano('comprobante', receiptFile);
       setError(
         errorDeTamano
           ? `${receiptFile.name}: ${errorDeTamano}`
@@ -1103,13 +1108,15 @@ function RegisterPaymentDialog({
             <label className="mb-1 block text-sm font-medium">
               Valor pagado <span className="text-red-500">*</span>
             </label>
-            <Input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+            <MoneyInputField
+              field={{
+                name: 'amount',
+                value: amount,
+                onChange: (v) => setAmount(String(v ?? '')),
+                onBlur: () => {},
+                ref: null,
+              }}
               placeholder="0"
-              min="0"
-              step="1"
             />
           </div>
 
@@ -1188,6 +1195,7 @@ function RegisterPaymentDialog({
                   const errorDeTamano = errorDeTamanoDeArchivo(file.size);
                   setError(errorDeTamano ?? '');
                   if (errorDeTamano) {
+                    registrarRechazoPorTamano('comprobante', file);
                     // Vacío para que volver a elegir el mismo archivo dispare `change`.
                     e.target.value = '';
                     return;
@@ -1222,8 +1230,7 @@ function RegisterPaymentDialog({
             disabled={
               submitting ||
               !selectedCaseId ||
-              !amount ||
-              parseFloat(amount) <= 0
+              !((parsearMonto(amount) ?? 0) > 0)
             }
           >
             {submitting ? 'Registrando...' : 'Registrar Pago'}

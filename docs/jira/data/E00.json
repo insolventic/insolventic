@@ -1,0 +1,261 @@
+{
+  "epica": {
+    "id": "E00",
+    "titulo": "Análisis y Diseño",
+    "descripcion": "Fases 1 (análisis de requisitos y entendimiento del negocio) y 2 (diseño de arquitectura de la aplicación) del Diagrama de Gantt del proyecto: requisitos, casos de uso, product backlog, modelo BPMN AS-IS/TO-BE, documento de arquitectura, modelo de datos y diagramas, y mockups. Es lo primero que se hizo en el proyecto, antes de la construcción (fase 3, que cubren las épicas E01-E14).",
+    "objetivo": "Entender el proceso de insolvencia y conciliación de los centros y fijar requisitos, arquitectura y modelo de datos antes de escribir código.",
+    "prioridad": "Alta",
+    "labels": [],
+    "resueltoDerivado": {
+      "regla": "fecha del último hijo cerrado",
+      "fecha": "2026-02-01",
+      "desde": ["E00-07", "E00-08"]
+    },
+    "evidencia": [
+      "docs/diseno/Diagrama de Gantt - Insolventic.png (fases 1 y 2, semanas 1-14)",
+      "docs/REQUISITOS_INSOLVENTIC.xlsx",
+      "docs/ARQUITECTURA.md",
+      "docs/MODELO_ENTIDAD_RELACION.md",
+      "docs/DIAGRAMA_CLASES.md",
+      "docs/DIAGRAMA_COMPONENTES.md"
+    ]
+  },
+  "items": [
+    {
+      "id": "E00-01",
+      "tipo": "Task",
+      "titulo": "Planificar el proyecto en un diagrama de Gantt por fases",
+      "tarea": {
+        "objetivo": "Fijar el cronograma del proyecto de tesis en 25 semanas y 5 fases.",
+        "alcance": "Fases: análisis de requisitos, diseño de arquitectura, construcción, pruebas y validación, cierre y entrega.",
+        "dod": "Diagrama de Gantt con tareas por fase y semana."
+      },
+      "ac": [
+        "Dado el Gantt Cuando se revisa Entonces cada fase tiene sus tareas y semanas asignadas",
+        "Dado la fase de construcción Cuando se ubica en el Gantt Entonces empieza en la semana 14, después del diseño"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2025-11-09",
+      "version": "v0.0.0",
+      "nota": "La planificación ocurre en la semana 1. La versión del diagrama que está en docs/diseno/ está fechada el 2026-06-03 (actualización posterior para el documento de tesis).",
+      "evidencia": ["docs/diseno/Diagrama de Gantt - Insolventic.png"]
+    },
+    {
+      "id": "E00-02",
+      "tipo": "Task",
+      "titulo": "Documento de requisitos funcionales y no funcionales",
+      "tarea": {
+        "objetivo": "Levantar con los centros los requisitos del sistema.",
+        "alcance": "Requisitos funcionales (RF) y no funcionales (RNF) del proceso de insolvencia, conciliación y acuerdos de apoyo.",
+        "dod": "Documento de requisitos revisado (Gantt: semanas 1-3)."
+      },
+      "ac": [
+        "Dado el documento Cuando se revisa Entonces cada requisito tiene identificador y tipo (RF o RNF)",
+        "Dado los tres servicios del centro Cuando se revisan los requisitos Entonces cada servicio tiene los suyos"
+      ],
+      "puntos": 5,
+      "justificacion": "Levantamiento de dominio legal con los dos centros; la mayor incertidumbre del proyecto está acá.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2025-11-23",
+      "version": "v0.0.0",
+      "nota": "La versión publicada en el repo para revisión del cliente es posterior (660fffd, 2026-08-12, E09-13).",
+      "evidencia": [
+        "docs/diseno/Diagrama de Gantt - Insolventic.png (Documento requisitos, semanas 1-3)",
+        "docs/REQUISITOS_INSOLVENTIC.xlsx",
+        "660fffd docs: add functional/non-functional requirements (Excel)"
+      ]
+    },
+    {
+      "id": "E00-03",
+      "tipo": "Task",
+      "titulo": "Diagrama de casos de uso",
+      "tarea": {
+        "objetivo": "Representar qué hace cada actor (operadora, abogado, conciliadora, administrador, deudor) con el sistema.",
+        "alcance": "Casos de uso de los módulos de casos, documentos, pagos, reportes y administración.",
+        "dod": "Diagrama de casos de uso entregado junto con el documento de requisitos (Gantt: semanas 1-3)."
+      },
+      "ac": [
+        "Dado cada actor del sistema Cuando se revisa el diagrama Entonces tiene sus casos de uso",
+        "Dado cada caso de uso Cuando se compara con los requisitos Entonces corresponde a al menos un RF"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2025-11-23",
+      "version": "v0.0.0",
+      "nota": "El archivo del diagrama todavía no está en el repo: agregarlo a docs/diseno/ para cerrar el inferido.",
+      "evidencia": [
+        "docs/diseno/Diagrama de Gantt - Insolventic.png (Documento requisitos, casos de uso — semanas 1-3)"
+      ]
+    },
+    {
+      "id": "E00-04",
+      "tipo": "Task",
+      "titulo": "Product backlog inicial con historias de usuario",
+      "tarea": {
+        "objetivo": "Traducir los requisitos a historias de usuario priorizadas.",
+        "alcance": "Backlog inicial por módulo, previo a la construcción.",
+        "dod": "Product backlog con historias de usuario (Gantt: semanas 2-5)."
+      },
+      "ac": [
+        "Dado cada requisito funcional Cuando se revisa el backlog Entonces tiene al menos una historia",
+        "Dado el backlog Cuando se prioriza Entonces el módulo de autenticación y control de accesos queda primero (inicio de la fase 3)"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["inferido"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2025-12-07",
+      "version": "v0.0.0",
+      "nota": "No hay archivo de ese backlog inicial en el repo; el backlog de Jira actual lo reemplaza.",
+      "evidencia": [
+        "docs/diseno/Diagrama de Gantt - Insolventic.png (Product backlog con historias de usuario, semanas 2-5)"
+      ]
+    },
+    {
+      "id": "E00-05",
+      "tipo": "Task",
+      "titulo": "Modelo BPMN del proceso actual (AS-IS) y propuesto (TO-BE)",
+      "tarea": {
+        "objetivo": "Entender cómo tramitan hoy los centros un caso y cómo lo harán con el sistema.",
+        "alcance": "Diagrama AS-IS del proceso manual y TO-BE con el sistema.",
+        "dod": "Diagramas AS-IS y TO-BE (Gantt: semanas 3-6)."
+      },
+      "ac": [
+        "Dado el AS-IS Cuando se revisa con el centro Entonces refleja el trámite manual actual",
+        "Dado el TO-BE Cuando se compara con el AS-IS Entonces muestra qué pasos automatiza el sistema"
+      ],
+      "puntos": 5,
+      "justificacion": "Dos modelos de proceso validados con usuarios de dos centros distintos.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2025-12-14",
+      "version": "v0.0.0",
+      "nota": "Los PNG existieron en la raíz del repo pero están excluidos por .gitignore y hoy no están en la carpeta: agregarlos a docs/diseno/.",
+      "evidencia": [
+        "docs/diseno/Diagrama de Gantt - Insolventic.png (Modelo BPMN AS-IS / TO-BE, semanas 3-6)",
+        ".gitignore:58-59 (Diagrama_AS-IS_Insolventic.png, Diagrama_TO-BE_Insolventic.png)"
+      ]
+    },
+    {
+      "id": "E00-06",
+      "tipo": "Task",
+      "titulo": "Documento de arquitectura de la aplicación",
+      "tarea": {
+        "objetivo": "Decidir el stack y la estructura del sistema antes de construir.",
+        "alcance": "Next.js App Router con server actions, PostgreSQL + Prisma, multi-tenant por tenantId, JWT propio con RBAC, generación de documentos desde plantillas y almacenamiento en Google Drive.",
+        "dod": "Documento de arquitectura (Gantt: semanas 5-10)."
+      },
+      "ac": [
+        "Dado el documento Cuando se revisa Entonces describe capas, módulos y el aislamiento por centro",
+        "Dado una decisión de arquitectura Cuando se documenta Entonces incluye su motivo"
+      ],
+      "puntos": 5,
+      "justificacion": "Decisiones de stack, multi-tenant, seguridad y generación documental que condicionan todo lo demás.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Infra-CI/CD", "Backend"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2026-01-11",
+      "version": "v0.0.0",
+      "nota": "docs/ARQUITECTURA.md es la versión vigente, actualizada varias veces después (por ejemplo c6ee3d0 y E09-15).",
+      "evidencia": [
+        "docs/diseno/Diagrama de Gantt - Insolventic.png (Documento arquitectura, semanas 5-10)",
+        "docs/ARQUITECTURA.md"
+      ]
+    },
+    {
+      "id": "E00-07",
+      "tipo": "Task",
+      "titulo": "Modelo de datos y diagramas de diseño",
+      "tarea": {
+        "objetivo": "Fijar el modelo de datos y la estructura del sistema en diagramas.",
+        "alcance": "Modelo entidad-relación, diccionario de datos, diagrama de clases y diagrama de componentes.",
+        "dod": "Diagramas entregados (Gantt: semanas 7-13)."
+      },
+      "ac": [
+        "Dado el modelo entidad-relación Cuando se compara con el diccionario Entonces las tablas y relaciones coinciden",
+        "Dado el diagrama de componentes Cuando se revisa Entonces muestra los módulos y sus dependencias"
+      ],
+      "puntos": 8,
+      "justificacion": "Cuatro artefactos de diseño interdependientes sobre un modelo de más de 20 entidades.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Base-de-Datos", "Backend"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2026-02-01",
+      "version": "v0.0.0",
+      "nota": "Las versiones en el repo se publicaron el 2026-08-12 para revisión del cliente (849d96b, 7280aa9; ítem E09-13) y reflejan el sistema construido.",
+      "evidencia": [
+        "docs/diseno/Diagrama de Gantt - Insolventic.png (Modelo de datos, diagramas — semanas 7-13)",
+        "docs/MODELO_ENTIDAD_RELACION.md",
+        "docs/DICCIONARIO_DATOS.md",
+        "docs/DIAGRAMA_CLASES.md",
+        "docs/DIAGRAMA_COMPONENTES.md"
+      ],
+      "subtareas": [
+        {
+          "id": "E00-07.1",
+          "titulo": "Modelo entidad-relación y diccionario de datos",
+          "descripcion": "MODELO_ENTIDAD_RELACION.md y DICCIONARIO_DATOS.md."
+        },
+        {
+          "id": "E00-07.2",
+          "titulo": "Diagrama de clases",
+          "descripcion": "DIAGRAMA_CLASES.md."
+        },
+        {
+          "id": "E00-07.3",
+          "titulo": "Diagrama de componentes",
+          "descripcion": "DIAGRAMA_COMPONENTES.md."
+        }
+      ]
+    },
+    {
+      "id": "E00-08",
+      "tipo": "Task",
+      "titulo": "Mockups o prototipos de interfaz",
+      "tarea": {
+        "objetivo": "Validar con los usuarios las pantallas principales antes de construirlas.",
+        "alcance": "Prototipos de las pantallas núcleo (casos, formulario de creación, documentos).",
+        "dod": "Mockups revisados (Gantt: semanas 8-14)."
+      },
+      "ac": [
+        "Dado cada pantalla núcleo Cuando se revisa con el centro Entonces tiene su prototipo",
+        "Dado los comentarios del centro Cuando se incorporan Entonces el prototipo queda aprobado para construir"
+      ],
+      "puntos": 5,
+      "justificacion": "Prototipos de varias pantallas con una ronda de validación con usuarios.",
+      "prioridad": "Media",
+      "labels": ["inferido"],
+      "componentes": ["Frontend"],
+      "sprint": "Fase-Diseno",
+      "estado": "Done",
+      "resuelto": "2026-02-01",
+      "version": "v0.0.0",
+      "nota": "El Gantt lo extiende hasta la semana 14, que coincide con el inicio de la construcción (W06); se cierra con la fase. No hay archivos de mockups en el repo.",
+      "evidencia": [
+        "docs/diseno/Diagrama de Gantt - Insolventic.png (Mockups o prototipos de interfaz, semanas 8-14)"
+      ]
+    }
+  ]
+}

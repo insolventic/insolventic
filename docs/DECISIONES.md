@@ -2,6 +2,85 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-20 — Firmas de los documentos: en la base, por centro
+
+**Diagnóstico:** el repositorio es público y versionaba cuatro imágenes de firmas manuscritas (`templates/branding/*/firma-operador.png` y `templates/insolvency/img/`), algunas desde febrero de 2026. Las plantillas las leían del disco al generar. Además, la firma de la Designación del Conciliador estaba escrita a mano en la plantilla y salía igual para los dos centros.
+
+**Decisión:**
+
+- Las firmas se guardan en la tabla `imagenes_privadas` (Neon), una fila por **centro y tipo** (`@@unique([tenantId, tipo])`, FK a `Tenant` con borrado en cascada). Si dos centros usan la misma imagen, se guarda dos veces: una fila nunca se comparte entre centros.
+- El mapper no emite una ruta sino un ref simbólico sin centro (`imagen-privada:firma-operador`). Cada punto de entrada de la generación (job inicial, etapas, regenerar, vista previa y el lote de `/documents`) resuelve las firmas con el `tenantId` del expediente **antes** de crear carpetas o convertir el primer documento, en una sola consulta, y las inyecta como data URI. El centro sale siempre del expediente, nunca de un valor de la plantilla.
+- Si falta una firma, el documento **no se genera**: `ImagenPrivadaFaltanteError` con el centro y el tipo, un mensaje para el usuario sin detalles internos y un evento en Sentry con centro y clave, sin la imagen ni datos del caso. En un lote falla todo antes de empezar. Es el mismo criterio del gate de placeholders sin resolver.
+- `inlineAssets` corta si recibe un ref de firma sin resolver, para que un punto de entrada nuevo que olvide resolverlas falle en vez de producir una imagen rota.
+- Carga y verificación por scripts (`scripts/imagenes-privadas/`), fuera del ciclo de la app: no hay UI ni ruta que lea o escriba la tabla, y un guardián estático (`tests/unit/security/imagenes-privadas-acceso.test.ts`) lo sostiene. El formato (PNG/JPEG por contenido) y el tamaño (1 MB) se validan al cargar y otra vez al leer.
+- `.gitignore` y un paso de `pr.yml` impiden que vuelva a entrar una imagen de firma o sello.
+
+**Descartado:**
+
+- Variables de entorno con la imagen en base64: Vercel limita a 64 KB el total de las variables de un deployment y cuatro firmas en base64 se llevan buena parte, las variables `sensitive` no bajan con `vercel pull` (los builds y la CI las ven vacías) y reemplazar una firma obliga a redeployar.
+- Vercel Blob: otro proveedor y otra credencial para cuatro archivos de 20 KB, y una URL que, aun firmada, existe fuera de la app. La base ya está, ya tiene backups y ya aísla por `tenantId`.
+- Google Drive: es donde se suben los documentos generados, con permisos pensados para los operadores; mezclar ahí las firmas las expone a quien navega la carpeta, y suma una llamada de red con reintentos a cada generación.
+- Leer cada firma por documento con una caché global por instancia: una caché que sobrevive entre peticiones y centros es un punto más donde un centro podría recibir la imagen de otro, y una sola consulta por generación ya es barata.
+- Una imagen de ejemplo en desarrollo cuando falta la real: evita cargar firmas en local, pero deja un camino por el que un documento puede salir con una firma falsa.
+
+**Consecuencias:** cada entorno (local, Preview, producción) necesita sus firmas cargadas antes de generar documentos; el checklist de despliegue suma migración → carga → verificación antes del deploy. Las firmas siguen en el historial de git hasta que se reescriba, que es una operación aparte.
+
+**Sello de Constructores de Paz.** Su `logo-firma.png` es un sello, no un logo, así que sigue el mismo camino: tipo `sello`, exigido solo a los centros de `CENTROS_CON_SELLO`, y `{{LOGO_FIRMA_SRC}}` de ese centro pasa a resolverse contra la base. Los logos de Armonía se quedan en `templates/branding/armonia/`.
+
+**Non-goals:** quién firma la Designación del Conciliador por cada centro (ítem 12 de `PENDIENTES_DECISION_LEGAL.md`), una UI para administrar las firmas, y mover a la base los logos que no son sellos, que son públicos.
+
+## 2026-11-08 — Papelera de casos (soft-delete)
+
+**Diagnóstico:** `deleteCase` borraba en cascada y sin recuperación, con expedientes legales reales en producción y backups nunca probados (A-8, GC-M6). Además `deleteDebtor` destruía todos los expedientes del deudor sin la confirmación escrita ni la auditoría de `deleteCase`.
+
+**Decisión (dueño del proyecto):**
+
+- Eliminar marca `deletedAt`, `deletedById` y `deletedByName` (texto, no relación: un usuario borrado no debe arrastrar ni bloquear el registro). Restaurar devuelve el caso entero; nada se borra al mandarlo a la papelera.
+- Ver la papelera y restaurar: el mismo permiso que elimina (`Eliminar casos`).
+- Borrado físico (`purgeCase`): permiso nuevo `Eliminar casos definitivamente`, que la migración `20261109000000_case_papelera` crea en cada centro y da **solo** a Administrador. Solo sobre casos ya en la papelera, con confirmación escrita contra la base y auditoría `purged` antes de borrar (si no queda escrita, no se borra). Nunca automático: chocaría con la retención documental.
+- `deleteDebtor` se niega si el deudor tiene casos, incluidos los de la papelera.
+
+**Dónde vive el filtro:** una extensión de `query` en `src/lib/prisma.ts` pasa toda operación sobre `Case` por `conFiltroDePapelera` (`src/lib/papelera.ts`): si el `where` no nombra `deletedAt`, agrega `deletedAt: null`. Son ~60 consultas en 13 módulos; filtrarlas una por una garantizaba omisiones futuras (mismo criterio que el escapado de placeholders en el punto de fusión). Aplica también dentro de `$transaction(async (tx) => …)` — verificado contra Postgres real. Las lecturas **anidadas** (`debtor` → `cases`, `payment` → `case`, avisos) no pasan por extensiones de Prisma y filtran a mano con `CASO_ACTIVO` / `AVISO_SIN_CASO_EN_PAPELERA`; una guarda en `tests/unit/cases/papelera.test.ts` falla si aparece un `cases: true` en una action.
+
+**Descartado:**
+
+- Filtrar a mano en cada consulta: la omisión es silenciosa (un caso eliminado reaparece en un reporte) y nadie la nota.
+- Una vista de Postgres o RLS: el proyecto no usa ninguna de las dos y exigía cambiar cómo Prisma lee `Case`.
+- Purga automática tras N días: contradice la obligación de conservar expedientes.
+
+**Non-goals:** borrar la carpeta de Drive al purgar (sigue pendiente GC-M6; el registro guarda `driveFolderId`), soft-delete de otros modelos, y recortar quién tiene `Eliminar casos` (decisión del 2026-10-17, que ahora es menos crítica porque eliminar es reversible).
+
+## 2026-11-05 — ¿Alcanzan 4 MB? Drive no lo puede responder; se mide hacia adelante
+
+**Por qué no se midió Drive:** lo que hay guardado no dice cuánto pesa lo que la gente quiere subir, solo lo que cupo.
+
+- Antes de este límite no había `bodySizeLimit`, así que Next cortaba el cuerpo en 1 MB: por la app solo entraban archivos de hasta unos 760 KB. Lo que pase de eso en Drive se subió a mano.
+- Los comprobantes fallan desde el 2026-03-24 (`e777c30`): `uploadReceiptToDrive` recibía como carpeta el primer carácter del id. Lo corrige `#178`. Por la app no debería haber ninguno en Drive.
+
+Cualquier porcentaje "sobre 4 MB" calculado con esos datos saldría cerca de cero por construcción, y se leería como evidencia a favor de 4 MB sin serlo. Por eso no se tocó producción.
+
+**Decisión:** registrar cada archivo rechazado por tamaño (`registrarRechazoPorTamano`, `src/lib/rechazo-tamano.ts`) y decidir con esa cifra. Sale el origen, un intervalo y una categoría de tipo, de listas cerradas. No sale el nombre del archivo, ni el peso exacto, ni nada del caso.
+
+- **El contador es el issue de Sentry.** El repo no tiene otra forma de contar eventos. Cada combinación es un mensaje fijo, Sentry agrupa por mensaje, y el número de eventos del issue es la cuenta.
+- **Va en `warn` aunque sea un evento esperado.** El rechazo ocurre en el navegador: en `info` no saldría de la consola del usuario. Y va en el mensaje porque `logger.warn` no le pasa el contexto a Sentry.
+- **`scrubSentryEvent` les quita la URL, las migas de pan, el usuario, los tags, los contextos y la ruta.** El SDK los agrega por su cuenta y pueden traer datos del expediente. Comprobado con el SDK real contra un receptor local: el evento de rechazo sale solo con mensaje, nivel y metadatos del SDK, y uno de control desde la misma página sí llevaba URL y migas con esos datos.
+- **Solo se registra lo que ve el usuario:** el rechazo al elegir el archivo y el corte de la plataforma tras enviarlo (`errorDeTamanoTrasRechazo`), en los dos diálogos de pago, la pestaña de documentos y `subirDocumentosDelCaso`. La validación del servidor no registra, para no contar dos veces: a ella solo se llega saltándose la UI.
+
+**Qué no cuenta:** quien ni lo intenta porque la pantalla ya dice "Máximo 4 MB", y quien comprime y vuelve a subir (cuenta el primer intento).
+
+**`bodySizeLimit` frente a los topes:**
+
+| Cifra                      | Bytes            | Fuente                                                                                                                                                                        | Estado                                                                                          |
+| -------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Archivo máximo (4 MB)      | 4.194.304        | `MAX_ARCHIVO_BYTES`                                                                                                                                                           | Comprobado en `next dev`: pasa con 2.000 caracteres más en el formulario                        |
+| Sobrecosto multipart       | 442 más el texto | Medido con `FormData` en Node                                                                                                                                                 | Medido en local                                                                                 |
+| `bodySizeLimit` (`4.25mb`) | 4.456.448        | `next.config.ts`, leído con `bytes` como Next                                                                                                                                 | Comprobado en `next dev`: 4,25 MB exactos se rechazan, 3 KB menos pasan                         |
+| Tope de Vercel             | 4.493.312        | Preview de `#180`, bisección con `curl` (detalle en `#182`). La [documentación](https://vercel.com/docs/functions/limitations) dice 4,5 MB y `413 FUNCTION_PAYLOAD_TOO_LARGE` | Medido una vez, sin sesión y con un id de acción falso. Con una cookie de 4 KB baja a 4.490.297 |
+
+El tope medido es menor que los 4.500.000 de leer "4,5 MB" en decimal, así que esa lectura no es la más estricta. `bodySizeLimit` queda 33.849 bytes por debajo del tope con esa cookie, y el cuerpo de un `File` de 4 MB (4.194.627 bytes) unos 295 KB por debajo. **Sin verificar:** una subida completa con sesión en un despliegue, y que `NEXT_PUBLIC_SENTRY_DSN` esté definido en producción, sin lo cual el registro no llega a Sentry.
+
+**Cómo decidir:** revisión pendiente en `docs/ROADMAP.md`, Quick Win 10.
+
 ## 2026-11-05 — Cambio de centro: solo por el login
 
 **Diagnóstico:** `switchTenant` elegía la cuenta destino solo por el correo del token, y `updateUser` deja poner en la propia cuenta un correo que existe en otro centro, porque la unicidad es por centro. Con `P.EDITAR_USUARIOS` del centro A se podía entrar a la cuenta de un usuario del centro B sin su clave. Confirmado contra Postgres real en `tests/db/switch-tenant-correo-ajeno.db.test.ts`.

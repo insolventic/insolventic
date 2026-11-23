@@ -133,9 +133,14 @@ describe('reportes — scoping por rol (GC-M5)', () => {
         operatorId: 'user-abogado',
       });
       // La deuda se filtra por su expediente: si el expediente no es visible,
-      // su deuda tampoco.
+      // su deuda tampoco. `deletedAt: null`: la lectura anidada no pasa por
+      // la extensión de la papelera, así que filtra a mano.
       expect(mockPrisma.debt.findMany.mock.calls[0][0].where).toEqual({
-        case: { tenantId: TENANT.id, operatorId: 'user-abogado' },
+        case: {
+          tenantId: TENANT.id,
+          operatorId: 'user-abogado',
+          deletedAt: null,
+        },
       });
     });
 

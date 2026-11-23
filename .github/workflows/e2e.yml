@@ -61,6 +61,13 @@ jobs:
       APP_URL: http://localhost:3000
       E2E_BASE_URL: http://localhost:3000
       NEXT_PUBLIC_APP_ENV: test
+      # Contraseña de los usuarios demo del seed. El seed ya no tiene ninguna
+      # literal (src/prisma/seed-guard.ts): hashea esta, y los E2E entran con
+      # la misma (tests/e2e/helpers.ts la toma si no hay E2E_PASSWORD). Es
+      # pública a propósito: solo vale contra el Postgres efímero de este job,
+      # y la guarda del seed aborta ante cualquier base que no sea local y de
+      # prueba, así que no puede terminar en una cuenta real.
+      SEED_PASSWORD: ci-e2e-seed-password-only-for-github-actions
 
     steps:
       - uses: actions/checkout@v5

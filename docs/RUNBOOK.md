@@ -229,6 +229,8 @@ estados en la tabla `document_generation_requests`.
    ```
 2. Interpretación:
    - `FAILED` con `error` → leer el mensaje; casi siempre es Drive (§3.4).
+     Si dice `Falta la firma … para <centro>`, ese centro no tiene la firma
+     cargada en la base (§7.3).
    - `PROCESSING` hace más de 10 minutos → job huérfano. El sistema los
      recupera solo: el lock se libera a los 10 min y la siguiente solicitud
      lo re-reclama. Si el usuario no puede esperar, reintentar desde la UI.
@@ -434,6 +436,112 @@ Qué hacer:
 3. Correr `npx jest tests/unit/cases/smmlv-fuente-unica.test.ts` y el golden
    master (`npm test`): agregar un año no debería cambiar ningún documento de
    un expediente ya radicado, porque el año sale de su fecha de radicación.
+
+### 7.2 El seed (`npm run db:seed`) nunca va contra producción
+
+El seed crea 2 centros con 5 usuarios demo cada uno
+(`beatriz.malavera`, `sofia.torres`, `maximiliano.jaramillo`,
+`carlos.rodriguez`, `maria.gonzalez` `@insolventic.com`), roles, permisos y
+casos de ejemplo. Es para bases **de prueba**.
+
+**Por qué hay guarda.** Hasta 1.0.0-rc.2 el seed les ponía a esos usuarios la
+contraseña literal `123456` (bcrypt de costo 10), el repositorio es público, y
+el seed llegó a correr contra la base de producción: quedaron cuentas reales
+con una contraseña publicada. Los hashes `$2b$10$` en `User.password` son la
+huella de eso —la aplicación hashea con costo 12—, y limpiar esas cuentas es
+una tarea manual del dueño, aparte de este arreglo.
+
+**Qué hace hoy** (`src/prisma/seed-guard.ts`, probado en
+`tests/unit/config/seed-guard.test.ts`):
+
+- **Aborta antes de escribir** si `DATABASE_URL` o `DIRECT_URL` no apuntan a
+  `localhost`/`127.0.0.1`/`::1` con un nombre de base que contenga `e2e`,
+  `test` o `smoke` (el mismo criterio que `tests/db/db-guard.ts`). Ojo:
+  `prisma.config.ts` carga el `.env`, así que en una máquina con el `.env` de
+  Vercel un `npm run db:seed` "suelto" apuntaba a Neon. `npm run db:reset:seed`
+  evalúa la misma guarda **antes** de borrar.
+- **No hay contraseña literal.** Usa `SEED_PASSWORD` (mínimo 12 caracteres) y,
+  si falta, genera una aleatoria y la imprime **una sola vez** en la salida.
+  Costo 12. Solo afecta a los usuarios que el seed **crea**: los que ya existen
+  no se tocan (`upsert` con `update: {}`).
+- **Opt-in para otra base**: `SEED_PERMITIR_BASE_REAL=1`. Solo si de verdad
+  hace falta poblar una base que no es de prueba local. En ese caso las cuentas
+  quedan con `mustChangePassword: true`: el login las rechaza hasta que su
+  dueño fije una contraseña propia por "¿Olvidaste tu contraseña?". En una base
+  de prueba local quedan en `false`, porque los E2E entran con ellas.
+
+**Nunca** usar el opt-in contra la base de producción: los centros reales no
+necesitan usuarios demo ni casos de ejemplo.
+
+**`npm run db:reset` (y `db:reset:seed`) tiene su propia guarda**
+(`src/prisma/reset-guard.ts`, probada en `tests/unit/config/reset-guard.test.ts`):
+el mismo criterio de destino, evaluado antes de la primera consulta, también
+con `--tenant=`. A diferencia del seed **no tiene opt-in**: borrar no tiene
+mitigación, así que fuera de una base de prueba local se niega siempre, aunque
+esté `SEED_PERMITIR_BASE_REAL=1`.
+
+### 7.3 Firmas de los documentos (`imagenes_privadas`)
+
+Las firmas que insertan las plantillas no se versionan: el repositorio es
+público. Viven en la tabla `imagenes_privadas`, una fila por centro y tipo
+(`firma-operador`, `firma-director` y, en Constructores de Paz, `sello`: el
+logo que acompaña la firma), y solo las lee
+`src/lib/imagenes-privadas.ts` al generar. Si a un centro le falta una, ese
+centro no genera documentos: el usuario ve «Falta la firma del operador para
+<centro>. Contacta al administrador.» y Sentry registra el evento
+`documentos.imagen-privada` con `centro` y `clave`. El porqué del diseño está
+en `docs/DECISIONES.md` (2026-11-20).
+
+**Preparar los archivos**, fuera del repositorio (`privado/` está ignorado por
+git y sirve de carpeta local):
+
+```
+<carpeta>/armonia/firma-operador.png
+<carpeta>/armonia/firma-director.jpg
+<carpeta>/constructores-paz/firma-operador.png
+<carpeta>/constructores-paz/firma-director.jpg
+<carpeta>/constructores-paz/sello.png
+```
+
+La subcarpeta es el slug del centro y el nombre del archivo es el tipo. PNG o
+JPEG, hasta 1 MB; el formato se comprueba por el contenido. Si dos centros usan
+la misma firma, el archivo va en las dos subcarpetas: cada centro tiene su fila.
+
+**Cargar y verificar**, en este orden y con `DATABASE_URL` (y `DIRECT_URL`)
+apuntando a la base del entorno:
+
+```bash
+npx prisma migrate deploy                                           # 1. crea la tabla si falta
+npx tsx scripts/imagenes-privadas/cargar.ts <carpeta>               # 2. simulación: muestra qué cargaría
+npx tsx scripts/imagenes-privadas/cargar.ts <carpeta> --confirmar   # 3. escribe (upsert por centro y tipo)
+npx tsx scripts/imagenes-privadas/verificar.ts                      # 4. sale con 1 si a algún centro le falta algo
+```
+
+Los dos scripts imprimen el host de la base antes de hacer nada. `cargar.ts` es
+idempotente, valida todos los archivos antes de escribir (si uno no sirve no
+carga ninguno), se niega a leer archivos versionados en el repositorio e
+imprime por cada firma el tipo, el tamaño y una huella `sha256` corta, nunca el
+contenido. En producción la migración también corre en el build de Vercel, pero
+la carga y la verificación tienen que ir **antes** del deploy: un deploy con la
+tabla vacía deja a los dos centros sin poder generar documentos.
+
+Para reemplazar una firma basta con volver a correr `cargar.ts` con el archivo
+nuevo; el cambio aplica desde la siguiente generación.
+
+**Huellas para el CI.** `scripts/imagenes-privadas/huellas.txt` guarda la huella
+`sha256` de cada archivo de la carpeta, y el CI de cada PR compara contra ella
+todos los archivos versionados: una copia de una firma corta el PR aunque tenga
+otro nombre. La huella no permite reconstruir la imagen, por eso la lista sí se
+versiona. Cada vez que se agrega o se reemplaza una firma, regenerarla desde la
+misma carpeta y commitear el `huellas.txt` resultante:
+
+```bash
+npx tsx scripts/imagenes-privadas/huellas.ts generar <carpeta>   # reescribe huellas.txt
+npx tsx scripts/imagenes-privadas/huellas.ts revisar             # lo que corre el CI
+```
+
+Una imagen incrustada en un PDF o un DOCX no conserva la huella y este control
+no la detecta.
 
 ---
 

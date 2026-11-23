@@ -7,8 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Papelera de casos.** Eliminar un caso ya no lo borra: lo manda a una papelera, desde donde se puede restaurar tal como estaba. Mientras está en la papelera no aparece en listados, búsquedas, reportes, alertas, pagos ni documentos, y no se puede modificar. La papelera la ve quien puede eliminar casos.
+- **Eliminación definitiva** desde la papelera, con un permiso nuevo ("Eliminar casos definitivamente") que se asigna solo al rol Administrador. Pide escribir el número del caso y queda en la auditoría. Existe para poder cumplir una solicitud de supresión de datos.
+
+### Changed
+
+- **Eliminar un deudor ya no borra sus casos.** Antes se llevaba todos sus expedientes sin la confirmación ni la auditoría de eliminar un caso; ahora se niega si el deudor tiene casos, incluidos los de la papelera.
+- La auditoría distingue "Restauración" y "Eliminación definitiva".
+
+### Seguridad
+
+- **Las firmas de los documentos salen del repositorio.** Se guardan en la base, una por centro y tipo (firma del operador y firma del director), y se cargan con `scripts/imagenes-privadas/cargar.ts`. Un centro nunca usa la firma de otro. Si a un centro le falta una firma, sus documentos no se generan y el usuario ve qué firma falta y para qué centro; en un lote, falla todo antes de empezar. La Designación del Conciliador pasa a usar la firma del director de cada centro. Un paso nuevo de la CI rechaza cualquier imagen de firma o sello que se intente versionar. Requiere la migración `20261120000000_imagenes_privadas` y cargar las firmas antes del deploy (`docs/RUNBOOK.md` §7.3).
+- **El sello de Constructores de Paz también sale del repositorio.** El logo que acompaña la firma en los documentos de ese centro es un sello: se carga en la base junto con sus firmas y sin él el centro no genera documentos.
+- Dependencias al día dentro de sus versiones: `next` 15.5.29 y `@sentry/nextjs` 10.78, que cierran las dos vulnerabilidades críticas de `npm audit`. Las que quedan piden un cambio de versión mayor (`prisma` 7, `puppeteer-core` 25, `next` 16, `nodemailer` 10) y van aparte.
+- `zod` queda fijado en 4.1.12 exacto: 4.6 cambia cómo se validan los campos opcionales con preprocess y `updateCase` empieza a rechazar ediciones válidas (58 tests en rojo). Subirlo es un cambio propio, no una actualización de rutina.
+
 ### Fixed
 
+- **Un caso con una fase antigua ya no queda sin salida.** Se mostraba como «Inicial» y a la vez decía «No hay transiciones disponibles»; ahora ofrece las mismas transiciones que «Inicial», que son las que el servidor ya aceptaba.
+- El detalle del caso se titula con el número del expediente y no con su identificador interno.
 - **La generación de documentos fallaba en producción con "No se pudo leer la plantilla".** Las plantillas, sus estilos, imágenes y membretes no viajaban al servidor de Vercel; ahora se incluyen en el despliegue. En local funcionaba porque el repositorio está en disco. (#191)
 - Un fallo al leer una plantilla registra el código del error, la ruta, la plantilla y el expediente, y la pantalla dice qué plantilla falló y por qué. (#191)
 - **Un documento que no llega a Google Drive ya no aparece como generado.** Si falla la carpeta del caso o la subida, el documento queda como error con su motivo. Gestión de Casos y Gestión de Documentos cuentan generados y fallidos por separado, nombran los que no se generaron, y "Generación Completada" solo aparece si se generó todo. (#191)

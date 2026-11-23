@@ -1,0 +1,455 @@
+{
+  "epica": {
+    "id": "E05",
+    "titulo": "Deudores, Acreedores y Apoderados",
+    "descripcion": "Registro de deudores (datos personales y financieros), acreedores y sus deudas por caso (Debt), codeudores, apoderados del deudor y del acreedor, y las partes de la conciliación (convocante/convocado).",
+    "objetivo": "Que las partes del trámite y sus representantes estén registrados una sola vez, editables, y que los documentos nombren al representante correcto.",
+    "prioridad": "Alta",
+    "labels": [],
+    "evidencia": [
+      "src/features/debtor/",
+      "src/features/creditor/",
+      "docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md",
+      "docs/MODELO_ENTIDAD_RELACION.md"
+    ]
+  },
+  "items": [
+    {
+      "id": "E05-01",
+      "tipo": "Story",
+      "titulo": "Perfil del deudor con datos personales y financieros",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar al deudor una vez y vincularlo a sus casos",
+        "para": "no repetir sus datos en cada trámite"
+      },
+      "ac": [
+        "Dado un deudor nuevo Cuando lo registro Entonces queda con sus datos personales y financieros",
+        "Dado un deudor existente Cuando creo un caso Entonces puedo vincularlo",
+        "[error] Dado una cédula ya registrada en mi centro Cuando intento crear otro deudor con ella Entonces se advierte",
+        "Dado un deudor Cuando abro su perfil Entonces veo el historial de casos vinculados"
+      ],
+      "puntos": 5,
+      "justificacion": "CRUD con ~50 columnas y vínculo a casos.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos"],
+      "sprint": "2026-W06",
+      "estado": "Done",
+      "resuelto": "2026-02-08",
+      "version": "v0.1.0",
+      "evidencia": [
+        "83d2d71",
+        "CHANGELOG.md [0.1.0] Debtor management",
+        "README.md §Deudores, Acreedores y Apoderados"
+      ]
+    },
+    {
+      "id": "E05-02",
+      "tipo": "Story",
+      "titulo": "Registro de acreedores y sus acreencias por caso",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar los acreedores y el monto, tasa y mora de cada deuda",
+        "para": "construir la relación de acreencias de la solicitud"
+      },
+      "ac": [
+        "Dado un caso Cuando agrego un acreedor con su deuda Entonces queda vinculado al caso",
+        "Dado varias deudas Cuando las veo Entonces se calcula el total de acreencias",
+        "[error] Dado un monto de deuda negativo Cuando guardo Entonces se rechaza"
+      ],
+      "puntos": 5,
+      "justificacion": "Modelo Creditor + Debt con cálculos que alimentan los topes legales.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos"],
+      "sprint": "2026-W06",
+      "estado": "Done",
+      "resuelto": "2026-02-08",
+      "version": "v0.1.0",
+      "evidencia": ["83d2d71", "CHANGELOG.md [0.1.0] Creditor management"]
+    },
+    {
+      "id": "E05-03",
+      "tipo": "Bug",
+      "titulo": "Validaciones y mensajes de error confusos al crear un deudor",
+      "bug": {
+        "entorno": "Preview, marzo 2026",
+        "pasos": ["Crear un deudor con datos inválidos"],
+        "esperado": "Mensajes claros por campo",
+        "actual": "Validaciones incompletas y mensajes poco claros",
+        "severidad": "Baja",
+        "causaRaiz": "No documentada más allá del mensaje del commit.",
+        "fix": "f50c59a fix: mejorar validaciones y mensajes de error en formulario crear deudor",
+        "regresion": "No identificado en el commit."
+      },
+      "ac": [
+        "Dado un correo inválido Cuando guardo Entonces veo un mensaje en el campo",
+        "Dado datos válidos Cuando guardo Entonces el deudor se crea"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["inferido"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-18",
+      "version": "v0.2.0",
+      "evidencia": ["f50c59a"]
+    },
+    {
+      "id": "E05-04",
+      "tipo": "Story",
+      "titulo": "Apoderados del deudor en tabla propia con guardia de consistencia",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "registrar los apoderados del deudor como entidades propias",
+        "para": "que los documentos nombren al apoderado correcto y no a un texto suelto"
+      },
+      "ac": [
+        "Dado un caso con apoderado Cuando se guarda Entonces se escribe en la tabla apoderados y en Case (doble escritura)",
+        "Dado el schema Zod y el modelo Case Cuando divergen Entonces la guardia Zod<->Case falla en CI",
+        "[borde] Dado un caso sin apoderado Cuando se guarda Entonces no se crea fila"
+      ],
+      "puntos": 5,
+      "justificacion": "Migración nueva, doble escritura transitoria y guardia de schema.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Backend", "Base-de-Datos", "Testing"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-18",
+      "version": "v0.6.0",
+      "evidencia": [
+        "e05e409 feat(db): columnas notificationCity/otherCauseDetail y tabla apoderados",
+        "2f342c9 feat(casos): apoderados con doble escritura y guardia Zod<->Case",
+        "bc21355"
+      ]
+    },
+    {
+      "id": "E05-05",
+      "tipo": "Bug",
+      "titulo": "No se exigían los 3 documentos del apoderado",
+      "bug": {
+        "entorno": "Producción, septiembre 2026",
+        "pasos": [
+          "Crear un caso con apoderado sin adjuntar poder, cédula ni tarjeta profesional"
+        ],
+        "esperado": "Los 3 documentos se exigen",
+        "actual": "El gate nunca se activaba",
+        "severidad": "Alta",
+        "causaRaiz": "El gate leía caseData.hasAttorney, un campo que no existe; la pantalla usaba un hasAttorney derivado distinto.",
+        "fix": "#64 441c565",
+        "regresion": "Test del gate con apoderado registrado."
+      },
+      "ac": [
+        "Dado un caso con apoderado Cuando faltan sus documentos Entonces se exigen los 3",
+        "Dado un caso sin apoderado Cuando se valida Entonces no se exigen"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Frontend", "Testing"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#64 441c565",
+        "docs/HALLAZGOS_CALIDAD_FORMULARIO_2026-09-28.md fila 1"
+      ]
+    },
+    {
+      "id": "E05-06",
+      "tipo": "Story",
+      "titulo": "Teléfono y correo del codeudor o avalista",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar el teléfono y el correo del codeudor",
+        "para": "poder notificarlo durante el trámite"
+      },
+      "ac": [
+        "Dado una deuda con codeudor Cuando registro su contacto Entonces se guarda",
+        "[error] Dado un correo mal formado Cuando guardo Entonces se marca",
+        "Dado una deuda sin codeudor Cuando guardo Entonces los campos no se exigen"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Base-de-Datos"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#62 134e2e8"]
+    },
+    {
+      "id": "E05-07",
+      "tipo": "Story",
+      "titulo": "Ejemplo de acreedor persona natural y rótulo de notificación al deudor",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "ver un ejemplo de cómo registrar un acreedor persona natural y un rótulo claro en la notificación al deudor",
+        "para": "no cometer errores típicos al diligenciar"
+      },
+      "ac": [
+        "Dado el formulario de acreedor Cuando elijo persona natural Entonces veo el ejemplo",
+        "Dado la sección de notificación Cuando la abro Entonces el rótulo explica a quién se notifica",
+        "[borde] Dado una persona jurídica Cuando la elijo Entonces no veo el ejemplo de persona natural"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["feature"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#61 5597438"]
+    },
+    {
+      "id": "E05-08",
+      "tipo": "Story",
+      "titulo": "Editar los apoderados del deudor después de crear el caso",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "cambiar o agregar el apoderado del deudor en un caso ya creado",
+        "para": "reflejar un cambio de representante sin rehacer el caso"
+      },
+      "ac": [
+        "Dado un caso existente Cuando agrego un apoderado Entonces queda registrado",
+        "Dado un apoderado Cuando lo edito Entonces los documentos siguientes usan el dato nuevo",
+        "[error] Dado un usuario sin acceso al caso Cuando intenta editar el apoderado Entonces se rechaza"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": ["#103 ab48bca"]
+    },
+    {
+      "id": "E05-09",
+      "tipo": "Story",
+      "titulo": "Editar las acreencias detalladas después de crear el caso",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "corregir una deuda (monto, tasa, mora) en un caso ya creado",
+        "para": "ajustar la relación de acreencias cuando un acreedor certifica otro saldo"
+      },
+      "ac": [
+        "Dado un caso Cuando edito una deuda Entonces se actualiza y se recalculan los totales",
+        "Dado una deuda nueva Cuando la agrego post-creación Entonces se suma al caso",
+        "[error] Dado una edición concurrente Cuando dos usuarios editan Entonces aplica el control de versión del caso"
+      ],
+      "puntos": 5,
+      "justificacion": "Edición de entidades hijas con recálculo de totales que alimentan topes legales.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": [
+        "a49e84e feat(casos): acreedores detallados (Debt) editables post-creacion"
+      ]
+    },
+    {
+      "id": "E05-10",
+      "tipo": "Story",
+      "titulo": "Apoderado del convocado en la conciliación",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "registrar el apoderado de la parte convocada",
+        "para": "que el acta identifique a quien representa al convocado"
+      },
+      "ac": [
+        "Dado una conciliación Cuando registro el apoderado del convocado Entonces se guarda",
+        "Dado el apoderado registrado Cuando genero el acta Entonces aparece",
+        "[borde] Dado un convocado sin apoderado Cuando genero Entonces el acta no deja el hueco"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["feature"],
+      "componentes": ["Frontend", "Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": [
+        "31e9db0 feat(conciliacion): UI para el apoderado del convocado"
+      ]
+    },
+    {
+      "id": "E05-11",
+      "tipo": "Task",
+      "titulo": "Diseñar cómo se determina el apoderado del acreedor en el CYG",
+      "tarea": {
+        "objetivo": "Resolver de dónde sale el apoderado de cada acreedor en el CYG.",
+        "alcance": "Decisión legal: detectarlo desde el registro de poderes y bloquear la generación si contradice el acta. Plan en 4 PRs.",
+        "dod": "Plan aprobado (2026-10-10) en docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md."
+      },
+      "ac": [
+        "Dado la respuesta legal del ítem 13 Cuando se diseña Entonces el plan no elige una fuente por defecto",
+        "Dado el plan Cuando se aprueba Entonces define 4 PRs con su riesgo de secuencia"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["spike"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["LEGAL-13"],
+      "evidencia": [
+        "bfaa37a docs(plan)",
+        "docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md",
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 13"
+      ]
+    },
+    {
+      "id": "E05-12",
+      "tipo": "Story",
+      "titulo": "Modelo de datos del registro de apoderados del acreedor",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que el sistema guarde quién representa a cada acreedor",
+        "para": "que el CYG pueda verificar al apoderado contra una fuente registrada"
+      },
+      "ac": [
+        "Dado la migración Cuando se aplica Entonces existe ApoderadoAcreedor vinculado a la deuda",
+        "Dado la confirmación en Debt Cuando se guarda Entonces conserva la huella de las dos fuentes",
+        "[borde] Dado un acreedor sin apoderado Cuando se consulta Entonces no hay fila"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Base-de-Datos", "Backend"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#130 af53a6f (PR 1 de 4)",
+        "docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md §5 PR 1"
+      ]
+    },
+    {
+      "id": "E05-13",
+      "tipo": "Story",
+      "titulo": "Capturar el apoderado del acreedor desde sus dos fuentes al crear el caso",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar el apoderado del acreedor desde el registro de poderes y desde el acta",
+        "para": "que luego el sistema pueda detectar si se contradicen"
+      },
+      "ac": [
+        "Dado un acreedor con poder Cuando creo el caso Entonces registro su apoderado en la fuente de poderes",
+        "Dado el dato del acta Cuando lo capturo Entonces se guarda por separado",
+        "[borde] Dado una sola fuente diligenciada Cuando guardo Entonces el caso se crea igual"
+      ],
+      "puntos": 5,
+      "justificacion": "Captura en el wizard de dos fuentes paralelas con su persistencia.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "#131 613e327 (PR 2 de 4)",
+        "docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md §5 PR 2"
+      ]
+    },
+    {
+      "id": "E05-14",
+      "tipo": "Story",
+      "titulo": "El apoderado del deudor se registra en un solo lugar del formulario",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "cargar el apoderado del deudor solo en la Sección XI",
+        "para": "no tener dos campos que pueden contradecirse"
+      },
+      "ac": [
+        "Dado el formulario Cuando registro el apoderado Entonces solo existe la Sección XI como fuente",
+        "[error] Dado datos inconsistentes de una versión anterior Cuando se edita el caso Entonces se valida en servidor y cliente",
+        "Dado el apoderado registrado Cuando se generan documentos Entonces todos usan la Sección XI"
+      ],
+      "puntos": 5,
+      "justificacion": "Retirar un campo duplicado con validaciones en servidor y cliente y fix encontrado en verificación manual.",
+      "prioridad": "Media",
+      "labels": ["doc-semana-13"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-18",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#147 cb0e939", "docs/IMPLEMENTACION_SEMANA_13.md"]
+    },
+    {
+      "id": "E05-15",
+      "tipo": "Story",
+      "titulo": "Bloquear el CYG cuando el apoderado del acreedor se contradice entre fuentes",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que el CYG no se genere si el apoderado registrado y el del acta no coinciden",
+        "para": "no radicar un documento que nombra a un representante que no lo es"
+      },
+      "ac": [
+        "Dado ambas fuentes coinciden Cuando genero el CYG Entonces {{APODERADO}} imprime el valor (hoy emite vacío)",
+        "[error] Dado fuentes en conflicto Cuando genero Entonces no se genera ni se sube nada y el error nombra qué acreedores están en conflicto",
+        "Dado el comparador Cuando se prueba como función pura Entonces cubre las reglas de comparación del plan §4",
+        "[borde] Dado un acreedor sin apoderado en ninguna fuente Cuando genero Entonces no bloquea"
+      ],
+      "puntos": 5,
+      "justificacion": "Única parte del plan que cambia la generación; requiere aviso explícito del dueño del producto antes de abrirse.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Backend", "Documentos-PDF", "Testing"],
+      "sprint": "2026-W45",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "bloqueadoPor": ["E05-13"],
+      "hallazgos": ["LEGAL-13"],
+      "evidencia": [
+        "docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md §5 PR 3",
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 13"
+      ]
+    },
+    {
+      "id": "E05-16",
+      "tipo": "Story",
+      "titulo": "Resolver el conflicto de apoderado del acreedor desde la interfaz",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "ver cada conflicto de apoderado y confirmar cuál es el correcto",
+        "para": "destrabar la generación del CYG con una decisión trazable"
+      },
+      "ac": [
+        "Dado un conflicto Cuando abro la tarjeta Entonces ninguna opción viene preseleccionada",
+        "Dado mi elección Cuando la confirmo Entonces se persiste y queda en audit_logs",
+        "[error] Dado que una de las dos fuentes cambia después Cuando genero Entonces la confirmación se invalida y vuelve a bloquear",
+        "Dado todos los conflictos resueltos Cuando genero el CYG Entonces se genera"
+      ],
+      "puntos": 5,
+      "justificacion": "UI con cuatro propiedades no negociables (sin preselección, persistida, invalidable por huella, auditada).",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W46",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "bloqueadoPor": ["E05-15"],
+      "hallazgos": ["LEGAL-13"],
+      "evidencia": ["docs/PLAN_APODERADO_ACREEDOR_CYG_2026-10-10.md §5 PR 4"]
+    }
+  ]
+}
