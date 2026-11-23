@@ -494,6 +494,52 @@ class GoogleDriveService {
     }
   }
 
+  /** Las carpetas con ese nombre dentro de `padre`, la más antigua primero. */
+  private async carpetasConNombre(
+    nombre: string,
+    padre: string,
+  ): Promise<string[]> {
+    const respuesta = await this.drive.files.list({
+      q: `'${sanitizeDriveQueryValue(padre)}' in parents and mimeType='application/vnd.google-apps.folder' and name='${sanitizeDriveQueryValue(nombre)}' and trashed=false`,
+      fields: 'files(id,createdTime)',
+      orderBy: 'createdTime',
+    });
+    return (respuesta.data.files ?? [])
+      .map((f) => f.id)
+      .filter((id): id is string => Boolean(id));
+  }
+
+  /**
+   * Busca la carpeta `nombre` dentro de `padre` y, si no está, la crea.
+   *
+   * Drive no tiene un "crear si no existe" atómico: dos peticiones que buscan
+   * a la vez la misma carpeta pueden no encontrarla y crearla las dos. Lo que
+   * se garantiza es que terminen usando la MISMA: siempre la más antigua por
+   * `createdTime`, también después de crear (la petición que creó la segunda
+   * vuelve a buscar y se queda con la primera). La que sobra queda vacía —no
+   * se subió nada a ella— y se registra en el log para limpiarla a mano. No se
+   * usa un lock en la base: ver `docs/DECISIONES.md` (2026-11-22).
+   */
+  private async buscarOCrearCarpeta(
+    nombre: string,
+    padre: string,
+  ): Promise<string> {
+    const [existente] = await this.carpetasConNombre(nombre, padre);
+    if (existente) return existente;
+
+    const creada = await this.createFolder(nombre, padre);
+    const [masAntigua] = await this.carpetasConNombre(nombre, padre);
+    if (masAntigua && masAntigua !== creada) {
+      logger.warn('Carpeta duplicada por concurrencia; se usa la más antigua', {
+        action: 'drive-folder-hierarchy',
+        carpetaUsada: masAntigua,
+        carpetaVacia: creada,
+      });
+      return masAntigua;
+    }
+    return creada;
+  }
+
   async createFolderHierarchy(
     folderPath: string[],
     parentFolderId: string,
@@ -502,22 +548,10 @@ class GoogleDriveService {
       let currentParentId = parentFolderId;
 
       for (const folderName of folderPath) {
-        const existingFolders = await this.drive.files.list({
-          q: `'${sanitizeDriveQueryValue(currentParentId)}' in parents and mimeType='application/vnd.google-apps.folder' and name='${sanitizeDriveQueryValue(folderName)}' and trashed=false`,
-          fields: 'files(id,name)',
-        });
-
-        if (
-          existingFolders.data.files &&
-          existingFolders.data.files.length > 0
-        ) {
-          currentParentId = existingFolders.data.files[0].id!;
-        } else {
-          currentParentId = await this.createFolder(
-            folderName,
-            currentParentId,
-          );
-        }
+        currentParentId = await this.buscarOCrearCarpeta(
+          folderName,
+          currentParentId,
+        );
       }
 
       return currentParentId;
