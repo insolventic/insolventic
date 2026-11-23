@@ -301,20 +301,30 @@ async function createDocumentSubfolder(
   const cached = cache?.get(cacheKey);
   if (cached) return cached;
 
+  // Con reintento, como `/documents`. Antes un fallo aquí devolvía la carpeta
+  // del caso: el documento se subía fuera de su subcarpeta y quedaba como
+  // generado sin que nadie lo viera. Agotado el reintento, el documento es un
+  // error visible. Un fallo no se guarda en la caché: el documento siguiente
+  // vuelve a intentar la ruta.
+  const ruta = effectivePath.join('/');
   try {
-    const folderId = await googleDriveService.createFolderHierarchy(
-      effectivePath,
-      caseFolderId,
+    const folderId = await withRetry(
+      () =>
+        googleDriveService.createFolderHierarchy(effectivePath, caseFolderId),
+      { label: `subcarpeta:${ruta}`, isRetryable: isRetryableDriveError },
     );
     cache?.set(cacheKey, folderId);
     return folderId;
   } catch (error) {
-    logger.warn('Error creating Drive subfolder, falling back to case folder', {
-      action: 'generate-documents',
-      folderPath: effectivePath.join('/'),
-      reason: error instanceof Error ? error.message : String(error),
-    });
-    return caseFolderId; // Fallback to case folder
+    const motivo = error instanceof Error ? error.message : String(error);
+    logger.warn(
+      'No se pudo crear la subcarpeta de destino; el documento no se sube',
+      { action: 'generate-documents', folderPath: ruta, reason: motivo },
+    );
+    throw new Error(
+      `No se subió a Google Drive: no se pudo crear la subcarpeta ${ruta} (${motivo}).`,
+      { cause: error },
+    );
   }
 }
 
