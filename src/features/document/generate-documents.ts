@@ -4,7 +4,7 @@
  */
 
 import path from 'path';
-import { googleDriveService } from '@/lib/google-drive';
+import { googleDriveService, type ContextoDeCarpeta } from '@/lib/google-drive';
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
 import { logger } from '@/lib/logger';
@@ -41,6 +41,7 @@ import {
   type DocumentTemplate,
 } from './templates-config';
 import { generateAndUploadExcel } from './generate-excel';
+import { resolveCaseFolder } from './case-folder';
 import type { CaseWithRelations } from '../case/schemas';
 
 /**
@@ -277,105 +278,12 @@ const defaultOptions: GenerationOptions = {
   uploadToGoogleDrive: true,
 };
 
-/**
- * Map case type code to human-readable folder label.
- */
-function caseTypeFolderLabel(
-  caseType: 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT',
-): string {
-  switch (caseType) {
-    case 'CONCILIATION':
-      return 'Conciliación';
-    case 'SUPPORT_AGREEMENT':
-      return 'Acuerdos de Apoyo';
-    case 'INSOLVENCY':
-    default:
-      return 'Insolvencia';
-  }
-}
-
-/**
- * Extracts surname from a debtor name (last token), sanitized for Drive.
- */
-function extractSurname(debtorName: string): string {
-  const cleaned = (debtorName || '').trim().replace(/[\\/\0]/g, '');
-  if (!cleaned) return '';
-  const parts = cleaned.split(/\s+/);
-  // Use last 2 tokens when available (likely both apellidos)
-  const tail = parts.slice(-2).join(' ');
-  return tail.substring(0, 40);
-}
-
-/**
- * Get or create case folder in Google Drive.
- *
- * Layout v1 (new cases):
- *   {root}/Insolventic/{Centro}/{TipoCaso}/{YYYY}/{caseNumber} - {Apellido}/
- *
- * Layout v0 (legacy — kept for back-compat with cases already on disk):
- *   {root}/documentos-generados/{Centro}/{caseNumber}/
- */
-async function getOrCreateCaseFolder(
-  caseNumber: string,
-  debtorName: string,
-  centerFolderName: string,
-  caseType: 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT' = 'INSOLVENCY',
-  layoutVersion: number = 1,
-): Promise<string> {
-  const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-  if (!rootFolderId) {
-    throw new Error('GOOGLE_DRIVE_FOLDER_ID no esta configurado');
-  }
-
-  if (layoutVersion >= 1) {
-    // New sectioned layout
-    const year = String(new Date().getFullYear());
-    const surname = extractSurname(debtorName);
-    const caseFolderName = surname ? `${caseNumber} - ${surname}` : caseNumber;
-
-    // Reintento con backoff: la creación de la jerarquía es find-or-create
-    // (idempotente), un fallo transitorio de la API de Drive no debe abortar
-    // toda la generación del expediente.
-    const hierarchyId = await withRetry(
-      () =>
-        googleDriveService.createFolderHierarchy(
-          [
-            'Insolventic',
-            centerFolderName,
-            caseTypeFolderLabel(caseType),
-            year,
-            caseFolderName,
-          ],
-          rootFolderId,
-        ),
-      {
-        label: `case-folder:${caseNumber}`,
-        isRetryable: isRetryableDriveError,
-      },
-    );
-    return hierarchyId;
-  }
-
-  // ----- Legacy layout (v0) -----
-  const rootContents =
-    await googleDriveService.listFoldersAndFiles(rootFolderId);
-  let docGenFolderId = rootContents.folders.find(
-    (f) => f.name?.toLowerCase() === 'documentos-generados',
-  )?.id;
-  if (!docGenFolderId) {
-    docGenFolderId = await googleDriveService.createFolder(
-      'documentos-generados',
-      rootFolderId,
-    );
-  }
-  const centerFolderId = await googleDriveService.createFolderHierarchy(
-    [centerFolderName],
-    docGenFolderId,
-  );
-  return await googleDriveService.findOrCreateCaseFolder(
-    caseNumber,
-    centerFolderId,
-  );
+/** De qué caso y centro es una carpeta, para el log de duplicadas. */
+function contextoDelCaso(caseData: CaseWithRelations): ContextoDeCarpeta {
+  return {
+    caseId: caseData.id,
+    tenantId: (caseData as { tenantId?: string }).tenantId,
+  };
 }
 
 /**
@@ -387,6 +295,7 @@ async function createDocumentSubfolder(
   folderPath: string[],
   layoutVersion: number = 0,
   cache?: Map<string, string>,
+  contexto: ContextoDeCarpeta = {},
 ): Promise<string> {
   const effectivePath =
     layoutVersion >= 1 ? ['01-Generados', ...folderPath] : folderPath;
@@ -401,20 +310,34 @@ async function createDocumentSubfolder(
   const cached = cache?.get(cacheKey);
   if (cached) return cached;
 
+  // Con reintento, como `/documents`. Antes un fallo aquí devolvía la carpeta
+  // del caso: el documento se subía fuera de su subcarpeta y quedaba como
+  // generado sin que nadie lo viera. Agotado el reintento, el documento es un
+  // error visible. Un fallo no se guarda en la caché: el documento siguiente
+  // vuelve a intentar la ruta.
+  const ruta = effectivePath.join('/');
   try {
-    const folderId = await googleDriveService.createFolderHierarchy(
-      effectivePath,
-      caseFolderId,
+    const folderId = await withRetry(
+      () =>
+        googleDriveService.createFolderHierarchy(
+          effectivePath,
+          caseFolderId,
+          contexto,
+        ),
+      { label: `subcarpeta:${ruta}`, isRetryable: isRetryableDriveError },
     );
     cache?.set(cacheKey, folderId);
     return folderId;
   } catch (error) {
-    logger.warn('Error creating Drive subfolder, falling back to case folder', {
-      action: 'generate-documents',
-      folderPath: effectivePath.join('/'),
-      reason: error instanceof Error ? error.message : String(error),
-    });
-    return caseFolderId; // Fallback to case folder
+    const motivo = error instanceof Error ? error.message : String(error);
+    logger.warn(
+      'No se pudo crear la subcarpeta de destino; el documento no se sube',
+      { action: 'generate-documents', folderPath: ruta, reason: motivo },
+    );
+    throw new Error(
+      `No se subió a Google Drive: no se pudo crear la subcarpeta ${ruta} (${motivo}).`,
+      { cause: error },
+    );
   }
 }
 
@@ -547,6 +470,7 @@ async function generateDocument(
         template.folderPath,
         (caseData as { layoutVersion?: number }).layoutVersion ?? 0,
         subfolderCache,
+        contextoDelCaso(caseData),
       );
 
       googleDriveId = await withRetry(
@@ -755,6 +679,7 @@ async function uploadGeneratedDocument(
   layoutVersion: number,
   options: GenerationOptions,
   subfolderCache: Map<string, string>,
+  contexto: ContextoDeCarpeta,
 ): Promise<GeneratedDocument> {
   try {
     let googleDriveId = '';
@@ -774,6 +699,7 @@ async function uploadGeneratedDocument(
         prepared.template.folderPath,
         layoutVersion,
         subfolderCache,
+        contexto,
       );
 
       googleDriveId = await withRetry(
@@ -951,6 +877,7 @@ async function generateFromTemplates(
       layoutVersion,
       options,
       subfolderCache,
+      contextoDelCaso(caseData),
     );
   }
 
@@ -963,7 +890,7 @@ async function generateFromTemplates(
 export async function generateDocumentsForNewCase(
   caseData: CaseWithRelations,
   options: GenerationOptions = {},
-  centerFolderName?: string,
+  tenantId?: string,
 ): Promise<{
   caseFolderId: string;
   caseFolderUrl: string;
@@ -979,21 +906,24 @@ export async function generateDocumentsForNewCase(
   // nada y no debe quedar una carpeta vacía en Drive.
   const imagenes = await firmasDelCentro(caseData);
 
-  // Create case folder in Google Drive
+  // La carpeta del caso la decide resolveCaseFolder: la guardada si ya tiene
+  // (los adjuntos del alta pueden haberla creado antes), o la v1 nueva, que
+  // queda guardada con su layoutVersion. Antes se recalculaba aquí con el año
+  // y el apellido del momento y el job la guardaba encima de la que hubiera.
   let caseFolderId = mergedOptions.caseFolderId || '';
   let caseFolderUrl = '';
 
   if (mergedOptions.uploadToGoogleDrive && !caseFolderId) {
-    caseFolderId = await getOrCreateCaseFolder(
-      caseData.caseNumber,
-      caseData.debtor.name,
-      centerFolderName || 'General',
-      caseType,
-      1, // new cases always use sectioned layout v1
-    );
+    if (!tenantId) {
+      throw new Error('Falta el tenant para resolver la carpeta del caso');
+    }
+    const carpeta = await resolveCaseFolder(caseData.id, tenantId);
+    caseFolderId = carpeta.folderId;
     caseFolderUrl = googleDriveService.getFolderUrl(caseFolderId);
-    // Mark in-memory so createDocumentSubfolder nests templates inside 01-Generados
-    (caseData as { layoutVersion?: number }).layoutVersion = 1;
+    // createDocumentSubfolder anida en 01-Generados según el layout GUARDADO:
+    // un caso v0 conserva su estructura.
+    (caseData as { layoutVersion?: number }).layoutVersion =
+      carpeta.layoutVersion;
   }
 
   const documents = await generateFromTemplates(

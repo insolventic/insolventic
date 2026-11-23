@@ -2,6 +2,25 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-22 — Carpetas de Drive: sin lock, convergen en la más antigua
+
+**Diagnóstico:** `createFolderHierarchy` buscaba cada nivel por nombre, sin orden, y se quedaba con la primera carpeta que devolvía Drive. Dos peticiones simultáneas sobre el mismo caso (un Regenerar y una generación de `/documents`, o el primer comprobante y el job del alta) podían no encontrar la subcarpeta, crearla las dos y quedarse cada una con la suya. Las siguientes caían en cualquiera de las dos, y los documentos del caso quedaban repartidos.
+
+**Decisión:**
+
+- Se usa siempre la carpeta **más antigua** por `createdTime`. La búsqueda pide `orderBy: 'createdTime'` y excluye la papelera (`trashed=false`); después de crear, vuelve a buscar por si otra petición la creó antes (`buscarOCrearCarpeta`, `src/lib/google-drive.ts`).
+- La carpeta del caso ya era idempotente en la base: `resolveCaseFolder` la guarda con un `updateMany` condicionado a `driveFolderId = null`, y la petición que pierde usa la guardada.
+- La convergencia es **eventual**, no inmediata. Un `files.list` puede no mostrar todavía una carpeta recién creada: si pasa en una carrera, cada petición se queda con la suya y puede subir archivos a ella. Por eso la carpeta que sobra **puede no quedar vacía**. Desde que Drive muestra las dos, todas las peticiones usan la más antigua.
+- Cada vez que una búsqueda encuentra más de una carpeta con el mismo nombre, se registra en el log `Carpeta duplicada en Drive; se usa la más antigua` con lo necesario para unirlas a mano: el caso (`caseId`), el centro (`tenantId`), el nombre de la carpeta, la carpeta padre, la usada y las sobrantes. Se repite en cada búsqueda hasta que se unen, y Sentry los agrupa en un solo issue.
+- Unirlas es a mano: mover los archivos de la sobrante a la más antigua y borrar la vacía. Nada se mueve ni se borra en Drive desde la app. Mientras tanto no se pierde nada: los documentos del caso guardan su propio id de archivo, y la pestaña Drive de `/documents` recorre la carpeta del caso completa, con las dos subcarpetas.
+
+**Descartado:**
+
+- Un lock en la base por caso (una fila con clave única mientras se crea la carpeta, como `DocumentGenerationRequest.activeKey`): garantiza que no exista una segunda carpeta, pero suma una escritura y una espera a cada subida a Drive (comprobantes, adjuntos, cada documento) para cubrir una carrera rara cuyo peor resultado es una subcarpeta duplicada que se une a mano. Un lock que quede huérfano además bloquea las subidas de ese caso hasta que venza.
+- Borrar o vaciar la carpeta que sobra desde la app: puede tener archivos subidos, y un movimiento o un borrado automático que falle a la mitad deja peor estado que una carpeta duplicada registrada en el log.
+
+**Consecuencias:** la garantía es la de la API de Drive, no la de una transacción. Una subcarpeta puede quedar duplicada, con archivos en las dos, hasta que alguien la una con los datos del aviso.
+
 ## 2026-11-20 — Firmas de los documentos: en la base, por centro
 
 **Diagnóstico:** el repositorio es público y versionaba cuatro imágenes de firmas manuscritas (`templates/branding/*/firma-operador.png` y `templates/insolvency/img/`), algunas desde febrero de 2026. Las plantillas las leían del disco al generar. Además, la firma de la Designación del Conciliador estaba escrita a mano en la plantilla y salía igual para los dos centros.

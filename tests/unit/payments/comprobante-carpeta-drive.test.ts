@@ -99,7 +99,9 @@ describe('comprobante de pago en Drive', () => {
         id: 'user-1',
         name: 'Operador',
         professionalCard: '123',
-        permissions: [P.REGISTRAR_PAGOS],
+        // Con alcance: las actions de pagos aplican la visibilidad
+        // por expediente de `case-access`, y sin alcance no se ve ningún caso.
+        permissions: [P.REGISTRAR_PAGOS, P.VER_TODOS_CASOS],
       },
       tenantId: 'tenant-1',
     });
@@ -133,6 +135,7 @@ describe('comprobante de pago en Drive', () => {
       expect(mockCreateFolderHierarchy).toHaveBeenCalledWith(
         ['Comprobantes'],
         ID_CARPETA_CASO,
+        expect.objectContaining({ caseId: expect.any(String) }),
       );
       expect(mockUploadFile).toHaveBeenCalledTimes(1);
       expect(mockUploadFile.mock.calls[0][3]).toBe(ID_CARPETA_COMPROBANTES);

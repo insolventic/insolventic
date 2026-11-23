@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { PrismaClient } from '@prisma/client';
 
 import { authenticateUser } from '@/features/auth/actions';
 import prisma from '@/lib/prisma';
@@ -19,7 +18,11 @@ import {
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
 import { canGenerateDocument } from '../case/validation-rules';
-import { assertCaseAccessOnRow } from '../case/case-access';
+import {
+  assertCaseAccessOnRow,
+  caseWhereOrNothing,
+  resolveCaseVisibility,
+} from '../case/case-access';
 import {
   claimGenerationRequest,
   markGenerationProcessing,
@@ -49,6 +52,7 @@ import {
 import { asCaseWithRelations, fetchCaseForGeneration } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
 import { prepareTemplate, variantDisplayName } from './prepare-template';
+import { resolveCaseFolder } from './case-folder';
 
 export async function getTemplatesFromDatabase() {
   try {
@@ -376,133 +380,33 @@ export async function getDocumentsFromDrive() {
       };
     }
 
-    const documents = await prisma.documentFromDrive.findMany({
-      where: {
-        tenantId,
-      },
-      orderBy: [{ isFolder: 'desc' }, { fileName: 'asc' }],
+    // Los casos que el usuario puede ver, con el mismo control que el resto
+    // de la app (`case-access`): todos los del centro, los propios o los suyos
+    // como deudor. Sin alcance, ninguno. Antes este filtro se armaba a mano
+    // aquí, y la pertenencia de un archivo a un caso se adivinaba con un
+    // patrón de número (`INS-2026-001`) que los números actuales
+    // (`INSOL-000007`) no cumplen: la pestaña no mostraba sus archivos.
+    const visibilidad = await resolveCaseVisibility(user, tenantId);
+    const visibles = await prisma.case.findMany({
+      where: { tenantId, ...caseWhereOrNothing(visibilidad) },
+      select: { caseNumber: true },
     });
+    const numerosVisibles = new Set(visibles.map((c) => c.caseNumber));
 
-    const caseNumberPattern = /(CON|INS|ACU)-\d{4}-\d{3}/;
-
-    /**
-     * Extract case number from a document's folderPath.
-     * Handles both new format [centerName, caseNumber, ...] and legacy [caseNumber, ...].
-     */
-    function extractCaseNumber(doc: {
-      folderPath: string[];
-      fileName: string;
-      isFolder: boolean;
-    }): string | undefined {
-      // New format: folderPath[0] = center name, folderPath[1] = case number
-      if (
-        doc.folderPath.length > 1 &&
-        caseNumberPattern.test(doc.folderPath[1])
-      ) {
-        return doc.folderPath[1];
-      }
-      // Legacy format: folderPath[0] = case number
-      if (
-        doc.folderPath.length > 0 &&
-        caseNumberPattern.test(doc.folderPath[0])
-      ) {
-        return doc.folderPath[0];
-      }
-      // Folder with no path but name is case number
-      if (
-        doc.isFolder &&
-        doc.folderPath.length === 0 &&
-        caseNumberPattern.test(doc.fileName)
-      ) {
-        return doc.fileName;
-      }
-      // Case folder with center prefix
-      if (
-        doc.isFolder &&
-        doc.folderPath.length === 1 &&
-        caseNumberPattern.test(doc.fileName)
-      ) {
-        return doc.fileName;
-      }
-      return undefined;
-    }
-
-    const filteredDocuments = documents.filter((doc) => {
-      return extractCaseNumber(doc) !== undefined;
-    });
-
-    // Check user permissions to determine case visibility scope
-    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
-    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
-    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
-
-    if (canViewAllCases) {
-      // Can see all documents
-      const data = getDocumentsFromDriveOutputSchema.parse(
-        filteredDocuments.map((doc) => ({
-          id: doc.id,
-          googleDriveId: doc.googleDriveId,
-          fileName: doc.fileName,
-          mimeType: doc.mimeType,
-          createdAt: doc.createdAt,
-          updatedAt: doc.updatedAt,
-          folderPath: doc.folderPath,
-          isFolder: doc.isFolder,
-          parentFolderId: doc.parentFolderId || undefined,
-          size: doc.size || undefined,
-        })),
-      );
-      return { success: true, data };
-    } else {
-      // Get accessible case numbers based on permissions
-      let accessibleCaseNumbers: string[] = [];
-
-      if (canViewOwnCases) {
-        // Abogado, Asistente Legal: only documents from cases they are working on
-        const accessibleCases = await prisma.case.findMany({
-          where: {
-            operatorId: user.id,
-            tenantId,
-          },
-          select: {
-            caseNumber: true,
-          },
-        });
-        accessibleCaseNumbers = accessibleCases.map((c) => c.caseNumber);
-      } else if (canViewAsClient) {
-        // Usuario: only documents from cases where they are the debtor
-        const userDebtor = await prisma.debtor.findFirst({
-          where: {
-            email: user.email,
-            tenantId,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        if (userDebtor) {
-          const accessibleCases = await prisma.case.findMany({
-            where: {
-              debtorId: userDebtor.id,
-              tenantId,
-            },
-            select: {
-              caseNumber: true,
-            },
+    const documents =
+      numerosVisibles.size === 0
+        ? []
+        : await prisma.documentFromDrive.findMany({
+            where: { tenantId },
+            orderBy: [{ isFolder: 'desc' }, { fileName: 'asc' }],
           });
-          accessibleCaseNumbers = accessibleCases.map((c) => c.caseNumber);
-        }
-      }
 
-      // Filter documents by accessible case numbers
-      const userFilteredDocuments = filteredDocuments.filter((doc) => {
-        const caseNumber = extractCaseNumber(doc);
-        return caseNumber && accessibleCaseNumbers.includes(caseNumber);
-      });
-
-      const data = getDocumentsFromDriveOutputSchema.parse(
-        userFilteredDocuments.map((doc) => ({
+    const data = getDocumentsFromDriveOutputSchema.parse(
+      documents
+        .filter((doc) =>
+          numerosDeCasoDeLaFila(doc).some((n) => numerosVisibles.has(n)),
+        )
+        .map((doc) => ({
           id: doc.id,
           googleDriveId: doc.googleDriveId,
           fileName: doc.fileName,
@@ -514,16 +418,37 @@ export async function getDocumentsFromDrive() {
           parentFolderId: doc.parentFolderId || undefined,
           size: doc.size || undefined,
         })),
-      );
-      return { success: true, data };
-    }
+    );
+    return { success: true, data };
   } catch (error) {
-    console.error('Error getting documents from Drive:', error);
+    logger.error('Error getting documents from Drive', error, {
+      action: 'getDocumentsFromDrive',
+    });
     return {
       success: false,
       error: 'Error al obtener documentos de Google Drive',
     };
   }
+}
+
+/**
+ * Los números de caso a los que puede pertenecer una fila del índice, según su
+ * ruta. Los formatos que escriben la sincronización y
+ * `registrarCarpetaV0EnIndice`:
+ *  - lo de adentro de una carpeta de caso: `[centro, número, ...]`;
+ *  - la carpeta del caso: `fileName` = número, con ruta `[centro]` (o
+ *    `[centro, número]` en las filas que escribía la sincronización vieja);
+ *  - filas antiguas sin el centro adelante: `[número, ...]`.
+ * Si alguno es un caso visible lo decide el llamador, con los números exactos.
+ */
+function numerosDeCasoDeLaFila(doc: {
+  folderPath: string[];
+  fileName: string;
+  isFolder: boolean;
+}): string[] {
+  const candidatos = [doc.folderPath[1], doc.folderPath[0]];
+  if (doc.isFolder && doc.folderPath.length <= 1) candidatos.push(doc.fileName);
+  return candidatos.filter((c): c is string => Boolean(c));
 }
 
 /**
@@ -575,6 +500,109 @@ interface FilaGuardada {
   isFolder: boolean;
   size: string | null;
   updatedAt: Date;
+}
+
+type ArbolDeDrive = Awaited<
+  ReturnType<
+    (typeof import('@/lib/google-drive'))['googleDriveService']['listAllFoldersAndFilesRecursively']
+  >
+>;
+
+/**
+ * Las filas del índice para las carpetas de caso que el recorrido del centro no
+ * cubrió: una por cada caso del centro con `driveFolderId` que no esté ya en
+ * `yaIndexadas`.
+ *
+ * Mismo formato que las v0, para que la pestaña las agrupe igual: la carpeta
+ * del caso va con el nombre del caso y la ruta `[centro]`; lo de adentro, con
+ * `[centro, número de caso, ...subcarpetas]`. Si dos casos del centro guardan
+ * la misma carpeta, se indexa una vez.
+ */
+async function filasDeCarpetasDeCaso(params: {
+  tenantId: string;
+  centerFolderName: string;
+  yaIndexadas: Set<string>;
+  drive: {
+    listar: (carpetaId: string) => Promise<ArbolDeDrive>;
+    datos: (
+      carpetaId: string,
+    ) => Promise<{ createdTime?: string | null; modifiedTime?: string | null }>;
+  };
+}): Promise<FilaDeDrive[]> {
+  const { tenantId, centerFolderName, yaIndexadas, drive } = params;
+  const casos = await prisma.case.findMany({
+    where: { tenantId, driveFolderId: { not: null } },
+    select: { caseNumber: true, driveFolderId: true },
+    orderBy: { caseNumber: 'asc' },
+  });
+
+  const filas: FilaDeDrive[] = [];
+  for (const { caseNumber, driveFolderId } of casos) {
+    if (!driveFolderId || yaIndexadas.has(driveFolderId)) continue;
+    yaIndexadas.add(driveFolderId);
+
+    // Las fechas de la carpeta, no la hora de la sincronización: con la hora
+    // actual la fila se reescribiría en cada corrida sin que nada cambiara.
+    let carpetaDelCaso: Awaited<ReturnType<typeof drive.datos>>;
+    let arbol: ArbolDeDrive;
+    try {
+      carpetaDelCaso = await drive.datos(driveFolderId);
+      arbol = await drive.listar(driveFolderId);
+    } catch (error) {
+      logger.warn('No se pudo leer la carpeta de un caso; se omite', {
+        action: 'syncDocumentsWithGoogleDrive',
+        tenantId,
+        caseNumber,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    filas.push({
+      googleDriveId: driveFolderId,
+      fileName: caseNumber,
+      mimeType: 'application/vnd.google-apps.folder',
+      folderPath: [centerFolderName],
+      parentFolderId: null,
+      isFolder: true,
+      size: null,
+      createdAt: fechaDeDrive(carpetaDelCaso.createdTime),
+      updatedAt: fechaDeDrive(carpetaDelCaso.modifiedTime),
+    });
+
+    for (const carpeta of arbol.folders) {
+      if (yaIndexadas.has(carpeta.id)) continue;
+      yaIndexadas.add(carpeta.id);
+      filas.push({
+        googleDriveId: carpeta.id,
+        fileName: carpeta.name,
+        mimeType: 'application/vnd.google-apps.folder',
+        folderPath: [centerFolderName, caseNumber, ...carpeta.path],
+        parentFolderId: carpeta.parentId ?? null,
+        isFolder: true,
+        size: null,
+        createdAt: fechaDeDrive(carpeta.createdTime),
+        updatedAt: fechaDeDrive(carpeta.modifiedTime),
+      });
+    }
+    for (const archivo of arbol.files) {
+      if (!archivo.mimeType || archivo.mimeType.includes('folder')) continue;
+      if (yaIndexadas.has(archivo.id)) continue;
+      yaIndexadas.add(archivo.id);
+      filas.push({
+        googleDriveId: archivo.id,
+        fileName: archivo.name,
+        mimeType: archivo.mimeType,
+        folderPath: [centerFolderName, caseNumber, ...archivo.path],
+        parentFolderId: archivo.parentId ?? null,
+        isFolder: false,
+        size: archivo.size ?? null,
+        createdAt: fechaDeDrive(archivo.createdTime),
+        updatedAt: fechaDeDrive(archivo.modifiedTime),
+      });
+    }
+  }
+  return filas;
 }
 
 function enLotes<T>(items: T[], tamanio: number): T[][] {
@@ -673,6 +701,7 @@ export async function syncDocumentsWithGoogleDrive() {
     const centerFolderId = await googleDriveService.createFolderHierarchy(
       [centerFolderName],
       docGenFolderId,
+      { tenantId },
     );
 
     const casesFolderId = centerFolderId;
@@ -715,7 +744,26 @@ export async function syncDocumentsWithGoogleDrive() {
       updatedAt: fechaDeDrive(file.modifiedTime),
     }));
 
-    const deseadas = [...carpetas, ...archivos];
+    // La carpeta de cada caso sale de su `driveFolderId`. Las v0 cuelgan del
+    // árbol del centro y ya están arriba; las v1 (`Insolventic/...`) no, y
+    // antes no se indexaban nunca: la pestaña Drive no mostraba lo de los
+    // casos nuevos. Se recorren las que falten, una por caso.
+    const yaIndexadas = new Set([
+      centerFolderId,
+      ...carpetas.map((c) => c.googleDriveId),
+    ]);
+    const deCasos = await filasDeCarpetasDeCaso({
+      tenantId,
+      centerFolderName,
+      yaIndexadas,
+      drive: {
+        listar: (id) =>
+          googleDriveService.listAllFoldersAndFilesRecursively(id),
+        datos: (id) => googleDriveService.getFileInfo(id),
+      },
+    });
+
+    const deseadas = [...carpetas, ...archivos, ...deCasos];
 
     // PASO 1 — una lectura por lote de ids, en vez de un `findUnique` por
     // ítem. Solo las columnas que hacen falta para decidir si algo cambió.
@@ -811,10 +859,10 @@ export async function syncDocumentsWithGoogleDrive() {
 
     const created = aCrear.length;
     const updated = aActualizar.length;
-    const folders = carpetas.length;
+    const folders = deseadas.filter((f) => f.isFolder).length;
 
     const syncResult = syncDocumentsWithGoogleDriveOutputSchema.parse({
-      synced: documentFiles.length + folders,
+      synced: deseadas.length,
       created,
       updated,
       unchanged: sinCambios,
@@ -1153,34 +1201,45 @@ export async function batchGenerateDocuments(input: {
     // on the case query above. The resolveCenterFolderName function uses the
     // authoritative tenant→center mapping, so the folder is always correct.
 
-    // Create case folder in Google Drive for storage
+    // La carpeta del caso la decide resolveCaseFolder: la guardada en
+    // driveFolderId, o la v1 nueva. Antes /documents usaba SIEMPRE la ruta v0
+    // (documentos-generados/{centro}/{N°}) aunque el caso tuviera otra
+    // carpeta guardada, y el expediente quedaba repartido en dos.
     let caseFolderId = '';
     let caseFolderUrl = '';
+    let layoutVersion = 0;
     /** Por qué no hay carpeta, para decirlo en cada documento que no se sube. */
     let errorDeCarpeta = '';
 
     try {
-      const caseFolder = await createCaseFolderInGoogleDrive(
-        caseData.caseNumber,
-        centerFolderName,
-        prisma,
-        tenantId,
-      );
-      caseFolderId = caseFolder.id;
-      caseFolderUrl = caseFolder.webViewLink;
+      const carpeta = await resolveCaseFolder(caseData.id, tenantId);
+      caseFolderId = carpeta.folderId;
+      layoutVersion = carpeta.layoutVersion;
+      const { googleDriveService } = await import('@/lib/google-drive');
+      caseFolderUrl = googleDriveService.getFolderUrl(caseFolderId);
 
-      // Persist folder ID on the case so subsequent operations find it
-      if (caseFolderId && !caseData.driveFolderId) {
-        await prisma.case.update({
-          where: { id: caseData.id, tenantId },
-          data: { driveFolderId: caseFolderId },
-        });
+      // La fila de la carpeta en el índice de la pestaña Drive de /documents
+      // solo existió para las carpetas v0 (documentos-generados/...), que es lo
+      // único que esa pestaña recorre. Se conserva para ellas.
+      if (layoutVersion < 1) {
+        await registrarCarpetaV0EnIndice(
+          caseFolderId,
+          caseData.caseNumber,
+          centerFolderName,
+          tenantId,
+        );
       }
     } catch (driveError) {
       // Se sigue con el lote para que cada documento diga por qué no se
       // subió, pero ninguno puede quedar como generado sin estar en Drive.
-      errorDeCarpeta =
-        driveError instanceof Error ? driveError.message : String(driveError);
+      // Este bloque también registra la carpeta en BD: un error de Prisma
+      // trae el ID de la carpeta y del centro, así que de ese no se muestra
+      // el motivo (queda en el log de abajo).
+      errorDeCarpeta = esErrorDePrisma(driveError)
+        ? ''
+        : driveError instanceof Error
+          ? driveError.message
+          : String(driveError);
       logger.error('Drive case folder resolution failed', driveError, {
         action: 'batch-generate-documents',
         caseId: caseData.id,
@@ -1399,6 +1458,14 @@ export async function batchGenerateDocuments(input: {
     }
 
     // Phase 3: Upload to Google Drive and save to DB
+    //
+    // Destino ya resuelto por ruta, para todo el lote. Muchas plantillas
+    // comparten ruta (en un caso v1, todas las de `folderPath: []` van a
+    // `01-Generados`) y con PDF y DOCX cada plantilla sube dos veces: sin esto
+    // cada subida repetía la búsqueda en Drive. Mismo patrón que
+    // `subfolderCache` en la ruta automática (generate-documents.ts). Un fallo
+    // no se guarda: el siguiente documento vuelve a intentar la ruta.
+    const destinoPorRuta = new Map<string, string>();
     for (const htmlDoc of htmlDocuments) {
       // Gather generated file variants for this template
       const variants: Array<{ ext: string; buffer: Buffer; mimeType: string }> =
@@ -1450,10 +1517,7 @@ export async function batchGenerateDocuments(input: {
           `.${variant.ext}`,
         );
 
-        // Sin carpeta del caso no hay dónde subir. Antes el documento se
-        // registraba igual, como 'success' con URL vacía: el operador lo veía
-        // generado y en Drive no estaba. El fallo ya quedó en el log arriba.
-        if (!caseFolderId) {
+        const registrarFallo = (error: string) =>
           documents.push({
             templateId: htmlDoc.template.id,
             templateName: htmlDoc.displayName,
@@ -1461,37 +1525,77 @@ export async function batchGenerateDocuments(input: {
             documentName: variantDocName,
             documentUrl: '',
             status: 'error',
-            error: `No se subió a Google Drive: no se pudo resolver la carpeta del caso${errorDeCarpeta ? ` (${errorDeCarpeta})` : ''}.`,
+            error,
           });
+
+        // Sin carpeta del caso no hay dónde subir. Antes el documento se
+        // registraba igual, como 'success' con URL vacía: el operador lo veía
+        // generado y en Drive no estaba. El fallo ya quedó en el log arriba.
+        if (!caseFolderId) {
+          registrarFallo(
+            `No se subió a Google Drive: no se pudo resolver la carpeta del caso${errorDeCarpeta ? ` (${errorDeCarpeta})` : ''}.`,
+          );
           continue;
         }
 
         try {
           const { googleDriveService } = await import('@/lib/google-drive');
 
-          // Igual que createDocumentSubfolder (ruta automatica): la
-          // subcarpeta no lleva reintento propio, degrada a la carpeta
-          // del caso si falla (find-or-create en el siguiente intento
-          // la reconstruye; no vale la pena bloquear la subida por esto).
-          let targetFolderId = caseFolderId;
-          if (htmlDoc.template.folderPath.length > 0) {
+          // En un caso v1 los generados van dentro de 01-Generados, como en
+          // la ruta automática; un caso v0 conserva su estructura.
+          const rutaDestino =
+            layoutVersion >= 1
+              ? ['01-Generados', ...htmlDoc.template.folderPath]
+              : htmlDoc.template.folderPath;
+          const claveDeRuta = rutaDestino.join('/');
+          let targetFolderId = destinoPorRuta.get(claveDeRuta) ?? caseFolderId;
+          if (rutaDestino.length > 0 && !destinoPorRuta.has(claveDeRuta)) {
+            // Con reintento, como la carpeta del caso y la subida. Antes un
+            // fallo de Drive aquí (sin reintento) subía el documento a la
+            // raíz de la carpeta del caso y lo daba por generado: quedaba
+            // fuera de su subcarpeta sin que nadie lo viera. Ahora, agotado
+            // el reintento, el documento es un error visible y no se sube.
+            // Un fallo no se guarda en `destinoPorRuta`: el documento
+            // siguiente vuelve a intentar la ruta.
             try {
-              targetFolderId = await googleDriveService.createFolderHierarchy(
-                htmlDoc.template.folderPath,
-                caseFolderId,
-              );
-            } catch (folderError) {
-              logger.warn(
-                'Error creating Drive subfolder, falling back to case folder',
+              targetFolderId = await withRetry(
+                () =>
+                  googleDriveService.createFolderHierarchy(
+                    rutaDestino,
+                    caseFolderId,
+                    { caseId: caseData.id, tenantId },
+                  ),
                 {
-                  action: 'batch-generate-documents',
-                  folderPath: htmlDoc.template.folderPath.join('/'),
-                  reason:
-                    folderError instanceof Error
-                      ? folderError.message
-                      : String(folderError),
+                  label: `subcarpeta:${claveDeRuta}`,
+                  isRetryable: isRetryableDriveError,
                 },
               );
+              destinoPorRuta.set(claveDeRuta, targetFolderId);
+            } catch (folderError) {
+              const motivo =
+                folderError instanceof Error
+                  ? folderError.message
+                  : String(folderError);
+              logger.warn(
+                'No se pudo crear la subcarpeta de destino; el documento no se sube',
+                {
+                  action: 'batch-generate-documents',
+                  caseId: caseData.id,
+                  templateId: htmlDoc.template.id,
+                  folderPath: claveDeRuta,
+                  reason: motivo,
+                },
+              );
+              documents.push({
+                templateId: htmlDoc.template.id,
+                templateName: htmlDoc.displayName,
+                documentId: '',
+                documentName: variantDocName,
+                documentUrl: '',
+                status: 'error',
+                error: `No se subió a Google Drive: no se pudo crear la subcarpeta ${claveDeRuta} (${motivo}).`,
+              });
+              continue;
             }
           }
 
@@ -1515,10 +1619,21 @@ export async function batchGenerateDocuments(input: {
               },
             );
           } catch (uploadError) {
-            throw new Error(
+            // El motivo de Drive se muestra: le dice al operador qué revisar
+            // y no trae datos del caso (`google-drive.ts` envuelve cada error
+            // en un texto fijo). El fallo al guardar, abajo, no se muestra.
+            const errorDeSubida = new Error(
               `No se subió a Google Drive: ${uploadError instanceof Error ? uploadError.message : String(uploadError)}`,
               { cause: uploadError },
             );
+            logger.error('Error uploading or saving document', errorDeSubida, {
+              action: 'batch-generate-documents',
+              caseId: caseData.id,
+              template: htmlDoc.template.name,
+              variant: variant.ext,
+            });
+            registrarFallo(errorDeSubida.message);
+            continue;
           }
 
           const document = await prisma.document.create({
@@ -1546,24 +1661,18 @@ export async function batchGenerateDocuments(input: {
             status: 'success',
           });
         } catch (saveError) {
-          logger.error('Error uploading or saving document', saveError, {
+          // El mensaje de Prisma imprime los datos de la operación (nombre
+          // del documento, IDs de Drive): va completo al log y a Sentry, no
+          // al usuario.
+          logger.error('Error saving generated document', saveError, {
             action: 'batch-generate-documents',
             caseId: caseData.id,
             template: htmlDoc.template.name,
             variant: variant.ext,
           });
-          documents.push({
-            templateId: htmlDoc.template.id,
-            templateName: htmlDoc.displayName,
-            documentId: '',
-            documentName: variantDocName,
-            documentUrl: '',
-            status: 'error',
-            error:
-              saveError instanceof Error
-                ? saveError.message
-                : 'Error guardando documento',
-          });
+          registrarFallo(
+            'No se pudo guardar el documento. Intenta generarlo de nuevo.',
+          );
         }
       }
     }
@@ -1800,8 +1909,6 @@ export async function uploadCaseDocument(input: {
         caseNumber: true,
         id: true,
         centroConciliacionNombre: true,
-        driveFolderId: true,
-        layoutVersion: true,
       },
     });
 
@@ -1821,36 +1928,21 @@ export async function uploadCaseDocument(input: {
     // on the case query above. The resolveCenterFolderName function uses the
     // authoritative tenant→center mapping, so the folder is always correct.
 
-    let caseFolderId: string;
-
-    if (caseData.layoutVersion >= 1 && caseData.driveFolderId) {
-      // Layout v1: use the persisted case folder (sectioned hierarchy already exists)
-      caseFolderId = caseData.driveFolderId;
-    } else {
-      // Legacy v0: ensure documentos-generados/{center}/{caseNumber}/
-      const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
-      const centerFolderId = await googleDriveService.createFolderHierarchy(
-        [centerFolderName],
-        docGenFolderId,
-      );
-      caseFolderId = await googleDriveService.findOrCreateCaseFolder(
-        caseData.caseNumber,
-        centerFolderId,
-      );
-      if (!caseData.driveFolderId) {
-        await prisma.case.update({
-          where: { id: caseId, tenantId },
-          data: { driveFolderId: caseFolderId },
-        });
-      }
-    }
+    // La carpeta del caso la decide resolveCaseFolder. Antes, sin carpeta v1
+    // guardada, se recalculaba la ruta v0 por nombre y se guardaba: en el alta
+    // los adjuntos llegaban antes que el job de generación, creaban la v0, y
+    // el job guardaba encima la v1. Ahora quien llega primero crea la v1 con
+    // su layoutVersion y el otro la usa.
+    const carpeta = await resolveCaseFolder(caseId, tenantId);
+    const caseFolderId = carpeta.folderId;
 
     // Adjuntos subfolder name depends on layout version
     const adjuntosFolderName =
-      caseData.layoutVersion >= 1 ? '02-Adjuntos' : 'Adjuntos';
+      carpeta.layoutVersion >= 1 ? '02-Adjuntos' : 'Adjuntos';
     const adjuntosFolderId = await googleDriveService.createFolderHierarchy(
       [adjuntosFolderName],
       caseFolderId,
+      { caseId, tenantId },
     );
 
     const safeFileName = sanitizeFileName(file.name);
@@ -1941,6 +2033,15 @@ export async function uploadCaseDocument(input: {
 }
 
 /**
+ * Si el error viene del cliente de Prisma. Se mira el `name` (todas sus clases
+ * de error empiezan por `PrismaClient`) y no `instanceof`, para no depender de
+ * qué copia del runtime lanzó el error.
+ */
+function esErrorDePrisma(error: unknown): boolean {
+  return error instanceof Error && error.name.startsWith('PrismaClient');
+}
+
+/**
  * Finds or creates the "documentos-generados" root folder in Google Drive.
  * Reusable helper to avoid duplicating this logic across functions.
  */
@@ -1967,48 +2068,28 @@ async function findOrCreateDocumentosGeneradosFolder(): Promise<string> {
 }
 
 /**
- * Creates (or finds) the case folder inside the center's subfolder.
- * Structure: documentos-generados/{centerFolderName}/{caseNumber}/
+ * Fila de la carpeta de un caso v0 en el índice de la pestaña Drive de
+ * `/documents` (`DocumentFromDrive`). La creaba `createCaseFolderInGoogleDrive`,
+ * que ya no existe: la carpeta la decide `resolveCaseFolder`.
  *
- * @param caseNumber - The case number (e.g., "CON-2024-001")
- * @param centerFolderName - The center folder name (e.g., "Armonia", "Construpaz")
- * @param prisma - Prisma client
- * @param tenantId - Tenant ID for DB records
+ * Solo para carpetas v0, las que viven bajo `documentos-generados/{centro}`, que
+ * es lo único que esa pestaña recorre. `parentFolderId` no se toca al actualizar
+ * (lo dejó la sincronización o la creación original); al crear queda vacío,
+ * porque el id de la carpeta del centro ya no se calcula aquí.
  */
-async function createCaseFolderInGoogleDrive(
+async function registrarCarpetaV0EnIndice(
+  caseFolderId: string,
   caseNumber: string,
   centerFolderName: string,
-  prisma: PrismaClient,
   tenantId: string,
-) {
-  const { googleDriveService } = await import('@/lib/google-drive');
-
-  // 1. Get or create "documentos-generados"
-  const docGenFolderId = await findOrCreateDocumentosGeneradosFolder();
-
-  // 2. Get or create center subfolder: documentos-generados/{centerFolderName}/
-  const centerFolderId = await googleDriveService.createFolderHierarchy(
-    [centerFolderName],
-    docGenFolderId,
-  );
-
-  // 3. Get or create case folder: documentos-generados/{centerFolderName}/{caseNumber}/
-  const caseFolderId = await googleDriveService.findOrCreateCaseFolder(
-    caseNumber,
-    centerFolderId,
-  );
-
+): Promise<void> {
   await prisma.documentFromDrive.upsert({
     where: {
-      googleDriveId_tenantId: {
-        googleDriveId: caseFolderId,
-        tenantId,
-      },
+      googleDriveId_tenantId: { googleDriveId: caseFolderId, tenantId },
     },
     update: {
       fileName: caseNumber,
       folderPath: [centerFolderName],
-      parentFolderId: centerFolderId,
       updatedAt: new Date(),
     },
     create: {
@@ -2016,19 +2097,13 @@ async function createCaseFolderInGoogleDrive(
       fileName: caseNumber,
       mimeType: 'application/vnd.google-apps.folder',
       folderPath: [centerFolderName],
-      parentFolderId: centerFolderId,
+      parentFolderId: null,
       isFolder: true,
       tenantId,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
   });
-
-  return {
-    id: caseFolderId,
-    name: caseNumber,
-    webViewLink: googleDriveService.getFolderUrl(caseFolderId),
-  };
 }
 
 // Old DOCX/Google Drive pipeline functions removed (processTemplateForCase,

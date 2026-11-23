@@ -473,6 +473,13 @@ una tarea manual del dueño, aparte de este arreglo.
 **Nunca** usar el opt-in contra la base de producción: los centros reales no
 necesitan usuarios demo ni casos de ejemplo.
 
+**`npm run db:reset` (y `db:reset:seed`) tiene su propia guarda**
+(`src/prisma/reset-guard.ts`, probada en `tests/unit/config/reset-guard.test.ts`):
+el mismo criterio de destino, evaluado antes de la primera consulta, también
+con `--tenant=`. A diferencia del seed **no tiene opt-in**: borrar no tiene
+mitigación, así que fuera de una base de prueba local se niega siempre, aunque
+esté `SEED_PERMITIR_BASE_REAL=1`.
+
 ### 7.3 Firmas de los documentos (`imagenes_privadas`)
 
 Las firmas que insertan las plantillas no se versionan: el repositorio es
@@ -520,6 +527,21 @@ tabla vacía deja a los dos centros sin poder generar documentos.
 
 Para reemplazar una firma basta con volver a correr `cargar.ts` con el archivo
 nuevo; el cambio aplica desde la siguiente generación.
+
+**Huellas para el CI.** `scripts/imagenes-privadas/huellas.txt` guarda la huella
+`sha256` de cada archivo de la carpeta, y el CI de cada PR compara contra ella
+todos los archivos versionados: una copia de una firma corta el PR aunque tenga
+otro nombre. La huella no permite reconstruir la imagen, por eso la lista sí se
+versiona. Cada vez que se agrega o se reemplaza una firma, regenerarla desde la
+misma carpeta y commitear el `huellas.txt` resultante:
+
+```bash
+npx tsx scripts/imagenes-privadas/huellas.ts generar <carpeta>   # reescribe huellas.txt
+npx tsx scripts/imagenes-privadas/huellas.ts revisar             # lo que corre el CI
+```
+
+Una imagen incrustada en un PDF o un DOCX no conserva la huella y este control
+no la detecta.
 
 ---
 

@@ -5,7 +5,10 @@
  * de qué centro salió cada una.
  */
 
-import { TIPOS_IMAGEN_PRIVADA } from '@/lib/imagenes-privadas';
+import {
+  TIPOS_IMAGEN_PRIVADA,
+  type ImagenesPrivadas,
+} from '@/lib/imagenes-privadas';
 
 const FIRMA_PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
@@ -50,4 +53,18 @@ export function findManyDeImagenes(filas: FilaImagenPrivada[]) {
         (args.where?.tipo?.in === undefined ||
           args.where.tipo.in.includes(f.tipo)),
     );
+}
+
+/**
+ * Lo que `resolverImagenesPrivadas` devuelve para un centro con todas sus
+ * imágenes cargadas: cada tipo como data URI de `pngDePrueba`. Sirve para los
+ * tests que pasan una plantilla real por `inlineAssets` sin mockear Prisma.
+ */
+export function imagenesDePrueba(tenantId: string): ImagenesPrivadas {
+  return new Map(
+    TIPOS_IMAGEN_PRIVADA.map((tipo) => [
+      tipo,
+      dataUriDePrueba(`${tenantId}/${tipo}`),
+    ]),
+  );
 }

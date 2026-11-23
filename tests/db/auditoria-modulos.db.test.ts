@@ -58,6 +58,10 @@ jest.mock('@/lib/html-to-pdf', () => ({
   })),
 }));
 
+// Drive está simulado, pero resolveCaseFolder exige la carpeta raíz para crear
+// la del caso (lo hace, por ejemplo, el primer comprobante de un pago).
+process.env.GOOGLE_DRIVE_FOLDER_ID ??= 'raiz-de-prueba';
+
 jest.mock('@/lib/google-drive', () => {
   let archivos = 0;
   const idNuevo = () => `drive-archivo-${++archivos}`;

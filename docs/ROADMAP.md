@@ -84,6 +84,8 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
 9. **Los 2 campos de dinero fuera del formulario maestro siguen sin separador de miles** — ~2h
 
+   ✅ **Cerrado el 2026-11-12** (`fix/pagos-reglas-montos-acceso`): los dos usan `MoneyInputField` y envían `parsearMonto(...)`; la acción sigue recibiendo `amount: number`. Tests: `tests/unit/components/pagos-monto-separador.test.tsx`. Lo de abajo queda como registro.
+
    Quedaron fuera del alcance de `#136`, que normalizó los 27 del formulario maestro (wizard + pestañas de edición). Los dos son montos de pago:
 
    | Dónde                                              | Etiqueta       | Qué hace                    |
@@ -100,5 +102,9 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 10. **Revisar los rechazos por tamaño y decidir sobre la subida directa a Drive.** Pendiente desde el 2026-11-05. Requiere que ya estén en producción este registro y el límite de 4 MB en comprobantes y documentos, y unas semanas de uso real desde entonces. Antes de que venza la retención de eventos del plan de Sentry (sin confirmar: `docs/RUNBOOK.md` §0.2 la deja por completar), buscar en Sentry `Archivo rechazado por tamaño`, solo en `production`, y comparar los rechazos con las subidas correctas del mismo periodo. Por qué Drive no responde esto: `docs/DECISIONES.md`, entrada del 2026-11-05.
 
     **Si una parte importante queda fuera, evaluar la sesión reanudable** resolviendo antes: verificar tamaño y tipo después de subir, porque el servidor deja de ver los bytes; limpiar los archivos huérfanos cuando falla el registro tras la subida; y probar el CORS de la sesión contra el Drive real. El intervalo `5-10 MB` dice si bastaría esa vía, y el corte `más de 25 MB` si hay archivos que tampoco deberían entrar así. **Si casi no hay rechazos, se mantienen 4 MB** y se cierra este punto.
+
+11. ~~**Subcarpetas de Drive duplicadas y fallback silencioso en la ruta automática**~~ → 🟢 **Resuelto el 2026-11-22 en `fix/case-drive-folder`.** `createFolderHierarchy` usa siempre la carpeta más antigua por `createdTime`, y `createDocumentSubfolder` reintenta y, agotado el reintento, deja el documento como error en vez de subirlo a la carpeta del caso. Lo de abajo queda como registro:
+    - **Búsqueda determinista en `createFolderHierarchy`** (`src/lib/google-drive.ts`). Busca la carpeta por nombre sin `orderBy` y toma `files[0]`. Si dos peticiones crean a la vez la misma subcarpeta (un Regenerar de Gestión de Casos, kind `INITIAL`, y una generación de `/documents`, kind `BATCH`, no comparten lock), quedan dos `01-Generados` con el mismo nombre y cada subida puede caer en cualquiera. Propuesta: `orderBy: 'createdTime'` para que gane siempre la más antigua, y un `logger.warn` cuando haya más de una coincidencia, para que el duplicado se vea en el log.
+    - **`createDocumentSubfolder`** (`src/features/document/generate-documents.ts`, la ruta automática: alta de caso, Regenerar y etapas). Si la subcarpeta falla, sube a la raíz de la carpeta del caso y da el documento por generado, sin reintento. `/documents` ya no lo hace: reintenta con `withRetry` + `isRetryableDriveError` y, agotado el reintento, el documento queda como error visible. Aplicar lo mismo aquí.
 
 > Nota: dos items del roadmap original se descartaron por no corresponder al código real: la migración Float→Decimal (los montos ya usan `Decimal`) y el split del schema Prisma (tiene 1.041 líneas, no 2.516 — no urge).

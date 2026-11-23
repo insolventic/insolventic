@@ -22,6 +22,7 @@
 
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { tipoProcesoLabel } from '@/features/case/proceso-judicial-tipos';
+import { escapeAllUnlessHtml } from './placeholders/escape';
 import type { DocumentTemplate } from './templates-config';
 
 export interface TemplateVariant {
@@ -135,8 +136,28 @@ export function templateVariants(
 ): TemplateVariant[] {
   const fn = POR_PLANTILLA[template.id];
   if (!fn) return [...SIN_VARIANTES];
-  const variantes = fn(caseData);
+  const variantes = fn(caseData).map(conOverlayEscapado);
   return variantes.length > 0 ? variantes : [...SIN_VARIANTES];
+}
+
+/**
+ * Escapa el overlay con la misma función del punto de fusión del mapper.
+ *
+ * El overlay PISA placeholders que `mapCaseToPlaceholders` ya entregó
+ * escapados (`NOMBRE_JUZGADO`, `NOMBRE_DEMANDANTE`, `TIPO_PROCESO`), así que
+ * sus valores tienen que llegar con la misma garantía. Antes entraban crudos:
+ * un `court` con `<img src="...">` terminaba como HTML real en el oficio, y
+ * `inlineAssets` lo resolvía contra el disco (N-A2-01).
+ *
+ * Se aplica acá, sobre la salida de cualquier generador de variantes, y no
+ * dentro de `variantesPorJuzgado` campo por campo: es el mismo criterio
+ * safe-by-default del mapper, y una variante nueva queda cubierta sin tocar
+ * nada. `label` y `suffix` no se tocan: no van al HTML (el label es el nombre
+ * de la fila de `Document`, que la UI ya escapa; el sufijo pasa por
+ * `slugForFileName`).
+ */
+function conOverlayEscapado(variant: TemplateVariant): TemplateVariant {
+  return { ...variant, overlay: escapeAllUnlessHtml(variant.overlay) };
 }
 
 /**
