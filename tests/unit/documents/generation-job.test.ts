@@ -104,12 +104,22 @@ describe('runInitialGenerationJob — P4 background', () => {
         data: expect.objectContaining({ status: 'PROCESSING' }),
       }),
     );
-    // driveFolderId persistido en el caso
-    expect(mockPrisma.case.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: { driveFolderId: 'folder-1', layoutVersion: 1 },
-      }),
+    // La carpeta la resuelve y la guarda resolveCaseFolder dentro de la
+    // generación, que recibe el tenant para eso. El job ya no escribe
+    // driveFolderId: antes lo pisaba sin condición, aunque los adjuntos del
+    // alta hubieran guardado otra carpeta mientras el job corría.
+    expect(mockGenerate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'case-1' }),
+      {},
+      'tenant-1',
     );
+    const escrituras = [
+      ...mockPrisma.case.update.mock.calls,
+      ...mockPrisma.case.updateMany.mock.calls,
+    ];
+    expect(
+      escrituras.filter(([arg]) => 'driveFolderId' in (arg?.data ?? {})),
+    ).toEqual([]);
     // Documentos exitosos persistidos (createMany vía persistence.ts)
     expect(mockPrisma.document.createMany).toHaveBeenCalled();
     // COMPLETED con lock liberado
