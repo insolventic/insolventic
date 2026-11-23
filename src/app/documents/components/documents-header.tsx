@@ -2,6 +2,7 @@
 
 import { useTransition } from 'react';
 import { Cloud, Loader2, Info } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
@@ -45,6 +46,13 @@ export function DocumentsHeader({
 
       if (documentsSuccess) {
         console.log('Documents sync successful:', documentsData);
+        // La sincronización lee Drive con un tope de tiempo: lo que no
+        // alcanzó a leer queda para la próxima, que empieza por ahí.
+        if (documentsData && documentsData.pendientes > 0) {
+          toast.info('La sincronización con Drive quedó a medias', {
+            description: `Faltan ${documentsData.pendientes} carpeta(s) por leer. Vuelve a sincronizar para terminar.`,
+          });
+        }
         onDocumentsSynced();
       } else {
         console.error('Documents sync error');

@@ -244,6 +244,11 @@ export const syncDocumentsWithGoogleDriveOutputSchema = z.object({
    */
   unchanged: z.number().default(0),
   folders: z.number(),
+  /**
+   * Carpetas que no se alcanzaron a leer antes del tope de tiempo. Quedan
+   * para la próxima sincronización, que empieza por ellas.
+   */
+  pendientes: z.number().default(0),
 });
 
 export const getDocumentsFromDriveInputSchema = z.object({}).optional();

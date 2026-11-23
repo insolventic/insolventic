@@ -47,6 +47,16 @@ const mockGetFileInfo = jest.fn(async (id: string) => ({
   createdTime: '2026-11-10T15:00:00.000Z',
   modifiedTime: '2026-11-11T15:00:00.000Z',
 }));
+/** El listado por niveles: cada raíz devuelve su árbol de `arboles`. */
+const listarCompleto = async (raices: string[]) => ({
+  arboles: new Map(
+    await Promise.all(
+      raices.map(async (r) => [r, await mockListAllRecursively(r)] as const),
+    ),
+  ),
+  incompletas: new Set<string>(),
+});
+const mockListarPorNiveles = jest.fn(listarCompleto);
 jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
     listFoldersAndFiles: jest.fn().mockResolvedValue({
@@ -54,6 +64,8 @@ jest.mock('@/lib/google-drive', () => ({
       files: [],
     }),
     createFolderHierarchy: jest.fn().mockResolvedValue('centro-folder-id'),
+    // La sincronización lee por niveles.
+    listarArbolesPorNiveles: (raices: string[]) => mockListarPorNiveles(raices),
     listAllFoldersAndFilesRecursively: (id: string) =>
       mockListAllRecursively(id),
     getFileInfo: (id: string) => mockGetFileInfo(id),
@@ -125,6 +137,7 @@ function sesion(
 beforeEach(() => {
   resetAllMocks();
   jest.clearAllMocks();
+  mockListarPorNiveles.mockImplementation(listarCompleto);
   jest.spyOn(console, 'log').mockImplementation(() => {});
 
   // El mismo número en los dos centros; los dos casos son v1.
@@ -276,6 +289,49 @@ describe('sincronización: la carpeta de cada caso sale de su driveFolderId', ()
 
     expect(mockPrisma.documentFromDrive.createMany).not.toHaveBeenCalled();
     expect(mockPrisma.documentFromDrive.update).not.toHaveBeenCalled();
+  });
+  it('si el tope de tiempo corta la lectura, escribe solo las carpetas que leyó completas y dice cuántas quedaron', async () => {
+    mockListarPorNiveles.mockImplementation(async (raices: string[]) => {
+      const leido = await listarCompleto(raices);
+      if (raices.includes('v1-armonia')) leido.incompletas.add('v1-armonia');
+      return leido;
+    });
+    sesion('armonia', [P.VER_DOCUMENTOS]);
+
+    const r = await syncDocumentsWithGoogleDrive();
+
+    expect(r.success).toBe(true);
+    expect((r.data as { pendientes: number }).pendientes).toBe(1);
+    const ids = indice.map((f) => f.googleDriveId);
+    // Lo de v1-armonia no se escribió a medias: no está ni la carpeta.
+    for (const id of ['v1-armonia', 'generados-a', 'doc-a'])
+      expect(ids).not.toContain(id);
+    // La otra carpeta, leída completa, sí.
+    expect(ids).toEqual(expect.arrayContaining(['v1-armonia-2', 'doc-a2']));
+  });
+
+  it('primero lee los casos que todavía no tienen fila en el índice', async () => {
+    // v1-armonia ya se indexó en una corrida anterior; v1-armonia-2 no.
+    indice.push({
+      id: 'fila-previa',
+      tenantId: 'armonia',
+      googleDriveId: 'v1-armonia',
+      fileName: 'INSOL-000007',
+      mimeType: 'application/vnd.google-apps.folder',
+      folderPath: ['Armonía'],
+      parentFolderId: null,
+      isFolder: true,
+      size: null,
+      createdAt: new Date('2026-11-01T00:00:00Z'),
+      updatedAt: new Date('2026-11-01T00:00:00Z'),
+    });
+    sesion('armonia', [P.VER_DOCUMENTOS]);
+
+    await syncDocumentsWithGoogleDrive();
+
+    // La primera llamada es el árbol del centro; la segunda, los casos.
+    const [raicesDeCasos] = mockListarPorNiveles.mock.calls[1];
+    expect(raicesDeCasos).toEqual(['v1-armonia-2', 'v1-armonia']);
   });
 });
 
