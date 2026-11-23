@@ -135,6 +135,7 @@ describe('comprobante de pago en Drive', () => {
       expect(mockCreateFolderHierarchy).toHaveBeenCalledWith(
         ['Comprobantes'],
         ID_CARPETA_CASO,
+        expect.objectContaining({ caseId: expect.any(String) }),
       );
       expect(mockUploadFile).toHaveBeenCalledTimes(1);
       expect(mockUploadFile.mock.calls[0][3]).toBe(ID_CARPETA_COMPROBANTES);

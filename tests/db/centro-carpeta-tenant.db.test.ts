@@ -14,11 +14,10 @@
  *
  * Se mockea SOLO lo que toca servicios externos (Drive, Chromium vía
  * `generateDocumentsForNewCase`) -nunca la resolución del centro, que es
- * exactamente lo que este test verifica. `generateInitialDocuments` resuelve
- * el centro ANTES de llamar a `generateDocumentsForNewCase`, así que
- * mockear esa función no mockea la parte que importa: se captura el
- * `centerFolderName` con el que la llama, que es la carpeta que de verdad
- * se usaría en Drive.
+ * exactamente lo que este test verifica. Desde que la carpeta del caso la
+ * decide `resolveCaseFolder` (src/features/document/case-folder.ts), el
+ * centro sale del tenant DEL CASO dentro de esa función: se la llama contra
+ * Postgres real con Drive mockeado y se captura la ruta que crearía.
  *
  * Los tenants `armonia`/`constructores-paz` casi seguro ya existen (los crea
  * `src/prisma/seed.ts`); por eso todo lo compartido (Tenant, Role
@@ -39,6 +38,14 @@ jest.mock('next/server', () => ({
 // generateInitialDocuments explícitamente, una vez, de forma determinista.
 jest.mock('@/features/document/generation-job', () => ({
   runInitialGenerationJob: jest.fn(),
+}));
+
+const mockCreateFolderHierarchy = jest.fn();
+jest.mock('@/lib/google-drive', () => ({
+  googleDriveService: {
+    createFolderHierarchy: (...args: unknown[]) =>
+      mockCreateFolderHierarchy(...args),
+  },
 }));
 
 const mockGenerateDocumentsForNewCase = jest.fn();
@@ -169,7 +176,11 @@ async function sesionDelCentroReal(
         roleId_permissionId: { roleId: role.id, permissionId: permission.id },
       },
       update: {},
-      create: { roleId: role.id, permissionId: permission.id, tenantId: tenant.id },
+      create: {
+        roleId: role.id,
+        permissionId: permission.id,
+        tenantId: tenant.id,
+      },
     });
   }
 
@@ -297,20 +308,42 @@ describe('generateInitialDocuments resuelve el centro por SLUG, para los dos cen
   );
 
   it.each(CENTROS)(
-    '%s: la carpeta de Drive que calcularía es la SUYA, no la del otro centro',
+    '%s: la carpeta de Drive que crearía resolveCaseFolder es la SUYA, no la del otro centro',
     async (slug) => {
       const { sesion, caseId } = casos.get(slug)!;
-      mockCookies.setToken('access-token', sesion.token);
+      const { resolveCaseFolder } = await import(
+        '@/features/document/case-folder'
+      );
+      process.env.GOOGLE_DRIVE_FOLDER_ID = 'raiz-de-prueba';
+      mockCreateFolderHierarchy.mockReset();
+      mockCreateFolderHierarchy.mockResolvedValue(`carpeta-${slug}`);
+      await prisma.case.update({
+        where: { id: caseId },
+        data: { driveFolderId: null, layoutVersion: 0 },
+      });
 
-      await generateInitialDocuments(caseId);
+      const carpeta = await resolveCaseFolder(caseId, sesion.tenantId);
 
-      expect(mockGenerateDocumentsForNewCase).toHaveBeenCalledTimes(1);
-      const [, , centerFolderName] =
-        mockGenerateDocumentsForNewCase.mock.calls[0];
-      expect(centerFolderName).toBe(CARPETA_ESPERADA[slug]);
-
+      expect(mockCreateFolderHierarchy).toHaveBeenCalledTimes(1);
+      const [ruta] = mockCreateFolderHierarchy.mock.calls[0];
+      expect(ruta[1]).toBe(CARPETA_ESPERADA[slug]);
       const otroCentro = slug === 'armonia' ? 'constructores-paz' : 'armonia';
-      expect(centerFolderName).not.toBe(CARPETA_ESPERADA[otroCentro]);
+      expect(ruta[1]).not.toBe(CARPETA_ESPERADA[otroCentro]);
+
+      // Y queda guardada con su layout, contra la base real.
+      expect(carpeta).toEqual({
+        folderId: `carpeta-${slug}`,
+        layoutVersion: 1,
+        creada: true,
+      });
+      const guardado = await prisma.case.findUnique({
+        where: { id: caseId },
+        select: { driveFolderId: true, layoutVersion: true },
+      });
+      expect(guardado).toEqual({
+        driveFolderId: `carpeta-${slug}`,
+        layoutVersion: 1,
+      });
     },
   );
 
