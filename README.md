@@ -257,7 +257,7 @@ npm run test:e2e          # Playwright E2E
 npm run test:e2e:ui       # Playwright UI mode
 ```
 
-**Estado actual:** `207 suites / 3002 tests ✅` — medido el 2026-11-22 en `fix/case-drive-folder` con `dev` integrado.
+**Estado actual:** `217 suites / 3055 tests ✅` — medido el 2026-11-22.
 
 > Este número lo vigila un test (`tests/unit/docs/conteo-de-tests.test.ts`):
 > falla si el conteo documentado aquí, en `docs/TESTS.md` o en `CLAUDE.md` se

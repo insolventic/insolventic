@@ -9,11 +9,13 @@ import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { logger } from '@/lib/logger';
 import {
   mismoValor,
   resumirCambios,
   selectDeCamposEnviados,
 } from '@/features/case/audit-diff';
+import { erroresDeValidacion } from '@/lib/errores-de-validacion';
 
 import {
   createDebtorSchema,
@@ -276,6 +278,8 @@ export async function createDebtor(input: unknown): Promise<{
   success: boolean;
   data?: DebtorSummaryData;
   error?: string;
+  /** Error de validación por campo (`address`, `email`…), para el formulario. */
+  fieldErrors?: Record<string, string>;
 }> {
   try {
     const { tenantId } = await authenticateUser();
@@ -286,8 +290,14 @@ export async function createDebtor(input: unknown): Promise<{
       throw new Error('No tiene permisos para: Crear deudores');
     }
 
-    // Validate input
-    const validatedInput = createDebtorSchema.parse(input);
+    // Validar la entrada sin lanzar: un error de validación vuelve como texto
+    // y por campo. Antes el `catch` devolvía `error.message` del ZodError, que
+    // es el JSON de sus issues, y el diálogo lo mostraba tal cual.
+    const entrada = createDebtorSchema.safeParse(input);
+    if (!entrada.success) {
+      return { success: false, ...erroresDeValidacion(entrada.error)! };
+    }
+    const validatedInput = entrada.data;
 
     const debtor = await prisma.debtor.create({
       data: {
@@ -332,39 +342,45 @@ export async function createDebtor(input: unknown): Promise<{
   } catch (error) {
     console.error('Error in createDebtor:', error);
 
-    // Handle Prisma unique constraint violations
-    if (
-      error &&
-      typeof error === 'object' &&
-      'code' in error &&
-      error.code === 'P2002'
-    ) {
-      const meta =
-        'meta' in error ? (error.meta as { target?: string[] }) : null;
-      const fields = meta?.target ?? [];
-      if (fields.includes('idNumber')) {
-        return {
-          success: false,
-          error: 'Ya existe un deudor con ese número de cédula.',
-        };
-      }
-      if (fields.includes('email')) {
-        return {
-          success: false,
-          error: 'Ya existe un deudor con ese correo electrónico.',
-        };
-      }
-      return {
-        success: false,
-        error: 'Ya existe un deudor con esos datos.',
-      };
-    }
+    const duplicado = mensajeDeDeudorDuplicado(error);
+    if (duplicado) return { success: false, error: duplicado };
 
+    // Un ZodError que llegue aquí no es de la entrada (esa se valida arriba):
+    // su texto, legible, pero sin campos del formulario.
+    const legible = erroresDeValidacion(error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Error al crear deudor',
+      error: legible
+        ? legible.error
+        : error instanceof Error
+          ? error.message
+          : 'Error al crear deudor',
     };
   }
+}
+
+/**
+ * El mensaje para el usuario cuando el alta o la edición choca con la unique
+ * de cédula o de correo (`P2002`). `null` si el error es otro.
+ */
+function mensajeDeDeudorDuplicado(error: unknown): string | null {
+  if (
+    !error ||
+    typeof error !== 'object' ||
+    !('code' in error) ||
+    error.code !== 'P2002'
+  ) {
+    return null;
+  }
+  const meta = 'meta' in error ? (error.meta as { target?: string[] }) : null;
+  const fields = meta?.target ?? [];
+  if (fields.includes('idNumber')) {
+    return 'Ya existe un deudor con ese número de cédula.';
+  }
+  if (fields.includes('email')) {
+    return 'Ya existe un deudor con ese correo electrónico.';
+  }
+  return 'Ya existe un deudor con esos datos.';
 }
 
 /**
@@ -380,17 +396,27 @@ export async function updateDebtor(input: unknown): Promise<{
   success: boolean;
   data?: DebtorSummaryData;
   error?: string;
+  /** Error de validación por campo, para el formulario. */
+  fieldErrors?: Record<string, string>;
 }> {
   try {
     const { user, tenantId } = await authenticateUser();
 
     // Check permission
     if (!user.permissions.includes(P.EDITAR_DEUDORES)) {
-      throw new Error('No tiene permisos para: Editar deudores');
+      return {
+        success: false,
+        error: 'No tiene permisos para: Editar deudores',
+      };
     }
 
     // Validate input
-    const validatedInput = updateDebtorSchema.parse(input);
+    // Igual que createDebtor: la entrada se valida sin lanzar.
+    const entrada = updateDebtorSchema.safeParse(input);
+    if (!entrada.success) {
+      return { success: false, ...erroresDeValidacion(entrada.error)! };
+    }
+    const validatedInput = entrada.data;
     const { id, ...rest } = validatedInput;
 
     // Lo que había antes, solo de las columnas que el payload trae (el
@@ -465,11 +491,20 @@ export async function updateDebtor(input: unknown): Promise<{
     const validated = debtorSummarySchema.parse(updatedDebtor);
     return { success: true, data: validated };
   } catch (error) {
-    console.error('Error in updateDebtor:', error);
+    const duplicado = mensajeDeDeudorDuplicado(error);
+    if (duplicado) return { success: false, error: duplicado };
+    const legible = erroresDeValidacion(error);
+    if (legible) return { success: false, error: legible.error };
+
+    // El mensaje de un error de Prisma imprime los datos de la operación
+    // (cédula, correo, ingresos del deudor): va completo al log y a Sentry,
+    // y el usuario ve uno propio.
+    logger.error('Error al actualizar el deudor', error, {
+      action: 'updateDebtor',
+    });
     return {
       success: false,
-      error:
-        error instanceof Error ? error.message : 'Error al actualizar deudor',
+      error: 'No se pudo actualizar el deudor. Intenta de nuevo.',
     };
   }
 }
