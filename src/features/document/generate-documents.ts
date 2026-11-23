@@ -4,7 +4,7 @@
  */
 
 import path from 'path';
-import { googleDriveService } from '@/lib/google-drive';
+import { googleDriveService, type ContextoDeCarpeta } from '@/lib/google-drive';
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
 import { logger } from '@/lib/logger';
@@ -278,6 +278,14 @@ const defaultOptions: GenerationOptions = {
   uploadToGoogleDrive: true,
 };
 
+/** De qué caso y centro es una carpeta, para el log de duplicadas. */
+function contextoDelCaso(caseData: CaseWithRelations): ContextoDeCarpeta {
+  return {
+    caseId: caseData.id,
+    tenantId: (caseData as { tenantId?: string }).tenantId,
+  };
+}
+
 /**
  * Create subfolder structure within case folder.
  * For layout v1, all generated documents are nested inside `01-Generados/`.
@@ -287,6 +295,7 @@ async function createDocumentSubfolder(
   folderPath: string[],
   layoutVersion: number = 0,
   cache?: Map<string, string>,
+  contexto: ContextoDeCarpeta = {},
 ): Promise<string> {
   const effectivePath =
     layoutVersion >= 1 ? ['01-Generados', ...folderPath] : folderPath;
@@ -310,7 +319,11 @@ async function createDocumentSubfolder(
   try {
     const folderId = await withRetry(
       () =>
-        googleDriveService.createFolderHierarchy(effectivePath, caseFolderId),
+        googleDriveService.createFolderHierarchy(
+          effectivePath,
+          caseFolderId,
+          contexto,
+        ),
       { label: `subcarpeta:${ruta}`, isRetryable: isRetryableDriveError },
     );
     cache?.set(cacheKey, folderId);
@@ -457,6 +470,7 @@ async function generateDocument(
         template.folderPath,
         (caseData as { layoutVersion?: number }).layoutVersion ?? 0,
         subfolderCache,
+        contextoDelCaso(caseData),
       );
 
       googleDriveId = await withRetry(
@@ -665,6 +679,7 @@ async function uploadGeneratedDocument(
   layoutVersion: number,
   options: GenerationOptions,
   subfolderCache: Map<string, string>,
+  contexto: ContextoDeCarpeta,
 ): Promise<GeneratedDocument> {
   try {
     let googleDriveId = '';
@@ -684,6 +699,7 @@ async function uploadGeneratedDocument(
         prepared.template.folderPath,
         layoutVersion,
         subfolderCache,
+        contexto,
       );
 
       googleDriveId = await withRetry(
@@ -861,6 +877,7 @@ async function generateFromTemplates(
       layoutVersion,
       options,
       subfolderCache,
+      contextoDelCaso(caseData),
     );
   }
 

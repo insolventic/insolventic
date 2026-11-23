@@ -173,6 +173,7 @@ describe('resolveCaseFolder', () => {
         'INSOL-000003 - Pérez Gómez',
       ],
       RAIZ,
+      { caseId: 'caso-1', tenantId: 'tenant-cuid-1' },
     );
     expect(mockUpdateMany).toHaveBeenCalledWith({
       where: { id: 'caso-1', tenantId: 'tenant-cuid-1', driveFolderId: null },

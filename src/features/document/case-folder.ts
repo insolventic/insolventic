@@ -167,7 +167,11 @@ export async function resolveCaseFolder(
   // encuentran la misma carpeta. Con reintento, como el resto de las llamadas
   // a Drive de la generación.
   const creadaAqui = await withRetry(
-    () => googleDriveService.createFolderHierarchy(ruta, rootFolderId),
+    () =>
+      googleDriveService.createFolderHierarchy(ruta, rootFolderId, {
+        caseId,
+        tenantId,
+      }),
     {
       label: `case-folder:${caso.caseNumber}`,
       isRetryable: isRetryableDriveError,

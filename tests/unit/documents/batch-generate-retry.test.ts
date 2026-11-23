@@ -299,6 +299,7 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
       expect(googleDriveService.createFolderHierarchy).toHaveBeenCalledWith(
         ['01-Generados'],
         'case-folder-id',
+        { caseId: 'case-1', tenantId: TENANT_ID },
       );
       expect(mockUploadDocumentToCase).toHaveBeenCalledTimes(1);
       expect(mockUploadDocumentToCase.mock.calls[0][2]).toBe('generados-id');

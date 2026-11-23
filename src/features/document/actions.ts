@@ -701,6 +701,7 @@ export async function syncDocumentsWithGoogleDrive() {
     const centerFolderId = await googleDriveService.createFolderHierarchy(
       [centerFolderName],
       docGenFolderId,
+      { tenantId },
     );
 
     const casesFolderId = centerFolderId;
@@ -1562,6 +1563,7 @@ export async function batchGenerateDocuments(input: {
                   googleDriveService.createFolderHierarchy(
                     rutaDestino,
                     caseFolderId,
+                    { caseId: caseData.id, tenantId },
                   ),
                 {
                   label: `subcarpeta:${claveDeRuta}`,
@@ -1940,6 +1942,7 @@ export async function uploadCaseDocument(input: {
     const adjuntosFolderId = await googleDriveService.createFolderHierarchy(
       [adjuntosFolderName],
       caseFolderId,
+      { caseId, tenantId },
     );
 
     const safeFileName = sanitizeFileName(file.name);

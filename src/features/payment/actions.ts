@@ -271,6 +271,7 @@ async function uploadReceiptToDrive(
   const comprobantesFolderId = await googleDriveService.createFolderHierarchy(
     ['Comprobantes'],
     caseFolderId,
+    { caseId, tenantId },
   );
 
   const sanitizedName = sanitizeFileName(file.name);

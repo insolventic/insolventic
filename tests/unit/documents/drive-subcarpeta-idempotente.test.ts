@@ -27,6 +27,8 @@ interface Carpeta {
   name: string;
   parent: string;
   createdTime: string;
+  /** En la papelera de Drive. */
+  trashed?: boolean;
 }
 let carpetas: Carpeta[] = [];
 let reloj = 0;
@@ -38,8 +40,11 @@ const mockList = jest.fn(
     if (barrera) await barrera;
     const padre = /^'([^']+)' in parents/.exec(q)![1];
     const nombre = /name='([^']+)'/.exec(q)![1];
+    // Como la API: la papelera solo queda afuera si la consulta lo pide.
+    const sinPapelera = q.includes('trashed=false');
     const halladas = carpetas.filter(
-      (c) => c.parent === padre && c.name === nombre,
+      (c) =>
+        c.parent === padre && c.name === nombre && !(sinPapelera && c.trashed),
     );
     const ordenadas =
       orderBy === 'createdTime'
@@ -133,7 +138,7 @@ describe('createFolderHierarchy: una sola carpeta aunque se pida a la vez', () =
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it('dos peticiones simultáneas que no la encuentran terminan usando la misma; la otra queda vacía y en el log', async () => {
+  it('dos peticiones simultáneas que no la encuentran terminan usando la misma; la sobrante queda en el log', async () => {
     // Las dos buscan antes de que ninguna cree.
     let soltar!: () => void;
     barrera = new Promise((r) => (soltar = r));
@@ -156,10 +161,10 @@ describe('createFolderHierarchy: una sola carpeta aunque se pida a la vez', () =
     expect(idA).toBe('carpeta-1');
     expect(idB).toBe('carpeta-1');
     expect(logger.warn).toHaveBeenCalledWith(
-      'Carpeta duplicada por concurrencia; se usa la más antigua',
+      'Carpeta duplicada en Drive; se usa la más antigua',
       expect.objectContaining({
         carpetaUsada: 'carpeta-1',
-        carpetaVacia: 'carpeta-2',
+        carpetasSobrantes: ['carpeta-2'],
       }),
     );
     // La siguiente petición también va a la más antigua.
@@ -180,5 +185,97 @@ describe('createFolderHierarchy: una sola carpeta aunque se pida a la vez', () =
       ['INSOL-000007', 'carpeta-2'],
     ]);
     expect(id).toBe('carpeta-3');
+  });
+  it('la más antigua en la papelera de Drive no se usa', async () => {
+    carpetas.push(
+      {
+        id: 'en-la-papelera',
+        name: '01-Generados',
+        parent: 'caso',
+        createdTime: '2026-01-01T00:00:00Z',
+        trashed: true,
+      },
+      {
+        id: 'vigente',
+        name: '01-Generados',
+        parent: 'caso',
+        createdTime: '2026-06-01T00:00:00Z',
+      },
+    );
+
+    await expect(
+      googleDriveService.createFolderHierarchy(['01-Generados'], 'caso'),
+    ).resolves.toBe('vigente');
+    expect(mockCreate).not.toHaveBeenCalled();
+    for (const [args] of mockList.mock.calls) {
+      expect(args.q).toContain('trashed=false');
+    }
+  });
+
+  it('si solo hay una en la papelera, crea una nueva en vez de usarla', async () => {
+    carpetas.push({
+      id: 'en-la-papelera',
+      name: '01-Generados',
+      parent: 'caso',
+      createdTime: '2026-01-01T00:00:00Z',
+      trashed: true,
+    });
+
+    await expect(
+      googleDriveService.createFolderHierarchy(['01-Generados'], 'caso'),
+    ).resolves.toBe('carpeta-1');
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  it('una duplicada que ya existía se avisa con el caso, el centro y los ids, para unirlas a mano', async () => {
+    // Las dos ya están: es lo que deja una carrera en la que Drive no mostró
+    // a tiempo la carpeta recién creada.
+    carpetas.push(
+      {
+        id: 'vieja',
+        name: '01-Generados',
+        parent: 'carpeta-del-caso',
+        createdTime: '2026-01-01T00:00:00Z',
+      },
+      {
+        id: 'nueva',
+        name: '01-Generados',
+        parent: 'carpeta-del-caso',
+        createdTime: '2026-06-01T00:00:00Z',
+      },
+    );
+
+    await googleDriveService.createFolderHierarchy(
+      ['01-Generados'],
+      'carpeta-del-caso',
+      { caseId: 'caso-7', tenantId: 'centro-a' },
+    );
+
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Carpeta duplicada en Drive; se usa la más antigua',
+      {
+        action: 'drive-folder-hierarchy',
+        caseId: 'caso-7',
+        tenantId: 'centro-a',
+        nombre: '01-Generados',
+        carpetaPadre: 'carpeta-del-caso',
+        carpetaUsada: 'vieja',
+        carpetasSobrantes: ['nueva'],
+      },
+    );
+  });
+
+  it('sin duplicadas no avisa nada', async () => {
+    await googleDriveService.createFolderHierarchy(
+      ['Insolventic', 'Armonía'],
+      'raiz',
+      { caseId: 'caso-7', tenantId: 'centro-a' },
+    );
+    await googleDriveService.createFolderHierarchy(
+      ['Insolventic', 'Armonía'],
+      'raiz',
+    );
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });

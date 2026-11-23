@@ -40,6 +40,33 @@ function errorDeDrive(
   return new Error(mensaje, { cause: error });
 }
 
+/** Para el log de una carpeta duplicada: de qué caso y centro es. */
+export interface ContextoDeCarpeta {
+  caseId?: string;
+  tenantId?: string;
+}
+
+/**
+ * Hay más de una carpeta con el mismo nombre en el mismo lugar. Se usa la
+ * más antigua (`carpetas[0]`); el resto se registra para unirlas a mano.
+ */
+function avisarCarpetaDuplicada(
+  nombre: string,
+  padre: string,
+  carpetas: string[],
+  contexto: ContextoDeCarpeta,
+): void {
+  logger.warn('Carpeta duplicada en Drive; se usa la más antigua', {
+    action: 'drive-folder-hierarchy',
+    caseId: contexto.caseId,
+    tenantId: contexto.tenantId,
+    nombre,
+    carpetaPadre: padre,
+    carpetaUsada: carpetas[0],
+    carpetasSobrantes: carpetas.slice(1),
+  });
+}
+
 class GoogleDriveService {
   private drive;
   private auth;
@@ -513,36 +540,49 @@ class GoogleDriveService {
    * Busca la carpeta `nombre` dentro de `padre` y, si no está, la crea.
    *
    * Drive no tiene un "crear si no existe" atómico: dos peticiones que buscan
-   * a la vez la misma carpeta pueden no encontrarla y crearla las dos. Lo que
-   * se garantiza es que terminen usando la MISMA: siempre la más antigua por
-   * `createdTime`, también después de crear (la petición que creó la segunda
-   * vuelve a buscar y se queda con la primera). La que sobra queda vacía —no
-   * se subió nada a ella— y se registra en el log para limpiarla a mano. No se
-   * usa un lock en la base: ver `docs/DECISIONES.md` (2026-11-22).
+   * a la vez la misma carpeta pueden no encontrarla y crearla las dos. Se
+   * reduce, no se elimina: se usa siempre la más antigua por `createdTime`, y
+   * después de crear se vuelve a buscar por si otra petición la creó antes.
+   *
+   * La convergencia es **eventual**. Un `files.list` puede no mostrar todavía
+   * una carpeta recién creada: en ese caso cada petición se queda con la suya
+   * y puede subir archivos a ella, así que la que sobra **puede no quedar
+   * vacía**. Las peticiones siguientes ven las dos y usan la más antigua.
+   * Cada vez que una búsqueda encuentra más de una carpeta con el mismo
+   * nombre se registra en el log, con el caso, el centro y los ids, para
+   * unirlas a mano. La pestaña Drive de `/documents` recorre la carpeta del
+   * caso completa, así que lo que haya en la sobrante igual se ve. No se usa
+   * un lock en la base: ver `docs/DECISIONES.md` (2026-11-22).
    */
   private async buscarOCrearCarpeta(
     nombre: string,
     padre: string,
+    contexto: ContextoDeCarpeta,
   ): Promise<string> {
-    const [existente] = await this.carpetasConNombre(nombre, padre);
-    if (existente) return existente;
+    const existentes = await this.carpetasConNombre(nombre, padre);
+    if (existentes.length > 0) {
+      if (existentes.length > 1) {
+        avisarCarpetaDuplicada(nombre, padre, existentes, contexto);
+      }
+      return existentes[0];
+    }
 
     const creada = await this.createFolder(nombre, padre);
-    const [masAntigua] = await this.carpetasConNombre(nombre, padre);
-    if (masAntigua && masAntigua !== creada) {
-      logger.warn('Carpeta duplicada por concurrencia; se usa la más antigua', {
-        action: 'drive-folder-hierarchy',
-        carpetaUsada: masAntigua,
-        carpetaVacia: creada,
-      });
-      return masAntigua;
+    const despues = await this.carpetasConNombre(nombre, padre);
+    if (despues.length > 1) {
+      avisarCarpetaDuplicada(nombre, padre, despues, contexto);
     }
-    return creada;
+    return despues[0] ?? creada;
   }
 
+  /**
+   * Crea (o encuentra) cada nivel de `folderPath` dentro de `parentFolderId`.
+   * `contexto` solo sirve para el log si aparece una carpeta duplicada.
+   */
   async createFolderHierarchy(
     folderPath: string[],
     parentFolderId: string,
+    contexto: ContextoDeCarpeta = {},
   ): Promise<string> {
     try {
       let currentParentId = parentFolderId;
@@ -551,6 +591,7 @@ class GoogleDriveService {
         currentParentId = await this.buscarOCrearCarpeta(
           folderName,
           currentParentId,
+          contexto,
         );
       }
 
