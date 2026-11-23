@@ -98,6 +98,10 @@ jest.mock('@/lib/google-drive', () => ({
 }));
 
 import { ADMIN_USER } from '../../helpers/fixtures';
+import {
+  findManyDeImagenes,
+  firmasDelCentro,
+} from '../../helpers/imagenes-privadas';
 import { P } from '@/lib/permissions';
 import {
   batchGenerateDocuments,
@@ -162,6 +166,10 @@ function generarDesdeDocuments() {
 
 beforeEach(() => {
   resetAllMocks();
+  // Las firmas del centro se leen de la base desde #193.
+  mockPrisma.imagenPrivada.findMany.mockImplementation(
+    findManyDeImagenes(firmasDelCentro(TENANT_ID)),
+  );
   jest.clearAllMocks();
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});

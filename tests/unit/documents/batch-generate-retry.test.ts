@@ -435,10 +435,22 @@ describe('batchGenerateDocuments — reintentos en la subida a Drive (ruta manua
 
   it('si falla el registro de la carpeta en BD, el motivo de Prisma no se muestra', async () => {
     // El pretty-print de Prisma imprime los argumentos de la operación: acá,
-    // el ID de la carpeta de Drive y el del centro.
-    mockPrisma.documentFromDrive.upsert.mockRejectedValueOnce(
+    // el ID de la carpeta de Drive y el del centro. `resolveCaseFolder` guarda
+    // la carpeta nueva con un `updateMany` condicionado: el caso no tiene
+    // carpeta guardada.
+    const fila = await mockPrisma.case.findUnique();
+    mockPrisma.case.findUnique.mockResolvedValue({
+      ...fila,
+      driveFolderId: null,
+    });
+    // Drive crea la carpeta; lo que falla es guardarla.
+    const { googleDriveService } = jest.requireMock('@/lib/google-drive');
+    googleDriveService.createFolderHierarchy.mockResolvedValue(
+      'case-folder-id',
+    );
+    mockPrisma.case.updateMany.mockRejectedValueOnce(
       new Prisma.PrismaClientValidationError(
-        'Invalid `prisma.documentFromDrive.upsert()` invocation: googleDriveId: "case-folder-id", tenantId: "armonia"',
+        'Invalid `prisma.case.updateMany()` invocation: driveFolderId: "case-folder-id", tenantId: "armonia"',
         { clientVersion: 'test' },
       ),
     );

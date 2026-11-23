@@ -29,6 +29,11 @@ jest.mock('@/features/document/generate-excel', () => ({
     googleDriveUrl: 'https://drive.example/excel-id',
   }),
 }));
+// Las firmas del centro se leen de la base desde #193.
+jest.mock('@/lib/prisma', () => ({
+  __esModule: true,
+  default: require('../../__mocks__/prisma').default,
+}));
 const mockResolveCaseFolder = jest.fn();
 jest.mock('@/features/document/case-folder', () => ({
   resolveCaseFolder: (...a: unknown[]) => mockResolveCaseFolder(...a),
@@ -38,12 +43,22 @@ import { batchHtmlToPdf } from '@/lib/html-to-pdf';
 import { googleDriveService } from '@/lib/google-drive';
 import { generateDocumentsForNewCase } from '@/features/document/generate-documents';
 import { makeCase } from '../../helpers/mapper-fixtures';
+import mockPrisma from '../../__mocks__/prisma';
+import {
+  findManyDeImagenes,
+  firmasDelCentro,
+} from '../../helpers/imagenes-privadas';
 
 const mockCreateFolderHierarchy =
   googleDriveService.createFolderHierarchy as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockPrisma.imagenPrivada.findMany.mockImplementation(
+    findManyDeImagenes(
+      firmasDelCentro((makeCase() as { tenantId: string }).tenantId),
+    ),
+  );
   process.env.GOOGLE_DRIVE_FOLDER_ID = 'raiz-de-drive';
   (batchHtmlToPdf as jest.Mock).mockImplementation(
     async (docs: Array<{ filename: string }>) => ({
