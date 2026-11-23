@@ -2,6 +2,23 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-22 — Carpetas de Drive: sin lock, convergen en la más antigua
+
+**Diagnóstico:** `createFolderHierarchy` buscaba cada nivel por nombre, sin orden, y se quedaba con la primera carpeta que devolvía Drive. Dos peticiones simultáneas sobre el mismo caso (un Regenerar y una generación de `/documents`, o el primer comprobante y el job del alta) podían no encontrar la subcarpeta, crearla las dos y quedarse cada una con la suya. Las siguientes caían en cualquiera de las dos, y los documentos del caso quedaban repartidos.
+
+**Decisión:**
+
+- Las peticiones terminan usando **una sola** carpeta: la más antigua por `createdTime`. La búsqueda pide `orderBy: 'createdTime'` y, después de crear, vuelve a buscar. Si otra petición creó antes la misma carpeta, se usa esa (`buscarOCrearCarpeta`, `src/lib/google-drive.ts`).
+- La carpeta del caso ya era idempotente en la base: `resolveCaseFolder` la guarda con un `updateMany` condicionado a `driveFolderId = null`, y la petición que pierde usa la guardada.
+- En una carrera puede quedar **una carpeta de más, vacía**: la petición que la creó no subió nada a ella, porque antes de subir se queda con la más antigua. Se registra en el log (`Carpeta duplicada por concurrencia; se usa la más antigua`, con la carpeta usada y la vacía) para borrarla a mano. Nada se borra en Drive desde la app.
+
+**Descartado:**
+
+- Un lock en la base por caso (una fila con clave única mientras se crea la carpeta, como `DocumentGenerationRequest.activeKey`): garantiza que no exista una segunda carpeta, pero suma una escritura y una espera a cada subida a Drive (comprobantes, adjuntos, cada documento) para cubrir una carrera rara cuyo peor resultado es una carpeta vacía. Un lock que quede huérfano además bloquea las subidas de ese caso hasta que venza.
+- Borrar la carpeta que sobra en el momento: si la otra petición ya hubiera subido algo a ella por un listado desactualizado, se perdería un documento. Una carpeta vacía de más es preferible a un archivo borrado.
+
+**Consecuencias:** el listado de Drive puede tardar en reflejar una carpeta recién creada. En ese caso la segunda búsqueda no la ve, cada petición usa la suya y queda el mismo escenario de antes, con el aviso en el log para limpiarlo. La garantía es la de la API de Drive, no la de una transacción.
+
 ## 2026-11-20 — Firmas de los documentos: en la base, por centro
 
 **Diagnóstico:** el repositorio es público y versionaba cuatro imágenes de firmas manuscritas (`templates/branding/*/firma-operador.png` y `templates/insolvency/img/`), algunas desde febrero de 2026. Las plantillas las leían del disco al generar. Además, la firma de la Designación del Conciliador estaba escrita a mano en la plantilla y salía igual para los dos centros.
