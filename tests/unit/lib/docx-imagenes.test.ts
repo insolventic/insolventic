@@ -22,13 +22,30 @@ import {
   medidaConTope,
 } from '@/lib/docx-imagenes';
 import { htmlToDocx } from '@/lib/html-to-docx';
+import { CENTROS_CON_SELLO } from '@/lib/imagenes-privadas';
+import { pngEnBlanco } from '../../helpers/png-en-blanco';
 
 const BRANDING = path.join(process.cwd(), 'templates/branding');
 const CENTROS = ['armonia', 'constructores-paz'] as const;
 const EMU_POR_PX = 9525;
 
+/**
+ * Desde #193 la firma del operador y el sello de Constructores de Paz (su logo
+ * de firma) no están en el repositorio: se cargan en la base. Para esos se
+ * usa un PNG generado con el tamaño de la imagen real; el resto del branding
+ * es público y se lee de `templates/branding`.
+ */
+const TAMANO_DE_PRIVADAS: Record<string, { ancho: number; alto: number }> = {
+  'armonia/firma-operador': { ancho: 193, alto: 116 },
+  'constructores-paz/firma-operador': { ancho: 235, alto: 128 },
+  'constructores-paz/logo-firma': { ancho: 1024, alto: 1024 },
+};
+
 function dataUri(centro: string, asset: string): string {
-  const b = fs.readFileSync(path.join(BRANDING, centro, `${asset}.png`));
+  const privada = TAMANO_DE_PRIVADAS[`${centro}/${asset}`];
+  const b = privada
+    ? pngEnBlanco(privada.ancho, privada.alto)
+    : fs.readFileSync(path.join(BRANDING, centro, `${asset}.png`));
   return `data:image/png;base64,${b.toString('base64')}`;
 }
 
@@ -250,6 +267,9 @@ describe('todas las plantillas: cada logo de branding tiene su tope para DOCX', 
       expect(fs.existsSync(path.join(BRANDING, c, 'logo-encabezado.png'))).toBe(
         true,
       );
+      // Un centro con sello pone el sello, que es privado (se carga en la
+      // base desde #193), donde los demás ponen su logo de firma.
+      if (CENTROS_CON_SELLO.has(c)) continue;
       expect(fs.existsSync(path.join(BRANDING, c, 'logo-firma.png'))).toBe(
         true,
       );
