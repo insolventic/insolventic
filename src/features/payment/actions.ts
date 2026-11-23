@@ -15,6 +15,7 @@ import {
 } from '@/features/case/case-access';
 import { P } from '@/lib/permissions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import { resolveCaseFolder } from '@/features/document/case-folder';
 import { errorDeTamanoDeArchivo } from '@/lib/limite-archivos';
 import {
   checkRateLimit,
@@ -259,25 +260,13 @@ async function uploadReceiptToDrive(
 }> {
   const { googleDriveService } = await import('@/lib/google-drive');
 
-  const caseData = await prisma.case.findUnique({
-    where: { id: caseId, tenantId },
-    select: { driveFolderId: true, caseNumber: true },
-  });
-
-  let caseFolderId = caseData?.driveFolderId;
-
-  if (!caseFolderId) {
-    const rootFolderId = process.env.GOOGLE_DRIVE_FOLDER_ID!;
-    const folder = await googleDriveService.findOrCreateCaseFolder(
-      caseData?.caseNumber ?? caseId,
-      rootFolderId,
-    );
-    caseFolderId = folder;
-    await prisma.case.update({
-      where: { id: caseId },
-      data: { driveFolderId: caseFolderId },
-    });
-  }
+  // La carpeta del caso la decide resolveCaseFolder, como en el resto de los
+  // módulos: la guardada, o la v1 nueva bajo la carpeta del centro. Antes, sin
+  // carpeta guardada, se buscaba o creaba por número de caso en la raíz de
+  // Drive: los números se repiten entre centros, así que dos casos de centros
+  // distintos podían terminar en la misma carpeta. Y el id se guardaba sin
+  // condición, pisando la que otra petición acabara de guardar.
+  const { folderId: caseFolderId } = await resolveCaseFolder(caseId, tenantId);
 
   const comprobantesFolderId = await googleDriveService.createFolderHierarchy(
     ['Comprobantes'],

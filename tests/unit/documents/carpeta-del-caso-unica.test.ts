@@ -22,10 +22,6 @@ const CASE_FOLDER = 'src/features/document/case-folder.ts';
 const EXCEPCIONES: Record<string, string> = {
   // Define el método; no lo usa para decidir la carpeta de un caso.
   'src/lib/google-drive.ts': 'definición de findOrCreateCaseFolder',
-  // Comprobantes de pago: quedan fuera de esta fase por decisión (van en un
-  // cambio aparte cuando se resuelva el #187, que toca el mismo archivo).
-  'src/features/payment/actions.ts':
-    'comprobantes de pago, pendiente de un cambio aparte',
   // migrateLegacyCaseToV1 mueve una carpeta v0 a la jerarquía v1. No tiene
   // llamadores (lo vigila el último test de este archivo).
   'src/features/document/storage-helpers.ts':

@@ -52,9 +52,15 @@ jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
     createFolderHierarchy: (...a: unknown[]) => mockCreateFolderHierarchy(...a),
     uploadFile: (...a: unknown[]) => mockUploadFile(...a),
-    findOrCreateCaseFolder: jest.fn().mockResolvedValue('carpeta'),
     getFileUrl: (id: string) => `https://drive.google.com/file/d/${id}/view`,
   },
+}));
+
+// La carpeta del caso la decide resolveCaseFolder (lo prueban los tests de
+// carpeta); acá solo importa que se llame después del control de acceso.
+const mockResolveCaseFolder = jest.fn();
+jest.mock('@/features/document/case-folder', () => ({
+  resolveCaseFolder: (...a: unknown[]) => mockResolveCaseFolder(...a),
 }));
 
 import {
@@ -192,6 +198,8 @@ function expectNadaEscrito() {
   expect(mockPrisma.payment.createMany).not.toHaveBeenCalled();
   expect(mockPrisma.payment.update).not.toHaveBeenCalled();
   expect(mockPrisma.case.update).not.toHaveBeenCalled();
+  expect(mockPrisma.case.updateMany).not.toHaveBeenCalled();
+  expect(mockResolveCaseFolder).not.toHaveBeenCalled();
   expect(mockUploadFile).not.toHaveBeenCalled();
   expect(mockCreateAuditLog).not.toHaveBeenCalled();
 }
@@ -206,6 +214,11 @@ beforeEach(() => {
       where.email === CLIENTE.email ? { id: DEUDOR_DEL_CLIENTE } : null,
   );
   mockCreateFolderHierarchy.mockResolvedValue('carpeta-comprobantes');
+  mockResolveCaseFolder.mockResolvedValue({
+    folderId: 'carpeta',
+    layoutVersion: 1,
+    creada: false,
+  });
   mockUploadFile.mockResolvedValue('archivo-1');
   conCasos(CASO_AJENO, CASO_PROPIO);
 });
