@@ -18,7 +18,11 @@ import {
 import { withRetry } from '@/lib/retry';
 import { isRetryableDriveError } from '@/lib/drive-errors';
 import { canGenerateDocument } from '../case/validation-rules';
-import { assertCaseAccessOnRow } from '../case/case-access';
+import {
+  assertCaseAccessOnRow,
+  caseWhereOrNothing,
+  resolveCaseVisibility,
+} from '../case/case-access';
 import {
   claimGenerationRequest,
   markGenerationProcessing,
@@ -376,133 +380,33 @@ export async function getDocumentsFromDrive() {
       };
     }
 
-    const documents = await prisma.documentFromDrive.findMany({
-      where: {
-        tenantId,
-      },
-      orderBy: [{ isFolder: 'desc' }, { fileName: 'asc' }],
+    // Los casos que el usuario puede ver, con el mismo control que el resto
+    // de la app (`case-access`): todos los del centro, los propios o los suyos
+    // como deudor. Sin alcance, ninguno. Antes este filtro se armaba a mano
+    // aquí, y la pertenencia de un archivo a un caso se adivinaba con un
+    // patrón de número (`INS-2026-001`) que los números actuales
+    // (`INSOL-000007`) no cumplen: la pestaña no mostraba sus archivos.
+    const visibilidad = await resolveCaseVisibility(user, tenantId);
+    const visibles = await prisma.case.findMany({
+      where: { tenantId, ...caseWhereOrNothing(visibilidad) },
+      select: { caseNumber: true },
     });
+    const numerosVisibles = new Set(visibles.map((c) => c.caseNumber));
 
-    const caseNumberPattern = /(CON|INS|ACU)-\d{4}-\d{3}/;
-
-    /**
-     * Extract case number from a document's folderPath.
-     * Handles both new format [centerName, caseNumber, ...] and legacy [caseNumber, ...].
-     */
-    function extractCaseNumber(doc: {
-      folderPath: string[];
-      fileName: string;
-      isFolder: boolean;
-    }): string | undefined {
-      // New format: folderPath[0] = center name, folderPath[1] = case number
-      if (
-        doc.folderPath.length > 1 &&
-        caseNumberPattern.test(doc.folderPath[1])
-      ) {
-        return doc.folderPath[1];
-      }
-      // Legacy format: folderPath[0] = case number
-      if (
-        doc.folderPath.length > 0 &&
-        caseNumberPattern.test(doc.folderPath[0])
-      ) {
-        return doc.folderPath[0];
-      }
-      // Folder with no path but name is case number
-      if (
-        doc.isFolder &&
-        doc.folderPath.length === 0 &&
-        caseNumberPattern.test(doc.fileName)
-      ) {
-        return doc.fileName;
-      }
-      // Case folder with center prefix
-      if (
-        doc.isFolder &&
-        doc.folderPath.length === 1 &&
-        caseNumberPattern.test(doc.fileName)
-      ) {
-        return doc.fileName;
-      }
-      return undefined;
-    }
-
-    const filteredDocuments = documents.filter((doc) => {
-      return extractCaseNumber(doc) !== undefined;
-    });
-
-    // Check user permissions to determine case visibility scope
-    const canViewAllCases = user.permissions.includes(P.VER_TODOS_CASOS);
-    const canViewOwnCases = user.permissions.includes(P.VER_CASOS_PROPIOS);
-    const canViewAsClient = user.permissions.includes(P.VER_CASOS_CLIENTE);
-
-    if (canViewAllCases) {
-      // Can see all documents
-      const data = getDocumentsFromDriveOutputSchema.parse(
-        filteredDocuments.map((doc) => ({
-          id: doc.id,
-          googleDriveId: doc.googleDriveId,
-          fileName: doc.fileName,
-          mimeType: doc.mimeType,
-          createdAt: doc.createdAt,
-          updatedAt: doc.updatedAt,
-          folderPath: doc.folderPath,
-          isFolder: doc.isFolder,
-          parentFolderId: doc.parentFolderId || undefined,
-          size: doc.size || undefined,
-        })),
-      );
-      return { success: true, data };
-    } else {
-      // Get accessible case numbers based on permissions
-      let accessibleCaseNumbers: string[] = [];
-
-      if (canViewOwnCases) {
-        // Abogado, Asistente Legal: only documents from cases they are working on
-        const accessibleCases = await prisma.case.findMany({
-          where: {
-            operatorId: user.id,
-            tenantId,
-          },
-          select: {
-            caseNumber: true,
-          },
-        });
-        accessibleCaseNumbers = accessibleCases.map((c) => c.caseNumber);
-      } else if (canViewAsClient) {
-        // Usuario: only documents from cases where they are the debtor
-        const userDebtor = await prisma.debtor.findFirst({
-          where: {
-            email: user.email,
-            tenantId,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        if (userDebtor) {
-          const accessibleCases = await prisma.case.findMany({
-            where: {
-              debtorId: userDebtor.id,
-              tenantId,
-            },
-            select: {
-              caseNumber: true,
-            },
+    const documents =
+      numerosVisibles.size === 0
+        ? []
+        : await prisma.documentFromDrive.findMany({
+            where: { tenantId },
+            orderBy: [{ isFolder: 'desc' }, { fileName: 'asc' }],
           });
-          accessibleCaseNumbers = accessibleCases.map((c) => c.caseNumber);
-        }
-      }
 
-      // Filter documents by accessible case numbers
-      const userFilteredDocuments = filteredDocuments.filter((doc) => {
-        const caseNumber = extractCaseNumber(doc);
-        return caseNumber && accessibleCaseNumbers.includes(caseNumber);
-      });
-
-      const data = getDocumentsFromDriveOutputSchema.parse(
-        userFilteredDocuments.map((doc) => ({
+    const data = getDocumentsFromDriveOutputSchema.parse(
+      documents
+        .filter((doc) =>
+          numerosDeCasoDeLaFila(doc).some((n) => numerosVisibles.has(n)),
+        )
+        .map((doc) => ({
           id: doc.id,
           googleDriveId: doc.googleDriveId,
           fileName: doc.fileName,
@@ -514,16 +418,37 @@ export async function getDocumentsFromDrive() {
           parentFolderId: doc.parentFolderId || undefined,
           size: doc.size || undefined,
         })),
-      );
-      return { success: true, data };
-    }
+    );
+    return { success: true, data };
   } catch (error) {
-    console.error('Error getting documents from Drive:', error);
+    logger.error('Error getting documents from Drive', error, {
+      action: 'getDocumentsFromDrive',
+    });
     return {
       success: false,
       error: 'Error al obtener documentos de Google Drive',
     };
   }
+}
+
+/**
+ * Los números de caso a los que puede pertenecer una fila del índice, según su
+ * ruta. Los formatos que escriben la sincronización y
+ * `registrarCarpetaV0EnIndice`:
+ *  - lo de adentro de una carpeta de caso: `[centro, número, ...]`;
+ *  - la carpeta del caso: `fileName` = número, con ruta `[centro]` (o
+ *    `[centro, número]` en las filas que escribía la sincronización vieja);
+ *  - filas antiguas sin el centro adelante: `[número, ...]`.
+ * Si alguno es un caso visible lo decide el llamador, con los números exactos.
+ */
+function numerosDeCasoDeLaFila(doc: {
+  folderPath: string[];
+  fileName: string;
+  isFolder: boolean;
+}): string[] {
+  const candidatos = [doc.folderPath[1], doc.folderPath[0]];
+  if (doc.isFolder && doc.folderPath.length <= 1) candidatos.push(doc.fileName);
+  return candidatos.filter((c): c is string => Boolean(c));
 }
 
 /**
@@ -575,6 +500,109 @@ interface FilaGuardada {
   isFolder: boolean;
   size: string | null;
   updatedAt: Date;
+}
+
+type ArbolDeDrive = Awaited<
+  ReturnType<
+    (typeof import('@/lib/google-drive'))['googleDriveService']['listAllFoldersAndFilesRecursively']
+  >
+>;
+
+/**
+ * Las filas del índice para las carpetas de caso que el recorrido del centro no
+ * cubrió: una por cada caso del centro con `driveFolderId` que no esté ya en
+ * `yaIndexadas`.
+ *
+ * Mismo formato que las v0, para que la pestaña las agrupe igual: la carpeta
+ * del caso va con el nombre del caso y la ruta `[centro]`; lo de adentro, con
+ * `[centro, número de caso, ...subcarpetas]`. Si dos casos del centro guardan
+ * la misma carpeta, se indexa una vez.
+ */
+async function filasDeCarpetasDeCaso(params: {
+  tenantId: string;
+  centerFolderName: string;
+  yaIndexadas: Set<string>;
+  drive: {
+    listar: (carpetaId: string) => Promise<ArbolDeDrive>;
+    datos: (
+      carpetaId: string,
+    ) => Promise<{ createdTime?: string | null; modifiedTime?: string | null }>;
+  };
+}): Promise<FilaDeDrive[]> {
+  const { tenantId, centerFolderName, yaIndexadas, drive } = params;
+  const casos = await prisma.case.findMany({
+    where: { tenantId, driveFolderId: { not: null } },
+    select: { caseNumber: true, driveFolderId: true },
+    orderBy: { caseNumber: 'asc' },
+  });
+
+  const filas: FilaDeDrive[] = [];
+  for (const { caseNumber, driveFolderId } of casos) {
+    if (!driveFolderId || yaIndexadas.has(driveFolderId)) continue;
+    yaIndexadas.add(driveFolderId);
+
+    // Las fechas de la carpeta, no la hora de la sincronización: con la hora
+    // actual la fila se reescribiría en cada corrida sin que nada cambiara.
+    let carpetaDelCaso: Awaited<ReturnType<typeof drive.datos>>;
+    let arbol: ArbolDeDrive;
+    try {
+      carpetaDelCaso = await drive.datos(driveFolderId);
+      arbol = await drive.listar(driveFolderId);
+    } catch (error) {
+      logger.warn('No se pudo leer la carpeta de un caso; se omite', {
+        action: 'syncDocumentsWithGoogleDrive',
+        tenantId,
+        caseNumber,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
+
+    filas.push({
+      googleDriveId: driveFolderId,
+      fileName: caseNumber,
+      mimeType: 'application/vnd.google-apps.folder',
+      folderPath: [centerFolderName],
+      parentFolderId: null,
+      isFolder: true,
+      size: null,
+      createdAt: fechaDeDrive(carpetaDelCaso.createdTime),
+      updatedAt: fechaDeDrive(carpetaDelCaso.modifiedTime),
+    });
+
+    for (const carpeta of arbol.folders) {
+      if (yaIndexadas.has(carpeta.id)) continue;
+      yaIndexadas.add(carpeta.id);
+      filas.push({
+        googleDriveId: carpeta.id,
+        fileName: carpeta.name,
+        mimeType: 'application/vnd.google-apps.folder',
+        folderPath: [centerFolderName, caseNumber, ...carpeta.path],
+        parentFolderId: carpeta.parentId ?? null,
+        isFolder: true,
+        size: null,
+        createdAt: fechaDeDrive(carpeta.createdTime),
+        updatedAt: fechaDeDrive(carpeta.modifiedTime),
+      });
+    }
+    for (const archivo of arbol.files) {
+      if (!archivo.mimeType || archivo.mimeType.includes('folder')) continue;
+      if (yaIndexadas.has(archivo.id)) continue;
+      yaIndexadas.add(archivo.id);
+      filas.push({
+        googleDriveId: archivo.id,
+        fileName: archivo.name,
+        mimeType: archivo.mimeType,
+        folderPath: [centerFolderName, caseNumber, ...archivo.path],
+        parentFolderId: archivo.parentId ?? null,
+        isFolder: false,
+        size: archivo.size ?? null,
+        createdAt: fechaDeDrive(archivo.createdTime),
+        updatedAt: fechaDeDrive(archivo.modifiedTime),
+      });
+    }
+  }
+  return filas;
 }
 
 function enLotes<T>(items: T[], tamanio: number): T[][] {
@@ -715,7 +743,26 @@ export async function syncDocumentsWithGoogleDrive() {
       updatedAt: fechaDeDrive(file.modifiedTime),
     }));
 
-    const deseadas = [...carpetas, ...archivos];
+    // La carpeta de cada caso sale de su `driveFolderId`. Las v0 cuelgan del
+    // árbol del centro y ya están arriba; las v1 (`Insolventic/...`) no, y
+    // antes no se indexaban nunca: la pestaña Drive no mostraba lo de los
+    // casos nuevos. Se recorren las que falten, una por caso.
+    const yaIndexadas = new Set([
+      centerFolderId,
+      ...carpetas.map((c) => c.googleDriveId),
+    ]);
+    const deCasos = await filasDeCarpetasDeCaso({
+      tenantId,
+      centerFolderName,
+      yaIndexadas,
+      drive: {
+        listar: (id) =>
+          googleDriveService.listAllFoldersAndFilesRecursively(id),
+        datos: (id) => googleDriveService.getFileInfo(id),
+      },
+    });
+
+    const deseadas = [...carpetas, ...archivos, ...deCasos];
 
     // PASO 1 — una lectura por lote de ids, en vez de un `findUnique` por
     // ítem. Solo las columnas que hacen falta para decidir si algo cambió.
@@ -811,10 +858,10 @@ export async function syncDocumentsWithGoogleDrive() {
 
     const created = aCrear.length;
     const updated = aActualizar.length;
-    const folders = carpetas.length;
+    const folders = deseadas.filter((f) => f.isFolder).length;
 
     const syncResult = syncDocumentsWithGoogleDriveOutputSchema.parse({
-      synced: documentFiles.length + folders,
+      synced: deseadas.length,
       created,
       updated,
       unchanged: sinCambios,
