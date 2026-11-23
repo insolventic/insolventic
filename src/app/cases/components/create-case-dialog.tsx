@@ -50,6 +50,7 @@ import { AssetsSection } from './create-case-dialog/assets-section';
 import {
   CreateDebtorDialog,
   type QuickDebtorFormData,
+  type ErrorAlCrearDeudor,
 } from './create-case-dialog/create-debtor-dialog';
 import { CreditorsDetailedSection } from './create-case-dialog/creditors-detailed-section';
 import { DebtorSection } from './create-case-dialog/debtor-section';
@@ -853,13 +854,14 @@ export function CreateCaseDialog({
 
   const handleCreateDebtor = async (
     data: QuickDebtorFormData,
-  ): Promise<string | null> => {
+  ): Promise<ErrorAlCrearDeudor | null> => {
     setCreatingDebtor(true);
     try {
       const {
         success,
         data: result,
         error,
+        fieldErrors,
       } = await createDebtor({
         name: data.name,
         idNumber: data.idNumber,
@@ -885,7 +887,7 @@ export function CreateCaseDialog({
       });
 
       if (!success || error) {
-        return error ?? 'Error al crear el deudor';
+        return { error: error ?? 'Error al crear el deudor', fieldErrors };
       }
 
       toast.success('Deudor creado exitosamente');
@@ -910,7 +912,9 @@ export function CreateCaseDialog({
       }
       return null;
     } catch {
-      return 'Error inesperado al crear el deudor. Intente de nuevo.';
+      return {
+        error: 'Error inesperado al crear el deudor. Intente de nuevo.',
+      };
     } finally {
       setCreatingDebtor(false);
     }
