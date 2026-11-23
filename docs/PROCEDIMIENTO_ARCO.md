@@ -16,12 +16,12 @@ procedimiento necesita un plazo, queda marcado como pendiente (§5).
 
 Las cuatro que `/privacidad` ofrece al titular:
 
-| Solicitud | Qué pide el titular |
-| --- | --- |
-| **Conocer** | Saber qué datos suyos están registrados y para qué se usan |
-| **Actualizar** | Corregir un dato que cambió (dirección, teléfono, etc.) |
+| Solicitud      | Qué pide el titular                                          |
+| -------------- | ------------------------------------------------------------ |
+| **Conocer**    | Saber qué datos suyos están registrados y para qué se usan   |
+| **Actualizar** | Corregir un dato que cambió (dirección, teléfono, etc.)      |
 | **Rectificar** | Corregir un dato que está mal, incompleto o genera confusión |
-| **Suprimir** | Que se eliminen sus datos |
+| **Suprimir**   | Que se eliminen sus datos                                    |
 
 Las tres primeras son operativamente sencillas: el dato se busca, se muestra
 o se corrige en el expediente. La cuarta (**supresión**) es la que tiene el
@@ -75,11 +75,15 @@ dato del caso.
    sin resolver en §4. Si hay dudas, **no se ejecuta la supresión**; se
    escala a quien tenga la autoridad del §2 y, si el conflicto no tiene
    respuesta clara, a la abogada.
-3. Si se determina que la supresión es procedente: el borrado de un
-   expediente en el sistema es el mismo que usa `deleteCase` — borra el caso
-   y (por las relaciones del modelo) todo lo que cuelga de él. **Es
-   irreversible**: no hay una papelera ni una forma de recuperar un
-   expediente borrado hoy.
+3. Si se determina que la supresión es procedente, son dos pasos en
+   Gestión de Casos: **Eliminar** (el caso va a la papelera, todavía
+   recuperable) y, desde la **Papelera**, **Eliminar definitivamente**, que
+   solo puede hacer el rol Administrador. Ese segundo paso borra el caso y
+   todo lo que cuelga de él (deudas, bienes, documentos, pagos, avisos) y
+   **es irreversible**. Queda en la auditoría como "Eliminación definitiva",
+   sin datos personales. **Ojo:** la carpeta del caso en Google Drive no se
+   borra sola; hay que eliminarla a mano (el registro de auditoría trae su
+   identificador).
 4. Confirmar al titular que sus datos fueron suprimidos (o, si no procedió,
    explicarle por qué).
 

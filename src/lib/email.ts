@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import nodemailer from 'nodemailer';
 
+import { escapePlaceholder } from '@/features/document/placeholders/escape';
+
 import { logger } from './logger';
 
 interface EmailOptions {
@@ -36,6 +38,11 @@ interface ActionNotificationEmailData {
   entity: string;
   entityName: string;
   database: string;
+  date: Date;
+}
+
+interface EmailChangedNoticeData {
+  changedBy: string;
   date: Date;
 }
 
@@ -899,6 +906,76 @@ class EmailService {
     `;
 
     const text = `${heading}\n\nHola ${recipientName},\n\nSe ha detectado el siguiente evento:\n\n${lines.join('\n')}\n\n--\nSistema Insolventic - ${databaseName}`;
+
+    return this.sendEmail({ to, subject, html, text });
+  }
+
+  /**
+   * Avisa a la dirección ANTERIOR que el correo de acceso de la cuenta cambió.
+   *
+   * Es deliberadamente escueto: esa dirección puede ser de un desconocido si
+   * estaba mal escrita, así que no lleva el correo nuevo, el nombre de la cuenta
+   * ni un enlace. El nombre de quien editó se escapa porque lo controla esa
+   * persona, que es justo de quien este aviso protege.
+   */
+  async sendEmailChangedNotice(
+    to: string,
+    data: EmailChangedNoticeData,
+  ): Promise<boolean> {
+    const { changedBy, date } = data;
+
+    // Con zona explícita: en Vercel el servidor corre en UTC.
+    const zona = { timeZone: 'America/Bogota' };
+    const fecha =
+      date.toLocaleDateString('es-CO', {
+        ...zona,
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      }) +
+      ' ' +
+      date.toLocaleTimeString('es-CO', {
+        ...zona,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+
+    const subject = 'Cambió el correo de acceso de su cuenta - Insolventic';
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${subject}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f5f5f5;">
+      <div style="background: white; padding: 30px; border-radius: 10px;">
+        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #d97706;">
+          <div style="font-size: 28px; font-weight: bold; color: #d97706;">INSOLVENTIC</div>
+        </div>
+        <h2 style="color: #d97706;">Cambió el correo de acceso de su cuenta</h2>
+        <p>Hola,</p>
+        <p>
+          El ${fecha} (hora de Colombia), ${escapePlaceholder(changedBy)} cambió
+          el correo de acceso de la cuenta de Insolventic asociada a esta dirección.
+          Desde ese momento, los enlaces para restablecer la contraseña se envían a
+          la dirección nueva.
+        </p>
+        <p>
+          <strong>Si usted no reconoce este cambio</strong>, comuníquese cuanto antes
+          con la administración de su centro.
+        </p>
+        <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">
+          Si esta dirección no es suya, puede ignorar este mensaje. No necesita hacer nada más.
+        </p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    const text = `Cambió el correo de acceso de su cuenta\n\nHola,\n\nEl ${fecha} (hora de Colombia), ${changedBy} cambió el correo de acceso de la cuenta de Insolventic asociada a esta dirección. Desde ese momento, los enlaces para restablecer la contraseña se envían a la dirección nueva.\n\nSi usted no reconoce este cambio, comuníquese cuanto antes con la administración de su centro.\n\nSi esta dirección no es suya, puede ignorar este mensaje.\n\n--\nSistema Insolventic`;
 
     return this.sendEmail({ to, subject, html, text });
   }

@@ -12,7 +12,7 @@
 
 ---
 
-## 📋 Overview
+## Descripción general
 
 **INSOLVENTIC** es un sistema SaaS multi-tenant para la gestión integral de procesos de insolvencia, conciliación y acuerdos de apoyo en Colombia. Automatiza el ciclo completo de un caso — desde la solicitud, admisión, negociación, audiencias y terminación — con generación automática de documentos legales, trazabilidad de pagos, y control granular de permisos por rol.
 
@@ -20,9 +20,9 @@
 
 ---
 
-## ✨ Capacidades Clave
+## Capacidades Clave
 
-### 📂 Gestión de Casos
+### Gestión de Casos
 
 - **3 tipos de servicio:** Insolvencia, Conciliación, Acuerdo de Apoyo
 - **293 campos** en el modelo `Case`, agrupados en 9 secciones del wizard (Solicitante, Cónyuge, Ingresos/Gastos, Cesación de pagos, Declaraciones, etc.)
@@ -30,13 +30,13 @@
 - **Optimistic locking** (campo `version`) previene sobrescrituras concurrentes
 - **Filtros avanzados:** estado, fase, tipo de caso, operador
 
-### 👥 Deudores, Acreedores y Apoderados
+### Deudores, Acreedores y Apoderados
 
 - CRUD completo con historial de casos vinculados
 - **Asignación bilateral** en conciliaciones (convocante/convocado)
 - Soporte para representantes legales y apoderados
 
-### 📝 Generación Automática de Documentos (65 plantillas)
+### Generación Automática de Documentos (65 plantillas)
 
 - 5 paquetes estructurados: **Solicitud / Admisión / Negociación / Terminación / Fracaso**
 - Salida en **PDF, Word (.docx) o ambos**
@@ -44,19 +44,19 @@
 - Subida automática a **Google Drive** del centro correspondiente
 - Layout versionado (`layoutVersion` 0 = flat, 1 = seccionado)
 
-### 💰 Trazabilidad de Pagos
+### Trazabilidad de Pagos
 
 - Registro de cronogramas y pagos manuales
 - Adjuntar comprobantes (PDF / JPG / PNG) → Google Drive
 - Estados: `pendiente`, `pagado`, `parcial`, `vencido`
 - Reporte consolidado: recaudado, pendiente, vencido
 
-### 🔔 Notificaciones y Auditoría
+### Notificaciones y Auditoría
 
 - Sistema interno de notificaciones por usuario y rol
 - **Audit log** de todas las acciones críticas (creación, edición, eliminación, login)
 
-### 🔒 Seguridad
+### Seguridad
 
 - JWT con access token (24h) + refresh token (7 días), ambos firmados con la **misma** `JWT_SECRET` — no existe una clave separada para el refresh
 - **RBAC** por permisos (granularidad a nivel de módulo y acción)
@@ -68,7 +68,7 @@
 
 ---
 
-## 🧱 Stack Técnico
+## Stack Técnico
 
 | Capa               | Tecnología                                                         |
 | ------------------ | ------------------------------------------------------------------ |
@@ -86,7 +86,30 @@
 
 ---
 
-## 🚀 Puesta en Marcha
+## Arquitectura
+
+INSOLVENTIC es una aplicación **Next.js 15 (App Router)** desplegada en Vercel. No expone una API REST: la lógica de servidor vive en _server actions_ (`src/features/*/actions.ts`) y solo existe un _route handler_ (`/api/cron/alerts`). Cada acción autentica al usuario (JWT propio), verifica el permiso RBAC y consulta PostgreSQL con Prisma filtrando siempre por `tenantId`, de modo que los centros de conciliación comparten código y base de datos pero no datos. Los documentos legales se generan a partir de plantillas HTML, se convierten a PDF con Chromium (o a DOCX) y se almacenan en Google Drive. Upstash Redis aplica el _rate limiting_ distribuido y Sentry recibe los errores. El detalle completo está en [`docs/ARQUITECTURA.md`](./docs/ARQUITECTURA.md).
+
+```mermaid
+flowchart LR
+    U[Usuario] --> V[Vercel<br/>Next.js 15 · App Router]
+    V -->|server actions| A[Autenticación JWT<br/>y permisos RBAC]
+    A --> P[Prisma ORM]
+    P --> DB[(PostgreSQL<br/>aislamiento por tenantId)]
+    V -->|rate limiting| UP[Upstash Redis]
+    V -->|errores y trazas| SE[Sentry]
+    V -->|cron de alertas| C[/api/cron/alerts]
+    A --> G[Generación de documentos]
+    G --> T[Plantillas HTML<br/>y placeholders]
+    T --> PDF[Puppeteer + Chromium<br/>PDF]
+    T --> DOCX[html-to-docx<br/>DOCX]
+    PDF --> D[Google Drive]
+    DOCX --> D
+```
+
+---
+
+## Puesta en Marcha
 
 ### Prerrequisitos
 
@@ -114,8 +137,9 @@ npx prisma generate
 # 5. Aplicar migraciones (base vacía o ya migrada)
 npm run db:migrate        # prisma migrate dev
 
-# 6. Seed inicial (roles, permisos, usuarios admin)
-npx tsx src/prisma/seed.ts
+# 6. Seed de datos demo — SOLO contra una base de prueba local
+# (localhost y nombre con e2e/test/smoke; si no, aborta). Ver docs/RUNBOOK.md §7.2
+SEED_PASSWORD=una-contrasena-local-larga npm run db:seed
 
 # 7. Arrancar dev server
 npm run dev
@@ -131,18 +155,19 @@ Aplicación disponible en `http://localhost:3000`.
 > detalle y su test están en `CLAUDE.md` § Trampas y `docs/ROADMAP.md` §
 > Fase 3.
 
-### Cuentas por defecto (seed)
+### Cuentas demo (seed)
 
-| Email                  | Rol           | Tenant               |
-| ---------------------- | ------------- | -------------------- |
-| `admin@armonia.com`    | Administrador | Armonía              |
-| `admin@construpaz.com` | Administrador | Constructores de Paz |
+El seed crea en cada centro (Armonía y Constructores de Paz) cinco usuarios
+`@insolventic.com`: `beatriz.malavera` (Administrador), `sofia.torres`,
+`maximiliano.jaramillo`, `carlos.rodriguez` y `maria.gonzalez`.
 
-> La primera contraseña fuerza `mustChangePassword: true`. Revisa `src/prisma/seed.ts` para valores concretos.
+> No hay contraseña por defecto: es la de `SEED_PASSWORD`, o una aleatoria que
+> el seed imprime una vez si no se define. El seed solo corre contra una base de
+> prueba local; el porqué y el opt-in están en `docs/RUNBOOK.md` §7.2.
 
 ---
 
-## 🗂️ Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 insolventic/
@@ -194,7 +219,33 @@ insolventic/
 
 ---
 
-## 🧪 Testing
+## Scripts disponibles
+
+Definidos en `package.json`:
+
+| Script                                     | Descripción                                                    |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| `npm run dev`                              | Servidor de desarrollo (Turbopack)                             |
+| `npm run build` / `npm start`              | Compilación de producción / servidor de producción             |
+| `npm run lint` / `npm run lint:fix`        | Análisis estático con ESLint (con o sin corrección automática) |
+| `npm run format`                           | Formatea con Prettier                                          |
+| `npm run db:migrate`                       | Crea y aplica migraciones en desarrollo (`prisma migrate dev`) |
+| `npm run db:generate`                      | Genera el cliente de Prisma (también corre en `postinstall`)   |
+| `npm run db:seed`                          | Carga datos demo, solo contra una base local de prueba         |
+| `npm run db:reset` / `db:reset:seed`       | Reinicia la base de prueba, sin o con datos demo               |
+| `npm test`                                 | Suite completa de Jest (excluye `tests/db` y `tests/e2e`)      |
+| `npm run test:unit` / `test:integration`   | Solo pruebas unitarias / de integración                        |
+| `npm run test:coverage`                    | Suite con reporte de cobertura                                 |
+| `npm run test:db`                          | Smoke contra PostgreSQL real                                   |
+| `npm run test:golden:update`               | Regenera los snapshots golden de documentos                    |
+| `npm run test:e2e` / `test:e2e:ui`         | Pruebas end-to-end con Playwright                              |
+| `npm run test:smoke`                       | Verificación posterior al despliegue (`scripts/smoke-test.sh`) |
+| `npm run test:load:smoke` / `avg` / `peak` | Pruebas de carga con k6                                        |
+| `npm run check:schema-drift`               | Compara `schema.prisma` con la base                            |
+
+---
+
+## Testing
 
 ```bash
 npm test                  # Toda la suite (excluye tests/db y tests/e2e)
@@ -206,7 +257,7 @@ npm run test:e2e          # Playwright E2E
 npm run test:e2e:ui       # Playwright UI mode
 ```
 
-**Estado actual:** `164 suites / 2184 tests ✅` — medido en `dev` el 2026-10-29.
+**Estado actual:** `184 suites / 2479 tests ✅` — medido el 2026-11-09 tras el pulido de entrega.
 
 > Este número lo vigila un test (`tests/unit/docs/conteo-de-tests.test.ts`):
 > falla si el conteo documentado aquí, en `docs/TESTS.md` o en `CLAUDE.md` se
@@ -227,7 +278,7 @@ Más detalle en [`docs/TESTS.md`](./docs/TESTS.md).
 
 ---
 
-## 🔄 CI/CD
+## CI/CD
 
 Hay **cuatro** workflows, y ninguno despliega. Son estos:
 
@@ -280,7 +331,15 @@ debe volver. Las migraciones (`prisma migrate deploy`) corren dentro del
 
 ---
 
-## 🔐 Variables de Entorno
+## Despliegue
+
+El despliegue es automático mediante la integración nativa de Vercel con GitHub: un _push_ a `dev` genera un _preview_ y un _push_ a `main` publica en producción. Las migraciones (`prisma migrate deploy`) se ejecutan dentro del `buildCommand` de `vercel.json` y solo en producción. Las variables de entorno se administran en el panel de Vercel (ver [`docs/RUNBOOK_ENV_VARS.md`](./docs/RUNBOOK_ENV_VARS.md)). Los procedimientos de operación, incidentes, copias de seguridad y rotación de credenciales están en [`docs/RUNBOOK.md`](./docs/RUNBOOK.md) y [`docs/RUNBOOK_ROTACION_DRIVE.md`](./docs/RUNBOOK_ROTACION_DRIVE.md).
+
+Las firmas que insertan los documentos no están en el repositorio: se cargan en la base de cada entorno con `scripts/imagenes-privadas/cargar.ts` y se comprueban con `scripts/imagenes-privadas/verificar.ts`, **antes** del deploy que las necesite. Sin ellas, el centro afectado no puede generar documentos. Al agregar o reemplazar una firma se regenera también `scripts/imagenes-privadas/huellas.txt`, con la que el CI detecta copias versionadas. El procedimiento está en [`docs/RUNBOOK.md`](./docs/RUNBOOK.md) §7.3.
+
+---
+
+## Variables de Entorno
 
 Ver [`.env.example`](./.env.example) para el listado completo y comentado, y
 [`docs/RUNBOOK_ENV_VARS.md`](./docs/RUNBOOK_ENV_VARS.md) para configurarlas y
@@ -317,7 +376,7 @@ Opcionales, con default razonable: `LOG_LEVEL`, `SENTRY_DSN` /
 
 ---
 
-## 📚 Documentación
+## Documentación
 
 | Documento                                                                                      | Propósito                                                                                         |
 | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -351,7 +410,7 @@ Opcionales, con default razonable: `LOG_LEVEL`, `SENTRY_DSN` /
 
 ---
 
-## 🏷️ Versionado
+## Versionado
 
 Semantic Versioning (`MAJOR.MINOR.PATCH`). Fuente de verdad: `package.json → version`.
 
@@ -366,7 +425,7 @@ Un badge sutil en la esquina inferior izquierda muestra la versión activa con s
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Software propietario. Copia, transferencia o reproducción no autorizada estrictamente prohibida.
 

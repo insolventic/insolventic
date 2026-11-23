@@ -1,0 +1,246 @@
+{
+  "epica": {
+    "id": "E12",
+    "titulo": "Nuevas Fases del Ciclo de Vida",
+    "descripcion": "El modelo pasa de 8 a 13 fases: Rechazo, Retiro, Desistimiento, Acuerdo impugnado y Acuerdo reformado, con sus transiciones, subtipos y documentos propios, en lugar de terminar todo en Fracaso con el mismo paquete.",
+    "objetivo": "Que cada desenlace del trámite produzca los documentos que jurídicamente le corresponden.",
+    "prioridad": "Alta",
+    "labels": [],
+    "evidencia": [
+      "docs/DISENO_FASES_NUEVAS_2026-09-11.md",
+      "#40 a0ac5d7",
+      "src/lib/case-phases.ts"
+    ]
+  },
+  "items": [
+    {
+      "id": "E12-01",
+      "tipo": "Task",
+      "titulo": "Diseñar las cinco fases nuevas del expediente",
+      "tarea": {
+        "objetivo": "Separar desenlaces que hoy terminan todos en Fracaso.",
+        "alcance": "Fases, transiciones, frontera Retiro/Desistimiento, rama de impugnación, documentos por fase, subtipos y modelo de datos.",
+        "dod": "docs/DISENO_FASES_NUEVAS_2026-09-11.md aprobado."
+      },
+      "ac": [
+        "Dado el diseño Cuando se revisa Entonces cada fase nueva tiene transiciones y documentos definidos",
+        "Dado los hallazgos del código que condicionan el diseño Cuando se listan Entonces quedan en §3.1"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["spike"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-11",
+      "version": "v0.5.0",
+      "evidencia": [
+        "9da5173 docs: registrar el diseno aprobado de las 5 fases nuevas del expediente",
+        "docs/DISENO_FASES_NUEVAS_2026-09-11.md"
+      ]
+    },
+    {
+      "id": "E12-02",
+      "tipo": "Story",
+      "titulo": "Rechazo y Retiro como fases propias del expediente",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar que una solicitud fue rechazada de entrada o que el solicitante se retiró antes de la admisión",
+        "para": "no tratar esos casos como una negociación fracasada"
+      },
+      "ac": [
+        "Dado un caso en Solicitud Cuando se rechaza Entonces pasa a Rechazo",
+        "Dado un caso antes de admisión Cuando el solicitante se retira Entonces pasa a Retiro",
+        "[error] Dado un caso ya admitido Cuando se intenta pasar a Retiro Entonces se rechaza (corresponde Desistimiento)"
+      ],
+      "puntos": 5,
+      "justificacion": "Dos fases nuevas en la máquina de estados con transiciones validadas en servidor.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Backend", "Frontend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-30",
+      "version": "v0.6.0",
+      "evidencia": ["#40 a0ac5d7", "docs/DISENO_FASES_NUEVAS_2026-09-11.md §2"]
+    },
+    {
+      "id": "E12-03",
+      "tipo": "Story",
+      "titulo": "Desistimiento del deudor después de la admisión con su subtipo",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "registrar que el deudor abandonó el trámite ya admitido y por qué",
+        "para": "generar el Auto de Desistimiento correcto"
+      },
+      "ac": [
+        "Dado un caso admitido Cuando el deudor desiste Entonces pasa a Desistimiento con su subtipo",
+        "[error] Dado un subtipo inválido Cuando se envía Entonces se rechaza (isValidDesistimientoSubtype)",
+        "Dado el Desistimiento Cuando se generan documentos Entonces se usa el Auto Desistimiento existente"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-30",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#40 a0ac5d7",
+        "src/features/case/actions.ts:2793",
+        "docs/DISENO_FASES_NUEVAS_2026-09-11.md §4.1"
+      ]
+    },
+    {
+      "id": "E12-04",
+      "tipo": "Story",
+      "titulo": "Acuerdo impugnado y Acuerdo reformado",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "registrar que un acuerdo fue impugnado ante el juez y si se reformó dentro del plazo",
+        "para": "seguir la rama de impugnación sin perder el estado del acuerdo"
+      },
+      "ac": [
+        "Dado un acuerdo aprobado Cuando se impugna Entonces pasa a Acuerdo impugnado",
+        "Dado un acuerdo impugnado Cuando el juez ordena corregir y se corrige Entonces pasa a Acuerdo reformado",
+        "[error] Dado un acuerdo no aprobado Cuando se intenta impugnar Entonces se rechaza"
+      ],
+      "puntos": 5,
+      "justificacion": "Rama de impugnación con dos desenlaces (ⓒ corregido, ⓓ remisión) en la máquina de estados.",
+      "prioridad": "Alta",
+      "labels": ["feature"],
+      "componentes": ["Backend", "Frontend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-30",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#40 a0ac5d7",
+        "docs/DISENO_FASES_NUEVAS_2026-09-11.md §2.3"
+      ]
+    },
+    {
+      "id": "E12-05",
+      "tipo": "Bug",
+      "titulo": "La generación por cambio de fase podía cortarse y el paquete de Fracaso salía vacío",
+      "bug": {
+        "entorno": "Producción hasta septiembre 2026",
+        "pasos": [
+          "Pasar un caso a Admisión, Acuerdo aprobado o Fracaso",
+          "Revisar Drive y la base"
+        ],
+        "esperado": "Paquete completo generado y trazable",
+        "actual": "Promesa flotante sin after() ni lock (Vercel la congelaba a mitad), y Fracaso enviaba failureType 'general' que no mapea a plantillas: cero documentos",
+        "severidad": "Alta",
+        "causaRaiz": "updateCasePhase disparaba generateFn().then() sin after() ni DocumentGenerationRequest, y ninguna pantalla asignaba failureType antes de la transición.",
+        "fix": "#40 a0ac5d7: runWithGenerationLock en la transición y failureType validado cuando la nueva fase es Fracaso",
+        "regresion": "tests/unit/cases/case-phase-transitions.test.ts."
+      },
+      "ac": [
+        "Dado una transición a Admisión Cuando se genera Entonces usa el lock y espera el resultado",
+        "[error] Dado una transición a Fracaso sin failureType Cuando se envía Entonces se rechaza"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Backend", "Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-30",
+      "version": "v0.6.0",
+      "hallazgos": ["GC-A3", "GD-M3"],
+      "evidencia": [
+        "#40 a0ac5d7",
+        "src/features/case/actions.ts:2928-2951",
+        "docs/DISENO_FASES_NUEVAS_2026-09-11.md §3.1 puntos 1 y 2"
+      ]
+    },
+    {
+      "id": "E12-06",
+      "tipo": "Task",
+      "titulo": "Retirar los campos rejection y withdrawal con una migración en dos tiempos",
+      "tarea": {
+        "objetivo": "Que la fase sea la única fuente de verdad del desenlace.",
+        "alcance": "Retirar el código primero y después la migración que borra las columnas, con guarda que aborta si algún caso las tuviera en true.",
+        "dod": "Columnas borradas en producción sin downtime, siguiendo DEPLOY_PR40.md."
+      },
+      "ac": [
+        "Dado un caso con rejection en true Cuando corre la migración Entonces aborta",
+        "Dado el código nuevo desplegado Cuando corre la migración Entonces ningún código lee esas columnas"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Base-de-Datos", "Infra-CI/CD"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-30",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#40 a0ac5d7 (Paso 5)",
+        "migración 20260930000000_drop_rejection_withdrawal_from_case",
+        "CHANGELOG.md [1.0.0-rc.1] Removed",
+        "docs/DEPLOY_PR40.md"
+      ]
+    },
+    {
+      "id": "E12-07",
+      "tipo": "Story",
+      "titulo": "Documentos de Rechazo y de Retiro",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "generar el auto de rechazo y la constancia de retiro",
+        "para": "cerrar esos casos con el documento que les corresponde y no con el paquete de Fracaso"
+      },
+      "ac": [
+        "Dado un caso en Rechazo Cuando genero Entonces se produce el Auto de rechazo redactado por la abogada",
+        "Dado un caso en Retiro Cuando genero Entonces se produce el auto o constancia de retiro",
+        "[error] Dado un caso en Rechazo Cuando se intenta generar el paquete de Fracaso Entonces no se ofrece",
+        "Dado las plantillas nuevas Cuando se generan para cada centro Entonces usan su membrete"
+      ],
+      "puntos": 5,
+      "justificacion": "Dos plantillas nuevas desde texto legal, mapeo de fase a paquete y branding por centro.",
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Documentos-PDF", "Backend"],
+      "sprint": "2026-W45",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "evidencia": [
+        "docs/DISENO_FASES_NUEVAS_2026-09-11.md §3 (4 plantillas nuevas)",
+        "find templates -iname '*rechazo*|*retiro*' → sin resultados (2026-10-21)"
+      ]
+    },
+    {
+      "id": "E12-08",
+      "tipo": "Story",
+      "titulo": "Documentos de Acuerdo impugnado y Acuerdo reformado",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "generar la constancia de remisión de la impugnación y el acta del acuerdo corregido",
+        "para": "documentar la rama de impugnación con los papeles correctos"
+      },
+      "ac": [
+        "Dado un caso en Acuerdo impugnado Cuando genero Entonces se produce la constancia de remisión",
+        "Dado un Acuerdo reformado ⓒ Cuando genero Entonces se produce el acta del acuerdo corregido",
+        "[borde] Dado un Acuerdo reformado ⓓ Cuando genero Entonces se usa la plantilla Fracaso por reforma reclasificada"
+      ],
+      "puntos": 5,
+      "justificacion": "Dos plantillas nuevas más la reclasificación de una existente, con texto legal pendiente.",
+      "prioridad": "Media",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "bloqueadoPor": ["E11-07"],
+      "evidencia": [
+        "docs/DISENO_FASES_NUEVAS_2026-09-11.md §3",
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 3"
+      ]
+    }
+  ]
+}

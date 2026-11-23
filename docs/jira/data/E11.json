@@ -1,0 +1,489 @@
+{
+  "epica": {
+    "id": "E11",
+    "titulo": "Cumplimiento Legal",
+    "descripcion": "Corrección normativa de las plantillas (Ley 1564/2012, Decreto 2677/2012, Ley 2220/2022, Ley 2445/2025), protección de datos personales (Ley 1581/2012: privacidad, términos, ARCO, retención) y la lista única de decisiones que dependen de la abogada o de los centros.",
+    "objetivo": "Que el sistema no afirme en un documento radicado nada jurídicamente falso y que el tratamiento de datos personales cumpla la Ley 1581.",
+    "prioridad": "Crítica",
+    "labels": ["legal-pendiente"],
+    "evidencia": [
+      "docs/PENDIENTES_DECISION_LEGAL.md",
+      "docs/PROCEDIMIENTO_ARCO.md",
+      "docs/IMPLEMENTACION_SEMANA_8.md",
+      "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §Nota de alcance"
+    ]
+  },
+  "items": [
+    {
+      "id": "E11-01",
+      "tipo": "Story",
+      "titulo": "Páginas públicas de política de privacidad y términos de uso",
+      "historia": {
+        "rol": "deudor (titular de los datos)",
+        "quiero": "leer cómo el centro trata mis datos y en qué términos uso el sistema, sin iniciar sesión",
+        "para": "conocer mis derechos sobre mis datos personales (Ley 1581/2012)"
+      },
+      "ac": [
+        "Dado un visitante sin sesión Cuando abre /privacidad o /terminos Entonces ve la página",
+        "Dado el middleware Cuando evalúa esas rutas Entonces las trata como públicas",
+        "[borde] Dado un dato aún no entregado por los centros Cuando se muestra Entonces aparece marcado como pendiente, no inventado"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["doc-semana-8"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "nota": "Borrador pendiente de revisión legal (E11-15) y de datos de los centros (E11-13).",
+      "evidencia": [
+        "#141 6aa58d1 (ae4257b)",
+        "docs/IMPLEMENTACION_SEMANA_8.md §2.1",
+        "CHANGELOG.md [1.0.0-rc.1] Documentación"
+      ]
+    },
+    {
+      "id": "E11-02",
+      "tipo": "Task",
+      "titulo": "Procedimiento interno para solicitudes sobre datos personales (ARCO)",
+      "tarea": {
+        "objetivo": "Que el centro sepa cómo atender una solicitud de conocer, corregir o suprimir datos.",
+        "alcance": "docs/PROCEDIMIENTO_ARCO.md con los pasos y los ⟨COMPLETAR⟩ que dependen de la abogada.",
+        "dod": "Documento mergeado con la lista exacta de datos pendientes."
+      },
+      "ac": [
+        "Dado una solicitud de supresión Cuando se sigue el procedimiento Entonces se sabe qué hacer en cada paso"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["doc-semana-8"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#141 (518714d)", "docs/PROCEDIMIENTO_ARCO.md"]
+    },
+    {
+      "id": "E11-03",
+      "tipo": "Task",
+      "titulo": "Lista única de pendientes de decisión legal",
+      "tarea": {
+        "objetivo": "Dejar de recitar de memoria las preguntas legales repartidas en varios documentos.",
+        "alcance": "Índice único con pregunta, qué bloquea y dónde vive el detalle.",
+        "dod": "docs/PENDIENTES_DECISION_LEGAL.md con la convención de cierre."
+      },
+      "ac": [
+        "Dado una decisión legal respondida Cuando se registra Entonces se marca con fecha en la lista"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-01",
+      "version": "v0.6.0",
+      "evidencia": ["#90 fe7e1df", "docs/PENDIENTES_DECISION_LEGAL.md"]
+    },
+    {
+      "id": "E11-04",
+      "tipo": "Bug",
+      "titulo": "El Acta de Disolución citaba una ley derogada",
+      "bug": {
+        "entorno": "Producción, octubre 2026",
+        "pasos": ["Generar el Acta de Disolución de Unión Marital"],
+        "esperado": "Cita la Ley 2220 de 2022",
+        "actual": "Citaba la Ley 640 de 2001, derogada",
+        "severidad": "Alta",
+        "causaRaiz": "Texto normativo de la plantilla sin actualizar.",
+        "fix": "0f15dbf",
+        "regresion": "Barrido de citas a la Ley 640 en las plantillas (#98)."
+      },
+      "ac": [
+        "Dado el Acta de Disolución Cuando se genera Entonces cita la Ley 2220/2022",
+        "Dado el barrido Cuando se buscan citas a la Ley 640 Entonces quedan inventariadas las restantes"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-02",
+      "version": "v0.6.0",
+      "evidencia": [
+        "0f15dbf",
+        "#98 89cf8cf",
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 7"
+      ]
+    },
+    {
+      "id": "E11-05",
+      "tipo": "Story",
+      "titulo": "Fundamento normativo genérico en tres plantillas de conciliación",
+      "historia": {
+        "rol": "conciliadora",
+        "quiero": "que la Aclaración de Acta, el Auto de Desistimiento y el Informe Conciliador citen la norma",
+        "para": "que ningún documento del centro carezca de fundamento"
+      },
+      "ac": [
+        "Dado las 3 plantillas Cuando se generan Entonces citan la Ley 2220 de 2022 de forma genérica",
+        "[borde] Dado la decisión legal Cuando se cita Entonces no se nombran artículos ni decretos",
+        "Dado las otras plantillas de conciliación Cuando se generan Entonces no cambian"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["LEGAL-8"],
+      "evidencia": ["#129 1683150", "docs/PENDIENTES_DECISION_LEGAL.md §6.1"]
+    },
+    {
+      "id": "E11-06",
+      "tipo": "Task",
+      "titulo": "Investigar si la cita a la Ley 640 en otras plantillas es un simple cambio de cita",
+      "tarea": {
+        "objetivo": "Evitar corregir una cita que en realidad es una cláusula de registro con otro sentido.",
+        "alcance": "Revisión de las 2 plantillas de insolvencia y 1 de support-agreements.",
+        "dod": "Conclusión escrita: no es un cambio de cita; dos preguntas concretas para la abogada."
+      },
+      "ac": [
+        "Dado las 3 plantillas Cuando se analizan Entonces quedan formuladas las preguntas legales concretas"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": ["spike"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": [
+        "ad88c1a docs(legal): item 7 investigado y NO tocado",
+        "docs/PENDIENTES_DECISION_LEGAL.md §3.0"
+      ]
+    },
+    {
+      "id": "E11-07",
+      "tipo": "Task",
+      "titulo": "Confirmar con la abogada el texto de Fracaso por reforma del acuerdo",
+      "tarea": {
+        "objetivo": "Validar que la Constancia de No Acuerdo — Reforma sirve para el desenlace ⓓ de Acuerdo reformado.",
+        "alcance": "Revisión del texto por la abogada.",
+        "dod": "Respuesta registrada en PENDIENTES_DECISION_LEGAL.md (ítem 3)."
+      },
+      "ac": [
+        "Dado la respuesta de la abogada Cuando llega Entonces se registra con fecha",
+        "[borde] Dado que el texto no sirva Cuando se responde Entonces se crea la historia de la plantilla nueva"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "hallazgos": ["LEGAL-3"],
+      "evidencia": [
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 3",
+        "docs/DISENO_FASES_NUEVAS_2026-09-11.md §3 (nota de seguimiento)"
+      ]
+    },
+    {
+      "id": "E11-08",
+      "tipo": "Story",
+      "titulo": "Fundamento normativo correcto en dos plantillas de insolvencia y una de apoyo",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que la cláusula de registro de esas 3 plantillas tenga el fundamento que corresponde",
+        "para": "no radicar documentos que citan una norma derogada"
+      },
+      "ac": [
+        "Dado la respuesta legal Cuando se aplica Entonces las 3 plantillas citan la norma indicada",
+        "[borde] Dado que la abogada concluya que la cláusula sobra Cuando se aplica Entonces se retira",
+        "Dado el barrido Cuando se buscan citas a la Ley 640 Entonces no queda ninguna sin decisión"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "bloqueadoPor": ["E11-06"],
+      "hallazgos": ["LEGAL-7"],
+      "evidencia": ["docs/PENDIENTES_DECISION_LEGAL.md ítem 7 y §3.2-3.3"]
+    },
+    {
+      "id": "E11-09",
+      "tipo": "Task",
+      "titulo": "Confirmar el SMMLV 2026 fijado por norma transitoria",
+      "tarea": {
+        "objetivo": "Saber si el valor de 2026 (Decreto 0159, transitorio) es definitivo.",
+        "alcance": "Consulta a la abogada; actualizar SMMLV_BY_YEAR y marcar el año como confirmado si corresponde.",
+        "dod": "TODO(legal) de validation-rules.ts resuelto o con fecha de revisión."
+      },
+      "ac": [
+        "Dado la respuesta Cuando el valor es definitivo Entonces isSmmlvYearConfirmed(2026) devuelve true",
+        "[error] Dado un valor distinto Cuando se actualiza Entonces los tests de umbrales se recalculan"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W45",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "hallazgos": ["LEGAL-1"],
+      "evidencia": [
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 1",
+        "src/features/case/validation-rules.ts:44,67"
+      ]
+    },
+    {
+      "id": "E11-10",
+      "tipo": "Story",
+      "titulo": "Generar el Check List con el Parágrafo 3 resuelto",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "generar el Check List completo",
+        "para": "entregar el soporte que el centro exige sin completarlo a mano"
+      },
+      "ac": [
+        "Dado la definición legal de informado Cuando se implementa Entonces SI/NO_PARAGRAFO_3 se calculan desde el caso",
+        "Dado un deudor que manifiesta no poseer obligaciones Cuando se genera Entonces el Parágrafo 3 refleja esa manifestación",
+        "[error] Dado un caso sin el dato necesario Cuando se genera Entonces se bloquea con el motivo, no se imprime un valor por defecto"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Documentos-PDF", "Backend"],
+      "sprint": "2026-W45",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "hallazgos": ["LEGAL-2"],
+      "evidencia": [
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 2 y §4",
+        "#119 (Parágrafos 1 y 2 ya resueltos)"
+      ]
+    },
+    {
+      "id": "E11-11",
+      "tipo": "Story",
+      "titulo": "Alerta del plazo de corrección después de una nulidad",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que el sistema me avise cuando se acerca el vencimiento del plazo de corrección tras una nulidad",
+        "para": "no dejar vencer un término procesal"
+      },
+      "ac": [
+        "Dado una nulidad registrada Cuando se acerca el vencimiento Entonces recibo una alerta",
+        "[borde] Dado que el plazo sea en días hábiles Cuando se calcula Entonces excluye fines de semana y festivos de Colombia",
+        "Dado el mismo vencimiento Cuando el cron corre dos veces Entonces no duplica la alerta"
+      ],
+      "puntos": 5,
+      "justificacion": "Si el plazo es en días hábiles hace falta un calendario de festivos que el proyecto no tiene.",
+      "prioridad": "Media",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "hallazgos": ["LEGAL-6"],
+      "evidencia": ["issue #16", "docs/PENDIENTES_DECISION_LEGAL.md ítem 6"]
+    },
+    {
+      "id": "E11-12",
+      "tipo": "Story",
+      "titulo": "Imprimir el párrafo de comparendos e impuestos pendientes del vehículo",
+      "historia": {
+        "rol": "operadora de insolvencia",
+        "quiero": "que la solicitud mencione los comparendos o impuestos pendientes del vehículo que ya registro",
+        "para": "informar al juez la situación real del bien"
+      },
+      "ac": [
+        "Dado un vehículo con la casilla marcada Cuando se genera la solicitud Entonces aparece el párrafo legal",
+        "[borde] Dado un vehículo sin la casilla Cuando se genera Entonces el párrafo no aparece",
+        "Dado el texto Cuando se imprime Entonces es el aprobado por la abogada"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Documentos-PDF"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "hallazgos": ["LEGAL-4"],
+      "evidencia": [
+        "docs/PENDIENTES_DECISION_LEGAL.md ítem 4",
+        "#68 c4be312 (solo captura)"
+      ]
+    },
+    {
+      "id": "E11-13",
+      "tipo": "Task",
+      "titulo": "Completar los datos de los centros en la política de privacidad",
+      "tarea": {
+        "objetivo": "Que /privacidad identifique al responsable del tratamiento.",
+        "alcance": "Razón social y NIT de cada centro, correo del canal ARCO (uno o compartido) y plazo de retención.",
+        "dod": "Ningún ⟨COMPLETAR⟩ en /privacidad."
+      },
+      "ac": [
+        "Dado /privacidad Cuando se publica Entonces no tiene datos pendientes",
+        "[error] Dado un dato no entregado Cuando se publica Entonces no se reemplaza por un valor de relleno"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W46",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "bloqueadoPor": ["E11-17"],
+      "evidencia": ["docs/IMPLEMENTACION_SEMANA_8.md §3 (En /privacidad)"]
+    },
+    {
+      "id": "E11-14",
+      "tipo": "Task",
+      "titulo": "Completar el procedimiento ARCO con responsables y plazos",
+      "tarea": {
+        "objetivo": "Que una solicitud ARCO tenga responsable, verificación de identidad, plazo y registro.",
+        "alcance": "Quién recibe y aprueba, cómo se verifica al titular, plazos por tipo de solicitud (sin afirmar números sin la abogada) y dónde se registra.",
+        "dod": "Ningún ⟨COMPLETAR⟩ en PROCEDIMIENTO_ARCO.md."
+      },
+      "ac": [
+        "Dado el procedimiento Cuando se lee Entonces cada paso tiene responsable",
+        "[error] Dado un tercero que suplanta al titular Cuando solicita Entonces el procedimiento exige verificación de identidad"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W46",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "evidencia": [
+        "docs/IMPLEMENTACION_SEMANA_8.md §3 (En docs/PROCEDIMIENTO_ARCO.md)"
+      ]
+    },
+    {
+      "id": "E11-15",
+      "tipo": "Task",
+      "titulo": "Revisión legal de los textos de privacidad y términos",
+      "tarea": {
+        "objetivo": "Pasar las páginas públicas de borrador a texto aprobado.",
+        "alcance": "Revisión de la abogada sobre /privacidad y /terminos.",
+        "dod": "Texto aprobado publicado y la marca de borrador retirada."
+      },
+      "ac": [
+        "Dado la aprobación de la abogada Cuando se publica Entonces las páginas ya no dicen borrador"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W46",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "bloqueadoPor": ["E11-13"],
+      "evidencia": [
+        "CHANGELOG.md [1.0.0-rc.1] (borrador, pendiente de revisión legal)",
+        "#141"
+      ]
+    },
+    {
+      "id": "E11-16",
+      "tipo": "Task",
+      "titulo": "Cargar el SMMLV de 2027 cuando se expida el decreto",
+      "tarea": {
+        "objetivo": "Que los casos radicados en 2027 usen el salario mínimo correcto.",
+        "alcance": "Agregar 2027 a SMMLV_BY_YEAR y su test.",
+        "dod": "getSmmlv(2027) con valor confirmado."
+      },
+      "ac": [
+        "Dado el decreto 2027 Cuando se carga Entonces getSmmlv(2027) lo devuelve",
+        "[borde] Dado un caso radicado en diciembre de 2026 Cuando se evalúa en 2027 Entonces sigue usando 2026"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": ["legal-pendiente", "inferido"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "nota": "Inferido del diseño de SMMLV_BY_YEAR (resolución por año de radicación); no está listado como pendiente en los docs.",
+      "evidencia": [
+        "docs/IMPLEMENTACION_SEMANA_3.md §3.1 (SMMLV_BY_YEAR, isSmmlvYearConfirmed)"
+      ]
+    },
+    {
+      "id": "E11-17",
+      "tipo": "Task",
+      "titulo": "Decidir la política de retención y borrado de expedientes",
+      "tarea": {
+        "objetivo": "Definir cuánto tiempo se conservan los expedientes y qué significa eliminar uno (Ley 1581).",
+        "alcance": "Decisión con la abogada y los centros: plazo de retención, quién aprueba una supresión y si el borrado es lógico.",
+        "dod": "Decisión documentada; desbloquea /privacidad y el borrado lógico."
+      },
+      "ac": [
+        "Dado la decisión Cuando se documenta Entonces incluye plazo de retención y responsable",
+        "[borde] Dado una solicitud ARCO de supresión Cuando choca con la retención legal Entonces la política dice cuál prevalece"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente", "spike"],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "2026-W46",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "hallazgos": ["PP-A-8"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md A-8 y §5 Compliance",
+        "docs/IMPLEMENTACION_SEMANA_8.md §3 (plazo de retención)"
+      ]
+    },
+    {
+      "id": "E11-18",
+      "tipo": "Task",
+      "titulo": "Validación jurídica de los umbrales de las reglas del trámite",
+      "tarea": {
+        "objetivo": "Que un abogado del área confirme los topes que el servidor ya aplica.",
+        "alcance": "150 acreedores, 150 SMMLV, mínima cuantía 40 SMMLV, 24 meses de gracia y documentos obligatorios en validation-rules.ts.",
+        "dod": "Cada regla marcada como validada o corregida, con fecha."
+      },
+      "ac": [
+        "Dado cada umbral Cuando la abogada lo revisa Entonces queda validado o corregido",
+        "[error] Dado un umbral incorrecto Cuando se corrige Entonces sus tests se actualizan en el mismo cambio"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["legal-pendiente"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W46",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "evidencia": [
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §Nota de alcance",
+        "docs/IMPLEMENTACION_SEMANA_3.md §3.1 (PENDIENTE DE VALIDACIÓN JURÍDICA)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1006 @@
+{
+  "epica": {
+    "id": "E03",
+    "titulo": "Autenticación y Seguridad",
+    "descripcion": "JWT propio (jose, HS256, cookies httpOnly), RBAC por permisos, middleware con allowlist de rutas públicas, rate limiting distribuido (Upstash), revocación de sesiones, control de acceso por fila en mutaciones y auditoría de acciones críticas.",
+    "objetivo": "Que ningún usuario vea ni modifique expedientes que no le corresponden, dentro de su centro o entre centros, y que todo cambio sobre un expediente legal quede registrado.",
+    "prioridad": "Crítica",
+    "labels": ["seguridad"],
+    "evidencia": [
+      "src/features/auth/",
+      "src/middleware.ts",
+      "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md §3.2",
+      "docs/IMPLEMENTACION_SEMANA_1.md",
+      "docs/IMPLEMENTACION_SEMANA_4.md"
+    ]
+  },
+  "items": [
+    {
+      "id": "E03-01",
+      "tipo": "Story",
+      "titulo": "Inicio de sesión, recuperación de contraseña y roles con permisos",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que cada persona entre con su cuenta y vea solo lo que su rol permite",
+        "para": "proteger datos personales y financieros de los deudores"
+      },
+      "ac": [
+        "Dado credenciales válidas Cuando inicio sesión Entonces recibo una sesión en cookie httpOnly",
+        "[error] Dado una contraseña incorrecta Cuando inicio sesión Entonces veo un error genérico",
+        "Dado un rol sin permiso de eliminar casos Cuando abro un caso Entonces no veo la acción de eliminar",
+        "[borde] Dado una sesión inactiva Cuando vence el tiempo Entonces se cierra sola"
+      ],
+      "puntos": 8,
+      "justificacion": "Auth propio completo (login, registro, reset, timeout) con 6 roles y 30+ permisos.",
+      "prioridad": "Crítica",
+      "labels": ["seguridad", "feature"],
+      "componentes": ["Frontend", "Backend", "Base-de-Datos"],
+      "sprint": "2026-W06",
+      "estado": "Done",
+      "resuelto": "2026-02-08",
+      "version": "v0.1.0",
+      "evidencia": [
+        "83d2d71",
+        "72493d9 fix: corregir bugs de autenticación y limpiar schema",
+        "CHANGELOG.md [0.1.0] Authentication module"
+      ],
+      "subtareas": [
+        {
+          "id": "E03-01.1",
+          "titulo": "JWT con jose y cookies httpOnly",
+          "descripcion": "Access y refresh token."
+        },
+        {
+          "id": "E03-01.2",
+          "titulo": "Roles y permisos en base",
+          "descripcion": "Role, Permission, RolePermission y seed."
+        },
+        {
+          "id": "E03-01.3",
+          "titulo": "Recuperación de contraseña",
+          "descripcion": "PasswordResetToken + email."
+        }
+      ]
+    },
+    {
+      "id": "E03-02",
+      "tipo": "Task",
+      "titulo": "Actualizar Next.js 15.5.5 a 15.5.12 por vulnerabilidad",
+      "tarea": {
+        "objetivo": "Cerrar la CVE conocida de Next.js.",
+        "alcance": "Bump de patch y build.",
+        "dod": "Build verde y versión desplegada."
+      },
+      "ac": [
+        "Dado el package.json Cuando se instala Entonces Next es 15.5.12 y el build pasa"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-02",
+      "version": "v0.1.0",
+      "evidencia": [
+        "754db52 fix: actualizar Next.js 15.5.5 -> 15.5.12 (CVE vulnerabilidad)"
+      ]
+    },
+    {
+      "id": "E03-03",
+      "tipo": "Story",
+      "titulo": "Endurecimiento de seguridad de la aplicación con 90 pruebas",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que la aplicación resista los ataques web comunes",
+        "para": "poder usarla con datos de casos reales"
+      },
+      "ac": [
+        "Dado cualquier respuesta Cuando se inspeccionan los headers Entonces incluye CSP, HSTS y X-Frame-Options",
+        "[error] Dado un archivo con MIME no permitido o mayor a 10 MB Cuando se sube Entonces se rechaza",
+        "Dado entradas con HTML Cuando se guardan Entonces se sanean",
+        "Dado la suite de seguridad Cuando corre Entonces pasan sus 90 tests"
+      ],
+      "puntos": 5,
+      "justificacion": "Varias defensas transversales (headers, upload, sanitización, CSRF) con su batería de tests.",
+      "prioridad": "Alta",
+      "labels": ["seguridad", "nfr"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-04",
+      "version": "v0.1.0",
+      "evidencia": [
+        "abfc674 security: auditoría completa + hardening + 90 tests de seguridad",
+        "CHANGELOG.md [0.1.0] Security hardening"
+      ]
+    },
+    {
+      "id": "E03-04",
+      "tipo": "Story",
+      "titulo": "Política de contraseñas y permisos por ruta",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "contraseñas robustas y que cada pantalla exija su permiso",
+        "para": "que una cuenta débil o un rol limitado no abran pantallas ajenas"
+      },
+      "ac": [
+        "[error] Dado una contraseña que no cumple la política Cuando la cambio Entonces se rechaza con el motivo",
+        "Dado un rol sin permiso de auditoría Cuando entra a /audit-log Entonces es redirigido",
+        "Dado un rol con el permiso Cuando entra Entonces ve la pantalla"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-16",
+      "version": "v0.2.0",
+      "evidencia": [
+        "4d9d3b7 feat: ... validación contraseñas y permisos por ruta"
+      ]
+    },
+    {
+      "id": "E03-05",
+      "tipo": "Story",
+      "titulo": "Permisos con tipos verificados por el compilador",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "crear roles eligiendo permisos de una lista cerrada",
+        "para": "que un permiso mal escrito no deje una acción sin proteger"
+      },
+      "ac": [
+        "Dado el catálogo P.* Cuando se usa un permiso inexistente en el código Entonces no compila",
+        "Dado la pantalla de roles Cuando creo uno Entonces elijo permisos por módulo y acción",
+        "[error] Dado un usuario sin permiso Cuando llama la server action Entonces se rechaza aunque la UI la oculte"
+      ],
+      "puntos": 5,
+      "justificacion": "Rediseño del RBAC en toda la app con autorización completa.",
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-17",
+      "version": "v0.2.0",
+      "evidencia": [
+        "eaf4df4 feat: rediseño RBAC — permisos type-safe, autorización completa y UX mejorada"
+      ]
+    },
+    {
+      "id": "E03-06",
+      "tipo": "Story",
+      "titulo": "Registro de auditoría inmutable con trazabilidad por cédula",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "consultar quién creó, editó o eliminó un expediente y cuándo",
+        "para": "reconstruir los hechos ante una disputa sobre el trámite"
+      },
+      "ac": [
+        "Dado una creación, edición, eliminación o login Cuando ocurre Entonces queda una entrada en audit_logs",
+        "[error] Dado una entrada de auditoría Cuando alguien intenta modificarla desde la app Entonces no hay acción que lo permita",
+        "Dado un deudor Cuando filtro por su cédula Entonces veo las acciones sobre sus expedientes"
+      ],
+      "puntos": 5,
+      "justificacion": "Modelo, escritura en todas las mutaciones y pantalla de consulta.",
+      "prioridad": "Alta",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Frontend", "Base-de-Datos"],
+      "sprint": "2026-W12",
+      "estado": "Done",
+      "resuelto": "2026-03-19",
+      "version": "v0.2.0",
+      "evidencia": [
+        "6323d88 feat: sistema de auditoría inmutable, trazabilidad con cédula, perfil de usuario"
+      ]
+    },
+    {
+      "id": "E03-07",
+      "tipo": "Story",
+      "titulo": "Auditoría técnica: logs de auditoría, paginación e índices",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que los listados grandes paginen y que las acciones sensibles queden auditadas",
+        "para": "que el sistema siga respondiendo con cientos de casos y deje rastro"
+      },
+      "ac": [
+        "Dado más de una página de casos Cuando abro el listado Entonces se pagina en el servidor",
+        "Dado consultas frecuentes por tenant Cuando corren Entonces usan índices",
+        "[borde] Dado la última página Cuando avanzo Entonces no hay error"
+      ],
+      "puntos": 5,
+      "justificacion": "Cambios transversales de seguridad, paginación, Drive e índices en un solo lote.",
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W14",
+      "estado": "Done",
+      "resuelto": "2026-03-30",
+      "version": "v0.2.0",
+      "evidencia": [
+        "dc8115b feat: auditoría técnica — seguridad, audit logs, paginación, Google Drive, índices DB"
+      ]
+    },
+    {
+      "id": "E03-08",
+      "tipo": "Story",
+      "titulo": "Endurecimiento de seguridad y calidad de abril",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que se corrijan los hallazgos de la auditoría integral de abril",
+        "para": "llegar a la primera entrega sin agujeros conocidos"
+      },
+      "ac": [
+        "Dado los hallazgos de abril Cuando se corrigen Entonces cada uno tiene su cambio en el commit",
+        "Dado la suite Cuando corre Entonces pasa completa",
+        "[error] Dado una entrada maliciosa en las rutas corregidas Cuando se envía Entonces se rechaza"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["seguridad", "inferido"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W15",
+      "estado": "Done",
+      "resuelto": "2026-04-12",
+      "version": "v0.2.0",
+      "nota": "El detalle de qué hallazgos se cerraron no está documentado fuera del commit.",
+      "evidencia": [
+        "dfdaae6 fix(security): auditoría integral — hardening de seguridad y calidad"
+      ]
+    },
+    {
+      "id": "E03-09",
+      "tipo": "Story",
+      "titulo": "Refresh token de 7 días y cambio de contraseña forzado en todo el flujo",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que una cuenta con contraseña provisional no pueda operar hasta cambiarla, ni siquiera renovando la sesión",
+        "para": "que las cuentas sembradas no queden con su clave inicial"
+      },
+      "ac": [
+        "Dado mustChangePassword en true Cuando se renueva la sesión Entonces se exige el cambio",
+        "Dado mustChangePassword en true Cuando se cambia de centro Entonces se exige el cambio",
+        "[borde] Dado un refresh token de 8 días Cuando se usa Entonces se rechaza (vence a los 7)"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-14",
+      "version": "v0.2.0",
+      "evidencia": [
+        "CHANGELOG.md [0.2.0] Refresh token security hardening, mustChangePassword enforcement"
+      ]
+    },
+    {
+      "id": "E03-10",
+      "tipo": "Task",
+      "titulo": "Cerrar 23 de las 27 vulnerabilidades de dependencias",
+      "tarea": {
+        "objetivo": "Reducir la superficie de vulnerabilidades conocidas.",
+        "alcance": "npm audit fix sin --force.",
+        "dod": "27 → 4 moderadas; build y suite verdes."
+      },
+      "ac": [
+        "Dado npm audit Cuando corre Entonces quedan 4 moderadas y ninguna alta"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": ["seguridad"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W28",
+      "estado": "Done",
+      "resuelto": "2026-07-11",
+      "version": "v0.4.0",
+      "evidencia": [
+        "1480f16 chore(deps): npm audit fix — 27 vulnerabilidades → 4 moderate"
+      ]
+    },
+    {
+      "id": "E03-11",
+      "tipo": "Bug",
+      "titulo": "El middleware trataba todas las rutas como públicas",
+      "bug": {
+        "entorno": "Producción hasta agosto 2026",
+        "pasos": ["Sin sesión, abrir /dashboard o /cases"],
+        "esperado": "Redirección a /login",
+        "actual": "Ninguna redirección: la protección de rutas y el RBAC por ruta nunca se ejecutaban",
+        "severidad": "Crítica",
+        "causaRaiz": "publicRoutes incluía '/' y se comparaba con startsWith, así que toda ruta coincidía como pública.",
+        "fix": "bfdeb47: matching exacto (pathname === route || startsWith(route + '/')), lazy-init de JWT_SECRET y retiro de headers x-user-* sin consumidores",
+        "regresion": "tests/security/middleware-auth-gate.test.ts (25 tests)."
+      },
+      "ac": [
+        "[error] Dado una ruta protegida sin cookie Cuando se pide Entonces redirige a /login?redirect=…",
+        "Dado un usuario sin el permiso de /audit-log Cuando entra Entonces va a /dashboard"
+      ],
+      "puntos": 3,
+      "prioridad": "Crítica",
+      "labels": ["seguridad", "doc-semana-1"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-C-1"],
+      "evidencia": [
+        "bfdeb47",
+        "docs/IMPLEMENTACION_SEMANA_1.md §1",
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md C-1"
+      ]
+    },
+    {
+      "id": "E03-12",
+      "tipo": "Bug",
+      "titulo": "Cualquiera podía registrarse con el correo de un deudor y ver su expediente",
+      "bug": {
+        "entorno": "Producción hasta agosto 2026",
+        "pasos": [
+          "Registrarse en /register con el correo de un deudor real",
+          "Iniciar sesión"
+        ],
+        "esperado": "El registro no está abierto al público",
+        "actual": "La cuenta queda vinculada por email al Debtor y ve caso, deudas y documentos",
+        "severidad": "Crítica",
+        "causaRaiz": "Registro abierto sin verificación de email combinado con la identidad user.email → Debtor.email.",
+        "fix": "9e037be: cerrar el registro público autoservicio (opción a de la auditoría)",
+        "regresion": "Test de que /register no crea cuentas; E2E alineado (#15)."
+      },
+      "ac": [
+        "[error] Dado un visitante Cuando intenta registrarse Entonces no se crea la cuenta",
+        "Dado un administrador Cuando crea un usuario desde /users Entonces sí se crea"
+      ],
+      "puntos": 2,
+      "prioridad": "Crítica",
+      "labels": ["seguridad", "doc-semana-1"],
+      "componentes": ["Backend", "Frontend"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-C-2"],
+      "evidencia": [
+        "9e037be",
+        "docs/IMPLEMENTACION_SEMANA_1.md",
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md C-2"
+      ]
+    },
+    {
+      "id": "E03-13",
+      "tipo": "Bug",
+      "titulo": "Login y refresh devolvían los JWT también en el cuerpo de la respuesta",
+      "bug": {
+        "entorno": "Producción hasta agosto 2026",
+        "pasos": ["Iniciar sesión", "Inspeccionar el cuerpo de la respuesta"],
+        "esperado": "Tokens solo en cookies httpOnly",
+        "actual": "Tokens en el body, accesibles desde JavaScript",
+        "severidad": "Alta",
+        "causaRaiz": "loginUser/refreshAccessToken retornaban los tokens además de setear las cookies.",
+        "fix": "a9a1e4d",
+        "regresion": "Test de que el body no contiene accessToken ni refreshToken."
+      },
+      "ac": [
+        "Dado un login exitoso Cuando se lee el body Entonces no contiene tokens",
+        "Dado un refresh Cuando se lee el body Entonces no contiene tokens"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["seguridad", "doc-semana-1"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-A-3"],
+      "evidencia": ["a9a1e4d", "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md A-3"]
+    },
+    {
+      "id": "E03-14",
+      "tipo": "Task",
+      "titulo": "Actualizar Next.js a 15.5.24 para cerrar CVEs altas",
+      "tarea": {
+        "objetivo": "Eliminar los CVEs high de Next 15.5.20 (DoS en Server Actions, cache confusion).",
+        "alcance": "npm audit fix + bump de patch.",
+        "dod": "Suite completa verde y sin CVEs high."
+      },
+      "ac": [
+        "Dado npm audit Cuando corre Entonces no reporta CVEs high de Next"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["seguridad", "doc-semana-1"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-A-1"],
+      "evidencia": ["c507501", "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md A-1"]
+    },
+    {
+      "id": "E03-15",
+      "tipo": "Bug",
+      "titulo": "Seis páginas sin protección del lado del servidor",
+      "bug": {
+        "entorno": "Producción hasta agosto 2026",
+        "pasos": [
+          "Sin permiso, abrir /documents, /reports, /audit-log, /calendar, /notifications o /profile"
+        ],
+        "esperado": "La página verifica sesión y permiso en el servidor",
+        "actual": "Dependían solo del middleware (que además estaba roto, E03-11)",
+        "severidad": "Media",
+        "causaRaiz": "Las 6 páginas no tenían guard server-side propio.",
+        "fix": "c588830",
+        "regresion": "Tests de guard por página."
+      },
+      "ac": [
+        "[error] Dado un usuario sin permiso Cuando abre cualquiera de las 6 páginas Entonces es redirigido",
+        "Dado el middleware deshabilitado en un test Cuando se pide la página Entonces el guard propio sigue protegiendo"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["seguridad", "doc-semana-1"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-M-9"],
+      "evidencia": ["c588830", "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md M-9"]
+    },
+    {
+      "id": "E03-16",
+      "tipo": "Story",
+      "titulo": "Límite de intentos de login y recuperación efectivo en serverless",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que el límite de intentos de login se comparta entre todas las instancias",
+        "para": "frenar ataques de fuerza bruta contra las cuentas del centro"
+      },
+      "ac": [
+        "Dado 5 intentos fallidos desde una IP Cuando llega el sexto a otra instancia Entonces también se rechaza",
+        "[error] Dado Upstash caído o sin configurar Cuando se intenta login Entonces degrada a límite en memoria y registra un warn",
+        "Dado el entorno de test Cuando corre E2E Entonces el límite no bloquea la suite"
+      ],
+      "puntos": 5,
+      "justificacion": "Dependencia externa nueva (Upstash) con degradación explícita y cambios en auth.",
+      "prioridad": "Alta",
+      "labels": ["seguridad", "nfr", "doc-semana-2"],
+      "componentes": ["Backend", "Infra-CI/CD"],
+      "sprint": "2026-W35",
+      "estado": "Done",
+      "resuelto": "2026-08-26",
+      "version": "v0.5.0",
+      "hallazgos": ["PP-A-2"],
+      "nota": "Queda pendiente verificar que Upstash esté configurado en producción (E09-17, G-B1).",
+      "evidencia": [
+        "8a8a1ae feat(security): rate limiting distribuido con Upstash Redis (A-2)",
+        "docs/IMPLEMENTACION_SEMANA_2.md §1",
+        "src/lib/rate-limit.ts"
+      ]
+    },
+    {
+      "id": "E03-17",
+      "tipo": "Bug",
+      "trivial": true,
+      "titulo": "El campo de correo del login no era de tipo email",
+      "bug": {
+        "entorno": "Producción, septiembre 2026",
+        "pasos": ["Abrir /login en un móvil"],
+        "esperado": "Teclado de correo y validación nativa",
+        "actual": "Input de texto genérico",
+        "severidad": "Baja",
+        "causaRaiz": "type=\"text\" en el input.",
+        "fix": "#11 767bd32",
+        "regresion": "Ninguno específico."
+      },
+      "ac": [
+        "Dado el formulario de login Cuando se renderiza Entonces el input de correo es type email",
+        "Dado un correo mal formado Cuando se envía Entonces el navegador lo señala"
+      ],
+      "puntos": null,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-10",
+      "version": "v0.5.0",
+      "evidencia": ["#11 767bd32"]
+    },
+    {
+      "id": "E03-18",
+      "tipo": "Bug",
+      "titulo": "Las redirecciones esperadas de la sesión se registraban como errores o como éxitos falsos",
+      "bug": {
+        "entorno": "Producción, septiembre 2026",
+        "pasos": [
+          "Cambiar de centro",
+          "Cerrar sesión",
+          "Revisar logs y estado del hook useAuth"
+        ],
+        "esperado": "El redirect exitoso no es un error; un fallo real no se reporta como éxito",
+        "actual": "NEXT_REDIRECT se registraba como error en Sentry y switchTenant reportaba éxito en fallos reales",
+        "severidad": "Media",
+        "causaRaiz": "Next.js señaliza un redirect lanzando una excepción especial; se distinguía por message en vez de por digest.",
+        "fix": "db3ff42, 70837ef, 2e8ebac, ec4f5b0, f3046cc, 9499b35 (issue #9) + d03da4f (isNextRedirectError compartido)",
+        "regresion": "Tests de useAuth para switchDatabase, switchTenant y logout."
+      },
+      "ac": [
+        "Dado un cambio de centro exitoso Cuando redirige Entonces no se registra error",
+        "[error] Dado un fallo real al cambiar de centro Cuando ocurre Entonces se reporta como fallo"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-19",
+      "version": "v0.6.0",
+      "evidencia": [
+        "issue #9",
+        "db3ff42",
+        "9499b35",
+        "d03da4f",
+        "docs/CHECKPOINT_2026-09-28.md"
+      ]
+    },
+    {
+      "id": "E03-19",
+      "tipo": "Bug",
+      "titulo": "El identificador de petición x-request-id lo podía fijar el cliente",
+      "bug": {
+        "entorno": "Producción, septiembre 2026",
+        "pasos": [
+          "Enviar una petición con un x-request-id inventado",
+          "Buscarlo en los logs"
+        ],
+        "esperado": "El servidor genera siempre su propio id",
+        "actual": "Se aceptaba el valor del cliente, permitiendo contaminar la correlación de logs",
+        "severidad": "Media",
+        "causaRaiz": "El middleware reusaba el header entrante.",
+        "fix": "308f508",
+        "regresion": "Test del middleware: el id de respuesta no es el enviado."
+      },
+      "ac": [
+        "Dado una petición con x-request-id Cuando se procesa Entonces el id de respuesta es nuevo",
+        "Dado una petición sin el header Cuando se procesa Entonces se genera uno"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": ["seguridad"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": [
+        "308f508 fix(seguridad): el x-request-id lo emite siempre el servidor"
+      ]
+    },
+    {
+      "id": "E03-20",
+      "tipo": "Bug",
+      "titulo": "La generación manual cargaba el hash de la contraseña del operador",
+      "bug": {
+        "entorno": "Producción, septiembre 2026",
+        "pasos": ["Generar documentos desde /documents"],
+        "esperado": "Solo los campos del operador que usan las plantillas",
+        "actual": "include operator: true traía el hash de la contraseña a memoria de la generación",
+        "severidad": "Alta",
+        "causaRaiz": "Include completo de la relación en vez de un select acotado.",
+        "fix": "#54 025ead2",
+        "regresion": "Test de que la consulta no selecciona password."
+      },
+      "ac": [
+        "Dado batchGenerateDocuments Cuando consulta el operador Entonces no selecciona password",
+        "Dado las plantillas Cuando se generan Entonces siguen teniendo nombre y tarjeta del operador"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-09-29",
+      "version": "v0.6.0",
+      "evidencia": ["#54 025ead2"]
+    },
+    {
+      "id": "E03-21",
+      "tipo": "Bug",
+      "titulo": "Aviso falso de que la sesión llevaba más de 30 segundos cargando",
+      "bug": {
+        "entorno": "Producción, octubre 2026",
+        "pasos": [
+          "Dejar la app abierta en una pestaña en segundo plano",
+          "Volver"
+        ],
+        "esperado": "Sin aviso si la sesión cargó",
+        "actual": "Se registraba 'useAuth loading for over 30 seconds'",
+        "severidad": "Baja",
+        "causaRaiz": "El temporizador no se limpiaba al resolver el estado de carga (falso positivo).",
+        "fix": "#123 33ec217",
+        "regresion": "Test del hook con temporizadores simulados."
+      },
+      "ac": [
+        "Dado una sesión que carga en 1 s Cuando pasan 30 s Entonces no se registra el aviso",
+        "Dado una carga realmente colgada Cuando pasan 30 s Entonces sí se registra"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Frontend"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-09",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#123 33ec217"]
+    },
+    {
+      "id": "E03-22",
+      "tipo": "Bug",
+      "titulo": "La búsqueda global exponía los datos personales de todos los deudores del centro",
+      "bug": {
+        "entorno": "Producción hasta octubre 2026",
+        "pasos": [
+          "Iniciar sesión con el rol Usuario (cliente)",
+          "Escribir dos letras en la barra de búsqueda"
+        ],
+        "esperado": "Solo resultados de sus propios expedientes",
+        "actual": "Nombre, cédula y correo de todos los deudores y acreedores del centro",
+        "severidad": "Alta",
+        "causaRaiz": "globalSearch solo llamaba authenticateUser(): sin permiso P.* ni scoping por rol. Única acción del sistema sin check de permisos.",
+        "fix": "#137 7d46fff",
+        "regresion": "Tests de globalSearch por rol."
+      },
+      "ac": [
+        "[error] Dado un usuario sin permiso de ver casos Cuando busca Entonces no obtiene resultados",
+        "Dado el rol cliente Cuando busca Entonces solo ve sus expedientes"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": ["seguridad", "doc-semana-4"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["G-A1"],
+      "evidencia": [
+        "#137 7ab6b5e (7d46fff)",
+        "docs/IMPLEMENTACION_SEMANA_4.md §2.1",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §4 A-9"
+      ]
+    },
+    {
+      "id": "E03-23",
+      "tipo": "Bug",
+      "titulo": "Un rol limitado a sus casos podía editar, generar y reportar sobre cualquier expediente",
+      "bug": {
+        "entorno": "Producción hasta octubre 2026",
+        "pasos": [
+          "Con rol Abogado (VER_CASOS_PROPIOS), obtener el id de un caso ajeno",
+          "Llamar updateCase, deleteCase, updateCasePhase o generar sus documentos",
+          "Abrir /reports"
+        ],
+        "esperado": "Rechazo por falta de acceso al expediente",
+        "actual": "La mutación se ejecuta; reportes muestran todos los casos del centro",
+        "severidad": "Alta",
+        "causaRaiz": "El chequeo de visibilidad por fila de getCaseById no se replicaba en 15 mutaciones, en las 4 acciones de generación ni en reportes.",
+        "fix": "#137 6b36d84: assertCaseAccess en las 15 mutaciones, generación y reportes (fail closed)",
+        "regresion": "tests/unit/security/case-mutations-row-access.test.ts."
+      },
+      "ac": [
+        "[error] Dado un caso ajeno Cuando un rol limitado llama cualquiera de las 15 mutaciones Entonces se rechaza",
+        "Dado un rol limitado Cuando abre reportes Entonces solo agrega sus casos",
+        "Dado un rol sin ningún permiso de alcance Cuando intenta editar Entonces se rechaza (fail closed)"
+      ],
+      "puntos": 8,
+      "justificacion": "15 mutaciones (no 7 del encargo) + generación + reportes, con riesgo de romper roles creados a mano.",
+      "prioridad": "Alta",
+      "labels": ["seguridad", "doc-semana-4"],
+      "componentes": ["Backend", "Testing"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["GC-A1", "GD-M4", "GC-M5", "CIERRE-5.2"],
+      "evidencia": [
+        "#137 7ab6b5e (6b36d84)",
+        "docs/IMPLEMENTACION_SEMANA_4.md §2.2 y §4.1",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §5.2"
+      ],
+      "subtareas": [
+        {
+          "id": "E03-23.1",
+          "titulo": "assertCaseAccess en las 15 mutaciones de caso",
+          "descripcion": "Incluye add/remove de deudas, bienes, libranzas, servicios y apoderados."
+        },
+        {
+          "id": "E03-23.2",
+          "titulo": "Guard de fila en las 4 acciones de generación",
+          "descripcion": "GD-M4."
+        },
+        {
+          "id": "E03-23.3",
+          "titulo": "Scoping por rol en reportes",
+          "descripcion": "GC-M5 / Cierre §5.2."
+        }
+      ]
+    },
+    {
+      "id": "E03-24",
+      "tipo": "Story",
+      "titulo": "Confirmar por escrito y auditar antes de eliminar un expediente",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "tener que escribir el número del expediente para eliminarlo y que la acción quede auditada antes de ejecutarse",
+        "para": "evitar borrados accidentales de expedientes legales irrecuperables"
+      },
+      "ac": [
+        "[error] Dado un número de confirmación distinto Cuando intento eliminar Entonces no se elimina",
+        "Dado la confirmación correcta Cuando elimino Entonces la entrada de auditoría se escribe antes del borrado",
+        "[error] Dado un fallo al escribir la auditoría Cuando elimino Entonces el expediente no se borra"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["seguridad", "doc-semana-4"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["GC-M6", "PP-A-8"],
+      "nota": "Mitigación interina. El borrado lógico queda en E01-40..E01-42.",
+      "evidencia": ["#137 (b5062ed)", "docs/IMPLEMENTACION_SEMANA_4.md §2.3"]
+    },
+    {
+      "id": "E03-25",
+      "tipo": "Story",
+      "titulo": "La auditoría espera su escritura y registra qué campos cambiaron",
+      "historia": {
+        "rol": "abogado del centro",
+        "quiero": "que el registro de una edición diga qué campos cambiaron y que no se pierda",
+        "para": "reconstruir qué se modificó en un expediente en disputa"
+      },
+      "ac": [
+        "Dado una edición de caso Cuando se audita Entonces metadata incluye el diff de campos",
+        "Dado Vercel congelando la función Cuando se responde Entonces el insert de auditoría ya terminó",
+        "[error] Dado un fallo de auditoría en una alta Cuando ocurre Entonces la operación sigue y el fallo llega a Sentry"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": ["nfr", "doc-semana-4"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["GC-M4", "CIERRE-5.3"],
+      "evidencia": [
+        "#137 (ad608e5)",
+        "docs/IMPLEMENTACION_SEMANA_4.md §2.4 y §4.2",
+        "docs/AUDITORIA_CIERRE_2026-09-12.md §5.3"
+      ]
+    },
+    {
+      "id": "E03-26",
+      "tipo": "Bug",
+      "titulo": "Se podía asignar a un caso un operador de otro centro",
+      "bug": {
+        "entorno": "Producción hasta octubre 2026",
+        "pasos": [
+          "Enviar updateCase con el operatorId de un usuario de Constructores de Paz sobre un caso de Armonía"
+        ],
+        "esperado": "Rechazo",
+        "actual": "El caso queda asignado y el nombre del operador ajeno se imprime en documentos",
+        "severidad": "Media",
+        "causaRaiz": "operatorId se validaba solo como z.string() y se conectaba sin verificar el tenant.",
+        "fix": "#137 fc3e555",
+        "regresion": "Test de asignación cruzada."
+      },
+      "ac": [
+        "[error] Dado un operador de otro centro Cuando se asigna Entonces se rechaza",
+        "Dado un operador del mismo centro Cuando se asigna Entonces se guarda"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["seguridad", "doc-semana-4"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["GC-M2"],
+      "evidencia": ["#137 (fc3e555)", "docs/IMPLEMENTACION_SEMANA_4.md §2.5"]
+    },
+    {
+      "id": "E03-27",
+      "tipo": "Story",
+      "titulo": "Límite de creación de casos por usuario",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que un usuario no pueda crear casos en bucle",
+        "para": "proteger la cuota de Drive y el presupuesto de ejecución, ya que cada caso dispara la generación de PDFs"
+      },
+      "ac": [
+        "Dado 10 casos creados por un usuario en 10 minutos Cuando intenta el undécimo Entonces se rechaza con mensaje",
+        "[borde] Dado la suite test:db Cuando crea muchos casos Entonces el limitador se reinicia en beforeEach",
+        "Dado otro usuario Cuando crea casos Entonces su límite es independiente"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": ["seguridad", "doc-semana-4"],
+      "componentes": ["Backend"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["GC-B2"],
+      "evidencia": [
+        "#137 (deea49e)",
+        "docs/IMPLEMENTACION_SEMANA_4.md §2.6 y §5.3"
+      ]
+    },
+    {
+      "id": "E03-28",
+      "tipo": "Task",
+      "titulo": "Actualizar nodemailer y aplicar npm audit fix sin cambios rompientes",
+      "tarea": {
+        "objetivo": "Cerrar vulnerabilidades de nodemailer.",
+        "alcance": "Bump + npm audit fix no-breaking.",
+        "dod": "Suite y build verdes."
+      },
+      "ac": [
+        "Dado npm audit Cuando corre Entonces nodemailer no aparece vulnerable"
+      ],
+      "puntos": 1,
+      "prioridad": "Media",
+      "labels": ["seguridad", "doc-semana-4"],
+      "componentes": ["Infra-CI/CD"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "evidencia": ["#137 (4ddb5cd)", "docs/IMPLEMENTACION_SEMANA_4.md §2.7"]
+    },
+    {
+      "id": "E03-29",
+      "tipo": "Story",
+      "titulo": "Cerrar las sesiones abiertas al cambiar la contraseña o por orden del administrador",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "que un cambio de contraseña o un cierre forzado invalide las sesiones abiertas en otros dispositivos",
+        "para": "poder sacar de inmediato a alguien que no debe seguir entrando"
+      },
+      "ac": [
+        "Dado una sesión abierta en otro equipo Cuando cambio mi contraseña Entonces esa sesión deja de funcionar en su siguiente petición",
+        "Dado un usuario Cuando el administrador fuerza su cierre de sesión Entonces todos sus tokens vigentes se rechazan",
+        "[borde] Dado un token emitido justo después del cambio Cuando se usa Entonces sigue siendo válido"
+      ],
+      "puntos": 5,
+      "justificacion": "Marca de revocación en User y verificación en authenticateUser en cada petición.",
+      "prioridad": "Alta",
+      "labels": ["seguridad", "doc-semana-7"],
+      "componentes": ["Backend", "Base-de-Datos"],
+      "sprint": "2026-W42",
+      "estado": "Done",
+      "resuelto": "2026-10-17",
+      "version": "v1.0.0-rc.1",
+      "hallazgos": ["PP-A-6"],
+      "evidencia": [
+        "#140 376d83b",
+        "docs/IMPLEMENTACION_SEMANA_7.md §3",
+        "CHANGELOG.md [1.0.0-rc.1] Revocación de sesiones"
+      ]
+    },
+    {
+      "id": "E03-30",
+      "tipo": "Task",
+      "titulo": "Verificar en producción que ningún rol quedó sin permiso de alcance",
+      "tarea": {
+        "objetivo": "Confirmar que el guard de fila (fail closed) no le quitó la edición a un rol creado a mano.",
+        "alcance": "Correr scripts/diagnostico/verificar-roles-sin-alcance.sql (solo lectura) contra Neon producción y corregir los roles que aparezcan.",
+        "dod": "Resultado registrado en docs; 0 roles con Editar/Eliminar/Generar/Ver documentos/Ver reportes sin permiso de alcance."
+      },
+      "ac": [
+        "Dado la consulta Cuando se corre en producción Entonces el resultado queda documentado",
+        "[error] Dado un rol sin alcance Cuando aparece Entonces se le asigna el permiso de alcance correcto con aprobación del centro"
+      ],
+      "puntos": 1,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "2026-W44",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "evidencia": [
+        "docs/IMPLEMENTACION_SEMANA_4.md §5.1 y §6 decisión 4",
+        "scripts/diagnostico/verificar-roles-sin-alcance.sql (sin commitear)"
+      ]
+    },
+    {
+      "id": "E03-31",
+      "tipo": "Task",
+      "titulo": "Calibrar el límite de creación de casos con el uso real",
+      "tarea": {
+        "objetivo": "Validar si 10 casos por usuario cada 10 minutos es correcto para la digitación real de los centros.",
+        "alcance": "Revisar en logs/Sentry los rechazos por límite durante las primeras semanas de uso.",
+        "dod": "Valor confirmado o ajustado (una línea) y documentado."
+      },
+      "ac": [
+        "Dado dos semanas de uso Cuando se revisan los rechazos Entonces se decide mantener o subir el límite",
+        "[borde] Dado una jornada de carga de atrasos Cuando se planifica Entonces el centro sabe del límite"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": ["spike"],
+      "componentes": ["Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "bloqueadoPor": ["E14-14"],
+      "evidencia": ["docs/IMPLEMENTACION_SEMANA_4.md §5.3 y §6 decisión 3"]
+    },
+    {
+      "id": "E03-32",
+      "tipo": "Story",
+      "titulo": "Política de seguridad de contenido sin unsafe-inline ni unsafe-eval",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "una CSP estricta y una decisión explícita sobre la enumeración de usuarios en recuperar contraseña",
+        "para": "reducir el impacto de un XSS y no revelar qué correos tienen cuenta"
+      },
+      "ac": [
+        "Dado la CSP Cuando se inspecciona Entonces script-src usa nonces y no unsafe-inline ni unsafe-eval",
+        "[error] Dado un script inline sin nonce Cuando se inyecta Entonces el navegador lo bloquea",
+        "Dado forgotPassword con un correo inexistente Cuando se envía Entonces la respuesta sigue la decisión documentada"
+      ],
+      "puntos": 5,
+      "justificacion": "Nonces en Next.js App Router afectan todas las páginas y librerías de UI.",
+      "prioridad": "Media",
+      "labels": ["seguridad"],
+      "componentes": ["Frontend", "Backend"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "hallazgos": ["PP-M-5"],
+      "evidencia": ["docs/AUDITORIA_PREPRODUCCION_2026-08-25.md M-5"]
+    },
+    {
+      "id": "E03-33",
+      "tipo": "Task",
+      "titulo": "Limpiar tokens de recuperación vencidos e indexar por correo",
+      "tarea": {
+        "objetivo": "Evitar que PasswordResetToken crezca sin límite y acelerar su búsqueda.",
+        "alcance": "Índice en email y limpieza de expirados (en el cron diario existente).",
+        "dod": "Migración aplicada; tokens vencidos se borran a diario."
+      },
+      "ac": [
+        "Dado tokens vencidos Cuando corre el cron Entonces se eliminan",
+        "Dado el modelo PasswordResetToken Cuando se inspecciona Entonces tiene índice en email"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "hallazgos": ["PP-B-2"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md B-2",
+        "src/prisma/schema.prisma model PasswordResetToken (sin @@index, verificado 2026-10-21)"
+      ]
+    }
+  ]
+}

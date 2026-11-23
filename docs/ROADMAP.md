@@ -13,7 +13,7 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
 ## Fase 3 (Q3, ~32h)
 
-- [ ] Soft-delete para expedientes legales (borrado físico→lógico, capacidad de recuperación; hoy `deleteCase` borra en cascada) — ~20h
+- [x] ~~Soft-delete para expedientes legales~~ → 🟢 **Hecho el 2026-11-08**: papelera con restauración, borrado definitivo solo para Administrador, filtro en la extensión de `src/lib/prisma.ts` y `deleteDebtor` sin cascada sobre expedientes. Detalle: `docs/DECISIONES.md` §2026-11-08. Queda pendiente borrar la carpeta de Drive al purgar (GC-M6).
 - [ ] Auditoría de accesibilidad (19 refs `aria-*` en todo el proyecto → pasada semántica en las 5 pantallas núcleo) — ~6h
 - [ ] **Cerrar la deriva entre el historial de migraciones y `schema.prisma`** — ~6h · 🔴 **bloqueado: necesita acceso a Neon + decidir el camino**
 
@@ -84,6 +84,8 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
 
 9. **Los 2 campos de dinero fuera del formulario maestro siguen sin separador de miles** — ~2h
 
+   ✅ **Cerrado el 2026-11-12** (`fix/pagos-reglas-montos-acceso`): los dos usan `MoneyInputField` y envían `parsearMonto(...)`; la acción sigue recibiendo `amount: number`. Tests: `tests/unit/components/pagos-monto-separador.test.tsx`. Lo de abajo queda como registro.
+
    Quedaron fuera del alcance de `#136`, que normalizó los 27 del formulario maestro (wizard + pestañas de edición). Los dos son montos de pago:
 
    | Dónde                                              | Etiqueta       | Qué hace                    |
@@ -96,5 +98,9 @@ Trabajo planificado por fases. Material de consulta, separado de `CLAUDE.md`, qu
    **La trampa, para quien lo tome.** No alcanza con cambiar el input a `type="text"`: los dos hacen `parseFloat(monto)` al enviar (`payment-tracking-section.tsx:210`, `payment-tracking-report.tsx:986`) y `parseFloat("1.500.000")` da **1.5**. Es exactamente el bug de `#136`, que vivía en **tres** capas y solo lo cerró del todo un test que llega hasta Prisma. El parseo correcto ya existe: `parsearMonto` en `src/features/case/monto.ts`, y el input formateado es `MoneyInput` en `src/components/ui/money-input.tsx`. Reusar los dos, no reescribirlos.
 
    **Por qué no urge:** mientras los campos sigan siendo `type="number"` el navegador no deja escribir el punto, así que el bug es inalcanzable desde la UI. Lo que molesta hoy es la inconsistencia visual — un monto se escribe `1.500.000` en el wizard y `1500000` acá.
+
+10. **Revisar los rechazos por tamaño y decidir sobre la subida directa a Drive.** Pendiente desde el 2026-11-05. Requiere que ya estén en producción este registro y el límite de 4 MB en comprobantes y documentos, y unas semanas de uso real desde entonces. Antes de que venza la retención de eventos del plan de Sentry (sin confirmar: `docs/RUNBOOK.md` §0.2 la deja por completar), buscar en Sentry `Archivo rechazado por tamaño`, solo en `production`, y comparar los rechazos con las subidas correctas del mismo periodo. Por qué Drive no responde esto: `docs/DECISIONES.md`, entrada del 2026-11-05.
+
+    **Si una parte importante queda fuera, evaluar la sesión reanudable** resolviendo antes: verificar tamaño y tipo después de subir, porque el servidor deja de ver los bytes; limpiar los archivos huérfanos cuando falla el registro tras la subida; y probar el CORS de la sesión contra el Drive real. El intervalo `5-10 MB` dice si bastaría esa vía, y el corte `más de 25 MB` si hay archivos que tampoco deberían entrar así. **Si casi no hay rechazos, se mantienen 4 MB** y se cierra este punto.
 
 > Nota: dos items del roadmap original se descartaron por no corresponder al código real: la migración Float→Decimal (los montos ya usan `Decimal`) y el split del schema Prisma (tiene 1.041 líneas, no 2.516 — no urge).

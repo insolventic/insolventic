@@ -1,0 +1,463 @@
+{
+  "epica": {
+    "id": "E14",
+    "titulo": "Testing / QA",
+    "descripcion": "Suite Jest (1.448 tests en 97 suites, medido 2026-10-01), pruebas contra Postgres real (test:db), golden masters del mapper, E2E con Playwright, pruebas de carga k6 y la aceptación de usuario con los centros.",
+    "objetivo": "Que una regresión en reglas legales, documentos o aislamiento entre centros la detecte CI y no un juzgado.",
+    "prioridad": "Alta",
+    "labels": ["nfr"],
+    "evidencia": ["docs/TESTS.md", "CLAUDE.md §Comandos", "tests/"]
+  },
+  "items": [
+    {
+      "id": "E14-01",
+      "tipo": "Task",
+      "titulo": "Primera suite de pruebas automatizadas",
+      "tarea": {
+        "objetivo": "Tener red de seguridad antes de la primera versión.",
+        "alcance": "111 tests de auth, casos, documentos y Drive.",
+        "dod": "Suite verde en local."
+      },
+      "ac": ["Dado npm test Cuando corre Entonces pasan los 111 tests"],
+      "puntos": 5,
+      "justificacion": "Montaje de Jest, mocks de Prisma/nodemailer y 111 casos desde cero.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Testing"],
+      "sprint": "2026-W10",
+      "estado": "Done",
+      "resuelto": "2026-03-04",
+      "version": "v0.1.0",
+      "evidencia": [
+        "c40cfb7 test: agregar suite completa de pruebas automatizadas (111 tests)"
+      ]
+    },
+    {
+      "id": "E14-02",
+      "tipo": "Bug",
+      "titulo": "Siete suites de pruebas fallaban por un mock de Prisma incompleto",
+      "bug": {
+        "entorno": "Local y CI, abril 2026",
+        "pasos": ["Correr npm test"],
+        "esperado": "Suite verde",
+        "actual": "7 suites fallando con Cannot read properties of undefined",
+        "severidad": "Media",
+        "causaRaiz": "El mock de Prisma no tenía auditLog, payment, paymentReceipt y otros modelos; nombres de centros y mocks de UI desalineados.",
+        "fix": "820461c (mock completado, nombres canónicos Armonía/Constructores de Paz, mock de Select); el CHANGELOG lo lista en [0.2.0]",
+        "regresion": "20 suites / 405 tests verdes."
+      },
+      "ac": [
+        "Dado npm test Cuando corre Entonces las 20 suites pasan",
+        "Dado un modelo nuevo de Prisma Cuando se usa en tests Entonces existe en el mock"
+      ],
+      "puntos": 3,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Testing"],
+      "sprint": "2026-W16",
+      "estado": "Done",
+      "resuelto": "2026-04-16",
+      "version": "v0.2.0",
+      "nota": "El CHANGELOG lo fecha en 0.2.0 (2026-04-14), pero el cambio entró en el commit 820461c del 2026-04-16.",
+      "evidencia": [
+        "820461c (git log -S paymentReceipt -- tests/__mocks__)",
+        "CHANGELOG.md [0.2.0] Fixed y Tests (antes: 7 suites fallando)"
+      ]
+    },
+    {
+      "id": "E14-03",
+      "tipo": "Bug",
+      "titulo": "Las pruebas E2E fallaban por selector, límite de intentos y registro cerrado",
+      "bug": {
+        "entorno": "GitHub Actions (e2e.yml), septiembre 2026",
+        "pasos": ["Correr la suite Playwright"],
+        "esperado": "E2E verde",
+        "actual": "Selector mal formado en cases.e2e, el rate limit bloqueaba el login de la suite y el test de /register esperaba el registro abierto",
+        "severidad": "Media",
+        "causaRaiz": "Tests desalineados con los cambios de seguridad de la Semana 1-2 (C-2, A-2).",
+        "fix": "#12 2360250, #14 9912d11, #15 e201976",
+        "regresion": "E2E verde en los PR siguientes."
+      },
+      "ac": [
+        "Dado la suite E2E Cuando corre Entonces no la bloquea el rate limit",
+        "Dado el test de /register Cuando corre Entonces verifica que el registro está cerrado"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Testing"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-10",
+      "version": "v0.5.0",
+      "evidencia": ["#12 2360250", "#14 9912d11", "#15 e201976"]
+    },
+    {
+      "id": "E14-04",
+      "tipo": "Task",
+      "titulo": "Pruebas de transiciones de fase, bypass por POST directo y acceso por fila",
+      "tarea": {
+        "objetivo": "Cubrir las rutas donde estaban los hallazgos críticos y que la suite no veía.",
+        "alcance": "case-business-rules (23 tests, 8 intentos de bypass), case-phase-transitions y case-mutations-row-access.",
+        "dod": "updateCase, updateCasePhase y las mutaciones con guard tienen tests."
+      },
+      "ac": [
+        "Dado un bypass de fase por updateCase Cuando corre la suite Entonces un test lo detecta",
+        "Dado una mutación sin guard de fila Cuando corre la suite Entonces un test falla"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["doc-semana-3"],
+      "componentes": ["Testing"],
+      "sprint": "2026-W37",
+      "estado": "Done",
+      "resuelto": "2026-09-11",
+      "version": "v0.5.0",
+      "hallazgos": ["G-M2"],
+      "nota": "La cobertura de acceso por fila se completó en #137 (E03-23).",
+      "evidencia": [
+        "PR #4 17c7de2",
+        "tests/unit/cases/case-business-rules.test.ts",
+        "tests/unit/cases/case-phase-transitions.test.ts",
+        "tests/unit/security/case-mutations-row-access.test.ts"
+      ]
+    },
+    {
+      "id": "E14-05",
+      "tipo": "Task",
+      "titulo": "Prueba de humo del wizard contra Postgres real",
+      "tarea": {
+        "objetivo": "Detectar lo que los mocks de Prisma esconden (como el incidente de /cases).",
+        "alcance": "npm run test:db: crea un caso con el wizard contra una base local de prueba, cliente de Prisma sin mockear.",
+        "dod": "Suite tests/db en CI (e2e.yml)."
+      },
+      "ac": [
+        "Dado una base local de prueba Cuando corre test:db Entonces crea un caso completo",
+        "[error] Dado una columna que no existe en la base Cuando corre Entonces falla (lo que un mock no detecta)"
+      ],
+      "puntos": 5,
+      "justificacion": "Infraestructura nueva de pruebas con base real y fixtures.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Testing", "Base-de-Datos"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": ["73841cc", "#35 8eedd6b", "docs/TESTS.md §2.1"]
+    },
+    {
+      "id": "E14-06",
+      "tipo": "Task",
+      "titulo": "Red de seguridad del mapper: golden master, colisiones y escape HTML",
+      "tarea": {
+        "objetivo": "Poder refactorizar el mapper sin cambiar la salida de los documentos.",
+        "alcance": "Golden master del mapper, contrato de las 21 colisiones de fusión, golden de render independiente de CRLF/LF y guardián de la allowlist de escape.",
+        "dod": "Las cuatro suites en CI."
+      },
+      "ac": [
+        "Dado un cambio en la salida del mapper Cuando corre el golden Entonces falla",
+        "Dado un placeholder HTML fuera de la allowlist Cuando corre el guardián Entonces falla"
+      ],
+      "puntos": 5,
+      "justificacion": "Cuatro suites de caracterización sobre el componente más crítico.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Testing", "Documentos-PDF"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": [
+        "5ad7934",
+        "faa389d",
+        "1381cf6",
+        "52392a1",
+        "tests/unit/documents/mapper-golden.test.ts",
+        "tests/unit/documents/html-escape-guard.test.ts"
+      ]
+    },
+    {
+      "id": "E14-07",
+      "tipo": "Bug",
+      "titulo": "El test de carga diferida del dashboard no probaba nada",
+      "bug": {
+        "entorno": "CI, septiembre 2026",
+        "pasos": ["Quitar el filtro del wrapper de recharts", "Correr el test"],
+        "esperado": "El test falla",
+        "actual": "El test pasaba igual (vacuo)",
+        "severidad": "Baja",
+        "causaRaiz": "La aserción no observaba la petición del chunk.",
+        "fix": "e572146",
+        "regresion": "El test ahora falla si el wrapper deja de filtrar."
+      },
+      "ac": [
+        "Dado el wrapper sin filtro Cuando corre el test Entonces falla",
+        "Dado el wrapper correcto Cuando corre Entonces pasa"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Testing"],
+      "sprint": "2026-W38",
+      "estado": "Done",
+      "resuelto": "2026-09-20",
+      "version": "v0.6.0",
+      "evidencia": ["e572146"]
+    },
+    {
+      "id": "E14-08",
+      "tipo": "Task",
+      "titulo": "Suite permanente formulario, base y documento",
+      "tarea": {
+        "objetivo": "Verificar de punta a punta que lo que se escribe en el formulario llega a la base y al documento.",
+        "alcance": "Suite test:db que recorre campos del formulario hasta el placeholder impreso.",
+        "dod": "Suite en CI; atrapó los bugs de fechas y causas (#112, #113)."
+      },
+      "ac": [
+        "Dado un campo del formulario Cuando se guarda y se genera Entonces el documento imprime ese valor",
+        "[error] Dado un campo que se pierde en alguna capa Cuando corre la suite Entonces falla nombrando el campo"
+      ],
+      "puntos": 5,
+      "justificacion": "Recorrido de tres capas (UI → Prisma → plantilla) sobre base real.",
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Testing", "Documentos-PDF"],
+      "sprint": "2026-W41",
+      "estado": "Done",
+      "resuelto": "2026-10-08",
+      "version": "v0.6.0",
+      "evidencia": [
+        "#116 925c007",
+        "tests/db/documentos-e2e.db.test.ts",
+        "docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md"
+      ]
+    },
+    {
+      "id": "E14-09",
+      "tipo": "Task",
+      "titulo": "Verificación manual de documentos de punta a punta",
+      "tarea": {
+        "objetivo": "Comprobar con ojos humanos los documentos generados antes de confiar en las suites.",
+        "alcance": "Generación real y revisión de los documentos por paquete, con los hallazgos registrados.",
+        "dod": "docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md."
+      },
+      "ac": [
+        "Dado los paquetes principales Cuando se generan y revisan Entonces los hallazgos quedan registrados"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["inferido"],
+      "componentes": ["Testing", "Documentos-PDF"],
+      "sprint": "2026-W40",
+      "estado": "Done",
+      "resuelto": "2026-10-03",
+      "version": "v0.6.0",
+      "nota": "Fechado por el nombre del documento; no se identificó un commit propio.",
+      "evidencia": ["docs/VERIFICACION_E2E_DOCUMENTOS_2026-10-03.md"]
+    },
+    {
+      "id": "E14-10",
+      "tipo": "Task",
+      "titulo": "Prueba de que todas las plantillas declaradas existen en disco",
+      "tarea": {
+        "objetivo": "Que renombrar o mover una plantilla rompa CI, no producción.",
+        "alcance": "Recorrer ALL_TEMPLATES y verificar fs.access(getTemplatePath(t)).",
+        "dod": "Test en la suite y verde."
+      },
+      "ac": [
+        "Dado una plantilla renombrada Cuando corre CI Entonces el test falla con su nombre",
+        "Dado las 65 plantillas actuales Cuando corre Entonces pasa"
+      ],
+      "puntos": 2,
+      "prioridad": "Alta",
+      "labels": [],
+      "componentes": ["Testing", "Documentos-PDF"],
+      "sprint": "2026-W44",
+      "estado": "To Do",
+      "version": "v1.0.0-rc.2",
+      "moscow": "Must",
+      "hallazgos": ["GD-B2"],
+      "evidencia": [
+        "CLAUDE.md Quick Win 1",
+        "docs/AUDITORIA_INTEGRAL_PRE_LAUNCH.md §3 (Bajo)",
+        "docs/AUDITORIA_MODULO_GENERACION_2026-07.md P9"
+      ]
+    },
+    {
+      "id": "E14-11",
+      "tipo": "Bug",
+      "titulo": "El benchmark del mapper falla de forma intermitente en CI",
+      "bug": {
+        "entorno": "Suite completa en paralelo / runner compartido",
+        "pasos": ["Correr npm test completo varias veces"],
+        "esperado": "Resultado estable",
+        "actual": "placeholder-mapper.test.ts '< 100ms' falla a veces; aislado pasa 5 de 5",
+        "severidad": "Media",
+        "causaRaiz": "Aserción de tiempo absoluto sensible a la carga del runner.",
+        "fix": "Pendiente: medir en una suite aparte o usar un umbral relativo.",
+        "regresion": "10 corridas seguidas de la suite completa sin fallo."
+      },
+      "ac": [
+        "Dado 10 corridas de la suite completa Cuando se ejecutan Entonces el benchmark no falla",
+        "Dado una regresión real de rendimiento Cuando ocurre Entonces la medición la sigue detectando"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": [],
+      "componentes": ["Testing"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "evidencia": ["docs/IMPLEMENTACION_SEMANA_4.md §5.4"]
+    },
+    {
+      "id": "E14-12",
+      "tipo": "Task",
+      "titulo": "Cubrir la mutación anidada en la prueba de recálculo de cesación de pagos",
+      "tarea": {
+        "objetivo": "Probar la ruta que usa el formulario en producción.",
+        "alcance": "Caso debts.0.daysOverdue en cesacion-pagos-recalculo.test.tsx (hoy solo reemplazo del array completo).",
+        "dod": "Caso nuevo verde y con dientes."
+      },
+      "ac": [
+        "Dado una edición de daysOverdue de una deuda Cuando se emite Entonces el memo recalcula"
+      ],
+      "puntos": 1,
+      "prioridad": "Baja",
+      "labels": [],
+      "componentes": ["Testing"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "evidencia": ["CLAUDE.md Quick Win 2 (pendiente anotado en #124)"]
+    },
+    {
+      "id": "E14-13",
+      "tipo": "Story",
+      "titulo": "Prueba de extremo a extremo del aislamiento entre centros",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "una prueba automática que intente leer y modificar datos del otro centro",
+        "para": "tener evidencia de que Armonía y Constructores de Paz no se ven entre sí"
+      },
+      "ac": [
+        "[error] Dado una sesión de Armonía Cuando pide un caso de Constructores de Paz por id Entonces recibe no encontrado",
+        "[error] Dado una sesión de Armonía Cuando intenta generar documentos de un caso ajeno Entonces se rechaza",
+        "Dado la búsqueda global Cuando busca un deudor del otro centro Entonces no aparece",
+        "Dado la suite Cuando corre en CI Entonces usa dos tenants sembrados"
+      ],
+      "puntos": 3,
+      "prioridad": "Alta",
+      "labels": ["seguridad"],
+      "componentes": ["Testing"],
+      "sprint": "2026-W47",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "hallazgos": ["PP-M-7"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md M-7 y §5 Calidad"
+      ]
+    },
+    {
+      "id": "E14-14",
+      "tipo": "Story",
+      "titulo": "Aceptación de usuario con guion por rol firmada por ambos centros",
+      "historia": {
+        "rol": "administrador del centro",
+        "quiero": "probar el sistema con un guion por rol sobre preview antes de recibirlo",
+        "para": "aceptar formalmente que hace lo que el centro necesita"
+      },
+      "ac": [
+        "Dado un guion por rol (operadora, abogado, conciliadora, administrador) Cuando se ejecuta en preview Entonces cada paso queda marcado ok o con hallazgo",
+        "[error] Dado un hallazgo bloqueante Cuando aparece Entonces se crea un ítem y la firma se pospone",
+        "Dado ambos centros Cuando terminan el guion Entonces firman el acta de aceptación",
+        "[borde] Dado datos de prueba Cuando se usan Entonces nunca son de casos reales"
+      ],
+      "puntos": 5,
+      "justificacion": "Coordinación con dos centros externos, guion por rol y ciclo de corrección.",
+      "prioridad": "Crítica",
+      "labels": [],
+      "componentes": ["Testing"],
+      "sprint": "2026-W47",
+      "estado": "To Do",
+      "version": "v1.0.0",
+      "moscow": "Must",
+      "bloqueadoPor": ["E14-13", "E05-16"],
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md §4 Semana 4 (UAT) y §5 Calidad"
+      ]
+    },
+    {
+      "id": "E14-15",
+      "tipo": "Task",
+      "titulo": "Prueba de carga promedio contra preview con resultados registrados",
+      "tarea": {
+        "objetivo": "Tener una línea base de rendimiento antes del uso real.",
+        "alcance": "Correr el escenario average de k6 contra preview y registrar latencias y errores.",
+        "dod": "Resultados en docs/TESTS.md."
+      },
+      "ac": [
+        "Dado el escenario average Cuando corre contra preview Entonces los resultados quedan registrados con fecha"
+      ],
+      "puntos": 2,
+      "prioridad": "Media",
+      "labels": ["nfr"],
+      "componentes": ["Testing"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Should",
+      "evidencia": [
+        "docs/AUDITORIA_PREPRODUCCION_2026-08-25.md §5 Calidad (k6 average contra preview)"
+      ]
+    },
+    {
+      "id": "E14-16",
+      "tipo": "Task",
+      "titulo": "Prueba de concurrencia real contra el lock de generación",
+      "tarea": {
+        "objetivo": "Demostrar contra Postgres real que N reclamos simultáneos dan exactamente un ganador.",
+        "alcance": "Test en tests/db con reclamos concurrentes sobre DocumentGenerationRequest.",
+        "dod": "Test verde y estable."
+      },
+      "ac": [
+        "Dado 10 reclamos simultáneos del mismo caso y tipo Cuando corren Entonces exactamente uno gana"
+      ],
+      "puntos": 2,
+      "prioridad": "Baja",
+      "labels": ["nfr"],
+      "componentes": ["Testing", "Base-de-Datos"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "evidencia": ["docs/TESTS.md (falta concurrencia real contra el lock P3)"]
+    },
+    {
+      "id": "E14-17",
+      "tipo": "Task",
+      "titulo": "Auditoría de accesibilidad de las 5 pantallas núcleo",
+      "tarea": {
+        "objetivo": "Pasada semántica de accesibilidad (hoy 19 referencias aria-* en todo el proyecto).",
+        "alcance": "Casos, deudores, documentos, reportes y login: roles, etiquetas, foco y contraste.",
+        "dod": "Hallazgos corregidos o registrados como ítems."
+      },
+      "ac": [
+        "Dado cada pantalla núcleo Cuando se navega con teclado Entonces todas las acciones son alcanzables"
+      ],
+      "puntos": 3,
+      "prioridad": "Baja",
+      "labels": ["nfr"],
+      "componentes": ["Frontend", "Testing"],
+      "sprint": "",
+      "estado": "To Do",
+      "version": "v1.1.0",
+      "moscow": "Could",
+      "evidencia": ["CLAUDE.md Fase 3 (Auditoría de accesibilidad ~6h)"]
+    }
+  ]
+}

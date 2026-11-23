@@ -2,10 +2,18 @@
 
 import { revalidatePath } from 'next/cache';
 import prisma from '@/lib/prisma';
+// Las lecturas de `cases` anidadas en Debtor no pasan por la extensión de la
+// papelera (solo ve operaciones de primer nivel sobre Case): filtran a mano.
+import { CASO_ACTIVO, incluyendoPapelera } from '@/lib/papelera';
 import { authenticateUser } from '@/features/auth/actions';
 import { P } from '@/lib/permissions';
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import {
+  mismoValor,
+  resumirCambios,
+  selectDeCamposEnviados,
+} from '@/features/case/audit-diff';
 
 import {
   createDebtorSchema,
@@ -55,7 +63,7 @@ export async function getAllDebtors(): Promise<{
           tenantId,
         },
         include: {
-          cases: true,
+          cases: { where: CASO_ACTIVO },
           debts: {
             include: {
               creditor: {
@@ -68,7 +76,7 @@ export async function getAllDebtors(): Promise<{
           assets: true,
           _count: {
             select: {
-              cases: true,
+              cases: { where: CASO_ACTIVO },
               debts: true,
               assets: true,
             },
@@ -102,7 +110,7 @@ export async function getAllDebtors(): Promise<{
         },
         include: {
           cases: {
-            where: caseWhereClause,
+            where: { ...caseWhereClause, ...CASO_ACTIVO },
           },
           debts: {
             include: {
@@ -116,7 +124,7 @@ export async function getAllDebtors(): Promise<{
           assets: true,
           _count: {
             select: {
-              cases: true,
+              cases: { where: CASO_ACTIVO },
               debts: true,
               assets: true,
             },
@@ -134,7 +142,7 @@ export async function getAllDebtors(): Promise<{
           tenantId,
         },
         include: {
-          cases: true,
+          cases: { where: CASO_ACTIVO },
           debts: {
             include: {
               creditor: {
@@ -147,7 +155,7 @@ export async function getAllDebtors(): Promise<{
           assets: true,
           _count: {
             select: {
-              cases: true,
+              cases: { where: CASO_ACTIVO },
               debts: true,
               assets: true,
             },
@@ -195,7 +203,7 @@ export async function getDebtorById(id: string): Promise<{
         tenantId,
       },
       include: {
-        cases: true,
+        cases: { where: CASO_ACTIVO },
         debts: {
           include: {
             creditor: {
@@ -208,7 +216,7 @@ export async function getDebtorById(id: string): Promise<{
         assets: true,
         _count: {
           select: {
-            cases: true,
+            cases: { where: CASO_ACTIVO },
             debts: true,
             assets: true,
           },
@@ -359,6 +367,15 @@ export async function createDebtor(input: unknown): Promise<{
   }
 }
 
+/**
+ * Columnas de `Debtor` que `updateDebtor` puede escribir: las claves de su
+ * schema de entrada, que son las que llegan a `data`. Filtra el `select` del
+ * diff para que una clave ajena al modelo no rompa la consulta.
+ */
+const COLUMNAS_EDITABLES_DEBTOR: ReadonlySet<string> = new Set(
+  Object.keys(updateDebtorSchema.shape).filter((k) => k !== 'id'),
+);
+
 export async function updateDebtor(input: unknown): Promise<{
   success: boolean;
   data?: DebtorSummaryData;
@@ -375,6 +392,22 @@ export async function updateDebtor(input: unknown): Promise<{
     // Validate input
     const validatedInput = updateDebtorSchema.parse(input);
     const { id, ...rest } = validatedInput;
+
+    // Lo que había antes, solo de las columnas que el payload trae (el
+    // formulario reenvía todas, cambiadas o no). `email` va siempre: es el
+    // dato del que depende el alcance "cliente" de `case-access`, y un cambio
+    // suyo tiene que quedar con las dos direcciones.
+    const antes = await prisma.debtor.findFirst({
+      where: { id, tenantId },
+      select: {
+        ...selectDeCamposEnviados(rest, COLUMNAS_EDITABLES_DEBTOR),
+        id: true,
+        email: true,
+      },
+    });
+    if (!antes) {
+      return { success: false, error: 'Deudor no encontrado' };
+    }
 
     const updatedDebtor = await prisma.debtor.update({
       where: {
@@ -413,6 +446,20 @@ export async function updateDebtor(input: unknown): Promise<{
         userCedula: user.professionalCard,
       },
       tenantId,
+      // Mismo formato que la auditoría de casos (`resumirCambios`: nombres de
+      // los campos cambiados y conteos) y que la de usuarios (las dos
+      // direcciones cuando cambia el correo). Del resto de campos se guarda
+      // el nombre y no el valor: son datos personales del deudor (cédula,
+      // ingresos, dirección), y el audit log no debe duplicarlos — el mismo
+      // criterio de `CAMPOS_CON_VALOR_AUDITABLE` en `case/audit-diff.ts`.
+      metadata: {
+        ...resumirCambios(antes, rest),
+        ...(rest.email !== undefined &&
+          !mismoValor(antes.email, rest.email) && {
+            previousEmail: antes.email,
+            newEmail: updatedDebtor.email,
+          }),
+      },
     });
 
     const validated = debtorSummarySchema.parse(updatedDebtor);
@@ -443,50 +490,29 @@ export async function deleteDebtor(id: string): Promise<{
     // Validate input
     const validatedId = deleteDebtorSchema.parse(id);
 
-    // Delete debtor and all related records in a transaction
-    // Chain: Debtor → Cases → (Documents, Debts, Assets, etc.)
+    // Un deudor con expedientes no se elimina, ni siquiera si están todos en
+    // la papelera (decisión del 2026-11-08). Antes esta action borraba en
+    // cascada todos sus casos, sin la confirmación escrita ni la auditoría
+    // de `deleteCase`: era una segunda puerta para destruir expedientes.
+    // Ahora hay que pasar por la vía auditada (papelera y, si corresponde,
+    // eliminación definitiva) caso por caso. `incluyendoPapelera`: un caso en
+    // la papelera también cuenta, porque su deudor tiene que seguir existiendo
+    // para poder restaurarlo.
+    const expedientes = await prisma.case.count({
+      where: { debtorId: validatedId, tenantId, ...incluyendoPapelera },
+    });
+    if (expedientes > 0) {
+      return {
+        success: false,
+        error: `Este deudor tiene ${expedientes} expediente${expedientes === 1 ? '' : 's'} (incluidos los de la papelera). Elimine primero sus casos.`,
+      };
+    }
+
     const deletedDebtor = await prisma.$transaction(async (tx) => {
-      // 1. Get all case IDs for this debtor
-      const cases = await tx.case.findMany({
-        where: { debtorId: validatedId, tenantId },
-        select: { id: true },
-      });
-      const caseIds = cases.map((c) => c.id);
-
-      if (caseIds.length > 0) {
-        // 2. Delete all case-related records without onDelete: Cascade
-        // Include tenantId for defense-in-depth
-        await tx.document.deleteMany({
-          where: { caseId: { in: caseIds }, tenantId },
-        });
-        await tx.debt.deleteMany({
-          where: { caseId: { in: caseIds }, tenantId },
-        });
-        await tx.asset.deleteMany({
-          where: { caseId: { in: caseIds }, tenantId },
-        });
-        await tx.legalProcess.deleteMany({
-          where: { caseId: { in: caseIds }, tenantId },
-        });
-        await tx.libranza.deleteMany({
-          where: { caseId: { in: caseIds }, tenantId },
-        });
-        await tx.suspendedService.deleteMany({
-          where: { caseId: { in: caseIds }, tenantId },
-        });
-        await tx.dependent.deleteMany({
-          where: { caseId: { in: caseIds }, tenantId },
-        });
-
-        // 3. Delete all cases (Apoderado, Notification, DocumentGenerationRequest, Payment cascade automatically)
-        await tx.case.deleteMany({ where: { id: { in: caseIds }, tenantId } });
-      }
-
-      // 4. Delete orphaned debts/assets linked directly to debtor (not via case)
+      // Deudas y bienes cargados directo al deudor (sin caso)
       await tx.debt.deleteMany({ where: { debtorId: validatedId, tenantId } });
       await tx.asset.deleteMany({ where: { debtorId: validatedId, tenantId } });
 
-      // 5. Delete the debtor
       return tx.debtor.delete({
         where: {
           id: validatedId,
