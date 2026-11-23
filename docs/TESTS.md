@@ -1,8 +1,8 @@
 # Plan y Reporte de Pruebas — INSOLVENTIC
 
-> Estado: **206 suites / 2977 tests ✅** (medido el 2026-11-22 en `fix/validacion-deudor-mensajes` con `dev` integrado, con `npx jest --ci`; excluye `tests/db` y `tests/e2e`, que corren aparte). El conteo lo vigila `tests/unit/docs/conteo-de-tests.test.ts`: falla si esta cifra, la del README o la de `CLAUDE.md` se despegan de la realidad o entre sí. Antes de ese test las tres decían números distintos y ninguno era el correcto — este documento afirmaba 27 suites / 447 tests, de agosto de 2026.
+> Estado: **207 suites / 3002 tests ✅** (medido el 2026-11-22 en `fix/case-drive-folder` con `dev` integrado, con `npx jest --ci`; excluye `tests/db` y `tests/e2e`, que corren aparte). El conteo lo vigila `tests/unit/docs/conteo-de-tests.test.ts`: falla si esta cifra, la del README o la de `CLAUDE.md` se despegan de la realidad o entre sí. Antes de ese test las tres decían números distintos y ninguno era el correcto — este documento afirmaba 27 suites / 447 tests, de agosto de 2026.
 >
-> ⚠️ **El inventario de la sección 3 cubre 27 de esas 206 suites**: las que existían cuando se escribió, en agosto de 2026 (y esas 27 hoy tienen 511 casos, no 447). No es el inventario completo del proyecto, es la lista de las suites del núcleo; reconstruirlo entero es trabajo propio, y no está hecho.
+> ⚠️ **El inventario de la sección 3 cubre 27 de esas 207 suites**: las que existían cuando se escribió, en agosto de 2026 (y esas 27 hoy tienen 511 casos, no 447). No es el inventario completo del proyecto, es la lista de las suites del núcleo; reconstruirlo entero es trabajo propio, y no está hecho.
 >
 > ⚠️ **La sección 4 (Cobertura funcional) tampoco se re-verificó** — son afirmaciones semánticas sobre qué prueba cada suite, y confirmarlas requiere leer el contenido de las suites, no solo sus rutas. Tratarla como orientativa hasta una revisión dedicada.
 >
