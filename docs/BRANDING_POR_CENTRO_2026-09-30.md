@@ -3,6 +3,13 @@
 > Revisión del 2026-09-30 sobre `Escritorio/imagenes para plantillas armonia`.
 > **Nada implementado.** Esto es el inventario, el diagnóstico y el plan.
 
+> **Nota del 2026-11-22.** Las firmas y el sello que este documento ubica en
+> `templates/insolvency/img/` (`Logo construpaz.png`, `firma abogada.png`,
+> `Firma abogado.jpg`) y en `templates/branding/` (`firma-operador.png` de cada
+> centro y `logo-firma.png` de Constructores de Paz) ya no están en el
+> repositorio: se cargan en la base por centro (`docs/RUNBOOK.md` §7.3). Las
+> rutas de abajo describen el estado del 2026-09-30.
+
 ## 0. Antes que nada: no encontré el diseño técnico aprobado
 
 Busqué en `docs/`, en los issues (abiertos y cerrados), en los PRs y en el
@@ -55,10 +62,10 @@ Armonía va a emitir, el logo que traen es el del otro centro.
 
 | Archivo                                | Formato real | Dimensiones | Peso    | Qué es                                                                                                                                                                                             |
 | -------------------------------------- | ------------ | ----------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sello armonia.jpeg`                   | JPEG         | 277 × 271   | 24 KB   | Sello circular, tinta azul: "CENTRO DE CONCILIACIÓN / ARMONÍA CONCERTADA / NIT 900.993.198-4 / Resolución 858/2016" — **corregido el 2026-10-10**, ver §2.1                                                                                |
+| `sello armonia.jpeg`                   | JPEG         | 277 × 271   | 24 KB   | Sello circular, tinta azul: "CENTRO DE CONCILIACIÓN / ARMONÍA CONCERTADA / NIT 900.993.198-4 / Resolución 858/2016" — **corregido el 2026-10-10**, ver §2.1                                        |
 | `firma beatriz.jpeg`                   | JPEG         | 193 × 116   | 6,4 KB  | Firma manuscrita                                                                                                                                                                                   |
 | `firma max.jpeg`                       | JPEG         | 124 × 87    | 3,6 KB  | Firma manuscrita                                                                                                                                                                                   |
-| `En Blanco Armonia.docx`               | DOCX         | —           | 102 KB  | Membrete en blanco. Dentro: `image1.jpeg`, **1477 × 1477, JPEG** (152 KB) — el tucán, con el nombre del centro incrustado en la propia imagen. **Corregido el 2026-10-10**, ver §2.1                                  |
+| `En Blanco Armonia.docx`               | DOCX         | —           | 102 KB  | Membrete en blanco. Dentro: `image1.jpeg`, **1477 × 1477, JPEG** (152 KB) — el tucán, con el nombre del centro incrustado en la propia imagen. **Corregido el 2026-10-10**, ver §2.1               |
 | `MINUTAS DR. MAXIMILIANO/` (5 `.docx`) | DOCX         | —           | ~1,3 MB | Minutas de conciliación. Dentro: logo **de Constructores de Paz** (386 × 386 PNG con alfa + banner 1280 × 291 JPEG) y una firma 334 × 225 JPEG que **ya está en el repo** como `Firma abogado.jpg` |
 
 Las extensiones coinciden con el contenido real (verificado por magic bytes): no
@@ -276,11 +283,11 @@ error de branding: se lee como una firma que no corresponde.
 
 ### Qué se entregó y qué se hizo con cada pieza
 
-| Origen | Destino | Conversión |
-| --- | --- | --- |
+| Origen                                                | Destino                                          | Conversión                          |
+| ----------------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
 | `En Blanco Armonia.docx` → `image1.jpeg`, 1477 × 1477 | `templates/branding/armonia/logo-encabezado.png` | Fondo a transparente, tamaño nativo |
-| el mismo | `templates/branding/armonia/logo-firma.png` | Ídem, reescalado a 1024 × 1024 |
-| `firma beatriz.jpeg`, 193 × 116 | `templates/branding/armonia/firma-operador.png` | Tinta a alfa |
+| el mismo                                              | `templates/branding/armonia/logo-firma.png`      | Ídem, reescalado a 1024 × 1024      |
+| `firma beatriz.jpeg`, 193 × 116                       | `templates/branding/armonia/firma-operador.png`  | Tinta a alfa                        |
 
 ### El fondo del tucán no era blanco, y no tiene relleno blanco
 
@@ -330,10 +337,10 @@ re-escanea la firma, el reemplazo es sobrescribir el archivo.
 El CSS es `max-width: 380px; width: 100%; height: auto`, así que la altura la
 decide el aspecto de la imagen:
 
-| Centro | Imagen | Renderiza |
-| --- | --- | --- |
-| Constructores | 1536 × 345, horizontal | 380 × 85 px |
-| Armonía | 1477 × 1477, cuadrada | **380 × 380 px** |
+| Centro        | Imagen                 | Renderiza        |
+| ------------- | ---------------------- | ---------------- |
+| Constructores | 1536 × 345, horizontal | 380 × 85 px      |
+| Armonía       | 1477 × 1477, cuadrada  | **380 × 380 px** |
 
 Son **~295 px más de alto** en cada una de las plantillas con encabezado, cerca
 de un tercio de página. Decisión del dueño del producto, 2026-10-10: se acepta,
@@ -348,4 +355,3 @@ pieza horizontal de Armonía y reemplazar solo `logo-encabezado.png`.
 
 `sello armonia.jpeg` (277 × 271) no se incorporó: ninguna plantilla tiene un
 hueco para un sello. Sin acción, como estaba documentado.
-
