@@ -30,8 +30,10 @@ import {
 import {
   CAMPOS_MEMBRETE,
   TENANTS_CON_MEMBRETE,
+  ETIQUETA_CAMPO_MEMBRETE,
   camposFaltantes,
   membreteDelCentro,
+  revisarMembrete,
   membreteParcialDelCentro,
 } from '@/lib/membrete-centro';
 import {
@@ -467,4 +469,33 @@ describe('4. GUARDIÁN DE PERTENENCIA: el centro se identifica por un slug conoc
       expect(mapMembreteCentro(casoComoEnProduccion(sintetico))).toEqual({});
     },
   );
+});
+
+describe('revisarMembrete: lo que la verificación previa al deploy exige', () => {
+  it('Armonía: el director no falta; la cuenta de consignación sale como aviso', () => {
+    expect(revisarMembrete('armonia')).toEqual({
+      bloquean: [],
+      avisos: ['la cuenta de consignación'],
+    });
+  });
+
+  it('Constructores de Paz: nada falta', () => {
+    expect(revisarMembrete('constructores-paz')).toEqual({
+      bloquean: [],
+      avisos: [],
+    });
+  });
+
+  it('un centro sin membrete falla por el director, y cada dato se nombra una vez', () => {
+    const { bloquean, avisos } = revisarMembrete('centro-nuevo');
+    expect(bloquean).toEqual([
+      'el nombre del director',
+      'el cargo del director',
+    ]);
+    expect(avisos).toEqual(
+      [...new Set(Object.values(ETIQUETA_CAMPO_MEMBRETE))].filter(
+        (e) => !bloquean.includes(e),
+      ),
+    );
+  });
 });

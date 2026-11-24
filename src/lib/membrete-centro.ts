@@ -416,6 +416,40 @@ export function camposFaltantes(
 }
 
 /**
+ * Lo que la verificación previa al deploy exige del membrete: quien firma la
+ * Designación del Conciliador. Es un documento de la admisión, así que sin
+ * esos datos el centro no puede admitir un trámite.
+ */
+const CAMPOS_QUE_BLOQUEAN_EL_DEPLOY: ReadonlyArray<keyof MembreteCentro> = [
+  'directorNombre',
+  'directorCargo',
+];
+
+/**
+ * Qué le falta al membrete de un centro, nombrado como lo ve el usuario y sin
+ * repetir las formas de un mismo dato. `bloquean` hace fallar la verificación
+ * previa al deploy (`scripts/imagenes-privadas/verificar.ts`); `avisos` solo se
+ * informan: cortan las plantillas que usan ese dato, no el deploy.
+ */
+export function revisarMembrete(tenantId?: string | null): {
+  bloquean: string[];
+  avisos: string[];
+} {
+  const faltan = camposFaltantes(tenantId);
+  const nombres = (campos: Array<keyof MembreteCentro>) => [
+    ...new Set(campos.map((c) => ETIQUETA_CAMPO_MEMBRETE[c])),
+  ];
+  return {
+    bloquean: nombres(
+      faltan.filter((c) => CAMPOS_QUE_BLOQUEAN_EL_DEPLOY.includes(c)),
+    ),
+    avisos: nombres(
+      faltan.filter((c) => !CAMPOS_QUE_BLOQUEAN_EL_DEPLOY.includes(c)),
+    ),
+  };
+}
+
+/**
  * El membrete de un centro, o `null` si está incompleto.
  *
  * Devolver `null` en vez de un objeto con huecos es deliberado: obliga a quien
