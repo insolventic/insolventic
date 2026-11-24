@@ -530,7 +530,9 @@ interface FilaGuardada {
  * los casos que todavía no tienen fila en el índice: si el tope de tiempo
  * corta la lectura, la próxima corrida empieza por lo que falta. Solo se
  * devuelven las filas de las carpetas que se leyeron completas; las otras
- * cuentan en `pendientes`.
+ * cuentan en `pendientes`. Entre las que ya tienen fila, van primero las que
+ * hace más que no se leen completas (`syncedAt`), así ninguna queda sin leerse
+ * aunque no quepan todas en una corrida.
  */
 async function filasDeCarpetasDeCaso(params: {
   tenantId: string;
@@ -540,7 +542,7 @@ async function filasDeCarpetasDeCaso(params: {
     arboles: Map<string, ArbolDeCarpeta>;
     incompletas: Set<string>;
   }>;
-}): Promise<{ filas: FilaDeDrive[]; pendientes: number }> {
+}): Promise<{ filas: FilaDeDrive[]; pendientes: number; leidas: string[] }> {
   const { tenantId, centerFolderName, yaIndexadas, listar } = params;
   const casos = await prisma.case.findMany({
     where: { tenantId, driveFolderId: { not: null } },
@@ -557,22 +559,31 @@ async function filasDeCarpetasDeCaso(params: {
   }
   const carpetas = [...porCarpeta.keys()];
 
-  const enElIndice = new Set<string>();
+  // Cuándo se leyó completa cada carpeta que ya está en el índice. Sin
+  // esto, una vez indexados todos los casos se leerían siempre en el mismo
+  // orden, y los que no caben en el tope no se volverían a leer nunca.
+  const leidaEl = new Map<string, number>();
   for (const lote of enLotes(carpetas, SYNC_LECTURA_LOTE)) {
     const filas = await prisma.documentFromDrive.findMany({
       where: { tenantId, googleDriveId: { in: lote } },
-      select: { googleDriveId: true },
+      select: { googleDriveId: true, syncedAt: true },
     });
-    for (const fila of filas) enElIndice.add(fila.googleDriveId);
+    for (const fila of filas) {
+      // NULL (fila de antes de `syncedAt`) cuenta como la más antigua.
+      leidaEl.set(fila.googleDriveId, fila.syncedAt?.getTime() ?? 0);
+    }
   }
   const ordenadas = [
-    ...carpetas.filter((id) => !enElIndice.has(id)),
-    ...carpetas.filter((id) => enElIndice.has(id)),
+    ...carpetas.filter((id) => !leidaEl.has(id)),
+    ...carpetas
+      .filter((id) => leidaEl.has(id))
+      .sort((a, b) => leidaEl.get(a)! - leidaEl.get(b)!),
   ];
 
   const { arboles, incompletas } = await listar(ordenadas);
 
   const filas: FilaDeDrive[] = [];
+  const leidas: string[] = [];
   let pendientes = 0;
   for (const driveFolderId of ordenadas) {
     if (incompletas.has(driveFolderId)) {
@@ -582,6 +593,7 @@ async function filasDeCarpetasDeCaso(params: {
     const caseNumber = porCarpeta.get(driveFolderId)!;
     const arbol = arboles.get(driveFolderId) ?? { folders: [], files: [] };
     yaIndexadas.add(driveFolderId);
+    leidas.push(driveFolderId);
 
     const ahora = new Date();
     filas.push({
@@ -629,7 +641,7 @@ async function filasDeCarpetasDeCaso(params: {
       });
     }
   }
-  return { filas, pendientes };
+  return { filas, pendientes, leidas };
 }
 
 function enLotes<T>(items: T[], tamanio: number): T[][] {
@@ -906,6 +918,18 @@ export async function syncDocumentsWithGoogleDrive() {
           prisma.documentFromDrive.update({ where: { id }, data }),
         ),
       );
+    }
+
+    // PASO 4 — cuándo se leyó completa cada carpeta de caso. Solo las que se
+    // leyeron enteras en esta corrida: la próxima empieza por las demás. Va
+    // después de escribir sus filas, para no marcar como leída una carpeta
+    // cuyas filas no llegaron a guardarse.
+    const leidaAhora = new Date();
+    for (const lote of enLotes(deCasos.leidas, SYNC_ESCRITURA_LOTE)) {
+      await prisma.documentFromDrive.updateMany({
+        where: { tenantId, googleDriveId: { in: lote } },
+        data: { syncedAt: leidaAhora },
+      });
     }
 
     const created = aCrear.length;

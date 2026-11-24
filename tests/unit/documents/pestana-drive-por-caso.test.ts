@@ -101,6 +101,7 @@ interface Fila {
   size: string | null;
   createdAt: Date;
   updatedAt: Date;
+  syncedAt?: Date | null;
 }
 
 let casos: Caso[];
@@ -240,6 +241,23 @@ beforeEach(() => {
       return f;
     },
   );
+  mockPrisma.documentFromDrive.updateMany.mockImplementation(
+    async ({
+      where,
+      data,
+    }: {
+      where: { tenantId: string; googleDriveId: { in: string[] } };
+      data: Partial<Fila>;
+    }) => {
+      const filas = indice.filter(
+        (x) =>
+          x.tenantId === where.tenantId &&
+          where.googleDriveId.in.includes(x.googleDriveId),
+      );
+      for (const fila of filas) Object.assign(fila, data);
+      return { count: filas.length };
+    },
+  );
   mockPrisma.$transaction.mockImplementation(async (ops: unknown) =>
     Array.isArray(ops) ? Promise.all(ops) : (ops as () => unknown)(),
   );
@@ -332,6 +350,54 @@ describe('sincronización: la carpeta de cada caso sale de su driveFolderId', ()
     // La primera llamada es el árbol del centro; la segunda, los casos.
     const [raicesDeCasos] = mockListarPorNiveles.mock.calls[1];
     expect(raicesDeCasos).toEqual(['v1-armonia-2', 'v1-armonia']);
+  });
+  it('con más casos de los que caben en el tope, cada corrida lee otros y al cabo de varias se leyeron todos', async () => {
+    jest.useFakeTimers({ now: new Date('2026-11-23T10:00:00Z') });
+    // Cinco casos v1 en Armonía; en cada corrida caben dos.
+    casos = Array.from({ length: 5 }, (_, i) => ({
+      id: `caso-${i}`,
+      tenantId: 'armonia' as const,
+      caseNumber: `INSOL-00001${i}`,
+      operatorId: 'usuario-armonia',
+      debtorId: `deudor-${i}`,
+      driveFolderId: `v1-${i}`,
+    }));
+    const todos = casos.map((c) => c.driveFolderId!);
+    const leidasPorCorrida: string[][] = [];
+    mockListarPorNiveles.mockImplementation(async (raices: string[]) => {
+      const leido = await listarCompleto(raices);
+      if (raices.includes('centro-folder-id')) return leido;
+      for (const r of raices.slice(2)) leido.incompletas.add(r);
+      leidasPorCorrida.push(raices.slice(0, 2));
+      return leido;
+    });
+    sesion('armonia', [P.VER_DOCUMENTOS]);
+
+    try {
+      for (let corrida = 0; corrida < 6; corrida++) {
+        await syncDocumentsWithGoogleDrive();
+        jest.advanceTimersByTime(60_000);
+      }
+    } finally {
+      jest.useRealTimers();
+    }
+
+    // Las tres primeras indexan todos: primero los que no tenían fila.
+    expect(new Set(leidasPorCorrida.slice(0, 3).flat())).toEqual(
+      new Set(todos),
+    );
+    // Con todos indexados, dos corridas seguidas leen casos distintos...
+    const [cuarta, quinta] = [leidasPorCorrida[3], leidasPorCorrida[4]];
+    expect(cuarta.filter((id) => quinta.includes(id))).toEqual([]);
+    // ...y en tres corridas se vuelven a leer todos.
+    expect(new Set(leidasPorCorrida.slice(3, 6).flat())).toEqual(
+      new Set(todos),
+    );
+    // syncedAt queda solo en las filas de carpeta de caso.
+    const conSyncedAt = indice
+      .filter((x) => x.syncedAt)
+      .map((x) => x.googleDriveId);
+    expect(conSyncedAt.sort()).toEqual([...todos].sort());
   });
 });
 
