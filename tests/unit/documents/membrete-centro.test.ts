@@ -119,6 +119,31 @@ describe('1. Constructores de Paz: completo, y con los valores exactos', () => {
   });
 });
 
+describe('1b. Quien firma la Designación del Conciliador sale del centro', () => {
+  const plantilla = fs.readFileSync(
+    path.join(
+      process.cwd(),
+      'templates/insolvency/Designacion del Conciliador.html',
+    ),
+    'utf8',
+  );
+
+  it('la plantilla imprime el director, su cargo y la operadora desde placeholders', () => {
+    expect(plantilla).toContain('{{DIRECTOR_NOMBRE}}<br>{{DIRECTOR_CARGO}}');
+    expect(plantilla).toContain('<strong>{{OPERADOR_NOMBRE}}</strong>');
+  });
+
+  it.each(['armonia', 'constructores-paz'])(
+    '%s emite su director y su cargo, y la Designación los imprime',
+    (slug) => {
+      const map = mapCaseToPlaceholders(casoComoEnProduccion(slug));
+      expect(map.DIRECTOR_NOMBRE).toBe('MAXIMILIANO JARAMILLO RICAURTE');
+      expect(map.DIRECTOR_CARGO).toBe('DIRECTOR');
+      expect(map.OPERADOR_NOMBRE).toBe('BEATRIZ HELENA MALAVERA LOPEZ');
+    },
+  );
+});
+
 describe('2. FAIL-CLOSED: un centro incompleto no emite nada', () => {
   it('Armonía todavía le debe datos, y se sabe cuáles', () => {
     const faltan = camposFaltantes('armonia');
@@ -291,15 +316,6 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
         'formas largas de la misma resolución sí están cubiertas por este ' +
         'guardián, y son las que se imprimen como habilitación.',
     },
-    operadorNombre: {
-      razon:
-        'Queda UNA sola, en la plantilla que el dueño del producto decidió no ' +
-        'tocar: `Designacion del Conciliador.html`, la única cuyo bloque de ' +
-        'firma es de otra persona (MAXIMILIANO JARAMILLO RICAURTE, DIRECTOR). ' +
-        'Ahí Beatriz aparece nombrada en la prosa, no firmando. Las otras 82 ' +
-        'ocurrencias están extraídas.',
-      soloEn: ['templates/insolvency/Designacion del Conciliador.html'],
-    },
     operadorCargo: {
       razon:
         'En PROSA, no en el bloque de firma. "la operadora de insolvencia ' +
@@ -335,9 +351,11 @@ describe('3. GUARDIÁN: las plantillas ya no tienen estos datos a mano', () => {
     return out;
   }
 
+  // Sin los `{{...}}`: el nombre de un placeholder no es un dato escrito a
+  // mano, y algunos contienen el valor ("DIRECTOR" en `{{DIRECTOR_CARGO}}`).
   const TODAS = plantillas(path.join(process.cwd(), 'templates')).map((f) => ({
     rel: path.relative(process.cwd(), f),
-    texto: fs.readFileSync(f, 'utf8'),
+    texto: fs.readFileSync(f, 'utf8').replace(/\{\{[^}]*\}\}/g, ''),
   }));
 
   it('hay plantillas que recorrer (si esto falla, el guardián no prueba nada)', () => {

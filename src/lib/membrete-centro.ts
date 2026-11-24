@@ -158,6 +158,16 @@ export interface MembreteCentro {
   operadorCargo: string;
   /** "OPERADORA DE INSOLVENCIA" */
   operadorCargoMayus: string;
+  /**
+   * Quien firma la Designación del Conciliador, y su cargo, tal como los
+   * imprime esa plantilla (en mayúsculas). Su firma es la imagen
+   * `firma-director` del centro (`imagenes_privadas`). Sin fallback entre
+   * centros, como el resto del membrete: si falta, la Designación de ese
+   * centro no se genera.
+   */
+  directorNombre: string;
+  /** "DIRECTOR" */
+  directorCargo: string;
 
   /**
    * La cuenta a la que el deudor consigna: entidad, NIT y número de cuenta.
@@ -249,6 +259,13 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     operadorNombreTilde: 'BEATRIZ HELENA MALAVERA LÓPEZ',
     operadorCargo: 'Operadora de Insolvencia',
     operadorCargoMayus: 'OPERADORA DE INSOLVENCIA',
+    // El valor que la Designación del Conciliador ya imprimía, sin cambios:
+    // falta que el centro confirme quién la firma y con qué cargo
+    // (`docs/PENDIENTES_DECISION_LEGAL.md`, ítem 12). Si es otra persona, se
+    // cambian estos dos campos y se carga su `firma-director` con
+    // `scripts/imagenes-privadas/cargar.ts`.
+    directorNombre: 'MAXIMILIANO JARAMILLO RICAURTE',
+    directorCargo: 'DIRECTOR',
     // Sin tildes y con el NIT y la cuenta, exactamente como está en las dos
     // plantillas que la imprimen.
     cuentaConsignacion:
@@ -315,6 +332,9 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     operadorNombreTilde: 'BEATRIZ HELENA MALAVERA LÓPEZ',
     operadorCargo: 'Operadora de Insolvencia',
     operadorCargoMayus: 'OPERADORA DE INSOLVENCIA',
+    // Director de Armonía, confirmado el 2026-11-24.
+    directorNombre: 'MAXIMILIANO JARAMILLO RICAURTE',
+    directorCargo: 'DIRECTOR',
     // LO ÚNICO QUE SIGUE FALTANDO. No se sabe a qué cuenta consigna el deudor
     // en un trámite de Armonía. Bloquea exactamente 2 plantillas (Auto por
     // Incumplimiento y Auto de Reforma del Acuerdo); las otras 63 generan.

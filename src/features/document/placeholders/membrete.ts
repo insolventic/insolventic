@@ -80,6 +80,8 @@ const CLAVE_POR_CAMPO: Record<keyof MembreteCentro, string> = {
   operadorNombreTilde: 'OPERADOR_NOMBRE_TILDE',
   operadorCargo: 'OPERADOR_CARGO',
   operadorCargoMayus: 'OPERADOR_CARGO_MAYUS',
+  directorNombre: 'DIRECTOR_NOMBRE',
+  directorCargo: 'DIRECTOR_CARGO',
   cuentaConsignacion: 'CENTRO_CUENTA_CONSIGNACION',
 };
 
