@@ -347,6 +347,52 @@ export const CAMPOS_MEMBRETE = Object.keys(
   MEMBRETE_POR_TENANT['constructores-paz'],
 ) as Array<keyof MembreteCentro>;
 
+/**
+ * Cómo se nombra cada campo ante el usuario, con su artículo: "Falta el
+ * nombre del director de Constructores de Paz". Las formas de un mismo dato
+ * (mayúsculas, con tilde, corta) comparten nombre: para quien lee el aviso son
+ * el mismo dato.
+ */
+export const ETIQUETA_CAMPO_MEMBRETE: Record<keyof MembreteCentro, string> = {
+  nombre: 'el nombre',
+  nombreMayus: 'el nombre',
+  rotulo: 'el rótulo',
+  rotuloCorto: 'el rótulo',
+  rotuloMayus: 'el rótulo',
+  rotuloMayusTilde: 'el rótulo',
+  rotuloErrata: 'el rótulo',
+  entidadPromotora: 'la entidad promotora',
+  entidadPromotoraProsa: 'la entidad promotora',
+  entidadPromotoraMayus: 'la entidad promotora',
+  direccion: 'la dirección',
+  direccionMinus: 'la dirección',
+  ciudad: 'la ciudad',
+  edificio: 'el edificio',
+  telefono: 'el teléfono',
+  telefonoCompacto: 'el teléfono',
+  web: 'la página web',
+  email: 'el correo',
+  resolucionCentroNumero: 'la resolución de habilitación del centro',
+  resolucionCentroFecha: 'la resolución de habilitación del centro',
+  resolucionCentroFechaCorta: 'la resolución de habilitación del centro',
+  resolucionCentroEncabezado: 'la resolución de habilitación del centro',
+  resolucionInsolvenciaNumero:
+    'la resolución de habilitación como operador de insolvencia',
+  resolucionInsolvenciaFecha:
+    'la resolución de habilitación como operador de insolvencia',
+  resolucionInsolvenciaAnio:
+    'la resolución de habilitación como operador de insolvencia',
+  resolucionInsolvenciaNumeroCorto:
+    'la resolución de habilitación como operador de insolvencia',
+  operadorNombre: 'el nombre del operador',
+  operadorNombreTilde: 'el nombre del operador',
+  operadorCargo: 'el cargo del operador',
+  operadorCargoMayus: 'el cargo del operador',
+  directorNombre: 'el nombre del director',
+  directorCargo: 'el cargo del director',
+  cuentaConsignacion: 'la cuenta de consignación',
+};
+
 /** Los tenants que este mapa conoce, para que los tests los recorran. */
 export const TENANTS_CON_MEMBRETE = Object.keys(
   MEMBRETE_POR_TENANT,

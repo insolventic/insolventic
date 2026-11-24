@@ -88,6 +88,19 @@ const CLAVE_POR_CAMPO: Record<keyof MembreteCentro, string> = {
 /** Todas las claves que este sub-mapper puede emitir, una por campo. */
 export const CLAVES_MEMBRETE = Object.values(CLAVE_POR_CAMPO);
 
+const CAMPO_POR_CLAVE = new Map(
+  Object.entries(CLAVE_POR_CAMPO).map(
+    ([campo, clave]) => [clave, campo as keyof MembreteCentro] as const,
+  ),
+);
+
+/** El campo del membrete que emite `clave`, o `undefined` si no es suya. */
+export function campoDeClaveMembrete(
+  clave: string,
+): keyof MembreteCentro | undefined {
+  return CAMPO_POR_CLAVE.get(clave);
+}
+
 /**
  * El centro se identifica por su **slug**, no por `Case.tenantId`.
  *
