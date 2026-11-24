@@ -41,6 +41,18 @@ jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
     listFoldersAndFiles: (...a: unknown[]) => mockListFoldersAndFiles(...a),
     createFolderHierarchy: (...a: unknown[]) => mockCreateFolderHierarchy(...a),
+    // La sincronización lee por niveles; cada raíz devuelve lo mismo que el
+    // listado recursivo de antes, así los tests de abajo no cambian.
+    listarArbolesPorNiveles: async (raices: string[]) => ({
+      arboles: new Map(
+        await Promise.all(
+          raices.map(
+            async (r) => [r, await mockListAllRecursively(r)] as const,
+          ),
+        ),
+      ),
+      incompletas: new Set<string>(),
+    }),
     listAllFoldersAndFilesRecursively: (...a: unknown[]) =>
       mockListAllRecursively(...a),
   },

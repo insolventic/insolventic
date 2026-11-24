@@ -47,6 +47,16 @@ const mockGetFileInfo = jest.fn(async (id: string) => ({
   createdTime: '2026-11-10T15:00:00.000Z',
   modifiedTime: '2026-11-11T15:00:00.000Z',
 }));
+/** El listado por niveles: cada raíz devuelve su árbol de `arboles`. */
+const listarCompleto = async (raices: string[]) => ({
+  arboles: new Map(
+    await Promise.all(
+      raices.map(async (r) => [r, await mockListAllRecursively(r)] as const),
+    ),
+  ),
+  incompletas: new Set<string>(),
+});
+const mockListarPorNiveles = jest.fn(listarCompleto);
 jest.mock('@/lib/google-drive', () => ({
   googleDriveService: {
     listFoldersAndFiles: jest.fn().mockResolvedValue({
@@ -54,6 +64,8 @@ jest.mock('@/lib/google-drive', () => ({
       files: [],
     }),
     createFolderHierarchy: jest.fn().mockResolvedValue('centro-folder-id'),
+    // La sincronización lee por niveles.
+    listarArbolesPorNiveles: (raices: string[]) => mockListarPorNiveles(raices),
     listAllFoldersAndFilesRecursively: (id: string) =>
       mockListAllRecursively(id),
     getFileInfo: (id: string) => mockGetFileInfo(id),
@@ -89,6 +101,7 @@ interface Fila {
   size: string | null;
   createdAt: Date;
   updatedAt: Date;
+  syncedAt?: Date | null;
 }
 
 let casos: Caso[];
@@ -125,6 +138,7 @@ function sesion(
 beforeEach(() => {
   resetAllMocks();
   jest.clearAllMocks();
+  mockListarPorNiveles.mockImplementation(listarCompleto);
   jest.spyOn(console, 'log').mockImplementation(() => {});
 
   // El mismo número en los dos centros; los dos casos son v1.
@@ -227,6 +241,23 @@ beforeEach(() => {
       return f;
     },
   );
+  mockPrisma.documentFromDrive.updateMany.mockImplementation(
+    async ({
+      where,
+      data,
+    }: {
+      where: { tenantId: string; googleDriveId: { in: string[] } };
+      data: Partial<Fila>;
+    }) => {
+      const filas = indice.filter(
+        (x) =>
+          x.tenantId === where.tenantId &&
+          where.googleDriveId.in.includes(x.googleDriveId),
+      );
+      for (const fila of filas) Object.assign(fila, data);
+      return { count: filas.length };
+    },
+  );
   mockPrisma.$transaction.mockImplementation(async (ops: unknown) =>
     Array.isArray(ops) ? Promise.all(ops) : (ops as () => unknown)(),
   );
@@ -276,6 +307,97 @@ describe('sincronización: la carpeta de cada caso sale de su driveFolderId', ()
 
     expect(mockPrisma.documentFromDrive.createMany).not.toHaveBeenCalled();
     expect(mockPrisma.documentFromDrive.update).not.toHaveBeenCalled();
+  });
+  it('si el tope de tiempo corta la lectura, escribe solo las carpetas que leyó completas y dice cuántas quedaron', async () => {
+    mockListarPorNiveles.mockImplementation(async (raices: string[]) => {
+      const leido = await listarCompleto(raices);
+      if (raices.includes('v1-armonia')) leido.incompletas.add('v1-armonia');
+      return leido;
+    });
+    sesion('armonia', [P.VER_DOCUMENTOS]);
+
+    const r = await syncDocumentsWithGoogleDrive();
+
+    expect(r.success).toBe(true);
+    expect((r.data as { pendientes: number }).pendientes).toBe(1);
+    const ids = indice.map((f) => f.googleDriveId);
+    // Lo de v1-armonia no se escribió a medias: no está ni la carpeta.
+    for (const id of ['v1-armonia', 'generados-a', 'doc-a'])
+      expect(ids).not.toContain(id);
+    // La otra carpeta, leída completa, sí.
+    expect(ids).toEqual(expect.arrayContaining(['v1-armonia-2', 'doc-a2']));
+  });
+
+  it('primero lee los casos que todavía no tienen fila en el índice', async () => {
+    // v1-armonia ya se indexó en una corrida anterior; v1-armonia-2 no.
+    indice.push({
+      id: 'fila-previa',
+      tenantId: 'armonia',
+      googleDriveId: 'v1-armonia',
+      fileName: 'INSOL-000007',
+      mimeType: 'application/vnd.google-apps.folder',
+      folderPath: ['Armonía'],
+      parentFolderId: null,
+      isFolder: true,
+      size: null,
+      createdAt: new Date('2026-11-01T00:00:00Z'),
+      updatedAt: new Date('2026-11-01T00:00:00Z'),
+    });
+    sesion('armonia', [P.VER_DOCUMENTOS]);
+
+    await syncDocumentsWithGoogleDrive();
+
+    // La primera llamada es el árbol del centro; la segunda, los casos.
+    const [raicesDeCasos] = mockListarPorNiveles.mock.calls[1];
+    expect(raicesDeCasos).toEqual(['v1-armonia-2', 'v1-armonia']);
+  });
+  it('con más casos de los que caben en el tope, cada corrida lee otros y al cabo de varias se leyeron todos', async () => {
+    jest.useFakeTimers({ now: new Date('2026-11-23T10:00:00Z') });
+    // Cinco casos v1 en Armonía; en cada corrida caben dos.
+    casos = Array.from({ length: 5 }, (_, i) => ({
+      id: `caso-${i}`,
+      tenantId: 'armonia' as const,
+      caseNumber: `INSOL-00001${i}`,
+      operatorId: 'usuario-armonia',
+      debtorId: `deudor-${i}`,
+      driveFolderId: `v1-${i}`,
+    }));
+    const todos = casos.map((c) => c.driveFolderId!);
+    const leidasPorCorrida: string[][] = [];
+    mockListarPorNiveles.mockImplementation(async (raices: string[]) => {
+      const leido = await listarCompleto(raices);
+      if (raices.includes('centro-folder-id')) return leido;
+      for (const r of raices.slice(2)) leido.incompletas.add(r);
+      leidasPorCorrida.push(raices.slice(0, 2));
+      return leido;
+    });
+    sesion('armonia', [P.VER_DOCUMENTOS]);
+
+    try {
+      for (let corrida = 0; corrida < 6; corrida++) {
+        await syncDocumentsWithGoogleDrive();
+        jest.advanceTimersByTime(60_000);
+      }
+    } finally {
+      jest.useRealTimers();
+    }
+
+    // Las tres primeras indexan todos: primero los que no tenían fila.
+    expect(new Set(leidasPorCorrida.slice(0, 3).flat())).toEqual(
+      new Set(todos),
+    );
+    // Con todos indexados, dos corridas seguidas leen casos distintos...
+    const [cuarta, quinta] = [leidasPorCorrida[3], leidasPorCorrida[4]];
+    expect(cuarta.filter((id) => quinta.includes(id))).toEqual([]);
+    // ...y en tres corridas se vuelven a leer todos.
+    expect(new Set(leidasPorCorrida.slice(3, 6).flat())).toEqual(
+      new Set(todos),
+    );
+    // syncedAt queda solo en las filas de carpeta de caso.
+    const conSyncedAt = indice
+      .filter((x) => x.syncedAt)
+      .map((x) => x.googleDriveId);
+    expect(conSyncedAt.sort()).toEqual([...todos].sort());
   });
 });
 

@@ -561,6 +561,10 @@ model DocumentFromDrive {
   folderPath     String[] @default([])
   parentFolderId String?
   isFolder       Boolean  @default(false)
+  /// Solo en la fila de la carpeta de un caso: cuándo la sincronización leyó
+  /// su árbol completo. La siguiente empieza por las más antiguas; NULL es
+  /// "nunca", y va primero.
+  syncedAt       DateTime? @map("synced_at")
   tenantId       String
   tenant         Tenant   @relation(fields: [tenantId], references: [id])
 
