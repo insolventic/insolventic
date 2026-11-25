@@ -362,7 +362,7 @@ flowchart TD
 **Alertas proactivas**
 
 - `src/features/notification/alerts.ts` expone dos scanners puros (reciben un `PrismaClient` y un `tenantId`).
-  - `scanUpcomingHearings(prisma, tenantId)` — busca casos con `hearingDate` (o `firstHearingDate` si el primero es null) dentro de `ALERTS_HEARING_LOOKAHEAD_HOURS` (default 48h).
+  - `scanUpcomingHearings(prisma, tenantId)` — busca casos cuya audiencia vigente (`audienciaVigente`: `hearingDate`, o `firstHearingDate` si el primero es null) cae dentro de `ALERTS_HEARING_LOOKAHEAD_HOURS` (default 48h).
   - `scanOverduePayments(prisma, tenantId)` — busca `Payment` con `status in ('pendiente','parcial')` y `dueDate < now`; los `pendiente` se marcan automáticamente como `vencido`.
 - Ambos scanners **deduplican** contra `Notification` existente (mismo `type + relatedId + userId`) dentro de `ALERTS_DEDUPE_WINDOW_HOURS` (default 20h) para que correr el cron más de una vez al día no genere spam.
 - `/api/cron/alerts` (Node runtime, no Edge) itera tenants, ejecuta ambos scanners y responde con un JSON agregado para los logs de Vercel.

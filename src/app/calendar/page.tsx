@@ -1,4 +1,5 @@
 import { requirePageAuth } from '@/lib/auth';
+import { MODULES, modulePermissions } from '@/lib/permissions';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { DashboardHeader } from '../dashboard/components/dashboard-header';
 import { CalendarContent } from './components/calendar-content';
@@ -9,7 +10,7 @@ export default async function CalendarPage() {
 
   return (
     <PermissionGuard
-      permission="Ver calendario"
+      permission={modulePermissions(MODULES.calendar)}
       redirectTo="/dashboard"
       fallback={
         <div className="bg-background min-h-screen">

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Programar, reprogramar y cancelar audiencias**: botón de calendario en cada fila de `/cases` y "Reprogramar" en las
+  tarjetas de `/calendar`, con el permiso `Editar casos` y el alcance del caso. Desde el 29 de marzo de 2026 ningún
+  formulario escribía esa fecha. Migración aditiva: `Case.hearingTime`.
 - **Papelera de casos.** Eliminar un caso ya no lo borra: lo manda a una papelera, desde donde se puede restaurar tal como estaba. Mientras está en la papelera no aparece en listados, búsquedas, reportes, alertas, pagos ni documentos, y no se puede modificar. La papelera la ve quien puede eliminar casos.
 - **Eliminación definitiva** desde la papelera, con un permiso nuevo ("Eliminar casos definitivamente") que se asigna solo al rol Administrador. Pide escribir el número del caso y queda en la auditoría. Existe para poder cumplir una solicitud de supresión de datos.
 
@@ -28,6 +31,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Un caso con una fase antigua ya no queda sin salida.** Se mostraba como «Inicial» y a la vez decía «No hay transiciones disponibles»; ahora ofrece las mismas transiciones que «Inicial», que son las que el servidor ya aceptaba.
 - El detalle del caso se titula con el número del expediente y no con su identificador interno.
+- **Una sola fecha de audiencia en todas las pantallas** (`src/features/calendar/audiencia.ts`): manda `hearingDate`, y
+  `firstHearingDate` queda como la primera que se fijó. Calendario, alertas, listado, reporte y documentos elegían cada
+  uno la suya. El Auto de Admisión cita la primera (`FECHA_PRIMERA_AUDIENCIA`).
+- **Los casos cerrados con audiencia futura salen del calendario, de las alertas y del dashboard.** Las audiencias que ya
+  pasaron siguen en el calendario como registro.
+- **La fase "Audiencia programada" exige una audiencia de hoy en adelante** al entrar a ella, en el servidor. Cancelar la
+  audiencia devuelve el caso a "En negociación". Los casos que ya estaban en esa fase sin fecha no se tocan.
+- **Quien puede editar casos puede abrir el calendario**, limitado a su centro y a los casos que ya ve.
+- **El calendario ya no muestra una audiencia en el mes equivocado**, ni las fechas viejas un día antes.
+- **La alerta de audiencia imprime la hora guardada**: antes imprimía la hora del instante interno (12:00 o 00:00).
 - **Un expediente ya no queda con documentos repartidos en dos carpetas de Google Drive.** `/documents` subía siempre a la carpeta antigua (`documentos-generados/{centro}/{N°}`) aunque el caso tuviera otra guardada, y en el alta los adjuntos creaban esa carpeta antigua antes de que la generación guardara la nueva encima. Ahora todo lo que se genera o se adjunta a un caso, desde cualquier módulo, va a la carpeta guardada del caso; si no tiene, se crea una sola vez. Los casos antiguos conservan su carpeta: no se mueve ni se borra nada en Drive. Los comprobantes de pago también: antes, en un caso sin carpeta, creaban una en la raíz de Drive con el número del caso, y como los números se repiten entre centros, dos casos de centros distintos podían terminar compartiéndola.
 - **La pestaña Drive de `/documents` muestra los archivos de los casos actuales.** La sincronización solo recorría la carpeta antigua de cada centro, así que lo de los casos nuevos no entraba nunca, y la lectura asociaba cada archivo a su caso con un formato de número (`INS-2026-001`) que los números actuales (`INSOL-000007`) no tienen. Ahora la sincronización recorre la carpeta guardada de cada caso y la pestaña muestra solo lo de los casos que el usuario puede ver, con el mismo alcance que el resto de la app. Lo de los casos en la papelera ya no aparece.
 - **La sincronización con Drive no se queda a medias en silencio.** Los listados de Drive leían solo la primera página, así que una carpeta con más de 100 elementos se indexaba incompleta. Ahora recorren todas las páginas, y la sincronización de `/documents` lee las carpetas de muchos casos a la vez, por niveles, en lugar de dos consultas por carpeta. Si la lectura se acerca al tiempo máximo de la página, guarda lo que leyó completo, avisa cuántas carpetas faltan y la próxima sincronización empieza por los casos que todavía no están en el índice y, entre los demás, por los que hace más tiempo que no se leen, así ninguno queda sin leerse.
