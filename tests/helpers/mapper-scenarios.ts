@@ -8,6 +8,7 @@
  * emitan valores DISTINTOS, para que un cambio de orden se note.
  */
 
+import { calcularGastos } from '@/features/case/gastos-mensuales';
 import {
   APODERADO,
   ASSET_TYPES_BY_CATEGORY,
@@ -89,6 +90,10 @@ const STRUCTURAL_KEYS = new Set([
   'resultType',
   'idType',
   'tipoIdentificacion',
+  // Detalle de gastos: `clave` y `periodicidad` son códigos del catálogo; los
+  // conceptos libres de "Otros" (`concepto`) sí llevan la carga.
+  'clave',
+  'periodicidad',
 ]);
 
 export function injectPayload(value: unknown, key = ''): unknown {
@@ -245,6 +250,40 @@ const conciliacion = (extra: Row = {}) =>
 // ---------------------------------------------------------------------------
 // Catálogo
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Gastos mensuales por concepto
+// ---------------------------------------------------------------------------
+
+/**
+ * Detalle de gastos tal como lo guarda el servidor: conceptos mensuales,
+ * prorrateados (impuestos ÷ 12, matrícula universitaria ÷ 6), un concepto en $0
+ * (no debe salir en el documento) y filas de "Otros", una con nombre largo.
+ * Total: 800.000 + 0 + 60.000 + 600.000 + 100.000 + 200.000 + 45.000 +
+ * 120.000 = 1.925.000.
+ */
+export function detalleGastosDeEscenario() {
+  const r = calcularGastos({
+    conceptos: {
+      ARRIENDO: { valor: '800.000' },
+      ADMINISTRACION: { valor: '0' },
+      AGUA: { valor: '60.000' },
+      ALIMENTOS: { valor: '600.000' },
+      IMPUESTOS: { valor: '1.200.000' },
+      MATRICULA: { valor: '1.200.000', periodicidad: 'UNIVERSIDAD' },
+    },
+    otros: [
+      { concepto: 'Gas', valor: '45.000' },
+      {
+        concepto:
+          'Cuota de sostenimiento de la asociación de padres de familia del colegio distrital',
+        valor: '120.000',
+      },
+    ],
+  });
+  if (!r.ok || !r.detalle) throw new Error('fixture de gastos inválido');
+  return r.detalle;
+}
 
 export const SCENARIOS: Record<string, Scenario> = {
   'insolvencia-minima': {
@@ -425,7 +464,35 @@ export const SCENARIOS: Record<string, Scenario> = {
     kind: 'INSOLVENCY',
     covers:
       'Todo texto libre lleva una carga <b onmouseover=XSSMARK>: ninguna salida (tampoco las claves HTML del sistema) puede contenerla sin escapar.',
-    build: () => injectPayload(completa()) as Row,
+    build: () =>
+      injectPayload(
+        completa({ gastosMensualesDetalle: detalleGastosDeEscenario() }),
+      ) as Row,
+  },
+
+  'insolvencia-gastos-detalle': {
+    kind: 'INSOLVENCY',
+    covers:
+      'Gastos mensuales por concepto (gastosMensualesDetalle): GASTOS_DETALLE_TABLA con una fila por concepto distinto de $0, prorrateados por su equivalente mensual y "Otros" al final; GASTOS_MENSUALES, RECURSOS_*, PROPUESTA_GASTOS y PROPUESTA_PAGO usan el mismo total (1.925.000), no el monthlyExpenses del deudor.',
+    build: () =>
+      completa({ gastosMensualesDetalle: detalleGastosDeEscenario() }),
+  },
+
+  'insolvencia-gastos-legado': {
+    kind: 'INSOLVENCY',
+    covers:
+      'Caso anterior al detalle con las 7 columnas de gastos: se deriva el detalle (vivienda → Arriendo, servicios públicos y otros → filas históricas) y el total es su suma (2.800.000), no el monthlyExpenses del deudor.',
+    build: () =>
+      completa({
+        gastosVivienda: 800000,
+        gastosAlimentacion: 600000,
+        gastosServiciosPublicos: 250000,
+        gastosTransporte: 300000,
+        gastosEducacion: 400000,
+        gastosSalud: 150000,
+        otrosGastos: 300000,
+        totalGastosMensuales: 2800000,
+      }),
   },
 
   'conciliacion-basica': {

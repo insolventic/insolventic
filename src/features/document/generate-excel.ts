@@ -6,6 +6,7 @@
 import ExcelJS from 'exceljs';
 import { googleDriveService } from '@/lib/google-drive';
 import type { CaseWithRelations } from '../case/schemas';
+import { resolverGastosDelCaso } from '../case/gastos-mensuales';
 
 // Header style
 const headerStyle: Partial<ExcelJS.Style> = {
@@ -368,37 +369,22 @@ function buildIngresosGastos(
 
   sheet.addRow([]);
 
-  // Gastos
-  const gastosVivienda = Number(cd.gastosVivienda) || 0;
-  const gastosAlimentacion = Number(cd.gastosAlimentacion) || 0;
-  const gastosServicios = Number(cd.gastosServiciosPublicos) || 0;
-  const gastosTransporte = Number(cd.gastosTransporte) || 0;
-  const gastosEducacion = Number(cd.gastosEducacion) || 0;
-  const gastosSalud = Number(cd.gastosSalud) || 0;
-  const otrosGastos = Number(cd.otrosGastos) || 0;
-  const totalGastos =
-    gastosVivienda +
-    gastosAlimentacion +
-    gastosServicios +
-    gastosTransporte +
-    gastosEducacion +
-    gastosSalud +
-    otrosGastos;
+  // Gastos: mismo detalle y total que el formulario y la Solicitud
+  // (resolverGastosDelCaso). Los prorrateados van por su equivalente mensual.
+  const gastos = resolverGastosDelCaso(caseData);
+  const totalGastos = gastos.total;
 
   const expHeader = sheet.addRow(['GASTOS', 'Valor mensual']);
   expHeader.eachCell((cell) => {
     cell.style = headerStyle;
   });
 
-  const expenseRows: [string, number][] = [
-    ['Vivienda (arriendo/crédito)', gastosVivienda],
-    ['Alimentación', gastosAlimentacion],
-    ['Servicios públicos', gastosServicios],
-    ['Transporte', gastosTransporte],
-    ['Educación', gastosEducacion],
-    ['Salud', gastosSalud],
-    ['Otros gastos', otrosGastos],
-  ];
+  const expenseRows: [string, number][] =
+    gastos.lineas.length > 0
+      ? gastos.lineas.map((l) => [l.etiqueta, l.mensual])
+      : gastos.total > 0
+        ? [['Gastos generales mensuales (sin desglose)', gastos.total]]
+        : [];
 
   for (const [label, val] of expenseRows) {
     const row = sheet.addRow([label, val]);

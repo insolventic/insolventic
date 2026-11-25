@@ -78,6 +78,9 @@ export const HTML_PLACEHOLDERS_ALLOWLIST = new Set<string>([
   'DETALLE_PAGO_CAPITAL',
   'FORMA_PAGO_ACREEDORES',
   'PROYECCION_PAGOS',
+  // Tabla de gastos mensuales por concepto (§9 de la Solicitud). Los
+  // conceptos libres de "Otros" se escapan en su builder.
+  'GASTOS_DETALLE_TABLA',
 ]);
 
 /**

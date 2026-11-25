@@ -2,7 +2,7 @@
  * Guardián del escape HTML de los placeholders.
  *
  * `mapCaseToPlaceholders` termina con `escapeAllUnlessHtml`: escapa TODO valor
- * salvo las 16 claves de `HTML_PLACEHOLDERS_ALLOWLIST`, que son HTML que arma el
+ * salvo las 17 claves de `HTML_PLACEHOLDERS_ALLOWLIST`, que son HTML que arma el
  * propio sistema. Ese diseño falla en silencio en dos direcciones:
  *
  *  A. Una clave HTML NUEVA que se le olvida a la allowlist sale escapada
@@ -11,7 +11,7 @@
  *     la arma interpola un dato del usuario sin escaparlo, es una inyección HTML/XSS
  *     en un documento legal.
  *
- * Nota de contexto: 14 de las 16 claves las produce una sola función
+ * Nota de contexto: 15 de las 17 claves las produce una sola función
  * (`mapDynamicTables`) y el resto, `buildIncomeNarrative` y el orquestador.
  *
  * Este archivo cierra las dos:
@@ -28,7 +28,7 @@
  *     de conciliación…), ninguna salida —tampoco las claves HTML del sistema— ni
  *     ninguna plantilla renderizada la contiene sin escapar.
  *  5. Inventario del código: las funciones que contienen literales HTML son
- *     exactamente estas 10. Una función nueva que genere HTML hace fallar el test
+ *     exactamente estas 11. Una función nueva que genere HTML hace fallar el test
  *     hasta que su clave se registre y se cubra.
  */
 
@@ -83,6 +83,7 @@ const HTML_KEYS: Record<string, string> = {
   DETALLE_PAGO_CAPITAL: 'mapDynamicTables → generateDetallePagoCapital',
   FORMA_PAGO_ACREEDORES: 'mapDynamicTables → generateFormaPagoAcreedores',
   PROYECCION_PAGOS: 'mapDynamicTables → generateProyeccionPagos',
+  GASTOS_DETALLE_TABLA: 'mapDynamicTables → generateGastosMensualesHtml',
 };
 
 /** Funciones del mapper que contienen literales HTML (etiquetas de tabla, lista, párrafo…). */
@@ -92,6 +93,7 @@ const EXPECTED_HTML_PRODUCERS = [
   'generateDetalleBienes',
   'generateDetallePagoCapital',
   'generateFormaPagoAcreedores',
+  'generateGastosMensualesHtml',
   'generateInventarioBienes',
   'generateProyeccionPagos',
   'generatePropuestaPagoHtml',
@@ -106,6 +108,7 @@ const EXPECTED_ESCAPING_PRODUCERS = [
   'generateDetalleBienes',
   'generateDetallePagoCapital',
   'generateFormaPagoAcreedores',
+  'generateGastosMensualesHtml',
   'generateInventarioBienes',
   'mapCaseToPlaceholders',
   'mapDynamicTables',
@@ -206,7 +209,7 @@ const HTML_TAG =
  * cuando `buildIncomeNarrative` se movió a `placeholders/income.ts` y este
  * test dejó de verla). El Paso 9 lo hizo falta de verdad: `mapDynamicTables`
  * se movió a `placeholders/tablas-dinamicas-pagos.ts`, que a su vez importa
- * los 7 `generate*` de `placeholders/html-builders.ts` —dos niveles desde
+ * los 8 `generate*` de `placeholders/html-builders.ts` —dos niveles desde
  * `placeholder-mapper.ts`—, y una sola pasada ya no alcanzaba.
  */
 const PLACEHOLDERS_DIR = path.join(
@@ -327,12 +330,12 @@ describe('los detectores detectan (entradas sintéticas)', () => {
 // ---------------------------------------------------------------------------
 
 describe('1. inventario de HTML_PLACEHOLDERS_ALLOWLIST', () => {
-  it('la allowlist del código son exactamente estas 16 claves registradas', () => {
+  it('la allowlist del código son exactamente estas 17 claves registradas', () => {
     // Si falla: agregaste o quitaste una clave HTML. Registrala en HTML_KEYS (con la
     // función que la produce), escapá con escapePlaceholder los datos de usuario
     // dentro del builder y asegurate de que algún escenario la active.
     expect([...readAllowlist()].sort()).toEqual(Object.keys(HTML_KEYS).sort());
-    expect(readAllowlist()).toHaveLength(16);
+    expect(readAllowlist()).toHaveLength(17);
   });
 
   it('no hay claves repetidas en la allowlist', () => {
@@ -510,7 +513,7 @@ describe('4. una carga HTML en los datos del usuario nunca sale sin escapar', ()
 // ---------------------------------------------------------------------------
 
 describe('5. las funciones que generan HTML están inventariadas', () => {
-  it('las funciones con literales HTML son exactamente estas 10', () => {
+  it('las funciones con literales HTML son exactamente estas 11', () => {
     const producers = topLevelFunctions()
       .filter(containsHtmlLiteral)
       .map((f) => f.name!.text)

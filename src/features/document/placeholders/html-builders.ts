@@ -26,6 +26,7 @@ import type { CaseWithRelations } from '../../case/schemas';
 import { nowColombia, COLOMBIA_TZ } from '@/lib/date-colombia';
 import { escapePlaceholder } from './escape';
 import { formatCurrency } from './format';
+import { resolverGastosDelCaso } from '../../case/gastos-mensuales';
 
 // Generate Detalle de Bienes HTML
 export function generateDetalleBienes(
@@ -290,10 +291,8 @@ export function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
     Number(caseData.monthlyIncome) ||
     Number(caseData.debtor.monthlyIncome) ||
     0;
-  const monthlyExpenses =
-    Number(caseData.monthlyExpenses) ||
-    Number(caseData.debtor.monthlyExpenses) ||
-    0;
+  // Mismo total que el formulario y la §9 de la Solicitud.
+  const monthlyExpenses = resolverGastosDelCaso(caseData).total;
   const available = monthlyIncome - monthlyExpenses;
   const totalCapital = caseData.debts.reduce(
     (sum, d) => sum + (Number(d.capitalAmount) || Number(d.amount) || 0),
@@ -336,4 +335,43 @@ export function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
       </tr>
     </table>
   `;
+}
+
+const FILA_SIN_CORTE = 'page-break-inside: avoid; break-inside: avoid;';
+const CELDA_VALOR = 'text-align: right; white-space: nowrap;';
+
+/**
+ * Detalle de gastos mensuales (§9 de la Solicitud de Insolvencia): una fila por
+ * concepto con su equivalente mensual y la fila de total.
+ *
+ * - Sale del mismo `resolverGastosDelCaso` que usa el formulario, así que el
+ *   total es idéntico al que vio el operador.
+ * - Omite los conceptos en $0 y, en los prorrateados, muestra solo el
+ *   equivalente mensual (nunca el valor anual o semestral digitado).
+ * - Un caso sin desglose (solo el monto agregado del deudor) sale con la fila
+ *   de total sola.
+ * - Las filas no se parten entre páginas y los nombres largos de "Otros" hacen
+ *   salto de línea (la tabla es `table-layout: fixed`); el `<thead>` se repite
+ *   en cada página.
+ *
+ * Los conceptos de "Otros" los escribe el operador: se escapan aquí porque
+ * esta clave está en `HTML_PLACEHOLDERS_ALLOWLIST` y no pasa por el escapado
+ * del punto de fusión.
+ */
+export function generateGastosMensualesHtml(
+  caseData: CaseWithRelations,
+): string {
+  const gastos = resolverGastosDelCaso(caseData);
+  const filas = gastos.lineas
+    .map(
+      (l) =>
+        `<tr style="${FILA_SIN_CORTE}"><td style="word-break: break-word; overflow-wrap: anywhere;">${escapePlaceholder(l.etiqueta)}</td><td style="${CELDA_VALOR}">${formatCurrency(l.mensual)}</td></tr>`,
+    )
+    .join('');
+
+  return `<table class="table-std tabla-gastos-mensuales">
+  <colgroup><col style="width: 70%;"><col style="width: 30%;"></colgroup>
+  <thead style="display: table-header-group;"><tr><th>CONCEPTO</th><th style="text-align: right;">VALOR MENSUAL</th></tr></thead>
+  <tbody>${filas}<tr class="total-row" style="${FILA_SIN_CORTE}"><td><strong>TOTAL GASTOS MENSUALES</strong></td><td style="${CELDA_VALOR}"><strong>${formatCurrency(gastos.total)}</strong></td></tr></tbody>
+</table>`;
 }

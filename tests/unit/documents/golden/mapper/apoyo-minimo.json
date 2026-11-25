@@ -146,6 +146,7 @@
   "FIRMA_VOTANTE": "",
   "FORMA_PAGO_ACREEDORES": "<em>Pendiente de registrar acreedores.</em>",
   "FORMA_PAGO_VOTANTE": "",
+  "GASTOS_DETALLE_TABLA": "sha256:1016dd8eb8b3+486",
   "GASTOS_MENSUALES": "$ 0",
   "GENERO_APODERADO": "del apoderado",
   "GENERO_DEUDOR": "La señora",

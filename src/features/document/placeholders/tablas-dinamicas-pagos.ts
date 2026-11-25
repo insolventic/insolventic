@@ -31,7 +31,9 @@ import {
   generateFormaPagoAcreedores,
   generateProyeccionPagos,
   generateInventarioBienes,
+  generateGastosMensualesHtml,
 } from './html-builders';
+import { resolverGastosDelCaso } from '../../case/gastos-mensuales';
 
 // Map dynamic tables (these generate HTML content)
 export function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
@@ -63,6 +65,7 @@ export function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
 
   // Build propuesta de pago HTML
   const propuestaPago = generatePropuestaPagoHtml(caseData);
+  const gastosDetalleTabla = generateGastosMensualesHtml(caseData);
 
   // Build new dynamic content
   const detalleBienes = generateDetalleBienes(caseData.assets);
@@ -106,6 +109,7 @@ export function mapDynamicTables(caseData: CaseWithRelations): PlaceholderMap {
 
     // Propuesta de pago
     PROPUESTA_PAGO: propuestaPago,
+    GASTOS_DETALLE_TABLA: gastosDetalleTabla,
     PROPUESTA_REFORMA_PAGO: propuestaPago,
 
     // Proyecto calificación
@@ -133,10 +137,8 @@ export function mapPaymentProposal(
     Number(caseData.debtor.otherIncomeAmount) ||
     0;
   const totalIncome = monthlyIncome + otherIncome;
-  const monthlyExpenses =
-    Number(caseData.monthlyExpenses) ||
-    Number(caseData.debtor.monthlyExpenses) ||
-    0;
+  // Mismo total que el formulario y la §9 de la Solicitud.
+  const monthlyExpenses = resolverGastosDelCaso(caseData).total;
   const available = totalIncome - monthlyExpenses;
 
   // Calculate total capital from debts (Number() prevents Decimal string concatenation)

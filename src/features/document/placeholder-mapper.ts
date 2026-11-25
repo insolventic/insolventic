@@ -3,6 +3,7 @@
  * Maps case data to HTML template placeholders
  */
 
+import { resolverGastosDelCaso } from '../case/gastos-mensuales';
 import type { CaseWithRelations } from '../case/schemas';
 import { getSmmlv, smmlvYearForCase } from '../case/validation-rules';
 import { nowColombia } from '@/lib/date-colombia';
@@ -444,8 +445,10 @@ export function mapCaseToPlaceholders(
   // Ensure all Decimal fields are converted to Number to prevent string concatenation in reduce()
   const monthlyIncome =
     Number(caseData.monthlyIncome) || Number(debtor.monthlyIncome) || 0;
-  const monthlyExpenses =
-    Number(caseData.monthlyExpenses) || Number(debtor.monthlyExpenses) || 0;
+  // Gasto mensual: detalle por concepto, o las 7 columnas legadas, o
+  // monthlyExpenses (ver resolverGastosDelCaso). Es el mismo total que muestra
+  // el formulario, y el que usan la §9, la §11 y la propuesta de pago.
+  const monthlyExpenses = resolverGastosDelCaso(caseData).total;
   const genderPrefix = getGenderPrefix(debtor.name);
 
   const basePlaceholders: PlaceholderMap = {
