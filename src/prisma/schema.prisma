@@ -231,7 +231,14 @@ model Case {
   totalIngresosMensuales    Decimal? @map("total_ingresos_mensuales")
   ingresosVariablesPromedio Decimal? @map("ingresos_variables_promedio")
   ingresosNoOperacionales   Decimal? @map("ingresos_no_operacionales")
-  // Gastos
+  // Gastos — detalle por concepto (fuente de verdad desde 2026-11).
+  // JSON con la forma `DetalleGastos` de src/features/case/gastos-mensuales.ts:
+  // {version, conceptos:[{clave, valor, periodicidad, divisor, mensual}],
+  //  otros:[{concepto, valor, mensual}], total}. Lo calcula y escribe el
+  // servidor; `totalGastosMensuales` guarda el mismo `total`.
+  gastosMensualesDetalle    Json?    @map("gastos_mensuales_detalle")
+  // Las 7 columnas agregadas de abajo son LEGADAS: se conservan con sus datos y
+  // ya no se escriben. Un caso sin detalle se lee derivándolo de ellas.
   gastosVivienda            Decimal? @map("gastos_vivienda")
   gastosAlimentacion        Decimal? @map("gastos_alimentacion")
   gastosServiciosPublicos   Decimal? @map("gastos_servicios_publicos")
