@@ -273,6 +273,22 @@ p.justified {
   margin-bottom: 6px;
 }
 
+/* ---- BLOQUE DE CIERRE (firma-y-pie) ---- */
+/* El bloque lleva el último párrafo, la firma, el nombre y el pie (en
+   impresión no se parte: ver @media print). Si ese párrafo está dentro de un
+   contenedor, el contenedor se parte en dos y la segunda mitad lleva la
+   clase `continuacion`; entre las dos mitades no va margen ni padding, así
+   el texto queda donde estaba. */
+:has(+ .firma-y-pie > .continuacion:first-child) {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.firma-y-pie > .continuacion:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
 /* ---- TÍTULOS DE SECCIÓN (acuerdos, fracasos) ---- */
 .section-title {
   font-size: 13px;
@@ -461,6 +477,24 @@ p.justified {
   .firmas-container {
     page-break-inside: avoid;
     page-break-before: avoid;
+  }
+
+  /* El último párrafo, la firma, el nombre de quien firma y el pie van
+     juntos: el pie nunca queda solo ni partido en otra página, y la página
+     con la firma siempre tiene texto del documento. Tienen que ir dentro de
+     un mismo contenedor porque Chrome no respeta break-before: avoid entre
+     bloques hermanos, solo break-inside: avoid. */
+  .firma-y-pie {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Dentro del bloque, el avoid de la firma no sirve: o arrastra a la página
+     siguiente el texto de arriba (si ese texto no se puede partir) o hace que
+     Chrome parta el bloque. Con el corte permitido, el bloque pasa entero. */
+  .firma-y-pie > .firma-section {
+    break-before: auto;
+    page-break-before: auto;
   }
 
   .section-title,

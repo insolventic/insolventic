@@ -209,6 +209,14 @@ body.edit-mode strong[contenteditable='true'] {
   margin-bottom: 25px;
 }
 
+/* El bloque de cierre (firma-y-pie, ver styles-base.css) parte el contenido
+   en dos: el último párrafo de la primera mitad no es el último del texto y
+   conserva el margen de .parrafo-justified en styles-base.css. */
+.content-section:has(+ .firma-y-pie > .continuacion:first-child)
+  > .parrafo-justified:last-child {
+  margin-bottom: 16px;
+}
+
 .parrafo-justified:first-child {
   margin-top: 0;
 }
