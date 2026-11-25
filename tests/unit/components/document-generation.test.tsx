@@ -2,7 +2,13 @@
  * @jest-environment jsdom
  */
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
@@ -1168,38 +1174,102 @@ describe('DocumentGeneration', () => {
   // ─── Package Selection ──────────────────────────────────────────────────
 
   describe('Package Selection', () => {
-    it('las etiquetas de paquete muestran el conteo real de templates-config.ts, no un número escrito a mano (PR #140)', async () => {
-      // Fuente real, SIN mockear — es exactamente lo que `planBatchGeneration`
-      // usa para resolver y trocear. Si alguien vuelve a hardcodear los
-      // conteos en document-generation.tsx (como eran antes: 49 y 27, que ya
-      // habían quedado desactualizados contra 65 y 29 reales), este test
-      // falla porque deja de coincidir con esta fuente.
-      const {
-        ALL_TEMPLATES,
-        getPackageInfo,
-      } = require('@/features/document/templates-config');
-      const paquetesReales = getPackageInfo();
+    it.each([
+      ['INS-2025-001', 'INSOLVENCY'],
+      ['CON-2025-002', 'CONCILIATION'],
+      ['ACU-2025-003', 'SUPPORT_AGREEMENT'],
+    ])(
+      'las etiquetas de paquete del caso %s (%s) muestran el conteo real de templates-config.ts, no un número escrito a mano (PR #140)',
+      async (caseNumber, caseType) => {
+        // Fuente real, SIN mockear — es exactamente lo que `planBatchGeneration`
+        // usa para resolver y trocear. Si alguien vuelve a hardcodear los
+        // conteos en document-generation.tsx, este test falla porque deja de
+        // coincidir con esta fuente. Las opciones dependen del tipo del caso:
+        // el mismo número de paquete es otra cosa en cada tipo.
+        const {
+          ALL_TEMPLATES,
+          getPackageInfo,
+        } = require('@/features/document/templates-config');
+        const paquetesReales = getPackageInfo(caseType);
 
+        render(
+          <DocumentGeneration
+            onDocumentsGenerated={mockOnDocumentsGenerated}
+          />,
+        );
+
+        await waitFor(() => {
+          expect(screen.getByText(caseNumber)).toBeInTheDocument();
+        });
+        fireEvent.click(
+          screen
+            .getAllByTestId('command-item')
+            .find((item) => item.textContent?.includes(caseNumber))!,
+        );
+
+        const opciones = within(screen.getByTestId('select')).getAllByTestId(
+          'select-item',
+        );
+        const porValor = new Map(
+          opciones.map((o) => [
+            o.getAttribute('value'),
+            o.textContent?.trim() ?? '',
+          ]),
+        );
+
+        const delTipo = ALL_TEMPLATES.filter(
+          (t: { caseType: string }) => t.caseType === caseType,
+        ).length;
+        expect(porValor.get('all')).toBe(
+          `Todos los paquetes (${delTipo} doc.)`,
+        );
+        expect(porValor.size).toBe(paquetesReales.length + 1);
+        for (const pkg of paquetesReales) {
+          expect(porValor.get(String(pkg.packageNumber))).toBe(
+            `Paquete ${pkg.packageNumber} - ${pkg.name} (${pkg.templateCount} doc.)`,
+          );
+        }
+      },
+    );
+
+    it('sin caso elegido, el selector de paquete está deshabilitado y sin opciones', async () => {
       render(
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
 
-      const opciones = screen.getAllByTestId('select-item');
-      const porValor = new Map(
-        opciones.map((o) => [
-          o.getAttribute('value'),
-          o.textContent?.trim() ?? '',
-        ]),
+      await waitFor(() => {
+        expect(screen.getByText('INS-2025-001')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('select')).toHaveAttribute(
+        'data-disabled',
+        'true',
+      );
+      expect(
+        within(screen.getByTestId('select')).queryAllByTestId('select-item'),
+      ).toHaveLength(0);
+    });
+
+    it('un paquete que el tipo del caso nuevo no tiene vuelve a "Todos" al cambiar de caso', async () => {
+      render(
+        <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
 
-      expect(porValor.get('all')).toBe(
-        `Todos los paquetes (${ALL_TEMPLATES.length} doc.)`,
-      );
-      for (const pkg of paquetesReales) {
-        expect(porValor.get(String(pkg.packageNumber))).toBe(
-          `Paquete ${pkg.packageNumber} - ${pkg.name} (${pkg.templateCount} doc.)`,
-        );
-      }
+      await waitFor(() => {
+        expect(screen.getByText('INS-2025-001')).toBeInTheDocument();
+      });
+
+      const caseItems = screen.getAllByTestId('command-item');
+      // Insolvencia → Paquete 2 (acuerdo de apoyo no tiene paquete 2).
+      fireEvent.click(caseItems[0]);
+      fireEvent.change(screen.getByTestId('select-native'), {
+        target: { value: '2' },
+      });
+      expect(screen.getByTestId('select')).toHaveAttribute('data-value', '2');
+
+      fireEvent.click(caseItems[2]);
+
+      expect(screen.getByTestId('select')).toHaveAttribute('data-value', 'all');
     });
 
     it('defaults to "all" package', async () => {

@@ -1253,19 +1253,36 @@ export function getTemplatesGroupedByPackage(): Record<
 }
 
 /**
- * Get package info with template count
+ * Los paquetes de un tipo de caso, con su nombre y cuántas plantillas trae.
+ *
+ * Por tipo porque los números de paquete se repiten entre tipos con
+ * contenidos distintos: el nombre sale del `packageName` de sus plantillas
+ * ("Actas de Conciliación", "Negociación y Acuerdo"), no de `PACKAGES`, que
+ * describe los de insolvencia. Un número sin plantillas para el tipo no se
+ * devuelve (acuerdo de apoyo solo tiene 1, 3 y 5).
  */
-export function getPackageInfo(): Array<{
+export function getPackageInfo(caseType: CaseType): Array<{
   packageNumber: PackageNumber;
   name: string;
   description: string;
   templateCount: number;
 }> {
-  return ([1, 2, 3, 4, 5] as PackageNumber[]).map((num) => ({
-    packageNumber: num,
-    ...PACKAGES[num],
-    templateCount: getTemplatesByPackage(num).length,
-  }));
+  return ([1, 2, 3, 4, 5] as PackageNumber[]).flatMap((num) => {
+    const plantillas = ALL_TEMPLATES.filter(
+      (t) => t.caseType === caseType && t.packageNumber === num,
+    );
+    if (plantillas.length === 0) return [];
+    const name = plantillas[0].packageName;
+    return [
+      {
+        packageNumber: num,
+        name,
+        description:
+          caseType === 'INSOLVENCY' ? PACKAGES[num].description : name,
+        templateCount: plantillas.length,
+      },
+    ];
+  });
 }
 
 // =============================================

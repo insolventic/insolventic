@@ -57,9 +57,11 @@ import {
   planBatchGeneration,
 } from '@/features/document/actions';
 import {
-  ALL_TEMPLATES,
   getPackageInfo,
+  type CaseType,
 } from '@/features/document/templates-config';
+import { isCaseType } from '@/features/document/tipo-de-caso';
+import { caseTypeFilterToColumn } from '@/features/case/schemas';
 import {
   avisoDeGeneracion,
   estadoDeGeneracion,
@@ -68,23 +70,49 @@ import {
   type EstadoDeGeneracion,
 } from '@/features/document/resumen-generacion';
 
+interface PackageOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
 /**
+ * Las opciones del selector de paquete para un tipo de caso.
+ *
  * Revisión de PR #140: los conteos eran literales escritos a mano (49, 27...)
- * y habían quedado desactualizados contra `templates-config.ts` (65 y 29
- * reales — ver docs/IMPLEMENTACION_SEMANA_7.md §2.1). Ahora se calculan de la
- * misma fuente que resuelve `planBatchGeneration` (`getPackageInfo`/
- * `ALL_TEMPLATES`), así que no pueden volver a divergir — el test de guardia
+ * y habían quedado desactualizados contra `templates-config.ts`. Se calculan
+ * de la misma fuente que resuelve `planBatchGeneration` (`getPackageInfo`),
+ * así que no pueden volver a divergir — el test de guardia
  * (`document-generation.test.tsx`, "las etiquetas de paquete muestran el
  * conteo real") falla si alguna vez vuelven a hardcodearse.
+ *
+ * Dependen del tipo del caso: los números de paquete se repiten entre tipos
+ * con contenidos distintos ("Paquete 3" son las actas en conciliación y la
+ * negociación en insolvencia), y el plan solo trae plantillas del tipo del
+ * caso. Un paquete sin plantillas para ese tipo no se ofrece.
  */
-const PACKAGES = [
-  { value: 'all', label: 'Todos los paquetes', count: ALL_TEMPLATES.length },
-  ...getPackageInfo().map((pkg) => ({
-    value: String(pkg.packageNumber),
-    label: `Paquete ${pkg.packageNumber} - ${pkg.name}`,
-    count: pkg.templateCount,
-  })),
-];
+function packageOptionsFor(caseType: CaseType): PackageOption[] {
+  const paquetes = getPackageInfo(caseType);
+  return [
+    {
+      value: 'all',
+      label: 'Todos los paquetes',
+      count: paquetes.reduce((total, pkg) => total + pkg.templateCount, 0),
+    },
+    ...paquetes.map((pkg) => ({
+      value: String(pkg.packageNumber),
+      label: `Paquete ${pkg.packageNumber} - ${pkg.name}`,
+      count: pkg.templateCount,
+    })),
+  ];
+}
+
+/** El tipo de la columna a partir de la etiqueta que trae el selector de casos. */
+function caseTypeOf(caseOption: CaseOption | null): CaseType | null {
+  if (!caseOption) return null;
+  const tipo = caseTypeFilterToColumn(caseOption.type);
+  return isCaseType(tipo) ? tipo : null;
+}
 
 const TYPE_COLORS: Record<string, string> = {
   Insolvencia:
@@ -176,13 +204,28 @@ export function DocumentGeneration({
     [cases, selectedCaseId],
   );
 
+  const selectedCaseType = caseTypeOf(selectedCase);
+
+  const packageOptions = useMemo(
+    () => (selectedCaseType ? packageOptionsFor(selectedCaseType) : []),
+    [selectedCaseType],
+  );
+
   const selectedPkg = useMemo(
-    () => PACKAGES.find((p) => p.value === selectedPackage),
-    [selectedPackage],
+    () => packageOptions.find((p) => p.value === selectedPackage),
+    [packageOptions, selectedPackage],
   );
 
   const handleCaseSelect = (caseId: string) => {
     const newCaseId = caseId === selectedCaseId ? '' : caseId;
+    // Un paquete elegido que el tipo del caso nuevo no tiene vuelve a "Todos".
+    const nuevoTipo = caseTypeOf(cases.find((c) => c.id === newCaseId) ?? null);
+    if (
+      nuevoTipo &&
+      !packageOptionsFor(nuevoTipo).some((p) => p.value === selectedPackage)
+    ) {
+      setSelectedPackage('all');
+    }
     setSelectedCaseId(newCaseId);
     setGenerationResult(null);
     setShowErrors(false);
@@ -523,14 +566,20 @@ export function DocumentGeneration({
             <Select
               value={selectedPackage}
               onValueChange={setSelectedPackage}
-              disabled={isPending}
+              disabled={isPending || !selectedCaseType}
             >
               <SelectTrigger>
                 <Package className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Selecciona un paquete" />
+                <SelectValue
+                  placeholder={
+                    selectedCaseType
+                      ? 'Selecciona un paquete'
+                      : 'Primero selecciona un caso'
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {PACKAGES.map((pkg) => (
+                {packageOptions.map((pkg) => (
                   <SelectItem key={pkg.value} value={pkg.value}>
                     {pkg.label} ({pkg.count} doc.)
                   </SelectItem>
