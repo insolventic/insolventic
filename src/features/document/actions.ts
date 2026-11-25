@@ -21,6 +21,8 @@ import { canGenerateDocument } from '../case/validation-rules';
 import {
   assertCaseAccessOnRow,
   caseWhereOrNothing,
+  CaseAccessError,
+  isCaseAccessError,
   resolveCaseVisibility,
 } from '../case/case-access';
 import {
@@ -1003,11 +1005,16 @@ function collectMissingData(
  * GD-A1 (issue #3) — el plan de tandas para un lote.
  *
  * Solo resuelve qué plantillas corresponden a la selección (ids explícitos,
- * paquete, o todas) y las parte en tandas de `TANDA_TEMPLATE_COUNT` — no toca
- * Prisma más allá del permiso, no genera nada. El cliente (`/documents`) la
- * llama una vez antes de arrancar, y después invoca `batchGenerateDocuments`
- * una vez por tanda, en orden, encadenando el `requestId` que devuelve la
- * primera.
+ * paquete, o todas) y las parte en tandas de `TANDA_TEMPLATE_COUNT` — no
+ * genera nada. El cliente (`/documents`) la llama una vez antes de arrancar,
+ * y después invoca `batchGenerateDocuments` una vez por tanda, en orden,
+ * encadenando el `requestId` que devuelve la primera.
+ *
+ * Lee el caso, acotado por `tenantId` y con la visibilidad por rol de
+ * `assertCaseAccessOnRow`, igual que `batchGenerateDocuments`: el plan depende
+ * de su tipo. Antes recibía el `caseId` sin leerlo, así que el plan era el
+ * mismo para cualquier id (no exponía datos de ningún caso, pero tampoco
+ * rechazaba uno ajeno o inexistente).
  */
 export async function planBatchGeneration(input: {
   caseId: string;
@@ -1019,7 +1026,7 @@ export async function planBatchGeneration(input: {
   data: { tandas: string[][] } | null;
 }> {
   try {
-    const { user } = await authenticateUser();
+    const { user, tenantId } = await authenticateUser();
 
     if (!user.permissions.includes(P.GENERAR_DOCUMENTOS)) {
       return {
@@ -1029,8 +1036,17 @@ export async function planBatchGeneration(input: {
       };
     }
 
-    const { templateIds, packageNumber } =
+    const { caseId, templateIds, packageNumber } =
       planBatchGenerationInputSchema.parse(input);
+
+    const caseRow = await prisma.case.findUnique({
+      where: { id: caseId, tenantId },
+      select: { id: true, operatorId: true, debtorId: true, type: true },
+    });
+    if (!caseRow) {
+      throw new CaseAccessError('not-found');
+    }
+    await assertCaseAccessOnRow({ caseRow, user, tenantId });
 
     const { resolveTemplatesToProcess } = await import('./templates-config');
     const templatesToProcess = resolveTemplatesToProcess({
@@ -1045,9 +1061,16 @@ export async function planBatchGeneration(input: {
 
     return { success: true, message: 'Plan generado', data: { tandas } };
   } catch (error) {
-    logger.error('Error planificando la generación por lotes', error, {
-      action: 'plan-batch-generation',
-    });
+    if (isCaseAccessError(error)) {
+      logger.info('Plan de generación denegado', {
+        action: 'plan-batch-generation',
+        reason: error.reason,
+      });
+    } else {
+      logger.error('Error planificando la generación por lotes', error, {
+        action: 'plan-batch-generation',
+      });
+    }
     return {
       success: false,
       message:
