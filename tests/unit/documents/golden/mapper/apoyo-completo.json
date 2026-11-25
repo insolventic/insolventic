@@ -119,6 +119,8 @@
   "DIRECCION_BENEFICIARIO": "apoyoBeneficiarioDireccion",
   "DIRECCION_DEUDOR": "Carrera 15 # 82-30",
   "DIRECCION_PRESTADOR": "apoyoPrestadorDireccion",
+  "DIRECTOR_CARGO": "DIRECTOR",
+  "DIRECTOR_NOMBRE": "MAXIMILIANO JARAMILLO RICAURTE",
   "EMAIL_DEUDOR": "carlos.rojas@example.com",
   "EMAIL_NOTIFICACIONES": "notificationEmail",
   "EMAIL_OPERADOR": "beatriz@example.com",

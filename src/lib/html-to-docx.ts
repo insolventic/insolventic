@@ -9,6 +9,7 @@
  */
 
 import { inlineAssets } from './html-to-pdf';
+import { limitarLogosParaDocx } from './docx-imagenes';
 import { logger } from './logger';
 
 /**
@@ -161,8 +162,13 @@ export async function htmlToDocx(
     const inlinedHtml = assetsBaseDir
       ? await inlineAssets(html, assetsBaseDir, docDir)
       : html;
-    // Siempre, con o sin assetsBaseDir: ver `soloImagenesIncrustadas`.
-    const processedHtml = soloImagenesIncrustadas(inlinedHtml);
+    // html-to-docx ignora el CSS: sin esto los logos de branding salen a su
+    // tamaño natural, recortado al ancho de la página (ver docx-imagenes.ts).
+    // El filtro va al final, con o sin assetsBaseDir: es la última barrera
+    // antes de la librería (ver `soloImagenesIncrustadas`).
+    const processedHtml = soloImagenesIncrustadas(
+      limitarLogosParaDocx(inlinedHtml),
+    );
 
     // html-to-docx uses a default export
     const HTMLtoDOCX = (await import('html-to-docx')).default;

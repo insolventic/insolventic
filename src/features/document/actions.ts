@@ -52,7 +52,9 @@ import {
 import { asCaseWithRelations, fetchCaseForGeneration } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
 import { prepareTemplate, variantDisplayName } from './prepare-template';
+import { mensajeDeDatosFaltantes } from './datos-faltantes';
 import { resolveCaseFolder } from './case-folder';
+import type { ArbolDeCarpeta } from '@/lib/google-drive';
 
 export async function getTemplatesFromDatabase() {
   try {
@@ -477,6 +479,13 @@ const SYNC_LECTURA_LOTE = 500;
 /** Filas por lote de escritura. */
 const SYNC_ESCRITURA_LOTE = 200;
 
+/**
+ * Tiempo que la sincronización dedica a leer Drive antes de escribir lo que
+ * ya leyó. La página tiene `maxDuration = 60`: deja margen para escribir y
+ * responder. Lo que no se alcanzó a leer queda para la próxima corrida.
+ */
+const SYNC_TOPE_MS = 45_000;
+
 /** Los campos de `DocumentFromDrive` que la sincronización escribe. */
 interface FilaDeDrive {
   googleDriveId: string;
@@ -488,6 +497,12 @@ interface FilaDeDrive {
   size: string | null;
   createdAt: Date;
   updatedAt: Date;
+  /**
+   * Solo se crea; si ya está, no se reescribe. Es la fila de la carpeta de un
+   * caso, de la que el listado no trae fechas: con la hora actual se
+   * reescribiría en cada corrida sin que nada cambiara.
+   */
+  soloCrear?: boolean;
 }
 
 /** Lo que hace falta de una fila ya guardada para decidir si cambió. */
@@ -502,12 +517,6 @@ interface FilaGuardada {
   updatedAt: Date;
 }
 
-type ArbolDeDrive = Awaited<
-  ReturnType<
-    (typeof import('@/lib/google-drive'))['googleDriveService']['listAllFoldersAndFilesRecursively']
-  >
->;
-
 /**
  * Las filas del índice para las carpetas de caso que el recorrido del centro no
  * cubrió: una por cada caso del centro con `driveFolderId` que no esté ya en
@@ -517,47 +526,77 @@ type ArbolDeDrive = Awaited<
  * del caso va con el nombre del caso y la ruta `[centro]`; lo de adentro, con
  * `[centro, número de caso, ...subcarpetas]`. Si dos casos del centro guardan
  * la misma carpeta, se indexa una vez.
+ *
+ * Las carpetas se leen todas juntas, por niveles (`listar`). Primero las de
+ * los casos que todavía no tienen fila en el índice: si el tope de tiempo
+ * corta la lectura, la próxima corrida empieza por lo que falta. Solo se
+ * devuelven las filas de las carpetas que se leyeron completas; las otras
+ * cuentan en `pendientes`. Entre las que ya tienen fila, van primero las que
+ * hace más que no se leen completas (`syncedAt`), así ninguna queda sin leerse
+ * aunque no quepan todas en una corrida.
  */
 async function filasDeCarpetasDeCaso(params: {
   tenantId: string;
   centerFolderName: string;
   yaIndexadas: Set<string>;
-  drive: {
-    listar: (carpetaId: string) => Promise<ArbolDeDrive>;
-    datos: (
-      carpetaId: string,
-    ) => Promise<{ createdTime?: string | null; modifiedTime?: string | null }>;
-  };
-}): Promise<FilaDeDrive[]> {
-  const { tenantId, centerFolderName, yaIndexadas, drive } = params;
+  listar: (raices: string[]) => Promise<{
+    arboles: Map<string, ArbolDeCarpeta>;
+    incompletas: Set<string>;
+  }>;
+}): Promise<{ filas: FilaDeDrive[]; pendientes: number; leidas: string[] }> {
+  const { tenantId, centerFolderName, yaIndexadas, listar } = params;
   const casos = await prisma.case.findMany({
     where: { tenantId, driveFolderId: { not: null } },
     select: { caseNumber: true, driveFolderId: true },
     orderBy: { caseNumber: 'asc' },
   });
 
-  const filas: FilaDeDrive[] = [];
+  // Una carpeta por caso, sin las que ya cubrió el árbol del centro.
+  const porCarpeta = new Map<string, string>();
   for (const { caseNumber, driveFolderId } of casos) {
     if (!driveFolderId || yaIndexadas.has(driveFolderId)) continue;
-    yaIndexadas.add(driveFolderId);
+    if (!porCarpeta.has(driveFolderId))
+      porCarpeta.set(driveFolderId, caseNumber);
+  }
+  const carpetas = [...porCarpeta.keys()];
 
-    // Las fechas de la carpeta, no la hora de la sincronización: con la hora
-    // actual la fila se reescribiría en cada corrida sin que nada cambiara.
-    let carpetaDelCaso: Awaited<ReturnType<typeof drive.datos>>;
-    let arbol: ArbolDeDrive;
-    try {
-      carpetaDelCaso = await drive.datos(driveFolderId);
-      arbol = await drive.listar(driveFolderId);
-    } catch (error) {
-      logger.warn('No se pudo leer la carpeta de un caso; se omite', {
-        action: 'syncDocumentsWithGoogleDrive',
-        tenantId,
-        caseNumber,
-        reason: error instanceof Error ? error.message : String(error),
-      });
+  // Cuándo se leyó completa cada carpeta que ya está en el índice. Sin
+  // esto, una vez indexados todos los casos se leerían siempre en el mismo
+  // orden, y los que no caben en el tope no se volverían a leer nunca.
+  const leidaEl = new Map<string, number>();
+  for (const lote of enLotes(carpetas, SYNC_LECTURA_LOTE)) {
+    const filas = await prisma.documentFromDrive.findMany({
+      where: { tenantId, googleDriveId: { in: lote } },
+      select: { googleDriveId: true, syncedAt: true },
+    });
+    for (const fila of filas) {
+      // NULL (fila de antes de `syncedAt`) cuenta como la más antigua.
+      leidaEl.set(fila.googleDriveId, fila.syncedAt?.getTime() ?? 0);
+    }
+  }
+  const ordenadas = [
+    ...carpetas.filter((id) => !leidaEl.has(id)),
+    ...carpetas
+      .filter((id) => leidaEl.has(id))
+      .sort((a, b) => leidaEl.get(a)! - leidaEl.get(b)!),
+  ];
+
+  const { arboles, incompletas } = await listar(ordenadas);
+
+  const filas: FilaDeDrive[] = [];
+  const leidas: string[] = [];
+  let pendientes = 0;
+  for (const driveFolderId of ordenadas) {
+    if (incompletas.has(driveFolderId)) {
+      pendientes++;
       continue;
     }
+    const caseNumber = porCarpeta.get(driveFolderId)!;
+    const arbol = arboles.get(driveFolderId) ?? { folders: [], files: [] };
+    yaIndexadas.add(driveFolderId);
+    leidas.push(driveFolderId);
 
+    const ahora = new Date();
     filas.push({
       googleDriveId: driveFolderId,
       fileName: caseNumber,
@@ -566,8 +605,9 @@ async function filasDeCarpetasDeCaso(params: {
       parentFolderId: null,
       isFolder: true,
       size: null,
-      createdAt: fechaDeDrive(carpetaDelCaso.createdTime),
-      updatedAt: fechaDeDrive(carpetaDelCaso.modifiedTime),
+      createdAt: ahora,
+      updatedAt: ahora,
+      soloCrear: true,
     });
 
     for (const carpeta of arbol.folders) {
@@ -602,7 +642,7 @@ async function filasDeCarpetasDeCaso(params: {
       });
     }
   }
-  return filas;
+  return { filas, pendientes, leidas };
 }
 
 function enLotes<T>(items: T[], tamanio: number): T[][] {
@@ -704,12 +744,24 @@ export async function syncDocumentsWithGoogleDrive() {
       { tenantId },
     );
 
-    const casesFolderId = centerFolderId;
-    const driveData =
-      await googleDriveService.listAllFoldersAndFilesRecursively(casesFolderId);
+    // Todo lo que sigue lee Drive con un tope: al pasarlo, se escribe lo que
+    // se leyó completo y el resto queda para la próxima corrida.
+    const hasta = Date.now() + SYNC_TOPE_MS;
+    let pendientes = 0;
+
+    const centro = await googleDriveService.listarArbolesPorNiveles(
+      [centerFolderId],
+      { hasta },
+    );
+    const centroCompleto = !centro.incompletas.has(centerFolderId);
+    if (!centroCompleto) pendientes++;
+    const driveData: ArbolDeCarpeta = centroCompleto
+      ? (centro.arboles.get(centerFolderId) ?? { folders: [], files: [] })
+      : { folders: [], files: [] };
     logger.debug('Sincronizacion de documentos: arbol de Drive leido', {
       action: 'syncDocumentsWithGoogleDrive',
       centerFolderName,
+      completo: centroCompleto,
       carpetas: driveData.folders.length,
       archivos: driveData.files.length,
     });
@@ -745,9 +797,8 @@ export async function syncDocumentsWithGoogleDrive() {
     }));
 
     // La carpeta de cada caso sale de su `driveFolderId`. Las v0 cuelgan del
-    // árbol del centro y ya están arriba; las v1 (`Insolventic/...`) no, y
-    // antes no se indexaban nunca: la pestaña Drive no mostraba lo de los
-    // casos nuevos. Se recorren las que falten, una por caso.
+    // árbol del centro y ya están arriba; las v1 (`Insolventic/...`) no. Si el
+    // árbol del centro quedó a medias, las v0 se leen también por caso.
     const yaIndexadas = new Set([
       centerFolderId,
       ...carpetas.map((c) => c.googleDriveId),
@@ -756,14 +807,19 @@ export async function syncDocumentsWithGoogleDrive() {
       tenantId,
       centerFolderName,
       yaIndexadas,
-      drive: {
-        listar: (id) =>
-          googleDriveService.listAllFoldersAndFilesRecursively(id),
-        datos: (id) => googleDriveService.getFileInfo(id),
-      },
+      listar: (raices) =>
+        googleDriveService.listarArbolesPorNiveles(raices, { hasta }),
     });
+    pendientes += deCasos.pendientes;
+    if (pendientes > 0) {
+      logger.warn('Sincronizacion de documentos: quedaron carpetas por leer', {
+        action: 'syncDocumentsWithGoogleDrive',
+        tenantId,
+        pendientes,
+      });
+    }
 
-    const deseadas = [...carpetas, ...archivos, ...deCasos];
+    const deseadas = [...carpetas, ...archivos, ...deCasos.filas];
 
     // PASO 1 — una lectura por lote de ids, en vez de un `findUnique` por
     // ítem. Solo las columnas que hacen falta para decidir si algo cambió.
@@ -801,6 +857,10 @@ export async function syncDocumentsWithGoogleDrive() {
 
       if (!guardada) {
         aCrear.push(deseada);
+        continue;
+      }
+      if (deseada.soloCrear) {
+        sinCambios++;
         continue;
       }
 
@@ -841,7 +901,11 @@ export async function syncDocumentsWithGoogleDrive() {
     // de (googleDriveId, tenantId).
     for (const lote of enLotes(aCrear, SYNC_ESCRITURA_LOTE)) {
       await prisma.documentFromDrive.createMany({
-        data: lote.map((fila) => ({ ...fila, tenantId })),
+        data: lote.map((fila) => {
+          const paraGuardar = { ...fila, tenantId };
+          delete paraGuardar.soloCrear;
+          return paraGuardar;
+        }),
         skipDuplicates: true,
       });
     }
@@ -857,6 +921,18 @@ export async function syncDocumentsWithGoogleDrive() {
       );
     }
 
+    // PASO 4 — cuándo se leyó completa cada carpeta de caso. Solo las que se
+    // leyeron enteras en esta corrida: la próxima empieza por las demás. Va
+    // después de escribir sus filas, para no marcar como leída una carpeta
+    // cuyas filas no llegaron a guardarse.
+    const leidaAhora = new Date();
+    for (const lote of enLotes(deCasos.leidas, SYNC_ESCRITURA_LOTE)) {
+      await prisma.documentFromDrive.updateMany({
+        where: { tenantId, googleDriveId: { in: lote } },
+        data: { syncedAt: leidaAhora },
+      });
+    }
+
     const created = aCrear.length;
     const updated = aActualizar.length;
     const folders = deseadas.filter((f) => f.isFolder).length;
@@ -867,6 +943,7 @@ export async function syncDocumentsWithGoogleDrive() {
       updated,
       unchanged: sinCambios,
       folders,
+      pendientes,
     });
 
     logger.info('Sincronizacion de documentos de Drive: completada', {
@@ -1331,7 +1408,12 @@ export async function batchGenerateDocuments(input: {
             documentName: '',
             documentUrl: '',
             status: 'skipped',
-            error: `No se generó por datos incompletos. Falta: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ` y ${missing.length - 6} más` : ''}.`,
+            error: mensajeDeDatosFaltantes(
+              missing,
+              variantPlaceholders,
+              (resto) =>
+                `No se generó por datos incompletos. Falta: ${resto.slice(0, 6).join(', ')}${resto.length > 6 ? ` y ${resto.length - 6} más` : ''}.`,
+            ),
             missingFields: missing,
           });
           continue;

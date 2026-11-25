@@ -158,6 +158,16 @@ export interface MembreteCentro {
   operadorCargo: string;
   /** "OPERADORA DE INSOLVENCIA" */
   operadorCargoMayus: string;
+  /**
+   * Quien firma la Designación del Conciliador, y su cargo, tal como los
+   * imprime esa plantilla (en mayúsculas). Su firma es la imagen
+   * `firma-director` del centro (`imagenes_privadas`). Sin fallback entre
+   * centros, como el resto del membrete: si falta, la Designación de ese
+   * centro no se genera.
+   */
+  directorNombre: string;
+  /** "DIRECTOR" */
+  directorCargo: string;
 
   /**
    * La cuenta a la que el deudor consigna: entidad, NIT y número de cuenta.
@@ -249,6 +259,13 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     operadorNombreTilde: 'BEATRIZ HELENA MALAVERA LÓPEZ',
     operadorCargo: 'Operadora de Insolvencia',
     operadorCargoMayus: 'OPERADORA DE INSOLVENCIA',
+    // El valor que la Designación del Conciliador ya imprimía, sin cambios:
+    // falta que el centro confirme quién la firma y con qué cargo
+    // (`docs/PENDIENTES_DECISION_LEGAL.md`, ítem 12). Si es otra persona, se
+    // cambian estos dos campos y se carga su `firma-director` con
+    // `scripts/imagenes-privadas/cargar.ts`.
+    directorNombre: 'MAXIMILIANO JARAMILLO RICAURTE',
+    directorCargo: 'DIRECTOR',
     // Sin tildes y con el NIT y la cuenta, exactamente como está en las dos
     // plantillas que la imprimen.
     cuentaConsignacion:
@@ -315,6 +332,9 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
     operadorNombreTilde: 'BEATRIZ HELENA MALAVERA LÓPEZ',
     operadorCargo: 'Operadora de Insolvencia',
     operadorCargoMayus: 'OPERADORA DE INSOLVENCIA',
+    // Director de Armonía, confirmado el 2026-11-24.
+    directorNombre: 'MAXIMILIANO JARAMILLO RICAURTE',
+    directorCargo: 'DIRECTOR',
     // LO ÚNICO QUE SIGUE FALTANDO. No se sabe a qué cuenta consigna el deudor
     // en un trámite de Armonía. Bloquea exactamente 2 plantillas (Auto por
     // Incumplimiento y Auto de Reforma del Acuerdo); las otras 63 generan.
@@ -326,6 +346,52 @@ const MEMBRETE_POR_TENANT: Record<TenantId, MembreteParcial> = {
 export const CAMPOS_MEMBRETE = Object.keys(
   MEMBRETE_POR_TENANT['constructores-paz'],
 ) as Array<keyof MembreteCentro>;
+
+/**
+ * Cómo se nombra cada campo ante el usuario, con su artículo: "Falta el
+ * nombre del director de Constructores de Paz". Las formas de un mismo dato
+ * (mayúsculas, con tilde, corta) comparten nombre: para quien lee el aviso son
+ * el mismo dato.
+ */
+export const ETIQUETA_CAMPO_MEMBRETE: Record<keyof MembreteCentro, string> = {
+  nombre: 'el nombre',
+  nombreMayus: 'el nombre',
+  rotulo: 'el rótulo',
+  rotuloCorto: 'el rótulo',
+  rotuloMayus: 'el rótulo',
+  rotuloMayusTilde: 'el rótulo',
+  rotuloErrata: 'el rótulo',
+  entidadPromotora: 'la entidad promotora',
+  entidadPromotoraProsa: 'la entidad promotora',
+  entidadPromotoraMayus: 'la entidad promotora',
+  direccion: 'la dirección',
+  direccionMinus: 'la dirección',
+  ciudad: 'la ciudad',
+  edificio: 'el edificio',
+  telefono: 'el teléfono',
+  telefonoCompacto: 'el teléfono',
+  web: 'la página web',
+  email: 'el correo',
+  resolucionCentroNumero: 'la resolución de habilitación del centro',
+  resolucionCentroFecha: 'la resolución de habilitación del centro',
+  resolucionCentroFechaCorta: 'la resolución de habilitación del centro',
+  resolucionCentroEncabezado: 'la resolución de habilitación del centro',
+  resolucionInsolvenciaNumero:
+    'la resolución de habilitación como operador de insolvencia',
+  resolucionInsolvenciaFecha:
+    'la resolución de habilitación como operador de insolvencia',
+  resolucionInsolvenciaAnio:
+    'la resolución de habilitación como operador de insolvencia',
+  resolucionInsolvenciaNumeroCorto:
+    'la resolución de habilitación como operador de insolvencia',
+  operadorNombre: 'el nombre del operador',
+  operadorNombreTilde: 'el nombre del operador',
+  operadorCargo: 'el cargo del operador',
+  operadorCargoMayus: 'el cargo del operador',
+  directorNombre: 'el nombre del director',
+  directorCargo: 'el cargo del director',
+  cuentaConsignacion: 'la cuenta de consignación',
+};
 
 /** Los tenants que este mapa conoce, para que los tests los recorran. */
 export const TENANTS_CON_MEMBRETE = Object.keys(
@@ -347,6 +413,40 @@ export function camposFaltantes(
     : undefined;
   if (!membrete) return [...CAMPOS_MEMBRETE];
   return CAMPOS_MEMBRETE.filter((campo) => membrete[campo] == null);
+}
+
+/**
+ * Lo que la verificación previa al deploy exige del membrete: quien firma la
+ * Designación del Conciliador. Es un documento de la admisión, así que sin
+ * esos datos el centro no puede admitir un trámite.
+ */
+const CAMPOS_QUE_BLOQUEAN_EL_DEPLOY: ReadonlyArray<keyof MembreteCentro> = [
+  'directorNombre',
+  'directorCargo',
+];
+
+/**
+ * Qué le falta al membrete de un centro, nombrado como lo ve el usuario y sin
+ * repetir las formas de un mismo dato. `bloquean` hace fallar la verificación
+ * previa al deploy (`scripts/imagenes-privadas/verificar.ts`); `avisos` solo se
+ * informan: cortan las plantillas que usan ese dato, no el deploy.
+ */
+export function revisarMembrete(tenantId?: string | null): {
+  bloquean: string[];
+  avisos: string[];
+} {
+  const faltan = camposFaltantes(tenantId);
+  const nombres = (campos: Array<keyof MembreteCentro>) => [
+    ...new Set(campos.map((c) => ETIQUETA_CAMPO_MEMBRETE[c])),
+  ];
+  return {
+    bloquean: nombres(
+      faltan.filter((c) => CAMPOS_QUE_BLOQUEAN_EL_DEPLOY.includes(c)),
+    ),
+    avisos: nombres(
+      faltan.filter((c) => !CAMPOS_QUE_BLOQUEAN_EL_DEPLOY.includes(c)),
+    ),
+  };
 }
 
 /**

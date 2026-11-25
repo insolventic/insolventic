@@ -42,6 +42,7 @@ import {
 } from './templates-config';
 import { generateAndUploadExcel } from './generate-excel';
 import { resolveCaseFolder } from './case-folder';
+import { mensajeDeDatosFaltantes } from './datos-faltantes';
 import type { CaseWithRelations } from '../case/schemas';
 
 /**
@@ -407,7 +408,12 @@ async function generateDocument(
         googleDriveId: '',
         googleDriveUrl: '',
         status: 'error',
-        error: `No se generó: faltan datos para ${unresolved.length} campo(s) de la plantilla (${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}). Complete la información del expediente y reintente.`,
+        error: mensajeDeDatosFaltantes(
+          unresolved,
+          placeholders,
+          (resto) =>
+            `No se generó: faltan datos para ${resto.length} campo(s) de la plantilla (${resto.slice(0, 5).join(', ')}${resto.length > 5 ? '…' : ''}). Complete la información del expediente y reintente.`,
+        ),
         missingVariables: unresolved,
         coveragePercentage: coverage.coveragePercentage,
       };
@@ -629,7 +635,12 @@ async function prepareDocument(
       googleDriveId: '',
       googleDriveUrl: '',
       status: 'error',
-      error: `No se generó: faltan datos para ${unresolved.length} campo(s) de la plantilla (${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}). Complete la información del expediente y reintente.`,
+      error: mensajeDeDatosFaltantes(
+        unresolved,
+        prepared.placeholders,
+        (resto) =>
+          `No se generó: faltan datos para ${resto.length} campo(s) de la plantilla (${resto.slice(0, 5).join(', ')}${resto.length > 5 ? '…' : ''}). Complete la información del expediente y reintente.`,
+      ),
       missingVariables: unresolved,
       coveragePercentage: prepared.coveragePercentage,
     };
@@ -1139,9 +1150,10 @@ export async function previewDocument(
   }
 
   // Misma Fase 1 compartida. Sin variantes: se previsualiza un documento.
+  const placeholders = await placeholdersConFirmas(caseData);
   const { html: filledHtml, unresolved } = await prepareTemplate(
     template,
-    await placeholdersConFirmas(caseData),
+    placeholders,
     buildTemplateContext(caseData),
     SIN_VARIANTE,
     { caseId: caseData.id },
@@ -1151,7 +1163,12 @@ export async function previewDocument(
   // ser la puerta por la que sale un documento con huecos.
   if (unresolved.length > 0) {
     throw new Error(
-      `No se puede regenerar "${template.name}": faltan datos para ${unresolved.length} campo(s) (${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}).`,
+      mensajeDeDatosFaltantes(
+        unresolved,
+        placeholders,
+        (resto) =>
+          `No se puede regenerar "${template.name}": faltan datos para ${resto.length} campo(s) (${resto.slice(0, 5).join(', ')}${resto.length > 5 ? '…' : ''}).`,
+      ),
     );
   }
 
