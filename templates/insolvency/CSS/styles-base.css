@@ -463,6 +463,23 @@ p.justified {
     page-break-before: avoid;
   }
 
+  /* La firma, el nombre de quien firma y el pie van juntos: el pie nunca
+     queda solo ni partido en otra página. Tienen que ir dentro de un mismo
+     contenedor porque Chrome no respeta break-before: avoid entre bloques
+     hermanos, solo break-inside: avoid. */
+  .firma-y-pie {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Dentro del bloque, el avoid de la firma no sirve: o arrastra a la página
+     siguiente el texto de arriba (si ese texto no se puede partir) o hace que
+     Chrome parta el bloque. Con el corte permitido, el bloque pasa entero. */
+  .firma-y-pie > .firma-section {
+    break-before: auto;
+    page-break-before: auto;
+  }
+
   .section-title,
   .subsection-title {
     page-break-inside: avoid;
