@@ -3,6 +3,8 @@
  * Defines templates organized by case type and packages
  */
 
+import { PlantillasDeOtroTipoError } from './tipo-de-caso';
+
 export type PackageNumber = 1 | 2 | 3 | 4 | 5;
 
 export type CaseType = 'INSOLVENCY' | 'CONCILIATION' | 'SUPPORT_AGREEMENT';
@@ -1206,19 +1208,32 @@ export function getTemplatesByPackage(
  * primero, si no un paquete, si no todas. Extraída para que las dos no
  * puedan quedar en desacuerdo sobre qué plantillas corresponden a una
  * selección dada.
+ *
+ * Siempre dentro del tipo del caso, como las rutas automáticas
+ * (`getTemplatesForCaseCreation` y compañía): los números de paquete se
+ * repiten entre tipos, así que "Paquete 3" sin tipo mezclaba las actas de
+ * conciliación con el Trámite Audiencia de insolvencia. Un id explícito de
+ * otro tipo lanza `PlantillasDeOtroTipoError`.
  */
 export function resolveTemplatesToProcess(params: {
+  caseType: CaseType;
   templateIds?: string[];
   packageNumber?: PackageNumber;
 }): DocumentTemplate[] {
-  const { templateIds, packageNumber } = params;
+  const { caseType, templateIds, packageNumber } = params;
   if (templateIds && templateIds.length > 0) {
-    return ALL_TEMPLATES.filter((t) => templateIds.includes(t.id));
+    const pedidas = ALL_TEMPLATES.filter((t) => templateIds.includes(t.id));
+    const ajenas = pedidas.filter((t) => t.caseType !== caseType);
+    if (ajenas.length > 0) {
+      throw new PlantillasDeOtroTipoError(caseType, ajenas);
+    }
+    return pedidas;
   }
+  const delTipo = ALL_TEMPLATES.filter((t) => t.caseType === caseType);
   if (packageNumber) {
-    return getTemplatesByPackage(packageNumber);
+    return delTipo.filter((t) => t.packageNumber === packageNumber);
   }
-  return ALL_TEMPLATES;
+  return delTipo;
 }
 
 /**

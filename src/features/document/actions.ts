@@ -55,6 +55,7 @@ import { asCaseWithRelations, fetchCaseForGeneration } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
 import { prepareTemplate, variantDisplayName } from './prepare-template';
 import { mensajeDeDatosFaltantes } from './datos-faltantes';
+import { isCaseType, isPlantillasDeOtroTipoError } from './tipo-de-caso';
 import { resolveCaseFolder } from './case-folder';
 import type { ArbolDeCarpeta } from '@/lib/google-drive';
 
@@ -1047,9 +1048,13 @@ export async function planBatchGeneration(input: {
       throw new CaseAccessError('not-found');
     }
     await assertCaseAccessOnRow({ caseRow, user, tenantId });
+    if (!isCaseType(caseRow.type)) {
+      throw new Error(`Tipo de caso desconocido: ${caseRow.type}`);
+    }
 
     const { resolveTemplatesToProcess } = await import('./templates-config');
     const templatesToProcess = resolveTemplatesToProcess({
+      caseType: caseRow.type,
       templateIds,
       packageNumber,
     });
@@ -1065,6 +1070,12 @@ export async function planBatchGeneration(input: {
       logger.info('Plan de generación denegado', {
         action: 'plan-batch-generation',
         reason: error.reason,
+      });
+    } else if (isPlantillasDeOtroTipoError(error)) {
+      logger.warn('Plan con plantillas de otro tipo de caso', {
+        action: 'plan-batch-generation',
+        caseType: error.caseType,
+        templateIds: error.templateIds,
       });
     } else {
       logger.error('Error planificando la generación por lotes', error, {
@@ -1145,6 +1156,28 @@ export async function batchGenerateDocuments(input: {
     // de "...para generar documentos para este caso" al genérico del guard.
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
+    // Las plantillas se resuelven dentro del tipo del caso y ANTES del lock:
+    // un pedido con ids de otro tipo (PlantillasDeOtroTipoError) o sin
+    // plantillas se rechaza sin crear una fila de lock.
+    if (!isCaseType(caseData.type)) {
+      throw new Error(`Tipo de caso desconocido: ${caseData.type}`);
+    }
+    const {
+      getTemplatePath,
+      getTemplateAssetsBaseDir,
+      resolveTemplatesToProcess,
+    } = await import('./templates-config');
+
+    const templatesToProcess: DocumentTemplate[] = resolveTemplatesToProcess({
+      caseType: caseData.type,
+      templateIds,
+      packageNumber,
+    });
+
+    if (templatesToProcess.length === 0) {
+      throw new Error('No se encontraron plantillas para procesar');
+    }
+
     // C-4: esta era la única ruta de generación sin el lock anti-duplicados
     // (solo tenía rate limit). Dos operadores generando el mismo paquete a la
     // vez —o un doble click— duplicaban archivos en Drive y filas en BD.
@@ -1185,22 +1218,6 @@ export async function batchGenerateDocuments(input: {
 
       generationRequestId = claim.request.id;
       await markGenerationProcessing(generationRequestId);
-    }
-
-    // Get HTML templates to process
-    const {
-      getTemplatePath,
-      getTemplateAssetsBaseDir,
-      resolveTemplatesToProcess,
-    } = await import('./templates-config');
-
-    const templatesToProcess: DocumentTemplate[] = resolveTemplatesToProcess({
-      templateIds,
-      packageNumber,
-    });
-
-    if (templatesToProcess.length === 0) {
-      throw new Error('No se encontraron plantillas para procesar');
     }
 
     // Map case data to placeholders
@@ -1860,7 +1877,13 @@ export async function batchGenerateDocuments(input: {
   } catch (error) {
     // La falta de una firma ya dejó su evento, con el centro y la firma, en
     // `resolverImagenesPrivadas`; repetirlo acá solo duplica la alerta.
-    if (!(error instanceof ImagenPrivadaFaltanteError)) {
+    if (isPlantillasDeOtroTipoError(error)) {
+      logger.warn('Lote con plantillas de otro tipo de caso', {
+        action: 'batch-generate-documents',
+        caseType: error.caseType,
+        templateIds: error.templateIds,
+      });
+    } else if (!(error instanceof ImagenPrivadaFaltanteError)) {
       logger.error('Error in batch document generation', error, {
         action: 'batch-generate-documents',
       });

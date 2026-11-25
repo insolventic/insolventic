@@ -5,9 +5,9 @@
  *
  * `batchGenerateDocuments` solo revisa el límite cuando `requestId` está
  * ausente (la primera tanda de un lote) — ver actions.ts. Sin esto, un lote
- * de 65 plantillas (7 tandas de a 10) se habría bloqueado A SÍ MISMO a mitad
- * de camino: la tanda 6 habría chocado contra el límite de 5, nunca
- * terminando un solo lote completo.
+ * de más de 5 tandas se habría bloqueado A SÍ MISMO a mitad de camino: la
+ * tanda 6 habría chocado contra el límite de 5, nunca terminando un solo lote
+ * completo.
  *
  * Usa el rate limiter REAL (no mockeado) para probar el comportamiento de
  * verdad, no solo que `checkRateLimit` se llama — mismo criterio que
@@ -113,6 +113,7 @@ import {
 } from '@/features/document/actions';
 import { _resetRateLimitStore } from '@/lib/rate-limit';
 import { ALL_TEMPLATES } from '@/features/document/templates-config';
+import { chunkIntoTandas } from '@/features/document/batch-tandas';
 
 const TENANT_ID = 'armonia';
 
@@ -169,27 +170,34 @@ describe('batchDocumentGeneration — el límite se cobra por lote, no por tanda
     );
   });
 
-  it('planBatchGeneration sobre TODOS los templates (65) produce exactamente 7 tandas', async () => {
+  it('planBatchGeneration sobre TODAS las plantillas de un caso de insolvencia (50) produce exactamente 5 tandas', async () => {
     const plan = await planBatchGeneration({ caseId: 'case-1' });
 
     expect(plan.success).toBe(true);
+    // Solo las del tipo del caso: las 65 suman los tres tipos.
     expect(ALL_TEMPLATES.length).toBe(65);
-    expect(plan.data!.tandas).toHaveLength(7);
+    expect(
+      ALL_TEMPLATES.filter((t) => t.caseType === 'INSOLVENCY'),
+    ).toHaveLength(50);
+    expect(plan.data!.tandas).toHaveLength(5);
     expect(plan.data!.tandas.map((t) => t.length)).toEqual([
-      10, 10, 10, 10, 10, 10, 5,
+      10, 10, 10, 10, 10,
     ]);
   });
 
-  it('un lote de 65 plantillas (7 tandas) NO se bloquea a sí mismo: las 7 tandas corren sin chocar contra el límite de 5', async () => {
+  it('un lote de más de 5 tandas NO se bloquea a sí mismo: las 8 tandas corren sin chocar contra el límite de 5', async () => {
+    // El lote real más grande (insolvencia, 50 plantillas) son 5 tandas: justo
+    // el límite, así que no alcanzaría para distinguir "por lote" de "por
+    // tanda". Se trocea en tandas de 7 para tener 8, más que el límite.
     const plan = await planBatchGeneration({ caseId: 'case-1' });
-    const tandas = plan.data!.tandas;
-    expect(tandas).toHaveLength(7); // sanity: si esto cambia, el test de abajo no prueba lo que dice.
+    const tandas = chunkIntoTandas(plan.data!.tandas.flat(), 7);
+    expect(tandas).toHaveLength(8); // sanity: si esto cambia, el test de abajo no prueba lo que dice.
 
     const resultado = await correrLoteCompleto(tandas);
 
     expect(resultado.success).toBe(true);
-    // Si el límite se cobrara por tanda, la 6ª (de 7) habría chocado contra
-    // el máximo de 5 intentos y el lote nunca habría llegado a la 7ª.
+    // Si el límite se cobrara por tanda, la 6ª (de 8) habría chocado contra
+    // el máximo de 5 intentos y el lote nunca habría llegado a la 8ª.
   });
 
   it('5 lotes completos seguidos caben en el límite; el 6º lote (su primera tanda) queda bloqueado', async () => {
