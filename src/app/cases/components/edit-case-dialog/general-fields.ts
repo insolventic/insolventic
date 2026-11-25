@@ -19,7 +19,10 @@ import { isTypeSpecificField } from './type-specific-fields';
  *      fechas usa `''`) por una dependencia del calendario que no se tocó
  *      acá; `monthlyIncome`/`monthlyExpenses`/`otherIncomeDescription`/
  *      `otherIncomeAmount`/`hasEmployerCertification` viven en
- *      `fullCase.debtor`, no en `fullCase` directamente.
+ *      `fullCase.debtor`, no en `fullCase` directamente. `gastosMensuales` es
+ *      el bloque de gastos del formulario: no es una columna, se arma desde
+ *      `gastosMensualesDetalle` (o las columnas legadas) con
+ *      `entradaGastosDesdeCaso`.
  *  (c) Pertenece a otro flujo, no a este diálogo: `failureType`/`failureDate`
  *      y `resultType`/`resultDate` los escribe `updateCasePhase` (ver
  *      `phase-transition-dialog.tsx` y `actions.ts:2331-2336`), nunca este
@@ -41,6 +44,7 @@ export const HANDLED_ELSEWHERE = new Set([
   'otherIncomeDescription',
   'otherIncomeAmount',
   'hasEmployerCertification',
+  'gastosMensuales',
   'failureType',
   'failureDate',
   'resultType',

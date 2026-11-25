@@ -15,6 +15,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { PaymentProposalSection } from '@/app/cases/components/create-case-dialog/payment-proposal-section';
+import { entradaGastosVacia } from '@/features/case/gastos-mensuales';
 
 function montarSeccion(debts: unknown[]) {
   function Host() {
@@ -24,13 +25,7 @@ function montarSeccion(debts: unknown[]) {
         otrosIngresosMensuales: '',
         ingresosVariablesPromedio: '',
         ingresosNoOperacionales: '',
-        gastosVivienda: '',
-        gastosAlimentacion: '',
-        gastosServiciosPublicos: '',
-        gastosTransporte: '',
-        gastosEducacion: '',
-        gastosSalud: '',
-        otrosGastos: '',
+        gastosMensuales: entradaGastosVacia(),
         capitalReductionPercent: '',
         debts,
       } as never,
@@ -53,7 +48,11 @@ describe('Pág. 5 — Total Obligaciones nunca es NaN', () => {
   it('REGRESIÓN: suma correctamente acreedores con coma decimal', () => {
     montarSeccion([
       { type: 'PERSONAL', capitalAmount: '1.234,56', interestAmount: '0' },
-      { type: 'TARJETA_CREDITO', capitalAmount: '1.500.000', interestAmount: '0' },
+      {
+        type: 'TARJETA_CREDITO',
+        capitalAmount: '1.500.000',
+        interestAmount: '0',
+      },
     ]);
 
     const texto = totalObligacionesEnPantalla();

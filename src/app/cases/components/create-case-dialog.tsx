@@ -70,6 +70,7 @@ import { NotificationsSection } from './create-case-dialog/notifications-section
 import { SignatureSection } from './create-case-dialog/signature-section';
 // Formulario definitivo sections
 import { ConyugeDefinitivoSection } from './create-case-dialog/conyuge-definitivo-section';
+import { entradaGastosVacia } from '@/features/case/gastos-mensuales';
 import { InfoLaboralSection } from './create-case-dialog/info-laboral-section';
 import { CesacionPagosSection } from './create-case-dialog/cesacion-pagos-section';
 import { DeclaracionesSection } from './create-case-dialog/declaraciones-section';
@@ -270,6 +271,7 @@ export function CreateCaseDialog({
       phase: 'Inicial',
       hearingDate: null,
       caseNumber: '',
+      gastosMensuales: entradaGastosVacia(),
     },
   });
 
@@ -384,6 +386,8 @@ export function CreateCaseDialog({
         otherIncomeDescription: '',
         otherIncomeAmount: 0,
         hasEmployerCertification: false,
+        // Gastos mensuales: un valor vacío por concepto y "Otros" sin filas.
+        gastosMensuales: entradaGastosVacia(),
         libranzas: [],
         suspendedServices: [],
         dependents: [],
@@ -757,8 +761,10 @@ export function CreateCaseDialog({
     // --- SYNC: Ingresos Tab 9 → legacy Tab 6 (si no fueron llenados en Tab 6) ---
     const syncedIncome =
       data.ingresoPrincipalMensual || data.monthlyIncome || 0;
-    const syncedExpenses =
-      data.totalGastosMensuales || data.monthlyExpenses || 0;
+    // El gasto del deudor lo fija el servidor con el total que él mismo
+    // calcula a partir de `gastosMensuales`; esto es solo el respaldo para un
+    // caso que no cargó ningún gasto.
+    const syncedExpenses = data.monthlyExpenses || 0;
 
     // Send ALL form data to the server action, including arrays and formulario definitivo fields.
     // Spread validated data first, then override computed fields + synced values.
@@ -1155,14 +1161,20 @@ export function CreateCaseDialog({
     form.setValue('totalIngresosMensuales', 4000000);
     form.setValue('ingresosVariablesPromedio', 200000);
     form.setValue('ingresosNoOperacionales', 0);
-    form.setValue('gastosVivienda', 800000);
-    form.setValue('gastosAlimentacion', 600000);
-    form.setValue('gastosServiciosPublicos', 250000);
-    form.setValue('gastosTransporte', 300000);
-    form.setValue('gastosEducacion', 400000);
-    form.setValue('gastosSalud', 150000);
-    form.setValue('otrosGastos', 300000);
-    form.setValue('totalGastosMensuales', 2800000);
+    // Total: 2.800.000 (matrícula 1.200.000 ÷ 12 e impuestos 600.000 ÷ 12).
+    const gastosDePrueba = entradaGastosVacia();
+    gastosDePrueba.conceptos.ARRIENDO.valor = '800.000';
+    gastosDePrueba.conceptos.AGUA.valor = '60.000';
+    gastosDePrueba.conceptos.LUZ.valor = '90.000';
+    gastosDePrueba.conceptos.INTERNET.valor = '50.000';
+    gastosDePrueba.conceptos.ALIMENTOS.valor = '600.000';
+    gastosDePrueba.conceptos.SALUD.valor = '150.000';
+    gastosDePrueba.conceptos.PENSION_COLEGIO.valor = '300.000';
+    gastosDePrueba.conceptos.MATRICULA.valor = '1.200.000';
+    gastosDePrueba.conceptos.TRANSPORTE.valor = '300.000';
+    gastosDePrueba.conceptos.IMPUESTOS.valor = '600.000';
+    gastosDePrueba.otros = [{ concepto: 'Gas', valor: '300.000' }];
+    form.setValue('gastosMensuales', gastosDePrueba);
     form.setValue('capacidadPagoEstimada', 1200000);
     form.setValue('patrimonioTotalEstimado', 215000000);
     form.setValue('pasivoTotalEstimado', 50000000);

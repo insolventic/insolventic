@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 import type { CaseWithRelations } from '@/features/case/schemas';
+import { resolverGastosDelCaso } from '@/features/case/gastos-mensuales';
 
 interface DefinitivoSectionProps {
   caseData: CaseWithRelations;
@@ -84,6 +85,7 @@ export function DefinitivoSection({
     caseData.conyugeCorreo;
 
   const capacidadPago = caseData.capacidadPagoEstimada ?? 0;
+  const gastos = resolverGastosDelCaso(caseData);
 
   return (
     <>
@@ -244,67 +246,35 @@ export function DefinitivoSection({
 
           <Separator />
 
-          {/* Gastos */}
-          <p className="text-foreground text-sm font-semibold">Gastos</p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">
-                Vivienda
-              </p>
-              <p className="text-sm">
-                {formatCurrency(caseData.gastosVivienda)}
-              </p>
+          {/* Gastos: mismo detalle y total que van a los documentos */}
+          <p className="text-foreground text-sm font-semibold">
+            Gastos mensuales
+          </p>
+          {gastos.lineas.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {gastos.lineas.map((linea, index) => (
+                <div key={`${linea.grupo}-${index}`}>
+                  <p className="text-muted-foreground text-sm font-medium break-words">
+                    {linea.etiqueta}
+                  </p>
+                  <p className="text-sm">{formatCurrency(linea.mensual)}</p>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">
-                Alimentación
-              </p>
-              <p className="text-sm">
-                {formatCurrency(caseData.gastosAlimentacion)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">
-                Transporte
-              </p>
-              <p className="text-sm">
-                {formatCurrency(caseData.gastosTransporte)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">
-                Servicios Públicos
-              </p>
-              <p className="text-sm">
-                {formatCurrency(caseData.gastosServiciosPublicos)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">
-                Educación
-              </p>
-              <p className="text-sm">
-                {formatCurrency(caseData.gastosEducacion)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">Salud</p>
-              <p className="text-sm">{formatCurrency(caseData.gastosSalud)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">
-                Otros Gastos
-              </p>
-              <p className="text-sm">{formatCurrency(caseData.otrosGastos)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-sm font-medium">
-                Total Gastos Mensuales
-              </p>
-              <p className="text-sm font-semibold text-red-600">
-                {formatCurrency(caseData.totalGastosMensuales)}
-              </p>
-            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {gastos.origen === 'MONTO_LEGADO' && gastos.total > 0
+                ? 'Sin desglose por concepto: se usa el gasto mensual registrado del deudor.'
+                : 'Sin gastos declarados por concepto.'}
+            </p>
+          )}
+          <div>
+            <p className="text-muted-foreground text-sm font-medium">
+              Total gastos mensuales
+            </p>
+            <p className="text-sm font-semibold text-red-600">
+              {formatCurrency(gastos.total)}
+            </p>
           </div>
 
           <Separator />

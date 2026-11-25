@@ -1241,20 +1241,11 @@ export const createCaseSchema = z.object({
   totalIngresosMensuales: montoOpcional(),
   ingresosVariablesPromedio: montoOpcional(),
   ingresosNoOperacionales: montoOpcional(),
-  gastosVivienda: montoOpcional(),
-  gastosAlimentacion: montoOpcional(),
-  // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
-  // Solo lo ve el operador: no se lleva a los documentos generados.
-  serviciosManutencion: z.array(servicioManutencionSchema).optional(),
-  gastosServiciosPublicos: montoOpcional(),
-  gastosTransporte: montoOpcional(),
-  gastosEducacion: montoOpcional(),
-  gastosSalud: montoOpcional(),
-  otrosGastos: montoOpcional(),
-  totalGastosMensuales: montoOpcional(),
   // Gastos mensuales por concepto. El servidor calcula equivalentes y total
   // (`calcularGastos`) y escribe `gastosMensualesDetalle` y
-  // `totalGastosMensuales`. Ver src/features/case/gastos-mensuales.ts.
+  // `totalGastosMensuales`; las 7 columnas agregadas viejas y el desglose
+  // `serviciosManutencion` ya no se aceptan como entrada (se conservan en la
+  // base). Ver src/features/case/gastos-mensuales.ts.
   gastosMensuales: gastosMensualesEntradaSchema.optional(),
   capacidadPagoEstimada: montoOpcional(),
   patrimonioTotalEstimado: montoOpcional(),
@@ -1662,20 +1653,11 @@ export const updateCaseSchema = z.object({
   totalIngresosMensuales: montoOpcional(),
   ingresosVariablesPromedio: montoOpcional(),
   ingresosNoOperacionales: montoOpcional(),
-  gastosVivienda: montoOpcional(),
-  gastosAlimentacion: montoOpcional(),
-  // Desglose interno de servicios de manutencion (gas, agua, luz y "+ Otros").
-  // Solo lo ve el operador: no se lleva a los documentos generados.
-  serviciosManutencion: z.array(servicioManutencionSchema).optional(),
-  gastosServiciosPublicos: montoOpcional(),
-  gastosTransporte: montoOpcional(),
-  gastosEducacion: montoOpcional(),
-  gastosSalud: montoOpcional(),
-  otrosGastos: montoOpcional(),
-  totalGastosMensuales: montoOpcional(),
   // Gastos mensuales por concepto. El servidor calcula equivalentes y total
   // (`calcularGastos`) y escribe `gastosMensualesDetalle` y
-  // `totalGastosMensuales`. Ver src/features/case/gastos-mensuales.ts.
+  // `totalGastosMensuales`; las 7 columnas agregadas viejas y el desglose
+  // `serviciosManutencion` ya no se aceptan como entrada (se conservan en la
+  // base). Ver src/features/case/gastos-mensuales.ts.
   gastosMensuales: gastosMensualesEntradaSchema.optional(),
   capacidadPagoEstimada: montoOpcional(),
   patrimonioTotalEstimado: montoOpcional(),

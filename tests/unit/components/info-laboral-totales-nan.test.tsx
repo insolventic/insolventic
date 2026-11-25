@@ -26,6 +26,7 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import { InfoLaboralSection } from '@/app/cases/components/create-case-dialog/info-laboral-section';
+import { entradaGastosVacia } from '@/features/case/gastos-mensuales';
 
 function montarSeccion() {
   function Host() {
@@ -35,13 +36,7 @@ function montarSeccion() {
         otrosIngresosMensuales: '',
         ingresosVariablesPromedio: '',
         ingresosNoOperacionales: '',
-        gastosVivienda: '',
-        gastosAlimentacion: '',
-        gastosServiciosPublicos: '',
-        gastosTransporte: '',
-        gastosEducacion: '',
-        gastosSalud: '',
-        otrosGastos: '',
+        gastosMensuales: entradaGastosVacia(),
         dependents: [],
       } as never,
     });

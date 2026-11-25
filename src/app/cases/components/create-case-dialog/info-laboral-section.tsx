@@ -17,9 +17,13 @@ import type {
   CreateCaseFormInput,
   DependentData,
 } from '@/features/case/schemas';
-import { ServiciosManutencionSection } from './servicios-manutencion-section';
+import { GastosMensualesSection } from './gastos-mensuales-section';
 import { MoneyInput } from '@/components/ui/money-input';
 import { parsearMonto } from '@/features/case/monto';
+import {
+  totalEnVivo,
+  type EntradaGastos,
+} from '@/features/case/gastos-mensuales';
 
 export function InfoLaboralSection() {
   const { register, watch, setValue, control } =
@@ -35,16 +39,10 @@ export function InfoLaboralSection() {
   const ingresosNoOp =
     useWatch({ control, name: 'ingresosNoOperacionales' }) || 0;
 
-  // Watch expense fields for auto-calculation
-  const gastosVivienda = useWatch({ control, name: 'gastosVivienda' }) || 0;
-  const gastosAlimentacion =
-    useWatch({ control, name: 'gastosAlimentacion' }) || 0;
-  const gastosServicios =
-    useWatch({ control, name: 'gastosServiciosPublicos' }) || 0;
-  const gastosTransporte = useWatch({ control, name: 'gastosTransporte' }) || 0;
-  const gastosEducacion = useWatch({ control, name: 'gastosEducacion' }) || 0;
-  const gastosSalud = useWatch({ control, name: 'gastosSalud' }) || 0;
-  const otrosGastos = useWatch({ control, name: 'otrosGastos' }) || 0;
+  // Gastos: el total en vivo sale de la misma función que usa el servidor.
+  const gastosMensuales = useWatch({ control, name: 'gastosMensuales' }) as
+    | EntradaGastos
+    | undefined;
 
   // Auto-calculated totals. Los campos vienen de MoneyInput como texto con
   // separador de miles y/o coma decimal ("1.234,56"): `Number()` directo los
@@ -60,25 +58,7 @@ export function InfoLaboralSection() {
     [ingresoPrincipal, otrosIngresos, ingresosVariables, ingresosNoOp],
   );
 
-  const totalGastos = useMemo(
-    () =>
-      (parsearMonto(gastosVivienda) || 0) +
-      (parsearMonto(gastosAlimentacion) || 0) +
-      (parsearMonto(gastosServicios) || 0) +
-      (parsearMonto(gastosTransporte) || 0) +
-      (parsearMonto(gastosEducacion) || 0) +
-      (parsearMonto(gastosSalud) || 0) +
-      (parsearMonto(otrosGastos) || 0),
-    [
-      gastosVivienda,
-      gastosAlimentacion,
-      gastosServicios,
-      gastosTransporte,
-      gastosEducacion,
-      gastosSalud,
-      otrosGastos,
-    ],
-  );
+  const totalGastos = totalEnVivo(gastosMensuales);
 
   const disponible = useMemo(
     () => totalIngresos - totalGastos,
@@ -221,66 +201,13 @@ export function InfoLaboralSection() {
         </div>
       </div>
 
-      {/* Gastos */}
-      <div>
-        <h4 className="text-muted-foreground mb-3 text-sm font-medium">
-          Gastos mensuales
-        </h4>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Vivienda</Label>
-            <MoneyInput name="gastosVivienda" placeholder="$0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Alimentación</Label>
-            <MoneyInput name="gastosAlimentacion" placeholder="$0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Servicios públicos</Label>
-            <MoneyInput name="gastosServiciosPublicos" placeholder="$0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Transporte</Label>
-            <MoneyInput name="gastosTransporte" placeholder="$0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Educación</Label>
-            <MoneyInput name="gastosEducacion" placeholder="$0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Salud</Label>
-            <MoneyInput name="gastosSalud" placeholder="$0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Otros gastos</Label>
-            <MoneyInput name="otrosGastos" placeholder="$0" />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="font-semibold">Total gastos mensuales</Label>
-            <Input
-              type="text"
-              readOnly
-              className="bg-muted font-semibold"
-              value={formatCurrency(totalGastos)}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Desglose de servicios de manutención (dato interno del operador) */}
-      <ServiciosManutencionSection />
+      {/* Gastos mensuales por concepto */}
+      <GastosMensualesSection />
 
       {/* Recursos disponibles */}
       <div className="rounded-lg border bg-blue-50 p-4 dark:bg-blue-950">
         <h4 className="mb-3 text-sm font-semibold">Recursos disponibles</h4>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div className="space-y-1">
             <Label className="text-xs">Ingresos</Label>
             <p className="text-sm font-medium">

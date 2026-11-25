@@ -15,6 +15,10 @@ import {
 import { getDebtClass } from '@/features/case/validation-rules';
 import { MoneyInput } from '@/components/ui/money-input';
 import { parsearMonto } from '@/features/case/monto';
+import {
+  totalEnVivo,
+  type EntradaGastos,
+} from '@/features/case/gastos-mensuales';
 
 /**
  * PaymentProposalSection
@@ -75,22 +79,12 @@ export function PaymentProposalSection() {
     useWatch({ control: form.control, name: 'ingresosVariablesPromedio' }) || 0;
   const ingresosNoOp =
     useWatch({ control: form.control, name: 'ingresosNoOperacionales' }) || 0;
-  const gastosVivienda =
-    useWatch({ control: form.control, name: 'gastosVivienda' }) || 0;
-  const gastosAlimentacion =
-    useWatch({ control: form.control, name: 'gastosAlimentacion' }) || 0;
-  const gastosServicios =
-    useWatch({ control: form.control, name: 'gastosServiciosPublicos' }) || 0;
-  const gastosTransporte =
-    useWatch({ control: form.control, name: 'gastosTransporte' }) || 0;
-  const gastosEducacion =
-    useWatch({ control: form.control, name: 'gastosEducacion' }) || 0;
-  const gastosSalud =
-    useWatch({ control: form.control, name: 'gastosSalud' }) || 0;
-  const otrosGastos =
-    useWatch({ control: form.control, name: 'otrosGastos' }) || 0;
+  const gastosMensuales = useWatch({
+    control: form.control,
+    name: 'gastosMensuales',
+  }) as EntradaGastos | undefined;
 
-  // Los 4 campos de ingresos y 7 de gastos vienen de MoneyInput como texto
+  // Los 4 campos de ingresos vienen de MoneyInput como texto
   // con separador de miles y/o coma decimal: `parsearMonto` es el único
   // parseo correcto (ver monto.ts). `|| 0` cubre vacío/parcial/inválido.
   const totalIngresos = useMemo(
@@ -102,25 +96,8 @@ export function PaymentProposalSection() {
     [ingresoPrincipal, otrosIngresos, ingresosVariables, ingresosNoOp],
   );
 
-  const totalGastos = useMemo(
-    () =>
-      (parsearMonto(gastosVivienda) || 0) +
-      (parsearMonto(gastosAlimentacion) || 0) +
-      (parsearMonto(gastosServicios) || 0) +
-      (parsearMonto(gastosTransporte) || 0) +
-      (parsearMonto(gastosEducacion) || 0) +
-      (parsearMonto(gastosSalud) || 0) +
-      (parsearMonto(otrosGastos) || 0),
-    [
-      gastosVivienda,
-      gastosAlimentacion,
-      gastosServicios,
-      gastosTransporte,
-      gastosEducacion,
-      gastosSalud,
-      otrosGastos,
-    ],
-  );
+  // Mismo cálculo que el servidor (gastos-mensuales.ts): prorrateos y redondeo.
+  const totalGastos = totalEnVivo(gastosMensuales);
 
   const recursosDisponibles = useMemo(
     () => Math.max(0, totalIngresos - totalGastos),

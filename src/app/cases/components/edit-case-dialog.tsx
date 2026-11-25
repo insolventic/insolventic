@@ -70,6 +70,7 @@ import { LegalFoundationsSection } from './create-case-dialog/legal-foundations-
 import { NotificationsSection } from './create-case-dialog/notifications-section';
 import { SignatureSection } from './create-case-dialog/signature-section';
 import { ConyugeDefinitivoSection } from './create-case-dialog/conyuge-definitivo-section';
+import { entradaGastosDesdeCaso } from '@/features/case/gastos-mensuales';
 import { InfoLaboralSection } from './create-case-dialog/info-laboral-section';
 import { CesacionPagosSection } from './create-case-dialog/cesacion-pagos-section';
 import { DeclaracionesSection } from './create-case-dialog/declaraciones-section';
@@ -259,6 +260,10 @@ export function EditCaseDialog({
               hasEmployerCertification:
                 fullCase.debtor?.hasEmployerCertification ?? false,
 
+              // Gastos mensuales: el detalle guardado o, en un caso anterior
+              // al detalle, el derivado de las 7 columnas viejas.
+              gastosMensuales: entradaGastosDesdeCaso(fullCase),
+
               // Libranzas
               libranzas: (fullCase.libranzas ?? []).map((libranza) => ({
                 id: libranza.id,
@@ -406,6 +411,9 @@ export function EditCaseDialog({
         otherIncomeDescription: data.otherIncomeDescription,
         otherIncomeAmount: data.otherIncomeAmount,
         hasEmployerCertification: data.hasEmployerCertification,
+
+        // Gastos mensuales: el servidor recalcula equivalentes y total.
+        gastosMensuales: data.gastosMensuales,
 
         // Libranzas
         libranzas: data.libranzas,
