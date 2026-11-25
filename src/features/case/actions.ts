@@ -76,6 +76,11 @@ import {
 import { generatePaymentSchedule } from '@/features/payment/actions';
 import { parsearMonto } from './monto';
 import {
+  calcularGastos,
+  type DetalleGastos,
+  type gastosMensualesEntradaSchema,
+} from './gastos-mensuales';
+import {
   requiresOtherDetail,
   tipoProcesoLabel,
 } from '@/features/case/proceso-judicial-tipos';
@@ -143,6 +148,29 @@ const JSON_ARRAY_FIELDS = [
   'apoyoClausulas',
   'serviciosManutencion',
 ] as const;
+
+/**
+ * Lo que el servidor escribe a partir del bloque "Gastos mensuales".
+ *
+ * El total y los equivalentes mensuales los calcula el servidor con
+ * `calcularGastos` (regla del proyecto: reglas de negocio en el backend); lo
+ * que el cliente mande como total no se lee. `gastosMensuales` ausente del
+ * payload = no tocar las columnas. Bloque enviado sin ningún valor = detalle
+ * NULL, así el caso sigue resolviendo su gasto por la cadena legada.
+ */
+function gastosParaGuardar(
+  entrada: z.infer<typeof gastosMensualesEntradaSchema> | undefined,
+): { enviado: false } | { enviado: true; detalle: DetalleGastos | null } {
+  if (entrada === undefined) return { enviado: false };
+  const r = calcularGastos(entrada);
+  if (!r.ok) {
+    // Inalcanzable tras `parse`: el schema de borde valida con la misma función.
+    throw new Error(
+      `Gastos mensuales inválidos: ${r.errores.map((e) => e.mensaje).join('; ')}`,
+    );
+  }
+  return { enviado: true, detalle: r.detalle };
+}
 
 function sanitizeJsonFields<T extends Record<string, unknown>>(data: T): T {
   const copy = { ...data } as Record<string, unknown>;
@@ -534,8 +562,15 @@ export async function createCase(
       fechaCesacionPagos,
       propuestaFechaInicioPago,
       fechaRadicacion,
+      gastosMensuales,
       ...rest
     } = validatedInput;
+
+    const gastos = gastosParaGuardar(gastosMensuales);
+    // El gasto del deudor (dato maestro) se sincroniza con el total calculado
+    // aquí; antes lo hacía el cliente con un total que la UI nunca escribía.
+    const gastoDelDeudor =
+      gastos.enviado && gastos.detalle ? gastos.detalle.total : monthlyExpenses;
 
     let finalCaseNumber = caseNumber;
     if (!finalCaseNumber) {
@@ -590,11 +625,14 @@ export async function createCase(
     // reloj: es la que fija qué salario mínimo rige para la mínima cuantía.
     // Sin ella, `smmlvYearForCase` cae al año en curso, que para un caso que
     // se está creando es su propia fecha de creación.
-    const rulesCheck = validateCaseBusinessRules(validatedInput, {
-      mode: 'create',
-      debtorMaritalStatus: debtor.maritalStatus,
-      year: smmlvYearForCase({ filingDate: validatedInput.filingDate }),
-    });
+    const rulesCheck = validateCaseBusinessRules(
+      { ...validatedInput, monthlyExpenses: gastoDelDeudor },
+      {
+        mode: 'create',
+        debtorMaritalStatus: debtor.maritalStatus,
+        year: smmlvYearForCase({ filingDate: validatedInput.filingDate }),
+      },
+    );
 
     if (!rulesCheck.isValid) {
       return {
@@ -614,7 +652,7 @@ export async function createCase(
     // Update debtor income/expense info if provided
     if (
       monthlyIncome !== undefined ||
-      monthlyExpenses !== undefined ||
+      gastoDelDeudor !== undefined ||
       otherIncomeDescription !== undefined ||
       otherIncomeAmount !== undefined ||
       hasEmployerCertification !== undefined
@@ -626,7 +664,9 @@ export async function createCase(
         },
         data: {
           ...(monthlyIncome !== undefined && { monthlyIncome }),
-          ...(monthlyExpenses !== undefined && { monthlyExpenses }),
+          ...(gastoDelDeudor !== undefined && {
+            monthlyExpenses: gastoDelDeudor,
+          }),
           ...(otherIncomeDescription !== undefined && {
             otherIncomeDescription,
           }),
@@ -705,6 +745,11 @@ export async function createCase(
             fechaCesacionPagos: parseDateOnly(fechaCesacionPagos),
             propuestaFechaInicioPago: parseDateOnly(propuestaFechaInicioPago),
             fechaRadicacion: parseDateOnly(fechaRadicacion),
+            ...(gastos.enviado &&
+              gastos.detalle && {
+                gastosMensualesDetalle: gastos.detalle,
+                totalGastosMensuales: gastos.detalle.total,
+              }),
             // Note: debts, assets, and other relations are created separately after case creation
             assets:
               assets && assets.length > 0
@@ -1079,10 +1124,20 @@ export async function updateCase(
       otherIncomeDescription,
       otherIncomeAmount,
       hasEmployerCertification,
+      gastosMensuales,
       ...rest
     } = validatedInput;
 
     const safeRestUpdate = sanitizeJsonFields(rest);
+    const gastos = gastosParaGuardar(gastosMensuales);
+    // Columnas de gastos que escribe esta edición, en la forma del diff de
+    // auditoría (null, no DbNull). El `update` de abajo traduce el null.
+    const columnasDeGastos: Record<string, unknown> = gastos.enviado
+      ? {
+          gastosMensualesDetalle: gastos.detalle,
+          totalGastosMensuales: gastos.detalle?.total ?? null,
+        }
+      : {};
 
     // GC-M4 — las fechas se destructuran fuera de `rest`, así que no están en
     // `safeRestUpdate`. Para poder diffearlas hay que volverlas a parsear con
@@ -1116,6 +1171,7 @@ export async function updateCase(
     /** Exactamente lo que esta edición escribe en `Case`. */
     const camposEnviados: Record<string, unknown> = {
       ...safeRestUpdate,
+      ...columnasDeGastos,
       ...Object.fromEntries(
         Object.entries(fechasEnviadas).filter(([, v]) => v !== undefined),
       ),
@@ -1169,13 +1225,18 @@ export async function updateCase(
       // del 2 de enero reevaluaba la mínima cuantía contra un SMMLV distinto
       // del que regía al radicar. Si la edición cambia la fecha de radicación,
       // manda la nueva.
-      const rulesCheck = validateCaseBusinessRules(validatedInput, {
-        mode: 'update',
-        year: smmlvYearForCase({
-          filingDate: validatedInput.filingDate ?? current.filingDate,
-          createdDate: current.createdDate,
-        }),
-      });
+      const rulesCheck = validateCaseBusinessRules(
+        gastos.enviado && gastos.detalle
+          ? { ...validatedInput, monthlyExpenses: gastos.detalle.total }
+          : validatedInput,
+        {
+          mode: 'update',
+          year: smmlvYearForCase({
+            filingDate: validatedInput.filingDate ?? current.filingDate,
+            createdDate: current.createdDate,
+          }),
+        },
+      );
       if (!rulesCheck.isValid) {
         throw new Error(
           `El expediente no cumple las reglas del trámite: ${formatValidationErrors(rulesCheck)}`,
@@ -1230,6 +1291,10 @@ export async function updateCase(
         where: { id, tenantId },
         data: {
           ...safeRestUpdate,
+          ...(gastos.enviado && {
+            gastosMensualesDetalle: gastos.detalle ?? Prisma.DbNull,
+            totalGastosMensuales: gastos.detalle?.total ?? null,
+          }),
           version: { increment: 1 },
           // Condicional: el schema declara los dos ids como opcionales, pero el
           // `connect` era incondicional, asi que CUALQUIER updateCase que no los

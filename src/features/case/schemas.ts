@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { CASE_PHASE_VALUES } from '@/lib/case-phases';
 import { requiresOtherDetail } from '@/features/case/proceso-judicial-tipos';
 import { parsearMonto } from './monto';
+import { gastosMensualesEntradaSchema } from './gastos-mensuales';
 
 /**
  * Fase del expediente restringida a las fases conocidas (C-1).
@@ -895,6 +896,12 @@ export const caseSchema = z.object({
     .optional()
     .nullable(),
 
+  // Detalle de gastos mensuales (forma `DetalleGastos`). Se tipa `unknown` a
+  // propósito: quien lo lee pasa por `resolverGastosDelCaso` /
+  // `leerDetalleGuardado`, que validan la forma y caen a los campos legados si
+  // está corrupto, en vez de romper la carga del caso.
+  gastosMensualesDetalle: z.unknown().optional(),
+
   // ============================================================
   // FORMULARIO DEFINITIVO - Sección IX: Propuesta Inicial de Pago
   // ============================================================
@@ -1245,6 +1252,10 @@ export const createCaseSchema = z.object({
   gastosSalud: montoOpcional(),
   otrosGastos: montoOpcional(),
   totalGastosMensuales: montoOpcional(),
+  // Gastos mensuales por concepto. El servidor calcula equivalentes y total
+  // (`calcularGastos`) y escribe `gastosMensualesDetalle` y
+  // `totalGastosMensuales`. Ver src/features/case/gastos-mensuales.ts.
+  gastosMensuales: gastosMensualesEntradaSchema.optional(),
   capacidadPagoEstimada: montoOpcional(),
   patrimonioTotalEstimado: montoOpcional(),
   pasivoTotalEstimado: montoOpcional(),
@@ -1662,6 +1673,10 @@ export const updateCaseSchema = z.object({
   gastosSalud: montoOpcional(),
   otrosGastos: montoOpcional(),
   totalGastosMensuales: montoOpcional(),
+  // Gastos mensuales por concepto. El servidor calcula equivalentes y total
+  // (`calcularGastos`) y escribe `gastosMensualesDetalle` y
+  // `totalGastosMensuales`. Ver src/features/case/gastos-mensuales.ts.
+  gastosMensuales: gastosMensualesEntradaSchema.optional(),
   capacidadPagoEstimada: montoOpcional(),
   patrimonioTotalEstimado: montoOpcional(),
   pasivoTotalEstimado: montoOpcional(),
