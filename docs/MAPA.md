@@ -10,7 +10,7 @@ Convención del proyecto: la API son **server actions** en `src/features/<domini
 
 | Quiero tocar…               | Lógica (servidor)                                                                   | UI                                                        |
 | --------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Casos / expedientes         | `src/features/case/actions.ts` + 15 módulos auxiliares                              | `src/app/cases/components/` (60 archivos)                 |
+| Casos / expedientes         | `src/features/case/actions.ts` + 16 módulos auxiliares                              | `src/app/cases/components/` (60 archivos)                 |
 | Generación de documentos    | `src/features/document/` (16 archivos + `placeholders/`)                            | `src/app/documents/`                                      |
 | Acreedores                  | `src/features/creditor/actions.ts`                                                  | `src/app/creditors/`                                      |
 | Deudores                    | `src/features/debtor/actions.ts`                                                    | `src/app/debtors/`                                        |
@@ -24,14 +24,14 @@ Convención del proyecto: la API son **server actions** en `src/features/<domini
 | Auditoría                   | `src/features/audit-log/actions.ts`, `src/features/case/audit-diff.ts`              | `src/app/audit-log/`                                      |
 | Esquema de BD               | `src/prisma/schema.prisma` (~1.094 líneas), migraciones en `src/prisma/migrations/` | —                                                         |
 
-## 2. Módulos del dominio `case` (los 15 auxiliares)
+## 2. Módulos del dominio `case` (los 16 auxiliares)
 
 `actions.ts` es el punto de entrada; el resto son reglas de negocio puras, importables desde tests:
 
 - **Validación y forma del caso:** `schemas.ts`, `validation-rules.ts`, `datos-desconocidos.ts`
 - **Bienes:** `asset-category-types.ts`, `asset-type-fields.ts`, `asset-labels.ts`
 - **Apoderados:** `apoderados.ts`, `apoderado-acreedor.ts`
-- **Insolvencia:** `causas-insolvencia.ts`, `monto.ts`, `servicios-manutencion.ts`
+- **Insolvencia:** `causas-insolvencia.ts`, `monto.ts`, `gastos-mensuales.ts` (catálogo, divisores, cálculo y lectura de legados de los gastos mensuales; lo usan formulario, actions, documentos y Excel), `servicios-manutencion.ts` (widget retirado; solo lectura de datos viejos)
 - **Proceso judicial:** `proceso-judicial-tipos.ts`
 - **Libranzas:** `libranza-prefill.ts`
 - **Acceso y auditoría:** `case-access.ts` (scoping multi-tenant), `audit-diff.ts`
