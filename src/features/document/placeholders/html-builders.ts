@@ -26,7 +26,10 @@ import type { CaseWithRelations } from '../../case/schemas';
 import { nowColombia, COLOMBIA_TZ } from '@/lib/date-colombia';
 import { escapePlaceholder } from './escape';
 import { formatCurrency } from './format';
-import { resolverGastosDelCaso } from '../../case/gastos-mensuales';
+import {
+  GRUPOS_GASTO,
+  resolverGastosDelCaso,
+} from '../../case/gastos-mensuales';
 
 // Generate Detalle de Bienes HTML
 export function generateDetalleBienes(
@@ -338,6 +341,8 @@ export function generatePropuestaPagoHtml(caseData: CaseWithRelations): string {
 }
 
 const FILA_SIN_CORTE = 'page-break-inside: avoid; break-inside: avoid;';
+const TITULO_OTROS_GASTOS =
+  GRUPOS_GASTO.find((g) => g.id === 'OTROS')?.titulo ?? 'Otros gastos';
 const CELDA_VALOR = 'text-align: right; white-space: nowrap;';
 
 /**
@@ -362,12 +367,18 @@ export function generateGastosMensualesHtml(
   caseData: CaseWithRelations,
 ): string {
   const gastos = resolverGastosDelCaso(caseData);
-  const filas = gastos.lineas
-    .map(
-      (l) =>
-        `<tr style="${FILA_SIN_CORTE}"><td style="word-break: break-word; overflow-wrap: anywhere;">${escapePlaceholder(l.etiqueta)}</td><td style="${CELDA_VALOR}">${formatCurrency(l.mensual)}</td></tr>`,
-    )
-    .join('');
+  const fila = (l: (typeof gastos.lineas)[number]) =>
+    `<tr style="${FILA_SIN_CORTE}"><td style="word-break: break-word; overflow-wrap: anywhere;">${escapePlaceholder(l.etiqueta)}</td><td style="${CELDA_VALOR}">${formatCurrency(l.mensual)}</td></tr>`;
+  const delCatalogo = gastos.lineas.filter((l) => l.grupo !== 'OTROS');
+  const otros = gastos.lineas.filter((l) => l.grupo === 'OTROS');
+  // Las filas libres van bajo el subtítulo del grupo ("Otros gastos"), el mismo
+  // texto del formulario; sin filas libres no se imprime el subtítulo.
+  const subtituloOtros =
+    otros.length > 0
+      ? `<tr style="${FILA_SIN_CORTE}"><td colspan="2" style="font-weight: bold; background-color: #f4f6f7;">${TITULO_OTROS_GASTOS}</td></tr>`
+      : '';
+  const filas =
+    delCatalogo.map(fila).join('') + subtituloOtros + otros.map(fila).join('');
 
   return `<table class="table-std tabla-gastos-mensuales">
   <colgroup><col style="width: 70%;"><col style="width: 30%;"></colgroup>

@@ -35,7 +35,7 @@ export const GRUPOS_GASTO = [
   { id: 'FAMILIA', titulo: 'Familia' },
   { id: 'TRANSPORTE', titulo: 'Transporte' },
   { id: 'IMPUESTOS', titulo: 'Impuestos' },
-  { id: 'OTROS', titulo: 'Otros' },
+  { id: 'OTROS', titulo: 'Otros gastos' },
 ] as const;
 
 export type GrupoGasto = (typeof GRUPOS_GASTO)[number]['id'];

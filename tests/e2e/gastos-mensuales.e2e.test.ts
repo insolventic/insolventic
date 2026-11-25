@@ -69,7 +69,7 @@ test.describe('Gastos mensuales por concepto', () => {
       '100.000',
     );
 
-    await dialogo.getByRole('button', { name: /Agregar gasto/ }).click();
+    await dialogo.getByRole('button', { name: /Agregar otro gasto/ }).click();
     const concepto = dialogo.getByLabel('Concepto del gasto 1');
     await expect(concepto).toBeFocused();
     await concepto.fill(CONCEPTO_OTRO);

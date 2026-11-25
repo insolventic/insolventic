@@ -35,6 +35,10 @@ import {
 } from '@/features/case/gastos-mensuales';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
 
+/** Mismo texto que el grupo en el catálogo y en la §9 de la Solicitud. */
+const TITULO_OTROS =
+  GRUPOS_GASTO.find((g) => g.id === 'OTROS')?.titulo ?? 'Otros gastos';
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('es-CO', {
     style: 'currency',
@@ -98,7 +102,7 @@ export function GastosMensualesSection() {
   const quitarOtro = (index: number) => {
     remove(index);
     // El foco no se pierde: pasa al botón de quitar de la fila que ocupa el
-    // lugar, o al de "Agregar gasto" si era la última.
+    // lugar, o al de "Agregar otro gasto" si era la última.
     requestAnimationFrame(() => {
       const siguiente = document.getElementById(`gasto-otro-quitar-${index}`);
       (siguiente ?? botonAgregarRef.current)?.focus();
@@ -220,7 +224,7 @@ export function GastosMensualesSection() {
 
         {/* Otros: lista libre */}
         <fieldset className="rounded-lg border p-4">
-          <legend className="px-1 text-sm font-semibold">Otros</legend>
+          <legend className="px-1 text-sm font-semibold">{TITULO_OTROS}</legend>
           {fields.length === 0 ? (
             <p className="text-muted-foreground mb-3 text-sm">
               Sin otros gastos. Use el botón para agregar uno (por ejemplo,
@@ -306,7 +310,7 @@ export function GastosMensualesSection() {
             }
           >
             <Plus className="mr-2 h-4 w-4" />
-            Agregar gasto
+            Agregar otro gasto
           </Button>
         </fieldset>
 

@@ -69,7 +69,7 @@ const sinNbsp = (texto: string) => texto.replace(/ /g, ' ');
 function filas(seccion: string): [string, string][] {
   return [
     ...seccion.matchAll(
-      /<tr[^>]*>\s*<td[^>]*>(.*?)<\/td>\s*<td[^>]*>(.*?)<\/td>\s*<\/tr>/g,
+      /<tr[^>]*>\s*<td[^>]*>((?:(?!<\/tr>).)*?)<\/td>\s*<td[^>]*>((?:(?!<\/tr>).)*?)<\/td>\s*<\/tr>/g,
     ),
   ].map((m) => [
     m[1].replace(/<[^>]+>/g, ''),
@@ -208,10 +208,11 @@ describe('Solicitud de Insolvencia — §9 detalle de gastos', () => {
       'TOTAL GASTOS MENSUALES',
       `$ ${(MAX_OTROS_GASTOS * 1000).toLocaleString('es-CO')}`,
     ]);
-    // Cada fila evita partirse y el concepto hace salto de línea.
+    // Cada fila evita partirse (las 50 y el subtítulo "Otros gastos") y el
+    // concepto hace salto de línea.
     expect(
       s9.match(/<tr style="page-break-inside: avoid; break-inside: avoid;">/g),
-    ).toHaveLength(MAX_OTROS_GASTOS);
+    ).toHaveLength(MAX_OTROS_GASTOS + 1);
     expect(s9).toContain('overflow-wrap: anywhere');
     expect(s9).toContain('display: table-header-group');
   });
@@ -264,6 +265,43 @@ describe('Solicitud de Insolvencia — §9 detalle de gastos', () => {
     );
     expect(seccion9(html)).not.toContain('<img');
     expect(seccion9(html)).toContain('&lt;img');
+  });
+});
+
+describe('§9 — subtítulo "Otros gastos"', () => {
+  const SUBTITULO = /<td colspan="2"[^>]*>Otros gastos<\/td>/;
+
+  it('agrupa las filas libres bajo "Otros gastos", después de los conceptos fijos', () => {
+    const { html } = render(
+      'solicitud-insolvencia',
+      casoCon({
+        ...SIN_LEGADO,
+        gastosMensualesDetalle: detalle({
+          conceptos: { ARRIENDO: { valor: '800.000' } },
+          otros: [{ concepto: 'Gas', valor: '45.000' }],
+        }),
+      }),
+    );
+    const s9 = seccion9(html);
+    expect(s9).toMatch(SUBTITULO);
+    const posArriendo = s9.indexOf('Arriendo');
+    const posSubtitulo = s9.search(SUBTITULO);
+    const posGas = s9.indexOf('>Gas<');
+    expect(posArriendo).toBeLessThan(posSubtitulo);
+    expect(posSubtitulo).toBeLessThan(posGas);
+  });
+
+  it('sin filas libres no imprime el subtítulo', () => {
+    const { html } = render(
+      'solicitud-insolvencia',
+      casoCon({
+        ...SIN_LEGADO,
+        gastosMensualesDetalle: detalle({
+          conceptos: { ARRIENDO: { valor: '800.000' } },
+        }),
+      }),
+    );
+    expect(seccion9(html)).not.toMatch(SUBTITULO);
   });
 });
 

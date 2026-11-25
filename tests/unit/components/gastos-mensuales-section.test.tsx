@@ -69,7 +69,7 @@ describe('GastosMensualesSection', () => {
       'Familia',
       'Transporte',
       'Impuestos',
-      'Otros',
+      'Otros gastos',
     ]) {
       expect(
         screen.getByText(grupo, { selector: 'legend' }),
@@ -155,7 +155,9 @@ describe('GastosMensualesSection', () => {
     it('agregar una fila enfoca su concepto y suma su valor', async () => {
       montar();
       act(() => {
-        fireEvent.click(screen.getByRole('button', { name: /Agregar gasto/ }));
+        fireEvent.click(
+          screen.getByRole('button', { name: /Agregar otro gasto/ }),
+        );
       });
       const concepto = await screen.findByLabelText('Concepto del gasto 1');
       await waitFor(() => expect(concepto).toHaveFocus());
@@ -167,7 +169,9 @@ describe('GastosMensualesSection', () => {
     it('exige concepto si hay valor (al salir del campo)', async () => {
       montar();
       act(() => {
-        fireEvent.click(screen.getByRole('button', { name: /Agregar gasto/ }));
+        fireEvent.click(
+          screen.getByRole('button', { name: /Agregar otro gasto/ }),
+        );
       });
       const concepto = await screen.findByLabelText('Concepto del gasto 1');
       escribir(campo('Valor mensual del gasto 1'), '1000');
@@ -213,7 +217,7 @@ describe('GastosMensualesSection', () => {
       });
       await waitFor(() =>
         expect(
-          screen.getByRole('button', { name: /Agregar gasto/ }),
+          screen.getByRole('button', { name: /Agregar otro gasto/ }),
         ).toHaveFocus(),
       );
       expect(pesos(total())).toBe('$ 0');
