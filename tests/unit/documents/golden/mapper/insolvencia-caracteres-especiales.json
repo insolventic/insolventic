@@ -106,6 +106,8 @@
   "DIA_PROXIMA": "",
   "DIA_VIGENCIA": "10",
   "DIRECCION_DEUDOR": "Calle 45 # 12-30, Torre &quot;B&quot;",
+  "DIRECTOR_CARGO": "DIRECTOR",
+  "DIRECTOR_NOMBRE": "MAXIMILIANO JARAMILLO RICAURTE",
   "EMAIL_DEUDOR": "ana.torres@example.com",
   "EMAIL_NOTIFICACIONES": "notificationEmail",
   "EMAIL_OPERADOR": "beatriz@example.com",

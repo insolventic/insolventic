@@ -52,6 +52,7 @@ import {
 import { asCaseWithRelations, fetchCaseForGeneration } from './persistence';
 import { templateVariants, jobKey } from './template-variants';
 import { prepareTemplate, variantDisplayName } from './prepare-template';
+import { mensajeDeDatosFaltantes } from './datos-faltantes';
 import { resolveCaseFolder } from './case-folder';
 import type { ArbolDeCarpeta } from '@/lib/google-drive';
 
@@ -1407,7 +1408,12 @@ export async function batchGenerateDocuments(input: {
             documentName: '',
             documentUrl: '',
             status: 'skipped',
-            error: `No se generó por datos incompletos. Falta: ${missing.slice(0, 6).join(', ')}${missing.length > 6 ? ` y ${missing.length - 6} más` : ''}.`,
+            error: mensajeDeDatosFaltantes(
+              missing,
+              variantPlaceholders,
+              (resto) =>
+                `No se generó por datos incompletos. Falta: ${resto.slice(0, 6).join(', ')}${resto.length > 6 ? ` y ${resto.length - 6} más` : ''}.`,
+            ),
             missingFields: missing,
           });
           continue;
