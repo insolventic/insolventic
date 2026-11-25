@@ -115,6 +115,7 @@ describe.each(acciones)(
     it('sin carpeta guardada, la crea con resolveCaseFolder y genera en ella (antes respondía error)', async () => {
       mockFetchCase.mockResolvedValue({
         id: 'caso-1',
+        type: 'INSOLVENCY',
         driveFolderId: null,
         layoutVersion: 0,
       });
@@ -137,6 +138,7 @@ describe.each(acciones)(
     it('caso v0 con carpeta guardada: genera en ella y conserva el layout 0', async () => {
       mockFetchCase.mockResolvedValue({
         id: 'caso-1',
+        type: 'INSOLVENCY',
         driveFolderId: 'carpeta-v0',
         layoutVersion: 0,
       });

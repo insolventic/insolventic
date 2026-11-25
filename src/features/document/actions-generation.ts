@@ -19,7 +19,9 @@ import {
   regenerateDocument,
   type GeneratedDocument,
 } from './generate-documents';
-import { getAllTemplates } from './templates-config';
+import { getAllTemplates, resolveTemplatesToProcess } from './templates-config';
+import { isCaseType, isPlantillasDeOtroTipoError } from './tipo-de-caso';
+import { logger } from '@/lib/logger';
 import { resolveCaseFolder } from './case-folder';
 import {
   asCaseWithRelations,
@@ -133,6 +135,22 @@ export async function regenerateCaseDocument(input: {
     // una segunda consulta.
     await assertCaseAccessOnRow({ caseRow: caseData, user, tenantId });
 
+    // La plantilla tiene que ser del tipo del caso, como en la generación
+    // manual (`resolveTemplatesToProcess`). Se comprueba antes de
+    // resolveCaseFolder, que puede crear la carpeta en Drive. Un id que no
+    // existe sigue llegando a regenerateDocument, que responde "Plantilla no
+    // encontrada".
+    if (!isCaseType(caseData.type)) {
+      return {
+        success: false,
+        error: `Tipo de caso desconocido: ${caseData.type}`,
+      };
+    }
+    resolveTemplatesToProcess({
+      caseType: caseData.type,
+      templateIds: [templateId],
+    });
+
     // Sin carpeta, se crea (resolveCaseFolder) en vez de rechazar la
     // generación. El layout guardado decide si se anida en 01-Generados.
     const carpeta = await resolveCaseFolder(caseId, tenantId);
@@ -187,7 +205,15 @@ export async function regenerateCaseDocument(input: {
 
     return { success: true, data: result };
   } catch (error) {
-    console.error('Error regenerating document:', error);
+    if (isPlantillasDeOtroTipoError(error)) {
+      logger.warn('Regenerar con una plantilla de otro tipo de caso', {
+        action: 'regenerate-case-document',
+        caseType: error.caseType,
+        templateIds: error.templateIds,
+      });
+    } else {
+      console.error('Error regenerating document:', error);
+    }
     return {
       success: false,
       error:
