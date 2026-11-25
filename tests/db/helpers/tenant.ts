@@ -193,7 +193,8 @@ export function wizardSubmit(data: Record<string, unknown>) {
       spouseName || (d.conyugeNombreCompleto as string) || '',
     monthlyIncome:
       (d.ingresoPrincipalMensual as number) || (d.monthlyIncome as number) || 0,
-    monthlyExpenses:
-      (d.totalGastosMensuales as number) || (d.monthlyExpenses as number) || 0,
+    // Igual que handleSubmit: el gasto del deudor lo fija el servidor con el
+    // total que calcula de `gastosMensuales`; esto es solo el respaldo.
+    monthlyExpenses: (d.monthlyExpenses as number) || 0,
   };
 }

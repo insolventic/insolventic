@@ -522,6 +522,9 @@ describe('lo que el wizard envía queda guardado', () => {
     'otherIncomeDescription',
     'otherIncomeAmount',
     'hasEmployerCertification',
+    // Bloque de gastos del formulario: se guarda como gastosMensualesDetalle
+    // (lo verifica tests/db/gastos-mensuales.db.test.ts).
+    'gastosMensuales',
     'debtorId',
     'operatorId',
     'caseNumber',

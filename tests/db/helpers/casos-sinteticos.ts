@@ -579,34 +579,27 @@ const I1_FORM: Record<string, unknown> = {
   totalIngresosMensuales: 4470000,
   ingresosVariablesPromedio: 180000,
   ingresosNoOperacionales: 95000,
-  gastosVivienda: 1250000,
-  gastosAlimentacion: 720000,
-  gastosServiciosPublicos: 310000,
-  gastosTransporte: 260000,
-  gastosEducacion: 380000,
-  gastosSalud: 140000,
-  otrosGastos: 60000,
-  totalGastosMensuales: 3120000,
   capacidadPagoEstimada: 1350000,
   patrimonioTotalEstimado: 212000000,
   pasivoTotalEstimado: 98450000,
-  serviciosManutencion: [
-    {
-      tipo: 'GAS',
-      nombre: 'Gas natural Vanti',
-      descripcion: 'Promedio 48.000',
+  // Gastos mensuales por concepto (Sección III). Total 3.120.000, igual que
+  // el monthlyExpenses del deudor de este fixture.
+  gastosMensuales: {
+    conceptos: {
+      ARRIENDO: { valor: '1.250.000' },
+      AGUA: { valor: '92.000' },
+      LUZ: { valor: '60.000' },
+      INTERNET: { valor: '110.000' },
+      ALIMENTOS: { valor: '720.000' },
+      SALUD: { valor: '140.000' },
+      EDUCACION: { valor: '380.000' },
+      TRANSPORTE: { valor: '260.000' },
     },
-    {
-      tipo: 'AGUA',
-      nombre: 'Acueducto de Bogotá',
-      descripcion: 'Promedio 92.000',
-    },
-    {
-      tipo: 'OTRO',
-      nombre: 'Internet y telefonía Claro',
-      descripcion: 'Plan hogar 110.000',
-    },
-  ],
+    otros: [
+      { concepto: 'Gas natural Vanti', valor: '48.000' },
+      { concepto: 'Otros gastos del hogar', valor: '60.000' },
+    ],
+  },
   // Cesación de pagos
   cesacionPagos: true,
   fechaCesacionPagos: '2025-09-30',
