@@ -60,3 +60,28 @@
   line-height: 1.8;
   font-size: 12px;
 }
+
+/* Bloque de cierre (firma-y-pie): mismas reglas que styles-base.css (ver el
+   porqué allí). Se repiten por lo mismo que el membrete de arriba: esta hoja
+   no recibe la base. */
+:has(+ .firma-y-pie > .continuacion:first-child) {
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.firma-y-pie > .continuacion:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+@media print {
+  .firma-y-pie {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .firma-y-pie > .firma-section {
+    break-before: auto;
+    page-break-before: auto;
+  }
+}

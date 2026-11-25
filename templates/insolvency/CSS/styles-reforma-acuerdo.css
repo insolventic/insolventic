@@ -184,3 +184,17 @@ p strong {
   flex-direction: column;
   justify-content: flex-start;
 }
+
+/* El bloque de cierre (firma-y-pie, ver styles-base.css) es un ítem más de
+   esta columna: adentro se apila igual, sin colapsar márgenes, y su primer
+   párrafo conserva el espacio de la regla de los placeholders. */
+.firma-y-pie {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.cuadro-placeholder + .firma-y-pie > p:first-child,
+.proyeccion-placeholder + .firma-y-pie > p:first-child {
+  margin-top: 20px;
+}
