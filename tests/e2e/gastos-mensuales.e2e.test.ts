@@ -156,7 +156,9 @@ test.describe('Gastos mensuales por concepto', () => {
           )
           .toBe('$ 945.000');
       }
-      await page.keyboard.press('Escape');
+      // El diálogo no se cierra con Esc (blindaje): se cierra con "Cancelar";
+      // sin cambios, cierra sin pedir confirmación.
+      await edicion.getByRole('button', { name: 'Cancelar' }).click();
       await expect(edicion).toBeHidden();
     }
     expect(encontrado).toBe(true);

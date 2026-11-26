@@ -10,14 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+  useCambiosSinGuardar,
+  useIntentarCerrar,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { normalizeCausas } from '@/features/case/causas-insolvencia';
 
@@ -220,7 +227,39 @@ const FRIENDLY_ERROR_MESSAGES: Record<string, string> = {
   applicantSignatureId: 'Identificación del firmante requerida',
 };
 
-export function CreateCaseDialog({
+/**
+ * Versión del borrador del alta de caso. Subirla cuando cambie la forma del
+ * formulario de modo que un borrador viejo ya no se pueda restaurar.
+ */
+const VERSION_BORRADOR_CASO_NUEVO = 1;
+
+/**
+ * Diálogo de alta de caso: solo el contenedor (blindado contra cierres
+ * accidentales). El formulario vive en `CreateCaseWizard`, que no depende del
+ * diálogo y se puede montar en una página completa.
+ */
+export function CreateCaseDialog(props: Readonly<CreateCaseDialogProps>) {
+  return (
+    <DialogBlindado open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContentBlindado className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+        <DialogHeader>
+          <DialogTitle>Crear Nuevo Caso</DialogTitle>
+          <DialogDescription>
+            Complete la información para crear un nuevo caso de insolvencia
+          </DialogDescription>
+        </DialogHeader>
+        <CreateCaseWizard {...props} />
+      </DialogContentBlindado>
+    </DialogBlindado>
+  );
+}
+
+/**
+ * El asistente de alta de caso (las pestañas, el envío y las subidas), sin
+ * contenedor. `onOpenChange(false)` es "terminé": el contenedor decide qué
+ * significa (cerrar el diálogo, navegar…).
+ */
+export function CreateCaseWizard({
   open,
   onOpenChange,
   onCaseCreated,
@@ -277,7 +316,27 @@ export function CreateCaseDialog({
 
   const [isPending, startTransition] = useTransition();
 
-  const dialogContentRef = useRef<HTMLDivElement>(null);
+  // Raíz del asistente: para volver arriba al cambiar de pestaña y para buscar
+  // el primer campo con error, sin depender del contenedor.
+  const raizRef = useRef<HTMLDivElement>(null);
+
+  // Persistencia del formulario: borrador en el navegador y blindaje del
+  // cierre. Los adjuntos no entran al borrador (solo sus nombres) pero sí
+  // cuentan como cambios sin guardar.
+  const [hayAdjuntos, setHayAdjuntos] = useState(false);
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: `caso-nuevo:${initialType}`,
+    version: VERSION_BORRADOR_CASO_NUEVO,
+    activo: open,
+    extra: () => ({
+      adjuntos: documentsToUploadRef.current.flatMap((d) =>
+        d.files.map((f) => `${d.docName}: ${f.name}`),
+      ),
+    }),
+  });
+  useCambiosSinGuardar(form.formState.isDirty || hayAdjuntos);
+  const intentarCerrar = useIntentarCerrar();
 
   // Dynamic tabs based on case type
   const watchedType = form.watch('type');
@@ -317,7 +376,7 @@ export function CreateCaseDialog({
 
   // Scroll to top when tab changes
   useEffect(() => {
-    dialogContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    raizRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [activeTab]);
 
   // Los documentos obligatorios faltantes se pintan en rojo solo después de
@@ -342,7 +401,7 @@ export function CreateCaseDialog({
   useEffect(() => {
     if (!enfocarPrimerError) return;
     const frame = requestAnimationFrame(() => {
-      dialogContentRef.current
+      raizRef.current
         ?.querySelector<HTMLElement>(
           '[role="tabpanel"][data-state="active"] :is(input, button, select, textarea)[aria-invalid="true"]:not(:disabled)',
         )
@@ -357,6 +416,7 @@ export function CreateCaseDialog({
       setActiveTab(TAB_ORDER[0]);
       setMostrarDocumentosFaltantes(false);
       documentsToUploadRef.current = [];
+      setHayAdjuntos(false);
       form.reset({
         debtorId: '',
         type: initialType,
@@ -805,6 +865,7 @@ export function CreateCaseDialog({
 
         // Clear ref, reset form, and close dialog AFTER upload completes
         documentsToUploadRef.current = [];
+        borrador.limpiar();
         form.reset();
         onOpenChange(false);
         onCaseCreated?.();
@@ -1230,223 +1291,217 @@ export function CreateCaseDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          ref={dialogContentRef}
-          className="max-h-[90vh] overflow-y-auto sm:max-w-6xl"
-        >
-          <DialogHeader>
-            <DialogTitle>Crear Nuevo Caso</DialogTitle>
-            <DialogDescription>
-              Complete la información para crear un nuevo caso de insolvencia
-            </DialogDescription>
-          </DialogHeader>
-
-          <FormProvider {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit, onInvalid)}>
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="space-y-4"
-              >
-                <TabsList className="flex w-full flex-wrap gap-1">
-                  {(watchedType === 'CONCILIATION'
+      <div ref={raizRef} className="scroll-mt-24 space-y-4">
+        <AvisoBorrador borrador={borrador} />
+        <FormProvider {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit, onInvalid)}>
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="space-y-4"
+            >
+              <TabsList className="flex w-full flex-wrap gap-1">
+                {(watchedType === 'CONCILIATION'
+                  ? [
+                      { value: 'debtor', label: '1. Solicitante' },
+                      { value: 'conc-parties', label: '2. Partes' },
+                      { value: 'conc-details', label: '3. Solicitud' },
+                    ]
+                  : watchedType === 'SUPPORT_AGREEMENT'
                     ? [
                         { value: 'debtor', label: '1. Solicitante' },
-                        { value: 'conc-parties', label: '2. Partes' },
-                        { value: 'conc-details', label: '3. Solicitud' },
+                        { value: 'apoyo-parties', label: '2. Partes' },
+                        { value: 'apoyo-details', label: '3. Acuerdo' },
                       ]
-                    : watchedType === 'SUPPORT_AGREEMENT'
-                      ? [
-                          { value: 'debtor', label: '1. Solicitante' },
-                          { value: 'apoyo-parties', label: '2. Partes' },
-                          { value: 'apoyo-details', label: '3. Acuerdo' },
-                        ]
-                      : [
-                          { value: 'debtor', label: '1. Solicitante' },
-                          { value: 'situation', label: '2. Situación' },
-                          { value: 'creditors', label: '3. Acreedores' },
-                          { value: 'assets', label: '4. Bienes' },
-                          { value: 'proposal', label: '5. Propuesta' },
-                          { value: 'legal', label: '6. Legal' },
-                          { value: 'documents', label: '7. Documentos' },
-                        ]
-                  ).map((tab) => (
-                    <TabsTrigger
-                      key={tab.value}
-                      value={tab.value}
-                      className={`relative text-xs ${tabsWithErrors.has(tab.value) ? 'text-red-600 dark:text-red-400' : ''}`}
-                    >
-                      {tab.label}
-                      {tabsWithErrors.has(tab.value) && (
-                        <AlertCircle className="ml-1 h-3 w-3 text-red-500" />
-                      )}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-
-                {/* Tab 1: Solicitante — Deudor + Ámbito + Causas + Datos básicos */}
-                <TabsContent value="debtor" className="space-y-6">
-                  <DebtorSection
-                    debtors={debtors}
-                    selectedDebtorId={selectedDebtorId}
-                    selectedDebtor={selectedDebtor}
-                    onDebtorSelect={setSelectedDebtorId}
-                    onCreateDebtorClick={() => setShowCreateDebtorDialog(true)}
-                    onCauseChange={handleCauseChange}
-                    loading={dataLoading}
-                  />
-                  <ApplicantScopeSection />
-                  <CaseDetailsSection
-                    operators={operators}
-                    loadingOperators={dataLoading}
-                  />
-                </TabsContent>
-
-                {/* Tab 2: Situación — Cónyuge + Info laboral + Cesación + Procesos */}
-                <TabsContent value="situation" className="space-y-6">
-                  <ConyugeDefinitivoSection />
-                  <InfoLaboralSection />
-                  <CesacionPagosSection />
-                  <LegalProcessSection />
-                </TabsContent>
-
-                {/* Tab 3: Acreedores + Libranzas + Servicios Suspendidos */}
-                <TabsContent value="creditors" className="space-y-6">
-                  <CreditorsDetailedSection />
-                  <LibranzasSection />
-                  <SuspendedServicesSection />
-                </TabsContent>
-
-                {/* Tab 4: Bienes */}
-                <TabsContent value="assets" className="space-y-6">
-                  <AssetsSection />
-                </TabsContent>
-
-                {/* Tab 5: Propuesta de Pago */}
-                <TabsContent value="proposal" className="space-y-6">
-                  <PaymentProposalSection />
-                </TabsContent>
-
-                {/* Tab 6: Legal — Declaraciones + Notificaciones + Firma + Apoderado */}
-                <TabsContent value="legal" className="space-y-6">
-                  <DeclaracionesSection />
-                  <LegalFoundationsSection />
-                  <NotificationsSection />
-                  <ApoderadoSection />
-                  <SignatureSection />
-                </TabsContent>
-
-                {/* Tab 7: Documentos — Carga de archivos */}
-                <TabsContent value="documents" className="space-y-6">
-                  <DocumentsSection
-                    applicantScope={form.watch('applicantScope') ?? []}
-                    assets={form.watch('assets') ?? []}
-                    apoderados={form.watch('apoderados') ?? []}
-                    apoderadoNombreCompleto={
-                      form.watch('apoderadoNombreCompleto') ?? undefined
-                    }
-                    existePoderOtorgado={
-                      form.watch('existePoderOtorgado') ?? undefined
-                    }
-                    hasAttorney={
-                      !!form.watch('apoderadoNombreCompleto') ||
-                      !!form
-                        .watch('apoderados')
-                        ?.some((a) => a?.nombreCompleto?.trim())
-                    }
-                    mostrarFaltantes={mostrarDocumentosFaltantes}
-                    seleccionActual={documentsToUploadRef.current}
-                    onFilesSelected={(sel) => {
-                      documentsToUploadRef.current = sel;
-                    }}
-                  />
-                </TabsContent>
-
-                {/* Conciliation-specific tabs */}
-                <TabsContent value="conc-parties" className="space-y-6">
-                  <ConciliationPartiesSection />
-                </TabsContent>
-
-                <TabsContent value="conc-details" className="space-y-6">
-                  <ConciliationDetailsSection />
-                </TabsContent>
-
-                {/* Support agreement-specific tabs */}
-                <TabsContent value="apoyo-parties" className="space-y-6">
-                  <SupportAgreementPartiesSection />
-                </TabsContent>
-
-                <TabsContent value="apoyo-details" className="space-y-6">
-                  <SupportAgreementDetailsSection />
-                </TabsContent>
-              </Tabs>
-
-              {/* Validation Warnings */}
-              {validationWarnings.length > 0 && (
-                <Alert
-                  variant="default"
-                  className="border-amber-200 bg-amber-50"
-                >
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertTitle className="text-amber-800">
-                    Advertencias de coherencia
-                  </AlertTitle>
-                  <AlertDescription className="text-amber-700">
-                    <ul className="mt-2 list-disc pl-4">
-                      {validationWarnings.map((warning, index) => (
-                        <li key={index}>{warning.message}</li>
-                      ))}
-                    </ul>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <DialogFooter className="flex-col gap-2 sm:flex-row">
-                {isDevelopment && (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={fillTestData}
-                    className="bg-amber-100 text-amber-800 hover:bg-amber-200"
+                    : [
+                        { value: 'debtor', label: '1. Solicitante' },
+                        { value: 'situation', label: '2. Situación' },
+                        { value: 'creditors', label: '3. Acreedores' },
+                        { value: 'assets', label: '4. Bienes' },
+                        { value: 'proposal', label: '5. Propuesta' },
+                        { value: 'legal', label: '6. Legal' },
+                        { value: 'documents', label: '7. Documentos' },
+                      ]
+                ).map((tab) => (
+                  <TabsTrigger
+                    key={tab.value}
+                    value={tab.value}
+                    className={`relative text-xs ${tabsWithErrors.has(tab.value) ? 'text-red-600 dark:text-red-400' : ''}`}
                   >
-                    <FlaskConical className="mr-2 h-4 w-4" />
-                    Llenar datos de prueba
-                  </Button>
-                )}
-                <div className="flex gap-2">
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancelar</Button>
-                  </DialogClose>
-                  {/* Las `key` distintas no son decorativas. Sin ellas React
+                    {tab.label}
+                    {tabsWithErrors.has(tab.value) && (
+                      <AlertCircle className="ml-1 h-3 w-3 text-red-500" />
+                    )}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {/* Tab 1: Solicitante — Deudor + Ámbito + Causas + Datos básicos */}
+              <TabsContent value="debtor" className="space-y-6">
+                <DebtorSection
+                  debtors={debtors}
+                  selectedDebtorId={selectedDebtorId}
+                  selectedDebtor={selectedDebtor}
+                  onDebtorSelect={setSelectedDebtorId}
+                  onCreateDebtorClick={() => setShowCreateDebtorDialog(true)}
+                  onCauseChange={handleCauseChange}
+                  loading={dataLoading}
+                />
+                <ApplicantScopeSection />
+                <CaseDetailsSection
+                  operators={operators}
+                  loadingOperators={dataLoading}
+                />
+              </TabsContent>
+
+              {/* Tab 2: Situación — Cónyuge + Info laboral + Cesación + Procesos */}
+              <TabsContent value="situation" className="space-y-6">
+                <ConyugeDefinitivoSection />
+                <InfoLaboralSection />
+                <CesacionPagosSection />
+                <LegalProcessSection />
+              </TabsContent>
+
+              {/* Tab 3: Acreedores + Libranzas + Servicios Suspendidos */}
+              <TabsContent value="creditors" className="space-y-6">
+                <CreditorsDetailedSection />
+                <LibranzasSection />
+                <SuspendedServicesSection />
+              </TabsContent>
+
+              {/* Tab 4: Bienes */}
+              <TabsContent value="assets" className="space-y-6">
+                <AssetsSection />
+              </TabsContent>
+
+              {/* Tab 5: Propuesta de Pago */}
+              <TabsContent value="proposal" className="space-y-6">
+                <PaymentProposalSection />
+              </TabsContent>
+
+              {/* Tab 6: Legal — Declaraciones + Notificaciones + Firma + Apoderado */}
+              <TabsContent value="legal" className="space-y-6">
+                <DeclaracionesSection />
+                <LegalFoundationsSection />
+                <NotificationsSection />
+                <ApoderadoSection />
+                <SignatureSection />
+              </TabsContent>
+
+              {/* Tab 7: Documentos — Carga de archivos */}
+              <TabsContent value="documents" className="space-y-6">
+                <DocumentsSection
+                  applicantScope={form.watch('applicantScope') ?? []}
+                  assets={form.watch('assets') ?? []}
+                  apoderados={form.watch('apoderados') ?? []}
+                  apoderadoNombreCompleto={
+                    form.watch('apoderadoNombreCompleto') ?? undefined
+                  }
+                  existePoderOtorgado={
+                    form.watch('existePoderOtorgado') ?? undefined
+                  }
+                  hasAttorney={
+                    !!form.watch('apoderadoNombreCompleto') ||
+                    !!form
+                      .watch('apoderados')
+                      ?.some((a) => a?.nombreCompleto?.trim())
+                  }
+                  mostrarFaltantes={mostrarDocumentosFaltantes}
+                  seleccionActual={documentsToUploadRef.current}
+                  onFilesSelected={(sel) => {
+                    documentsToUploadRef.current = sel;
+                    setHayAdjuntos(sel.some((d) => d.files.length > 0));
+                  }}
+                />
+              </TabsContent>
+
+              {/* Conciliation-specific tabs */}
+              <TabsContent value="conc-parties" className="space-y-6">
+                <ConciliationPartiesSection />
+              </TabsContent>
+
+              <TabsContent value="conc-details" className="space-y-6">
+                <ConciliationDetailsSection />
+              </TabsContent>
+
+              {/* Support agreement-specific tabs */}
+              <TabsContent value="apoyo-parties" className="space-y-6">
+                <SupportAgreementPartiesSection />
+              </TabsContent>
+
+              <TabsContent value="apoyo-details" className="space-y-6">
+                <SupportAgreementDetailsSection />
+              </TabsContent>
+            </Tabs>
+
+            {/* Validation Warnings */}
+            {validationWarnings.length > 0 && (
+              <Alert variant="default" className="border-amber-200 bg-amber-50">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="text-amber-800">
+                  Advertencias de coherencia
+                </AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  <ul className="mt-2 list-disc pl-4">
+                    {validationWarnings.map((warning, index) => (
+                      <li key={index}>{warning.message}</li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <BotonDescartarBorrador borrador={borrador} />
+              {isDevelopment && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={fillTestData}
+                  className="bg-amber-100 text-amber-800 hover:bg-amber-200"
+                >
+                  <FlaskConical className="mr-2 h-4 w-4" />
+                  Llenar datos de prueba
+                </Button>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    (intentarCerrar ?? (() => onOpenChange(false)))()
+                  }
+                >
+                  Cancelar
+                </Button>
+                {/* Las `key` distintas no son decorativas. Sin ellas React
                       reutiliza el mismo <button> y solo le cambia el `type`:
                       el clic en "Siguiente" de la penúltima pestaña cambia de
                       pestaña, el re-render convierte ese botón en submit antes
                       de que el navegador ejecute la acción por defecto, y el
                       formulario se envía solo (errores, toast y vuelta a la
                       pestaña 1 sin que el usuario pulsara "Crear Caso"). */}
-                  {activeTab === lastTab ? (
-                    <Button key="crear" type="submit" disabled={isPending}>
-                      {isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creando...
-                        </>
-                      ) : (
-                        'Crear Caso'
-                      )}
-                    </Button>
-                  ) : (
-                    <Button key="siguiente" type="button" onClick={goToNextTab}>
-                      Siguiente
-                    </Button>
-                  )}
-                </div>
-              </DialogFooter>
-            </form>
-          </FormProvider>
-        </DialogContent>
-      </Dialog>
+                {activeTab === lastTab ? (
+                  <Button key="crear" type="submit" disabled={isPending}>
+                    {isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creando...
+                      </>
+                    ) : (
+                      'Crear Caso'
+                    )}
+                  </Button>
+                ) : (
+                  <Button key="siguiente" type="button" onClick={goToNextTab}>
+                    Siguiente
+                  </Button>
+                )}
+              </div>
+            </div>
+          </form>
+        </FormProvider>
+      </div>
 
       <CreateDebtorDialog
         open={showCreateDebtorDialog}

@@ -8,14 +8,21 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { normalizeCausas } from '@/features/case/causas-insolvencia';
 import { normalizeAssetType } from '@/features/case/asset-category-types';
@@ -83,6 +90,9 @@ interface EditCaseDialogProps {
   onCaseUpdated: () => void;
 }
 
+/** Versión del borrador de la edición de caso (ver useBorradorFormulario). */
+const VERSION_BORRADOR_CASO_EDICION = 1;
+
 export function EditCaseDialog({
   open,
   onOpenChange,
@@ -131,6 +141,27 @@ export function EditCaseDialog({
   });
 
   const [isPending, startTransition] = useTransition();
+
+  // Persistencia del formulario. El borrador se ofrece cuando el caso terminó
+  // de cargar (si no, la carga pisaría lo restaurado) y se descarta si el caso
+  // cambió de versión desde que se guardó.
+  const [hayAdjuntos, setHayAdjuntos] = useState(false);
+  const casoCargado = !dataLoading && initializedCaseId === caseData.id;
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'caso-edicion',
+    entidadId: caseData.id,
+    version: VERSION_BORRADOR_CASO_EDICION,
+    activo: open && casoCargado,
+    versionEntidad: casoCargado
+      ? String(form.getValues('version') ?? '')
+      : null,
+    extra: () => ({
+      adjuntos: documentsToUploadRef.current.flatMap((d) =>
+        d.files.map((f) => `${d.docName}: ${f.name}`),
+      ),
+    }),
+  });
 
   // Cancelar y reabrir no debe subir lo que se eligió antes: el diálogo no se
   // desmonta al cerrar, y el ref sobrevive.
@@ -454,6 +485,7 @@ export function EditCaseDialog({
         } else {
           toast.success('Caso actualizado exitosamente');
         }
+        borrador.limpiar();
         onCaseUpdated();
         onOpenChange(false);
         form.reset();
@@ -539,6 +571,7 @@ export function EditCaseDialog({
 
   useEffect(() => {
     if (!open) {
+      setHayAdjuntos(false);
       setSelectedDebtorId('');
       setSelectedDebtor(null);
       form.reset();
@@ -556,8 +589,12 @@ export function EditCaseDialog({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+      <DialogBlindado
+        open={open}
+        onOpenChange={onOpenChange}
+        hayCambios={form.formState.isDirty || hayAdjuntos}
+      >
+        <DialogContentBlindado className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Editar Caso {caseData.caseNumber}</DialogTitle>
             <DialogDescription>
@@ -565,6 +602,8 @@ export function EditCaseDialog({
               cambios se aplicarán inmediatamente.
             </DialogDescription>
           </DialogHeader>
+
+          <AvisoBorrador borrador={borrador} />
 
           <FormProvider {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -714,12 +753,14 @@ export function EditCaseDialog({
                   <DocumentsSection
                     onFilesSelected={(sel) => {
                       documentsToUploadRef.current = sel;
+                      setHayAdjuntos(sel.some((d) => d.files.length > 0));
                     }}
                   />
                 </TabsContent>
               </Tabs>
 
               <DialogFooter>
+                <BotonDescartarBorrador borrador={borrador} />
                 <DialogClose asChild>
                   <Button variant="outline">Cancelar</Button>
                 </DialogClose>
@@ -736,8 +777,8 @@ export function EditCaseDialog({
               </DialogFooter>
             </form>
           </FormProvider>
-        </DialogContent>
-      </Dialog>
+        </DialogContentBlindado>
+      </DialogBlindado>
 
       <CreateDebtorDialog
         open={showCreateDebtorDialog}
