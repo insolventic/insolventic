@@ -11,10 +11,12 @@ import { redirect } from 'next/navigation';
 import { verifyToken } from '@/lib/auth';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 import { getAllCases, getCaseStats } from '@/features/case/actions';
-import { CASES_PAGE_SIZE_DEFAULT } from '@/features/case/schemas';
+import type { CasesPage, CaseStats } from '@/features/case/schemas';
+import { logger } from '@/lib/logger';
 
 import { DashboardHeader } from '../dashboard/components/dashboard-header';
 import { CasesContent } from './components/cases-content';
+import { CasesLoadError } from './components/cases-load-error';
 
 /**
  * El listado se pide **por página**, y la página y los filtros viven en el
@@ -30,6 +32,51 @@ import { CasesContent } from './components/cases-content';
  * mínima 1, `pageSize` con tope) y cae al default ante cualquier basura.
  */
 type CasesSearchParams = Record<string, string | string[] | undefined>;
+
+/**
+ * El listado y las estadísticas, o `null` si cualquiera de los dos no se pudo
+ * cargar.
+ *
+ * Antes la página caía a `{ items: [], total: 0 }` cuando `getAllCases`
+ * fallaba, y la pantalla decía "Total Casos 0" sin avisar: el 2026-11-13 un
+ * Preview contra una rama de Neon sin la columna `deleted_at` se veía vacío
+ * con 3 casos en la base. Un fallo de carga no es una lista vacía, así que
+ * acá no hay valores por defecto: con error, la página muestra un aviso.
+ *
+ * Las estadísticas cuentan igual: unos contadores en cero junto a la lista
+ * engañan del mismo modo. El detalle (que puede ser el mensaje crudo de
+ * Prisma) se registra y no viaja al navegador.
+ */
+async function cargarCasos(
+  filtros: Parameters<typeof getAllCases>[0],
+): Promise<{ casesPage: CasesPage; stats: CaseStats } | null> {
+  try {
+    const [casesResult, statsResult] = await Promise.all([
+      getAllCases(filtros),
+      getCaseStats(),
+    ]);
+    if (
+      casesResult.success &&
+      casesResult.data &&
+      statsResult.success &&
+      statsResult.data
+    ) {
+      return { casesPage: casesResult.data, stats: statsResult.data };
+    }
+    logger.warn('No se pudo cargar /cases', {
+      action: 'cases-page',
+      casos: casesResult.success ? 'ok' : casesResult.error,
+      estadisticas: statsResult.success ? 'ok' : statsResult.error,
+    });
+    return null;
+  } catch (error) {
+    // Las acciones atrapan sus propios errores; esto es lo que se les escapa.
+    logger.error('Excepción al cargar /cases', error, {
+      action: 'cases-page',
+    });
+    return null;
+  }
+}
 
 function soloTexto(valor: string | string[] | undefined): string | undefined {
   return typeof valor === 'string' && valor.trim() !== '' ? valor : undefined;
@@ -60,17 +107,7 @@ export default async function CasesPage({
     type: soloTexto(sp.type),
   };
 
-  const [casesResult, statsResult] = await Promise.all([
-    getAllCases(filtros),
-    getCaseStats(),
-  ]);
-  const stats = statsResult.data;
-  const casesPage = casesResult.data ?? {
-    items: [],
-    total: 0,
-    page: 1,
-    pageSize: CASES_PAGE_SIZE_DEFAULT,
-  };
+  const carga = await cargarCasos(filtros);
 
   return (
     <PermissionGuard
@@ -92,23 +129,19 @@ export default async function CasesPage({
         </div>
       }
     >
-      <CasesContent
-        casesPage={casesPage}
-        filtros={{
-          search: filtros.search ?? '',
-          phase: filtros.phase ?? 'all',
-          type: filtros.type ?? 'all',
-        }}
-        stats={
-          stats || {
-            total: 0,
-            byType: [],
-            averageDebt: 0,
-            totalDebt: null,
-            totalCreditors: null,
-          }
-        }
-      />
+      {carga ? (
+        <CasesContent
+          casesPage={carga.casesPage}
+          filtros={{
+            search: filtros.search ?? '',
+            phase: filtros.phase ?? 'all',
+            type: filtros.type ?? 'all',
+          }}
+          stats={carga.stats}
+        />
+      ) : (
+        <CasesLoadError />
+      )}
     </PermissionGuard>
   );
 }
