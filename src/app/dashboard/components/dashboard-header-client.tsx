@@ -19,6 +19,7 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/use-auth';
 import { P } from '@/lib/permissions';
 import { getTenantTheme } from '@/lib/tenant-theme';
+import { limpiarBorradoresAlCerrarSesion } from '@/lib/borradores';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -68,11 +69,16 @@ export function DashboardHeaderClient() {
     router.back();
   };
 
+  // Los dos cierres de sesión que inicia la persona (en el menú de escritorio
+  // y en el móvil) borran sus borradores de formularios en este navegador. El
+  // cierre por inactividad no pasa por aquí y los conserva.
   const handleLogout = async () => {
+    limpiarBorradoresAlCerrarSesion(user);
     await logout();
   };
 
   const handleSwitchDatabase = async () => {
+    limpiarBorradoresAlCerrarSesion(user);
     await switchDatabase();
   };
 

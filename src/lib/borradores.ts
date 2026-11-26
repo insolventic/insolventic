@@ -272,3 +272,21 @@ export function almacenamientoLocal(): Storage | null {
     return null;
   }
 }
+
+/**
+ * Cierre de sesión INICIADO POR LA PERSONA ("Cerrar sesión" o "Cambiar
+ * organización" en el encabezado): borra los borradores de esa persona en este
+ * navegador. No se llama desde `logout()` a propósito: el cierre por
+ * inactividad (use-session-timeout) también pasa por ahí, y en ese caso, igual
+ * que ante un 401, el borrador debe sobrevivir para restaurarlo al volver.
+ */
+export function limpiarBorradoresAlCerrarSesion(
+  usuario: { id: string; tenantId: string } | null | undefined,
+): number {
+  const storage = almacenamientoLocal();
+  if (!storage || !usuario) return 0;
+  return limpiarBorradoresDeUsuario(storage, {
+    userId: usuario.id,
+    tenantId: usuario.tenantId,
+  });
+}
