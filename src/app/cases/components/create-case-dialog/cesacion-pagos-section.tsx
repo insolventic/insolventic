@@ -2,7 +2,7 @@
 
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useMemo } from 'react';
-import { Input } from '@/components/ui/input';
+import { Info } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
@@ -48,6 +48,10 @@ export function CesacionPagosSection() {
       minimumFractionDigits: 0,
     }).format(value);
 
+  // Mismo valor de siempre (redondeado a 2 decimales), con coma decimal es-CO.
+  const formatPorcentaje = (value: number) =>
+    `${value.toLocaleString('es-CO', { maximumFractionDigits: 2 })} %`;
+
   // Calculate total debt for display
   const totalDeuda = useMemo(
     () =>
@@ -84,46 +88,74 @@ export function CesacionPagosSection() {
       </div>
 
       {watch('cesacionPagos') && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Número de acreedores</Label>
-            <Input
-              type="text"
-              readOnly
-              className="bg-muted cursor-not-allowed font-semibold"
-              value={numAcreedores}
+        <section
+          aria-labelledby="titulo-cesacion-calculada"
+          className="bg-muted/40 rounded-lg border p-4"
+        >
+          <div className="mb-3 flex items-start gap-2">
+            <Info
+              className="text-muted-foreground mt-0.5 h-4 w-4 flex-shrink-0"
+              aria-hidden="true"
             />
-            <p className="text-muted-foreground text-xs">
-              Calculado desde los acreedores registrados (Pág. 3)
-            </p>
+            <div>
+              <h4
+                id="titulo-cesacion-calculada"
+                className="text-sm font-semibold"
+              >
+                Datos calculados de los acreedores
+              </h4>
+              <p className="text-muted-foreground text-xs">
+                Se calculan solos a partir de los acreedores registrados (Pág.
+                3). No se editan aquí.
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Porcentaje de pasivo en mora (%)</Label>
-            <Input
-              type="text"
-              readOnly
-              className="bg-muted cursor-not-allowed font-semibold"
-              value={`${porcentajeMora}%`}
-            />
-            <p className="text-muted-foreground text-xs">
-              Calculado según días de mora de cada acreedor
-            </p>
+          {/* Región viva: anuncia los nuevos valores cuando cambian los
+              acreedores registrados. */}
+          <div aria-live="polite" aria-atomic="true">
+            {numAcreedores === 0 ? (
+              <p
+                className="text-muted-foreground text-sm"
+                data-testid="cesacion-sin-acreedores"
+              >
+                Aún no hay acreedores registrados; estos valores se calcularán
+                automáticamente.
+              </p>
+            ) : (
+              <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="bg-background rounded-md p-3">
+                  <dt className="text-muted-foreground text-xs">
+                    Número de acreedores
+                  </dt>
+                  <dd className="text-lg font-semibold">{numAcreedores}</dd>
+                </div>
+                <div className="bg-background rounded-md p-3">
+                  <dt className="text-muted-foreground text-xs">
+                    Pasivo en mora
+                  </dt>
+                  <dd className="text-lg font-semibold">
+                    {formatPorcentaje(porcentajeMora)}
+                  </dd>
+                  <dd className="text-muted-foreground text-xs">
+                    Según los días de mora de cada acreedor
+                  </dd>
+                </div>
+                <div className="bg-background rounded-md p-3">
+                  <dt className="text-muted-foreground text-xs">
+                    Total de la deuda registrada
+                  </dt>
+                  <dd className="text-lg font-semibold">
+                    {formatCurrency(totalDeuda)}
+                  </dd>
+                  <dd className="text-muted-foreground text-xs">
+                    Suma del capital de todos los acreedores
+                  </dd>
+                </div>
+              </dl>
+            )}
           </div>
-
-          <div className="space-y-2">
-            <Label>Total deuda registrada</Label>
-            <Input
-              type="text"
-              readOnly
-              className="bg-muted cursor-not-allowed font-semibold"
-              value={formatCurrency(totalDeuda)}
-            />
-            <p className="text-muted-foreground text-xs">
-              Suma de capital de todos los acreedores
-            </p>
-          </div>
-        </div>
+        </section>
       )}
 
       <div className="space-y-3">

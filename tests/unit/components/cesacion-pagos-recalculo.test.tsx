@@ -23,6 +23,7 @@
 
 import { useForm, FormProvider } from 'react-hook-form';
 import { render, screen, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
 import { CesacionPagosSection } from '@/app/cases/components/create-case-dialog/cesacion-pagos-section';
 
@@ -49,24 +50,19 @@ function montarSeccion(debtsIniciales: unknown[]) {
   return api;
 }
 
-/** El valor del input de solo lectura que muestra el número de acreedores. */
-function numAcreedoresEnPantalla(): string {
-  const label = screen.getByText('Número de acreedores');
-  const campo = label.parentElement!.querySelector('input')!;
-  return (campo as HTMLInputElement).value;
+/**
+ * Valor que se muestra para un término de la lista de descripción (los datos
+ * calculados son información, no inputs). Sin espacios, para comparar "25 %"
+ * como "25%".
+ */
+function valorDe(termino: string): string {
+  const dt = screen.getByText(termino, { selector: 'dt' });
+  const dd = dt.nextElementSibling as HTMLElement;
+  return (dd.textContent ?? '').replace(/\s/g, '');
 }
-
-function porcentajeMoraEnPantalla(): string {
-  const label = screen.getByText('Porcentaje de pasivo en mora (%)');
-  const campo = label.parentElement!.querySelector('input')!;
-  return (campo as HTMLInputElement).value;
-}
-
-function totalDeudaEnPantalla(): string {
-  const label = screen.getByText('Total deuda registrada');
-  const campo = label.parentElement!.querySelector('input')!;
-  return (campo as HTMLInputElement).value;
-}
+const numAcreedoresEnPantalla = () => valorDe('Número de acreedores');
+const porcentajeMoraEnPantalla = () => valorDe('Pasivo en mora');
+const totalDeudaEnPantalla = () => valorDe('Total de la deuda registrada');
 
 describe('Sección IV — cifras derivadas de los acreedores', () => {
   it('calcula el número de acreedores y el % en mora del estado inicial', () => {
@@ -114,10 +110,14 @@ describe('Sección IV — cifras derivadas de los acreedores', () => {
     expect(porcentajeMoraEnPantalla()).toBe('50%');
   });
 
-  it('sin acreedores no divide por cero', () => {
+  it('sin acreedores no divide por cero: muestra el aviso en vez de ceros', () => {
     montarSeccion([]);
-    expect(numAcreedoresEnPantalla()).toBe('0');
-    expect(porcentajeMoraEnPantalla()).toBe('0%');
+    expect(
+      screen.getByText(
+        'Aún no hay acreedores registrados; estos valores se calcularán automáticamente.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 
   it('REGRESIÓN: capitalAmount con coma decimal no da NaN en Total deuda registrada', () => {
