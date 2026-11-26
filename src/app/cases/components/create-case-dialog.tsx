@@ -1147,6 +1147,7 @@ export function CreateCaseWizard({
         processTypeOther: '',
         plaintiff: 'Banco XYZ',
         court: 'Juzgado 15 Civil del Circuito',
+        originCourt: 'Juzgado 3 Civil Municipal de Bogotá',
         courtEmail: 'j15cctobogota@cendoj.ramajudicial.gov.co',
         fileNumber: '2024-00123-00',
         precautionaryMeasure: 'Embargo de salarios',

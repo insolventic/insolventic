@@ -146,9 +146,17 @@ export function LegalProcessSection({
                     {process.court && (
                       <div>
                         <p className="text-muted-foreground text-xs font-medium">
-                          Juzgado
+                          Juzgado actual
                         </p>
                         <p>{process.court}</p>
+                      </div>
+                    )}
+                    {process.originCourt && (
+                      <div>
+                        <p className="text-muted-foreground text-xs font-medium">
+                          Juzgado de origen
+                        </p>
+                        <p>{process.originCourt}</p>
                       </div>
                     )}
                     {process.courtEmail && (

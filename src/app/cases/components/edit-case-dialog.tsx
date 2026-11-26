@@ -335,6 +335,7 @@ export function EditCaseDialog({
                   processTypeOther: process.processTypeOther ?? '',
                   plaintiff: process.plaintiff ?? '',
                   court: process.court ?? '',
+                  originCourt: process.originCourt ?? '',
                   courtEmail: process.courtEmail ?? '',
                   fileNumber: process.fileNumber ?? '',
                   precautionaryMeasure: process.precautionaryMeasure ?? '',

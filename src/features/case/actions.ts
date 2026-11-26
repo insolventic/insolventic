@@ -844,6 +844,7 @@ export async function createCase(
                         : null,
                       plaintiff: process.plaintiff,
                       court: process.court,
+                      originCourt: process.originCourt?.trim() || null,
                       courtEmail: process.courtEmail || null,
                       fileNumber: process.fileNumber,
                       precautionaryMeasure: process.precautionaryMeasure,

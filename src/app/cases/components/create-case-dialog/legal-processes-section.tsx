@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import {
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -43,6 +44,7 @@ export function LegalProcessesSection() {
       processTypeOther: '',
       plaintiff: '',
       court: '',
+      originCourt: '',
       courtEmail: '',
       fileNumber: '',
       precautionaryMeasure: '',
@@ -161,10 +163,32 @@ export function LegalProcessesSection() {
                 render={({ field: formField }) => (
                   <FormItem>
                     <FormLabel>
-                      Juzgado <span className="text-red-500">*</span>
+                      Juzgado actual <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>
                       <Input {...formField} placeholder="Ej: Juzgado 1 Civil" />
+                    </FormControl>
+                    <FormDescription>
+                      El que conoce hoy del proceso; a él se dirigen los
+                      oficios.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name={`legalProcesses.${index}.originCourt`}
+                render={({ field: formField }) => (
+                  <FormItem>
+                    <FormLabel>Juzgado de origen</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...formField}
+                        value={formField.value ?? ''}
+                        placeholder="Solo si el proceso empezó en otro juzgado"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

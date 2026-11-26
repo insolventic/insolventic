@@ -506,7 +506,14 @@ export const legalProcessSchema = z
     processType: z.string().min(1, 'El tipo de proceso es requerido'),
     processTypeOther: z.string().optional(),
     plaintiff: z.string().min(1, 'El demandante es requerido'),
-    court: z.string().min(1, 'El juzgado es requerido'),
+    // Juzgado ACTUAL (el que recibe los oficios). Sigue siendo obligatorio,
+    // como antes; el de origen es opcional.
+    court: z.string().min(1, 'El juzgado actual es requerido'),
+    originCourt: z
+      .string()
+      .max(200, 'Máximo 200 caracteres')
+      .optional()
+      .nullable(),
     courtEmail: z
       .string()
       .email('Correo del juzgado inválido')
@@ -550,6 +557,7 @@ const legalProcessForCaseSchema = z.object({
   processTypeOther: z.string().nullable(),
   plaintiff: z.string().nullable(),
   court: z.string().nullable(),
+  originCourt: z.string().nullable().optional(),
   courtEmail: z.string().nullable(),
   fileNumber: z.string().nullable(),
   precautionaryMeasure: z.string().nullable(),
