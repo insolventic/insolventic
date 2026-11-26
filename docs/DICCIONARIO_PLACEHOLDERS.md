@@ -229,13 +229,15 @@
 
 ## SECCIÓN 8: PROCESOS JUDICIALES (Array, hasta 5)
 
-| Variable Normalizada     | Variable Anterior    | Fuente Prisma                          |
-| ------------------------ | -------------------- | -------------------------------------- |
-| `PROCESO_{N}_TIPO`       | PROCESO_1_TIPO       | legalProcesses[n].processType          |
-| `PROCESO_{N}_DEMANDANTE` | PROCESO_1_DEMANDANTE | legalProcesses[n].plaintiff            |
-| `PROCESO_{N}_JUZGADO`    | PROCESO_1_JUZGADO    | legalProcesses[n].court                |
-| `PROCESO_{N}_EXPEDIENTE` | PROCESO_1_EXPEDIENTE | legalProcesses[n].fileNumber           |
-| `PROCESO_{N}_MEDIDA`     | PROCESO_1_MEDIDA     | legalProcesses[n].precautionaryMeasure |
+| Variable Normalizada         | Variable Anterior        | Fuente Prisma                                                                                                                                                                                                                 |
+| ---------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PROCESO_{N}_TIPO`           | PROCESO_1_TIPO           | legalProcesses[n].processType                                                                                                                                                                                                 |
+| `PROCESO_{N}_DEMANDANTE`     | PROCESO_1_DEMANDANTE     | legalProcesses[n].plaintiff                                                                                                                                                                                                   |
+| `PROCESO_{N}_JUZGADO`        | PROCESO_1_JUZGADO        | legalProcesses[n].court (juzgado ACTUAL)                                                                                                                                                                                      |
+| `PROCESO_{N}_JUZGADO_ORIGEN` | PROCESO_1_JUZGADO_ORIGEN | legalProcesses[n].originCourt (opcional)                                                                                                                                                                                      |
+| `PROCESO_{N}_JUZGADOS`       | PROCESO_1_JUZGADOS       | `textoJuzgados(court, originCourt)`: solo el actual tal cual; los dos como "actual (juzgado de origen: X)"; solo el de origen como "Juzgado de origen: X"; ninguno, vacío. Es el que usa la tabla de procesos de la Solicitud |
+| `PROCESO_{N}_EXPEDIENTE`     | PROCESO_1_EXPEDIENTE     | legalProcesses[n].fileNumber                                                                                                                                                                                                  |
+| `PROCESO_{N}_MEDIDA`         | PROCESO_1_MEDIDA         | legalProcesses[n].precautionaryMeasure                                                                                                                                                                                        |
 
 ---
 

@@ -301,6 +301,9 @@ export function makeLegalProcess(i: number, overrides: Row = {}): Row {
     processType: 'Ejecutivo singular',
     plaintiff: CREDITORS[i % CREDITORS.length],
     court: `Juzgado ${10 + i} Civil Municipal de Bogotá`,
+    // El segundo proceso cambió de juzgado: ejercita "actual + origen" en la
+    // Solicitud. El primero conserva solo el actual (salida de siempre).
+    originCourt: i === 1 ? 'Juzgado 2 Civil del Circuito de Bogotá' : null,
     fileNumber: `11001-40-03-0${10 + i}-2025-00${100 + i}`,
     precautionaryMeasure: 'Embargo de salario',
     ...overrides,

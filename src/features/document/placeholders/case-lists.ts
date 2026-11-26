@@ -33,6 +33,27 @@ import {
 } from '../../case/causas-insolvencia';
 
 /**
+ * Texto de los juzgados de un proceso para una sola celda del documento.
+ *
+ * - Solo el actual: su nombre, tal cual (igual que antes de existir el de
+ *   origen, así los documentos de los casos existentes no cambian).
+ * - Los dos: el actual y, entre paréntesis, el de origen.
+ * - Solo el de origen: rotulado, para que no se lea como el actual.
+ * - Ninguno: vacío, sin etiquetas sueltas.
+ */
+export function textoJuzgados(
+  actual: string | null | undefined,
+  origen: string | null | undefined,
+): string {
+  const a = (actual ?? '').trim();
+  const o = (origen ?? '').trim();
+  if (a && o) return `${a} (juzgado de origen: ${o})`;
+  if (a) return a;
+  if (o) return `Juzgado de origen: ${o}`;
+  return '';
+}
+
+/**
  * Las 12 filas SI/NO de la Sección 2 de la Solicitud, más el texto de "Otros".
  *
  * La lista y su ORDEN viven en `case/causas-insolvencia.ts`, que es la misma
@@ -89,12 +110,19 @@ export function mapLegalProcesses(
       );
       result[`PROCESO_${idx}_DEMANDANTE`] = process.plaintiff || '';
       result[`PROCESO_${idx}_JUZGADO`] = process.court || '';
+      result[`PROCESO_${idx}_JUZGADO_ORIGEN`] = process.originCourt || '';
+      result[`PROCESO_${idx}_JUZGADOS`] = textoJuzgados(
+        process.court,
+        process.originCourt,
+      );
       result[`PROCESO_${idx}_EXPEDIENTE`] = process.fileNumber || '';
       result[`PROCESO_${idx}_MEDIDA`] = process.precautionaryMeasure || '';
     } else {
       result[`PROCESO_${idx}_TIPO`] = 'N/A';
       result[`PROCESO_${idx}_DEMANDANTE`] = 'N/A';
       result[`PROCESO_${idx}_JUZGADO`] = 'N/A';
+      result[`PROCESO_${idx}_JUZGADO_ORIGEN`] = 'N/A';
+      result[`PROCESO_${idx}_JUZGADOS`] = 'N/A';
       result[`PROCESO_${idx}_EXPEDIENTE`] = 'N/A';
       result[`PROCESO_${idx}_MEDIDA`] = 'N/A';
     }
