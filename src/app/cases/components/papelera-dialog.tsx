@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition } from 'react';
 import { ArchiveRestore, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { AvisoErrorCarga } from '@/components/aviso-error-carga';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +31,7 @@ import {
   type CasoEnPapelera,
 } from '@/features/case/actions-papelera';
 import { formatDateColombia } from '@/lib/date-colombia';
+import { logger } from '@/lib/logger';
 
 const TIPOS: Record<string, string> = {
   INSOLVENCY: 'Insolvencia',
@@ -57,28 +59,47 @@ export function PapeleraDialog({
   puedeEliminarDefinitivamente,
 }: Readonly<PapeleraDialogProps>) {
   const [casos, setCasos] = useState<CasoEnPapelera[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Un fallo de carga no es "La papelera está vacía". El texto del aviso es
+  // fijo: `resultado.error` puede ser el mensaje crudo de Prisma, y va al log.
+  const [falloCarga, setFalloCarga] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [aPurgar, setAPurgar] = useState<CasoEnPapelera | null>(null);
   const [confirmacion, setConfirmacion] = useState('');
 
+  const cargar = useCallback(() => {
+    setCasos(null);
+    setFalloCarga(false);
+    startTransition(async () => {
+      try {
+        const resultado = await getDeletedCases();
+        if (resultado.success) {
+          setCasos(resultado.data ?? []);
+          return;
+        }
+        logger.warn('No se pudo cargar la papelera', {
+          action: 'papelera-dialog',
+          reason: resultado.error,
+        });
+      } catch (error) {
+        // Sin este `catch`, una llamada que no llega dejaba el diálogo en
+        // "Cargando la papelera..." para siempre.
+        logger.warn('Falló la llamada de la papelera', {
+          action: 'papelera-dialog',
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      }
+      setCasos([]);
+      setFalloCarga(true);
+    });
+  }, []);
+
   // Cada apertura vuelve a consultar y empieza sin confirmación a medias.
   useEffect(() => {
     if (!open) return;
-    setCasos(null);
-    setError(null);
     setAPurgar(null);
     setConfirmacion('');
-    startTransition(async () => {
-      const resultado = await getDeletedCases();
-      if (resultado.success) {
-        setCasos(resultado.data ?? []);
-      } else {
-        setCasos([]);
-        setError(resultado.error ?? 'No se pudo cargar la papelera');
-      }
-    });
-  }, [open]);
+    cargar();
+  }, [open, cargar]);
 
   const restaurar = (caso: CasoEnPapelera) => {
     startTransition(async () => {
@@ -194,8 +215,13 @@ export function PapeleraDialog({
             <Loader2 className="h-4 w-4 animate-spin" />
             Cargando la papelera...
           </div>
-        ) : error ? (
-          <p className="py-8 text-sm text-red-600">{error}</p>
+        ) : falloCarga ? (
+          <AvisoErrorCarga
+            titulo="No se pudo cargar la papelera"
+            reintentando={isPending}
+            onReintentar={cargar}
+            className="my-4"
+          />
         ) : casos.length === 0 ? (
           <p className="text-muted-foreground py-8 text-sm">
             La papelera está vacía.

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { AvisoErrorCarga } from '@/components/aviso-error-carga';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -20,38 +21,58 @@ import {
 } from '@/components/ui/table';
 import { getAllCases } from '@/features/case/actions';
 import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
+import { logger } from '@/lib/logger';
 import type { CaseListItem } from '@/features/case/schemas';
 
 export function RecentCases() {
   const [cases, setCases] = useState<CaseListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Un fallo de carga no es "No hay casos recientes": antes se mostraba eso
+  // mismo cuando `getAllCases` fallaba, y la tabla vacía no avisaba de nada.
+  const [falloCarga, setFalloCarga] = useState(false);
+
+  const fetchCases = useCallback(async () => {
+    setLoading(true);
+    setFalloCarga(false);
+    try {
+      // Solo se muestran 5: se piden 5. Antes pedía el listado completo del
+      // centro y descartaba el resto con un `slice` en el cliente.
+      const { success, data, error } = await getAllCases({
+        page: 1,
+        pageSize: 5,
+      });
+      if (success && data) {
+        setCases(data.items);
+      } else {
+        setFalloCarga(true);
+        // Sesión vencida o cerrándose: es esperado (el usuario va a ser
+        // redirigido) y no debe llegar a Sentry.
+        const esDeSesion =
+          !!error &&
+          ['token', 'autenticado', 'autorizado'].some((t) => error.includes(t));
+        const contexto = { action: 'dashboard-recent-cases', reason: error };
+        if (esDeSesion) {
+          logger.info('Casos recientes sin sesión válida', contexto);
+        } else {
+          logger.warn('No se pudieron cargar los casos recientes', contexto);
+        }
+      }
+    } catch (error) {
+      // La acción atrapa sus propios errores: esto es la llamada que no llegó
+      // (red, despliegue nuevo, sesión que se está cerrando).
+      setFalloCarga(true);
+      logger.warn('Falló la llamada de casos recientes', {
+        action: 'dashboard-recent-cases',
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchCases = async () => {
-      try {
-        // Solo se muestran 5: se piden 5. Antes pedía el listado completo del
-        // centro y descartaba el resto con un `slice` en el cliente.
-        const { success, data, error } = await getAllCases({
-          page: 1,
-          pageSize: 5,
-        });
-        if (success && data) {
-          setCases(data.items);
-        } else if (error) {
-          // Only log non-auth errors to avoid console spam
-          if (!error.includes('autorizado') && !error.includes('token')) {
-            console.error('Error fetching cases:', error);
-          }
-        }
-      } catch {
-        // Silently handle auth errors - user will be redirected
-      } finally {
-        setLoading(false);
-      }
-    };
-
     void fetchCases();
-  }, []);
+  }, [fetchCases]);
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -75,66 +96,73 @@ export function RecentCases() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID Caso</TableHead>
-                <TableHead>Deudor</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Fase</TableHead>
-                <TableHead>Monto</TableHead>
-                <TableHead>Acreedores</TableHead>
-                <TableHead>Fecha</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+        {falloCarga && !loading ? (
+          <AvisoErrorCarga
+            titulo="No se pudieron cargar los casos recientes"
+            onReintentar={() => void fetchCases()}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center">
-                    Cargando casos...
-                  </TableCell>
+                  <TableHead>ID Caso</TableHead>
+                  <TableHead>Deudor</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Fase</TableHead>
+                  <TableHead>Monto</TableHead>
+                  <TableHead>Acreedores</TableHead>
+                  <TableHead>Fecha</TableHead>
                 </TableRow>
-              ) : cases.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center">
-                    No hay casos recientes
-                  </TableCell>
-                </TableRow>
-              ) : (
-                cases.map((case_) => (
-                  <TableRow key={case_.id}>
-                    <TableCell className="font-medium">
-                      {case_.caseNumber}
-                    </TableCell>
-                    <TableCell>{case_.debtor.name}</TableCell>
-                    <TableCell>
-                      <Badge className={getTypeColor(case_.type)}>
-                        {case_.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getPhaseBadgeClass(case_.phase)}>
-                        {getPhaseLabel(case_.phase)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {new Intl.NumberFormat('es-CO', {
-                        style: 'currency',
-                        currency: 'COP',
-                        minimumFractionDigits: 0,
-                      }).format(case_.totalDebt)}
-                    </TableCell>
-                    <TableCell>{case_.creditors}</TableCell>
-                    <TableCell>
-                      {case_.createdDate.toLocaleDateString('es-CO')}
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 text-center">
+                      Cargando casos...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                ) : cases.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 text-center">
+                      No hay casos recientes
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  cases.map((case_) => (
+                    <TableRow key={case_.id}>
+                      <TableCell className="font-medium">
+                        {case_.caseNumber}
+                      </TableCell>
+                      <TableCell>{case_.debtor.name}</TableCell>
+                      <TableCell>
+                        <Badge className={getTypeColor(case_.type)}>
+                          {case_.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getPhaseBadgeClass(case_.phase)}>
+                          {getPhaseLabel(case_.phase)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Intl.NumberFormat('es-CO', {
+                          style: 'currency',
+                          currency: 'COP',
+                          minimumFractionDigits: 0,
+                        }).format(case_.totalDebt)}
+                      </TableCell>
+                      <TableCell>{case_.creditors}</TableCell>
+                      <TableCell>
+                        {case_.createdDate.toLocaleDateString('es-CO')}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
