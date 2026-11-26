@@ -1,5 +1,6 @@
 'use client';
 
+import { documentoCitaProcesos } from '@/features/case/procesos-judiciales';
 import { casePoderOtorgado } from '@/features/case/validation-rules';
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
@@ -134,6 +135,8 @@ export function EditCaseDialog({
       debts: [],
       assets: [],
       legalProcesses: [],
+      legalProcessesEliminados: [],
+      legalProcessesEliminacionConfirmada: [],
       phase: caseData.phase ?? 'Inicial',
       hearingDate: caseData.hearingDate
         ? caseData.hearingDate.toISOString().split('T')[0]
@@ -146,6 +149,9 @@ export function EditCaseDialog({
     Array<{ name: string; url?: string | null }>
   >([]);
   const [poderDelCaso, setPoderDelCaso] = useState(false);
+  // ¿El caso ya tiene documentos generados que citan sus procesos judiciales?
+  // Entonces quitar un proceso pide confirmación (y el servidor la exige).
+  const [procesosCitados, setProcesosCitados] = useState(false);
 
   // Persistencia del formulario. El borrador se ofrece cuando el caso terminó
   // de cargar (si no, la carga pisaría lo restaurado) y se descarta si el caso
@@ -216,6 +222,9 @@ export function EditCaseDialog({
             // cuenta, incluido un poder cargado como anexo único anterior.
             setDocumentosDelCaso(
               (fullCase.documents ?? []).filter((d) => !d.isGenerated),
+            );
+            setProcesosCitados(
+              (fullCase.documents ?? []).some(documentoCitaProcesos),
             );
             setPoderDelCaso(
               casePoderOtorgado({
@@ -477,6 +486,11 @@ export function EditCaseDialog({
         // Dependientes
         dependents: data.dependents,
 
+        // Procesos judiciales: crear / actualizar (los ids quitados viajan
+        // con los campos generales). El servidor aplica el plan y exige la
+        // confirmación si hay documentos que los citan.
+        legalProcesses: data.legalProcesses,
+
         // Todo lo demás del caso (propuesta de pago, cónyuge, info laboral,
         // cesación de pagos, declaraciones, apoderado legacy, tarifa,
         // notificaciones, firma, etc.): se deriva de GENERAL_SCALAR_FIELDS en
@@ -720,7 +734,7 @@ export function EditCaseDialog({
                     <CesacionPagosSection />
                   </div>
                   <div className="border-t pt-6">
-                    <LegalProcessSection />
+                    <LegalProcessSection confirmarAlQuitar={procesosCitados} />
                   </div>
                 </TabsContent>
 

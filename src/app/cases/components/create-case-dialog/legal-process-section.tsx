@@ -2,11 +2,16 @@
 
 import { LegalProcessesSection } from './legal-processes-section';
 
-export function LegalProcessSection() {
+export function LegalProcessSection({
+  confirmarAlQuitar = false,
+}: {
+  /** Ver LegalProcessesSection. */
+  confirmarAlQuitar?: boolean;
+} = {}) {
   return (
     <div className="space-y-6">
       {/* Dynamic Legal Processes - added via button */}
-      <LegalProcessesSection />
+      <LegalProcessesSection confirmarAlQuitar={confirmarAlQuitar} />
     </div>
   );
 }

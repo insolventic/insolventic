@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { Plus, Trash2, Scale } from 'lucide-react';
 import { useFormContext, useFieldArray } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,14 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,12 +40,65 @@ import {
   requiresOtherDetail,
 } from '@/features/case/proceso-judicial-tipos';
 
-export function LegalProcessesSection() {
+/**
+ * Procesos judiciales del caso (alta y edición).
+ *
+ * En la edición, quitar una fila ya guardada anota su id en
+ * `legalProcessesEliminados`: el servidor solo elimina lo que la persona quitó
+ * explícitamente. Si el caso ya tiene documentos generados que citan los
+ * procesos (`confirmarAlQuitar`), antes pide confirmación nombrando el juzgado,
+ * y el id también va a `legalProcessesEliminacionConfirmada`, que el servidor
+ * exige en ese caso.
+ */
+export function LegalProcessesSection({
+  confirmarAlQuitar = false,
+}: {
+  confirmarAlQuitar?: boolean;
+} = {}) {
   const form = useFormContext();
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: 'legalProcesses',
   });
+  const [porQuitar, setPorQuitar] = useState<{
+    index: number;
+    id: string;
+    juzgado: string;
+  } | null>(null);
+  const cancelarRef = useRef<HTMLButtonElement>(null);
+
+  const anotar = (campo: string, id: string) => {
+    const actuales = (form.getValues(campo) as string[] | undefined) ?? [];
+    if (!actuales.includes(id)) {
+      form.setValue(campo, [...actuales, id], { shouldDirty: true });
+    }
+  };
+
+  const quitar = (index: number) => {
+    const id = form.getValues(`legalProcesses.${index}.id`) as
+      | string
+      | undefined;
+    if (!id) {
+      remove(index); // fila nueva: no hay nada guardado que eliminar
+      return;
+    }
+    if (confirmarAlQuitar) {
+      const juzgado =
+        (form.getValues(`legalProcesses.${index}.court`) as string) ?? '';
+      setPorQuitar({ index, id, juzgado });
+      return;
+    }
+    anotar('legalProcessesEliminados', id);
+    remove(index);
+  };
+
+  const confirmarQuitar = () => {
+    if (!porQuitar) return;
+    anotar('legalProcessesEliminados', porQuitar.id);
+    anotar('legalProcessesEliminacionConfirmada', porQuitar.id);
+    remove(porQuitar.index);
+    setPorQuitar(null);
+  };
 
   const addLegalProcess = () => {
     append({
@@ -76,7 +138,8 @@ export function LegalProcessesSection() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => remove(index)}
+                onClick={() => quitar(index)}
+                aria-label={`Quitar proceso ${index + 1}`}
                 className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-950 dark:hover:text-red-300"
               >
                 <Trash2 className="h-4 w-4" />
@@ -274,6 +337,50 @@ export function LegalProcessesSection() {
           </div>
         )}
       </CardContent>
+      <Dialog
+        open={porQuitar !== null}
+        onOpenChange={(abierto) => {
+          if (!abierto) setPorQuitar(null);
+        }}
+      >
+        <DialogContent
+          role="alertdialog"
+          showCloseButton={false}
+          className="sm:max-w-md"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            cancelarRef.current?.focus();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>¿Quitar este proceso judicial?</DialogTitle>
+            <DialogDescription>
+              Se quitará el proceso del{' '}
+              <strong>{porQuitar?.juzgado || 'juzgado sin nombre'}</strong>. El
+              caso ya tiene documentos generados que lo citan (Solicitud u
+              oficio de Suspensión): esos documentos no cambian. Si ya se
+              entregaron, habrá que regenerarlos y reenviarlos.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              ref={cancelarRef}
+              type="button"
+              variant="outline"
+              onClick={() => setPorQuitar(null)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={confirmarQuitar}
+            >
+              Quitar proceso
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
