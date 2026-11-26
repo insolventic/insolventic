@@ -9,6 +9,7 @@ import { SessionTimeoutProvider } from '@/components/auth/session-timeout-provid
 import { Toaster } from '@/components/ui/sonner';
 import { VersionBadge } from '@/components/ui/version-badge';
 import { AppFooter } from '@/components/ui/app-footer';
+import { PurgaBorradores } from '@/components/form-guard/purga-borradores';
 
 import type { Metadata } from 'next';
 import type React from 'react';
@@ -52,6 +53,8 @@ export default function RootLayout({
             <TenantProvider>{children}</TenantProvider>
           </SessionTimeoutProvider>
           <Toaster closeButton richColors />
+          {/* Borradores de formularios: borra vencidos y ajenos al cargar. */}
+          <PurgaBorradores />
           <VersionBadge />
           <AppFooter />
         </ThemeProvider>
