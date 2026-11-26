@@ -1131,3 +1131,33 @@ model ImagenPrivada {
   @@unique([tenantId, tipo])
   @@map("imagenes_privadas")
 }
+
+/// Constancia de que un usuario aceptó los términos de uso o declaró haber
+/// leído la política de privacidad, con la versión y el hash del texto que vio
+/// (N-G-07). Solo se inserta: ninguna acción la edita ni la borra.
+///
+/// Sin FK hacia `User` ni hacia `Tenant`, a propósito y como en `AuditLog` para
+/// el usuario: la constancia tiene que sobrevivir al borrado de la cuenta, y por
+/// eso guarda el nombre y el correo de ese momento. La relación con `Tenant`
+/// tampoco se declara para no tocar su bloque, que modifican otras ramas.
+/// Sin IP ni user-agent por la Ley 1581 (principio de necesidad): la identidad
+/// la prueba la sesión autenticada. Ver docs/DECISIONES.md (2026-11-26).
+model AceptacionDocumentoLegal {
+  id         String   @id @default(cuid())
+  tenantId   String
+  userId     String
+  userName   String
+  userEmail  String
+  /// `terminos` o `privacidad` (`DOCUMENTOS_LEGALES`, src/features/legal/documentos.ts).
+  documento  String
+  /// La fecha de "Última actualización" de la página, p. ej. `2026-10-17`.
+  version    String
+  /// sha256 del texto normalizado de la página en esa versión.
+  sha256     String
+  requestId  String?
+  aceptadoEn DateTime @default(now())
+
+  @@unique([userId, documento, version, sha256])
+  @@index([tenantId, userId])
+  @@map("aceptaciones_documentos_legales")
+}
