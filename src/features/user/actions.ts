@@ -13,6 +13,16 @@ import { logger } from '@/lib/logger';
 
 import { createNotificationForAction } from '@/features/notification/actions';
 import { createAuditLog } from '@/features/audit-log/actions';
+import {
+  dejaSinAdministracion,
+  noPuedeAsignar,
+  noPuedeModificarCuenta,
+  permisosQueLeFaltan,
+  PROPIO_ROL,
+  rechazoPorLimite,
+  rolDelCentro,
+  ULTIMA_ADMINISTRACION,
+} from '@/features/role/limites-de-permisos';
 
 import {
   createUserSchema,
@@ -176,11 +186,19 @@ export async function createUser(input: unknown): Promise<{
     const validatedInput = createUserSchema.parse(input);
     const { roleId, ...rest } = validatedInput;
 
-    // Validate role belongs to the same tenant
-    const roleExists = await prisma.role.findFirst({
-      where: { id: roleId, tenantId },
-    });
-    if (!roleExists) return { success: false, error: 'Rol no encontrado' };
+    // El rol tiene que ser del centro y no dar permisos que quien crea no
+    // tiene: si no, crear una cuenta con un correo propio y el rol
+    // Administrador era subirse de rol por la puerta de al lado.
+    const rol = await rolDelCentro(roleId, tenantId);
+    if (!rol) return { success: false, error: 'Rol no encontrado' };
+    const faltan = permisosQueLeFaltan(rol.permisos, user.permissions);
+    if (faltan.length > 0) {
+      return rechazoPorLimite(
+        'asigna-permisos-que-no-tiene',
+        noPuedeAsignar(rol.name, faltan),
+        { action: 'create-user', actorId: user.id, roleId },
+      );
+    }
 
     // Temporary random password — user will set their own via activation link
     const tempPassword = randomUUID().replaceAll('-', '').slice(0, 16);
@@ -370,11 +388,9 @@ export async function updateUser(input: unknown): Promise<{
     const { id, roleId, ...rest } = validatedInput;
 
     // Validate role belongs to the same tenant
-    if (roleId) {
-      const roleExists = await prisma.role.findFirst({
-        where: { id: roleId, tenantId },
-      });
-      if (!roleExists) return { success: false, error: 'Rol no encontrado' };
+    const rolNuevo = roleId ? await rolDelCentro(roleId, tenantId) : null;
+    if (roleId && !rolNuevo) {
+      return { success: false, error: 'Rol no encontrado' };
     }
 
     // La fila anterior y no las claves recibidas: el diálogo de edición envía
@@ -388,9 +404,61 @@ export async function updateUser(input: unknown): Promise<{
         address: true,
         professionalCard: true,
         roleId: true,
+        role: {
+          select: {
+            permissions: { select: { permission: { select: { name: true } } } },
+          },
+        },
       },
     });
     if (!anterior) return { success: false, error: 'Usuario no encontrado' };
+
+    const contexto = { action: 'update-user', actorId: user.id, userId: id };
+
+    // Una cuenta con más permisos que la propia no se toca, ni siquiera el
+    // correo: cambiarlo y pedir «¿Olvidó su contraseña?» es quedarse con ella.
+    if (id !== user.id) {
+      const deLaCuenta = anterior.role.permissions.map(
+        (rp) => rp.permission.name,
+      );
+      if (permisosQueLeFaltan(deLaCuenta, user.permissions).length > 0) {
+        return rechazoPorLimite(
+          'cuenta-con-mas-permisos',
+          noPuedeModificarCuenta(anterior.name, 'modificar'),
+          contexto,
+        );
+      }
+    }
+
+    // El diálogo reenvía el mismo rol en cada guardado: solo cuenta si cambia.
+    if (roleId && rolNuevo && roleId !== anterior.roleId) {
+      if (id === user.id) {
+        return rechazoPorLimite('propio-rol', PROPIO_ROL, {
+          ...contexto,
+          roleId,
+        });
+      }
+      const faltan = permisosQueLeFaltan(rolNuevo.permisos, user.permissions);
+      if (faltan.length > 0) {
+        return rechazoPorLimite(
+          'asigna-permisos-que-no-tiene',
+          noPuedeAsignar(rolNuevo.name, faltan),
+          { ...contexto, roleId },
+        );
+      }
+      // Hoy ya lo implican las dos reglas de arriba (el último administrador
+      // no se cambia el rol, y solo otro administrador toca su cuenta). Queda
+      // explícita para que relajar una de ellas no deje al centro sin dueño.
+      if (
+        await dejaSinAdministracion(tenantId, { usuario: id, rolNuevo: roleId })
+      ) {
+        return rechazoPorLimite(
+          'ultima-administracion',
+          ULTIMA_ADMINISTRACION,
+          { ...contexto, roleId },
+        );
+      }
+    }
 
     const updatedUser = await prisma.user.update({
       where: {
@@ -490,6 +558,40 @@ export async function deleteUser(id: string): Promise<{
     // Prevent self-deletion
     if (id === user.id) {
       return { success: false, error: 'No puede eliminar su propia cuenta' };
+    }
+
+    const cuenta = await prisma.user.findFirst({
+      where: { id, tenantId },
+      select: {
+        name: true,
+        role: {
+          select: {
+            permissions: { select: { permission: { select: { name: true } } } },
+          },
+        },
+      },
+    });
+    if (!cuenta) return { success: false, error: 'Usuario no encontrado' };
+
+    const contexto = { action: 'delete-user', actorId: user.id, userId: id };
+    const deLaCuenta = cuenta.role.permissions.map((rp) => rp.permission.name);
+    if (permisosQueLeFaltan(deLaCuenta, user.permissions).length > 0) {
+      return rechazoPorLimite(
+        'cuenta-con-mas-permisos',
+        noPuedeModificarCuenta(cuenta.name, 'eliminar'),
+        contexto,
+      );
+    }
+    // Como en `updateUser`: hoy lo implican las reglas de arriba, y queda
+    // explícita por si alguna se relaja.
+    if (
+      await dejaSinAdministracion(tenantId, { usuario: id, rolNuevo: null })
+    ) {
+      return rechazoPorLimite(
+        'ultima-administracion',
+        ULTIMA_ADMINISTRACION,
+        contexto,
+      );
     }
 
     const deletedUser = await prisma.user.delete({
