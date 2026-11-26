@@ -21,6 +21,7 @@ Convención del proyecto: la API son **server actions** en `src/features/<domini
 | Búsqueda global             | `src/features/search/actions.ts`                                                    | `src/components/global-search*.tsx`                       |
 | Reportes                    | `src/features/report/actions.ts`                                                    | `src/app/reports/`                                        |
 | Calendario                  | `src/features/calendar/actions.ts`                                                  | `src/app/calendar/`                                       |
+| Términos y su aceptación    | `src/features/legal/{documentos,actions}.ts`                                        | `src/app/{terminos,privacidad}/`, `src/components/legal/` |
 | Auditoría                   | `src/features/audit-log/actions.ts`, `src/features/case/audit-diff.ts`              | `src/app/audit-log/`                                      |
 | Esquema de BD               | `src/prisma/schema.prisma` (~1.094 líneas), migraciones en `src/prisma/migrations/` | —                                                         |
 

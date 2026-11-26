@@ -33,6 +33,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 
 import { ChangePasswordDialog } from '@/components/auth/change-password-dialog';
+import { AceptacionTerminosGate } from '@/components/legal/aceptacion-terminos';
 import { GlobalSearch } from '@/components/global-search';
 import { getUnreadCount } from '@/features/notification/actions';
 import { DashboardHeaderSkeleton } from './dashboard-header-skeleton';
@@ -307,6 +308,13 @@ export function DashboardHeaderClient() {
       <ChangePasswordDialog
         open={isChangePasswordOpen}
         onOpenChange={setIsChangePasswordOpen}
+      />
+
+      {/* N-G-07: bloquea hasta aceptar la versión vigente de los términos.
+          Va acá porque este header está en todas las páginas con sesión. */}
+      <AceptacionTerminosGate
+        usuario={`${user.tenantId}:${user.id}`}
+        onLogout={handleLogout}
       />
     </header>
   );

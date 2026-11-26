@@ -36,6 +36,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChangePasswordDialog } from '@/components/auth/change-password-dialog';
 import { DashboardHeader } from '../../dashboard/components/dashboard-header';
+import { HistorialAceptaciones } from './historial-aceptaciones';
 
 const profileFormSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido'),
@@ -416,6 +417,8 @@ export function ProfileSettings() {
               </div>
             </CardContent>
           </Card>
+
+          <HistorialAceptaciones />
         </div>
       </main>
 

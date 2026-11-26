@@ -21,6 +21,10 @@ export const E2E_PASSWORD =
  * Navigate to `/login?db=<tenant>` and submit valid credentials. On success
  * the user lands on `/dashboard`. Throws if the redirect doesn't happen
  * within 15s — login is the gate for every other E2E test so we fail loud.
+ *
+ * Si aparece el diálogo de aceptación de términos (N-G-07), lo acepta: bloquea
+ * toda la app, y la primera corrida contra un seed recién hecho siempre lo
+ * muestra. `aceptarTerminos: false` lo deja abierto para el test que lo prueba.
  */
 export async function loginAs(
   page: Page,
@@ -28,7 +32,13 @@ export async function loginAs(
     tenant = E2E_TENANT,
     email = E2E_EMAIL,
     password = E2E_PASSWORD,
-  }: { tenant?: string; email?: string; password?: string } = {},
+    aceptarTerminos = true,
+  }: {
+    tenant?: string;
+    email?: string;
+    password?: string;
+    aceptarTerminos?: boolean;
+  } = {},
 ): Promise<void> {
   if (!password) {
     throw new Error(
@@ -41,4 +51,22 @@ export async function loginAs(
   await page.fill('input[type="password"]', password);
   await page.click('button[type="submit"]');
   await expect(page).toHaveURL(/\/dashboard/, { timeout: 15_000 });
+  if (aceptarTerminos) await aceptarTerminosSiSeMuestran(page);
+}
+
+/**
+ * Espera a que el header termine de consultar la aceptación y, si el diálogo
+ * está abierto, marca las casillas y acepta.
+ */
+export async function aceptarTerminosSiSeMuestran(page: Page): Promise<void> {
+  await page
+    .locator('[data-aceptacion-terminos="verificada"]')
+    .waitFor({ state: 'attached', timeout: 15_000 });
+  const dialogo = page.getByTestId('aceptacion-terminos');
+  if (!(await dialogo.isVisible())) return;
+  for (const casilla of await dialogo.getByRole('checkbox').all()) {
+    await casilla.check();
+  }
+  await dialogo.getByRole('button', { name: 'Aceptar y continuar' }).click();
+  await expect(dialogo).toBeHidden({ timeout: 10_000 });
 }

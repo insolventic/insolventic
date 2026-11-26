@@ -35,6 +35,10 @@ import { CreateUserButton } from './create-user-button';
 import { EditUserDialog } from './edit-user-dialog';
 import { DeleteUserDialog } from './delete-user-dialog';
 import { UserDetailsDialog } from './user-details-dialog';
+import {
+  EstadoTerminosCelda,
+  useEstadoTerminosDelCentro,
+} from './estado-terminos';
 
 import type { User } from '@/features/user/schemas';
 import type { Role } from '@/features/role/schemas';
@@ -64,6 +68,7 @@ export function UsersTable({
   const canViewUsers = checkPermission(P.VER_USUARIOS);
   const canEditUsers = checkPermission(P.EDITAR_USUARIOS);
   const canDeleteUsers = checkPermission(P.ELIMINAR_USUARIOS);
+  const estadoTerminos = useEstadoTerminosDelCentro(canViewUsers);
 
   const getRoleColor = (role: string) => {
     const roleConfig = roles.find((r) => r.name === role);
@@ -127,6 +132,7 @@ export function UsersTable({
                   <TableHead>Casos Asignados</TableHead>
                   <TableHead>Último Acceso</TableHead>
                   <TableHead>Tarjeta Profesional</TableHead>
+                  <TableHead>Términos</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -158,6 +164,12 @@ export function UsersTable({
                       </span>
                     </TableCell>
                     <TableCell>{user.professionalCard}</TableCell>
+                    <TableCell>
+                      <EstadoTerminosCelda
+                        estado={estadoTerminos?.[user.id]}
+                        cargado={estadoTerminos !== null}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Button
