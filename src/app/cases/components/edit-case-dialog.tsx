@@ -1,5 +1,6 @@
 'use client';
 
+import { casePoderOtorgado } from '@/features/case/validation-rules';
 import { useState, useEffect, useRef, useTransition } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -141,6 +142,10 @@ export function EditCaseDialog({
   });
 
   const [isPending, startTransition] = useTransition();
+  const [documentosDelCaso, setDocumentosDelCaso] = useState<
+    Array<{ name: string; url?: string | null }>
+  >([]);
+  const [poderDelCaso, setPoderDelCaso] = useState(false);
 
   // Persistencia del formulario. El borrador se ofrece cuando el caso terminó
   // de cargar (si no, la carga pisaría lo restaurado) y se descarta si el caso
@@ -207,6 +212,22 @@ export function EditCaseDialog({
           const fullCase = caseResult.data;
           if (fullCase) {
             setSelectedDebtorId(fullCase.debtorId);
+            // Anexos ya subidos (no generados): el bloque del Poder los
+            // cuenta, incluido un poder cargado como anexo único anterior.
+            setDocumentosDelCaso(
+              (fullCase.documents ?? []).filter((d) => !d.isGenerated),
+            );
+            setPoderDelCaso(
+              casePoderOtorgado({
+                apoderados: (fullCase.apoderados ?? []).map((a) => ({
+                  nombreCompleto: a.nombreCompleto,
+                  existePoderOtorgado: a.existePoderOtorgado,
+                })),
+                apoderadoNombreCompleto:
+                  fullCase.apoderadoNombreCompleto ?? undefined,
+                existePoderOtorgado: fullCase.existePoderOtorgado ?? undefined,
+              } as Parameters<typeof casePoderOtorgado>[0]),
+            );
 
             let caseTypeValue = '';
             if (fullCase.type === 'Insolvencia') caseTypeValue = 'INSOLVENCY';
@@ -752,6 +773,8 @@ export function EditCaseDialog({
                 {/* Tab 8: Documentos — DocumentsSection (file upload) */}
                 <TabsContent value="documents" className="space-y-6">
                   <DocumentsSection
+                    documentosCargados={documentosDelCaso}
+                    poderRequerido={poderDelCaso}
                     onFilesSelected={(sel) => {
                       documentsToUploadRef.current = sel;
                       setHayAdjuntos(sel.some((d) => d.files.length > 0));

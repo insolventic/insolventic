@@ -20,12 +20,13 @@ jest.mock('sonner', () => ({
 }));
 
 import { DocumentsSection } from '@/app/cases/components/create-case-dialog/documents-section';
+import { esperarLecturaDeArchivos } from '../../helpers/lectura-archivos';
 
 const CUATRO_MB = 4 * 1024 * 1024;
 
 /** Un File de ese tamaño sin reservar la memoria en cada test. */
 function pdfDe(tamano: number, nombre: string): File {
-  const archivo = new File(['x'], nombre, { type: 'application/pdf' });
+  const archivo = new File(['%PDF-1.4'], nombre, { type: 'application/pdf' });
   Object.defineProperty(archivo, 'size', { value: tamano });
   return archivo;
 }
@@ -37,6 +38,7 @@ function primerInput(): HTMLInputElement {
 async function elegir(...archivos: File[]) {
   await act(async () => {
     fireEvent.change(primerInput(), { target: { files: archivos } });
+    await esperarLecturaDeArchivos();
   });
 }
 

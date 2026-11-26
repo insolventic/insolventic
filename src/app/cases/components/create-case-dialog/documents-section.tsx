@@ -31,6 +31,16 @@ import {
 } from '@/features/case/validation-rules';
 import type { CreateCaseFormInput } from '@/features/case/schemas';
 import { errorDeTamanoDeArchivo, MAX_ARCHIVO_MB } from '@/lib/limite-archivos';
+import { motivoContenidoInvalidoDeArchivo } from '@/lib/contenido-archivo';
+import { Badge } from '@/components/ui/badge';
+import {
+  ID_PODER,
+  PIEZAS_PODER,
+  esPiezaPoder,
+  estadoDelPoder,
+  type DocumentoDelCaso,
+  type PiezaPoder,
+} from '@/features/case/poder';
 import { registrarRechazoPorTamano } from '@/lib/rechazo-tamano';
 
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
@@ -78,6 +88,17 @@ interface DocumentsSectionProps {
    * `mostrarFaltantes`, marcaba como faltante un documento ya cargado).
    */
   seleccionActual?: Array<{ docKey: string; files: File[] }>;
+  /**
+   * Documentos ya subidos al caso (edición): las piezas del Poder ya cargadas
+   * cuentan para su estado, y un anexo único anterior cuenta como "poder
+   * firmado".
+   */
+  documentosCargados?: readonly DocumentoDelCaso[];
+  /**
+   * Fuerza el bloque del Poder aunque la sección no reciba los apoderados
+   * (la edición lo calcula a partir del caso guardado).
+   */
+  poderRequerido?: boolean;
 }
 
 type DocConfig = { key: string; label: string; multiple?: boolean };
@@ -99,6 +120,8 @@ export function DocumentsSection({
   existePoderOtorgado,
   mostrarFaltantes = false,
   seleccionActual,
+  documentosCargados = [],
+  poderRequerido = false,
 }: Readonly<DocumentsSectionProps>) {
   const caseDataPartial: Partial<CreateCaseFormInput> & {
     hasAttorney?: boolean;
@@ -148,12 +171,24 @@ export function DocumentsSection({
     ],
   );
 
+  // El Poder se carga en dos piezas (poder.ts): en lugar del anexo único
+  // `poder`, dos zonas propias. Para crear el caso basta una; el bloque marca
+  // "Completo" con las dos.
+  const conPoder = poderRequerido || requiredIds.includes(ID_PODER);
+
   const mandatoryDocs: DocConfig[] = useMemo(() => {
     const allRequiredDocs = [...REQUIRED_DOCUMENTS, ...CONDITIONAL_DOCUMENTS];
-    const docs = requiredIds.map((id) => {
-      const doc = allRequiredDocs.find((d) => d.id === id);
-      return { key: id, label: doc?.name ?? id };
-    });
+    const docs: DocConfig[] = requiredIds
+      .filter((id) => id !== ID_PODER)
+      .map((id) => {
+        const doc = allRequiredDocs.find((d) => d.id === id);
+        return { key: id, label: doc?.name ?? id };
+      });
+    if (conPoder) {
+      for (const pieza of PIEZAS_PODER) {
+        docs.push({ key: pieza.id, label: pieza.nombre });
+      }
+    }
 
     // Add dynamic per-asset docs
     if (inmuebleCount > 1) {
@@ -174,7 +209,7 @@ export function DocumentsSection({
     }
 
     return docs;
-  }, [requiredIds, inmuebleCount, vehicleCount]);
+  }, [requiredIds, inmuebleCount, vehicleCount, conPoder]);
 
   const optionalDocs: DocConfig[] = useMemo(
     () =>
@@ -219,7 +254,7 @@ export function DocumentsSection({
     [allDocs.length],
   );
 
-  const handleChange = (key: string, files: FileList | null) => {
+  const handleChange = async (key: string, files: FileList | null) => {
     const fileArray = files ? Array.from(files) : [];
 
     const invalidType = fileArray.filter((f) => !isAllowedFile(f));
@@ -235,9 +270,17 @@ export function DocumentsSection({
       }
     }
 
-    const validFiles = fileArray.filter(
+    const candidatos = fileArray.filter(
       (f) => isAllowedFile(f) && !errorDeTamanoDeArchivo(f.size),
     );
+    // Contenido real (cabecera del archivo): misma regla que el servidor.
+    const motivos = await Promise.all(
+      candidatos.map((f) => motivoContenidoInvalidoDeArchivo(f)),
+    );
+    motivos.forEach((m) => {
+      if (m) toast.error(m);
+    });
+    const validFiles = candidatos.filter((_, i) => !motivos[i]);
 
     const newMap = { ...filesMapRef.current, [key]: validFiles };
     filesMapRef.current = newMap;
@@ -269,7 +312,8 @@ export function DocumentsSection({
           multiple={!!doc.multiple}
           accept={ACCEPT_STRING}
           onChange={(e) => {
-            handleChange(doc.key, e.target.files);
+            const elegidos = e.target.files;
+            void handleChange(doc.key, elegidos);
             // Vacío para que volver a elegir el mismo archivo, ya reducido,
             // dispare `change`.
             e.target.value = '';
@@ -305,6 +349,92 @@ export function DocumentsSection({
         >
           <Upload className="h-4 w-4" />
         </Button>
+      </div>
+    );
+  };
+
+  // --- Poder: dos piezas, cada una con su zona de carga y su estado ---
+  const estadoCargado = estadoDelPoder(documentosCargados);
+  const piezaLista = (pieza: PiezaPoder) =>
+    (selectedMap[pieza.id]?.length ?? 0) > 0 ||
+    (pieza.id === 'poder_captura_correo'
+      ? estadoCargado.tieneCaptura
+      : estadoCargado.tieneFirmado);
+  const poderCompleto = PIEZAS_PODER.every(piezaLista);
+  const poderConAlguna = PIEZAS_PODER.some(piezaLista);
+  const poderFalta = mostrarFaltantes && !poderConAlguna;
+
+  const renderPiezaPoder = (pieza: PiezaPoder) => {
+    const elegidos = selectedMap[pieza.id] ?? [];
+    const yaEnElCaso =
+      pieza.id === 'poder_captura_correo'
+        ? estadoCargado.capturaCorreo
+        : [...estadoCargado.firmado, ...estadoCargado.firmadoAnterior];
+    const lista = piezaLista(pieza);
+    const idAyuda = `ayuda-${pieza.id}`;
+    return (
+      <div
+        key={pieza.id}
+        data-testid={`zona-${pieza.id}`}
+        className={`space-y-2 rounded-lg border p-3 ${
+          lista
+            ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-950'
+            : ''
+        }`}
+      >
+        <input
+          ref={(el) => {
+            inputsRef.current[pieza.id] = el;
+          }}
+          type="file"
+          className="hidden"
+          accept={ACCEPT_STRING}
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => {
+            const archivos = e.target.files;
+            void handleChange(pieza.id, archivos);
+            e.target.value = '';
+          }}
+        />
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2">
+            {lista ? (
+              <CheckCircle2
+                aria-hidden="true"
+                className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400"
+              />
+            ) : (
+              <Upload
+                aria-hidden="true"
+                className="text-muted-foreground mt-0.5 h-4 w-4 flex-shrink-0"
+              />
+            )}
+            <div>
+              <p className="text-sm font-medium">{pieza.nombre}</p>
+              <p className="text-muted-foreground text-xs" aria-live="polite">
+                {elegidos.length > 0
+                  ? `Listo para subir: ${elegidos.map((f) => f.name).join(', ')}`
+                  : yaEnElCaso.length > 0
+                    ? `Ya cargado en el caso: ${yaEnElCaso.map((d) => d.name).join(', ')}`
+                    : 'Sin cargar'}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleChoose(pieza.id)}
+            aria-label={`Cargar ${pieza.nombre}`}
+            aria-describedby={idAyuda}
+          >
+            <Upload className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+        <p id={idAyuda} className="text-muted-foreground text-xs">
+          {pieza.ayuda}
+        </p>
       </div>
     );
   };
@@ -366,7 +496,9 @@ export function DocumentsSection({
           <div className="space-y-2">
             <Label className="font-semibold">Documentos Obligatorios</Label>
             <div className="space-y-2">
-              {mandatoryDocs.map((doc) => renderDocRow(doc, true))}
+              {mandatoryDocs
+                .filter((doc) => !esPiezaPoder(doc.key))
+                .map((doc) => renderDocRow(doc, true))}
             </div>
           </div>
           <div className="space-y-2">
@@ -376,6 +508,56 @@ export function DocumentsSection({
             </div>
           </div>
         </div>
+        {conPoder && (
+          <section
+            aria-labelledby="titulo-poder"
+            data-falta={poderFalta || undefined}
+            className={`space-y-3 rounded-lg border p-3 ${
+              poderFalta
+                ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-950'
+                : ''
+            }`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 id="titulo-poder" className="text-sm font-semibold">
+                Poder
+              </h4>
+              <Badge
+                data-testid="estado-poder"
+                variant={poderCompleto ? 'default' : 'secondary'}
+                className={
+                  poderCompleto
+                    ? 'bg-green-600 text-white hover:bg-green-600'
+                    : 'bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900 dark:text-amber-100'
+                }
+              >
+                {poderCompleto ? 'Completo' : 'Incompleto'}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground text-xs">
+              Se compone de dos archivos. Para crear el caso basta con uno; el
+              poder queda completo cuando están los dos.
+            </p>
+            {estadoCargado.firmadoAnterior.length > 0 && (
+              <p className="text-muted-foreground text-xs">
+                Este caso tiene un poder cargado como anexo único (formato
+                anterior); cuenta como poder firmado.
+              </p>
+            )}
+            {poderFalta && (
+              <p className="flex items-center gap-1 text-xs text-red-600">
+                <AlertCircle
+                  aria-label="Falta este documento"
+                  className="h-4 w-4 flex-shrink-0"
+                />
+                Cargue al menos una de las dos piezas del poder.
+              </p>
+            )}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {PIEZAS_PODER.map(renderPiezaPoder)}
+            </div>
+          </section>
+        )}
       </CardContent>
     </Card>
   );

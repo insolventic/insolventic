@@ -23,6 +23,7 @@ import '@testing-library/jest-dom';
 jest.mock('sonner', () => ({ toast: { error: jest.fn() } }));
 
 import { DocumentsSection } from '@/app/cases/components/create-case-dialog/documents-section';
+import { esperarLecturaDeArchivos } from '../../helpers/lectura-archivos';
 
 /** Filas de documento marcadas como faltantes (borde rojo + ícono). */
 function filasFaltantes(): Element[] {
@@ -30,7 +31,7 @@ function filasFaltantes(): Element[] {
 }
 
 function pdf(nombre: string): File {
-  return new File(['%PDF'], nombre, { type: 'application/pdf' });
+  return new File(['%PDF-1.4'], nombre, { type: 'application/pdf' });
 }
 
 describe('DocumentsSection — obligatorios', () => {
@@ -66,6 +67,7 @@ describe('DocumentsSection — obligatorios', () => {
       document.querySelectorAll<HTMLInputElement>('input[type="file"]')[0];
     await act(async () => {
       fireEvent.change(primerInput, { target: { files: [pdf('cedula.pdf')] } });
+      await esperarLecturaDeArchivos();
     });
 
     expect(filasFaltantes()).toHaveLength(2);

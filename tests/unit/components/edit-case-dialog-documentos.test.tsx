@@ -105,6 +105,7 @@ Element.prototype.scrollIntoView = function scrollIntoView() {};
 
 import { EditCaseDialog } from '@/app/cases/components/edit-case-dialog';
 import type { CaseListItem } from '@/features/case/schemas';
+import { esperarLecturaDeArchivos } from '../../helpers/lectura-archivos';
 
 const CASO = {
   id: 'caso-1',
@@ -132,7 +133,7 @@ const CASO_COMPLETO = {
 };
 
 function pdf(nombre: string): File {
-  return new File(['%PDF'], nombre, { type: 'application/pdf' });
+  return new File(['%PDF-1.4'], nombre, { type: 'application/pdf' });
 }
 
 /** Abre la pestaña de documentos, sin esperar a que el usuario pase por las demás. */
@@ -153,6 +154,7 @@ async function adjuntar(indice: number, archivo: File) {
     document.querySelectorAll<HTMLInputElement>('input[type="file"]')[indice];
   await act(async () => {
     fireEvent.change(input, { target: { files: [archivo] } });
+    await esperarLecturaDeArchivos();
   });
 }
 

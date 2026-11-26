@@ -74,6 +74,7 @@ import { subirDocumentosDelCaso } from '@/app/cases/components/create-case-dialo
 import { PaymentTrackingReport } from '@/app/reports/components/payment-tracking-report';
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { logger } from '@/lib/logger';
+import { esperarLecturaDeArchivos } from '../../helpers/lectura-archivos';
 
 const MB = 1024 * 1024;
 const CASO = {
@@ -90,7 +91,7 @@ const CUERPO_CORTADO = new Error(
 );
 
 function pdfDe(tamano: number, nombre = NOMBRE_CON_DATOS): File {
-  const archivo = new File(['x'], nombre, { type: 'application/pdf' });
+  const archivo = new File(['%PDF-1.4'], nombre, { type: 'application/pdf' });
   Object.defineProperty(archivo, 'size', { value: tamano });
   return archivo;
 }
@@ -101,6 +102,7 @@ async function elegirEnElDialogo(archivo: File) {
     .querySelector('input[type="file"]') as HTMLInputElement;
   await act(async () => {
     fireEvent.change(input, { target: { files: [archivo] } });
+    await esperarLecturaDeArchivos();
   });
 }
 
@@ -169,9 +171,13 @@ describe('comprobante tras enviar', () => {
   it('un envío que la plataforma corta por tamaño también cuenta', async () => {
     await abrirDesdeElCaso();
     // Pasa el control al elegirlo (1 KB declarado), pero envía de más.
-    const archivo = new File([new Uint8Array(6 * MB)], NOMBRE_CON_DATOS, {
-      type: 'application/pdf',
-    });
+    const archivo = new File(
+      ['%PDF-1.4', new Uint8Array(6 * MB)],
+      NOMBRE_CON_DATOS,
+      {
+        type: 'application/pdf',
+      },
+    );
     Object.defineProperty(archivo, 'size', { value: 1024 });
     await elegirEnElDialogo(archivo);
     fireEvent.change(screen.getByPlaceholderText('0'), {
@@ -199,6 +205,7 @@ describe('documentos del caso', () => {
   async function elegir(...archivos: File[]) {
     await act(async () => {
       fireEvent.change(primerInput(), { target: { files: archivos } });
+      await esperarLecturaDeArchivos();
     });
   }
 

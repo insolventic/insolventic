@@ -35,6 +35,9 @@ import {
 
 import type { CaseWithRelations } from '@/features/case/schemas';
 import { PreGenerationForm } from './pre-generation-form';
+import { PoderCard } from './poder-card';
+import { estadoDelPoder } from '@/features/case/poder';
+import { caseHasAttorney } from '@/features/case/validation-rules';
 import { getPhaseBadgeClass, getPhaseLabel } from '@/lib/case-phases';
 import {
   generateInitialDocuments,
@@ -112,6 +115,21 @@ export function DocumentsSection({
 
   const generatedDocuments =
     caseData.documents?.filter((d) => d.isGenerated) || [];
+  // Anexos subidos (no generados). El estado del Poder se muestra si el caso
+  // tiene apoderado o si ya hay alguna pieza del poder cargada.
+  const anexosSubidos = caseData.documents?.filter((d) => !d.isGenerated) || [];
+  const poderCargado = estadoDelPoder(anexosSubidos);
+  const mostrarPoder =
+    caseHasAttorney({
+      attorney: caseData.attorney ?? undefined,
+      apoderadoNombreCompleto: caseData.apoderadoNombreCompleto ?? undefined,
+      apoderados: (caseData.apoderados ?? []).map((a) => ({
+        nombreCompleto: a.nombreCompleto,
+        existePoderOtorgado: a.existePoderOtorgado,
+      })),
+    } as Parameters<typeof caseHasAttorney>[0]) ||
+    poderCargado.tieneCaptura ||
+    poderCargado.tieneFirmado;
   const hasDriveFolder = !!caseData.driveFolderId;
 
   const handleGenerateInitial = async () => {
@@ -312,6 +330,8 @@ export function DocumentsSection({
           </div>
         </CardContent>
       </Card>
+
+      {mostrarPoder && <PoderCard documentos={anexosSubidos} />}
 
       {/* Pre-generation form */}
       {showPreGenForm && (

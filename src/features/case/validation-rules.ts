@@ -5,6 +5,11 @@
  * the main Zod schemas in schemas.ts
  */
 
+import {
+  ID_PODER,
+  NOMBRE_PODER_ANEXO_UNICO,
+  cumpleRequisitoPoder,
+} from './poder';
 import { displayTimeZone, parseDateOnly } from '@/lib/date-colombia';
 import { logger } from '@/lib/logger';
 
@@ -679,8 +684,10 @@ export const CONDITIONAL_DOCUMENTS = [
     condition: 'hasRealEstate' as const,
   },
   {
-    id: 'poder',
-    name: 'Poder (notariado o prueba de envío desde correo del deudor)',
+    // Requisito de grupo: se cumple con cualquiera de las dos piezas del
+    // Poder (PIEZAS_PODER) o con el anexo único anterior. Ver poder.ts.
+    id: ID_PODER,
+    name: NOMBRE_PODER_ANEXO_UNICO,
     condition: 'hasAttorney' as const,
   },
   {
@@ -896,7 +903,11 @@ export function validateDocumentsComplete(
   const allDocs = [...REQUIRED_DOCUMENTS, ...CONDITIONAL_DOCUMENTS];
 
   const missingDocuments = requiredIds
-    .filter((id) => !uploadedDocKeys.includes(id))
+    .filter((id) =>
+      id === ID_PODER
+        ? !cumpleRequisitoPoder(uploadedDocKeys)
+        : !uploadedDocKeys.includes(id),
+    )
     .map((id) => {
       const doc = allDocs.find((d) => d.id === id);
       return { id, name: doc?.name ?? id };

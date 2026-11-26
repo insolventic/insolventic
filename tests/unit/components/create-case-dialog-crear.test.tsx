@@ -151,6 +151,7 @@ Element.prototype.scrollTo = function scrollTo() {};
 Element.prototype.scrollIntoView = function scrollIntoView() {};
 
 import { CreateCaseDialog } from '@/app/cases/components/create-case-dialog';
+import { esperarLecturaDeArchivos } from '../../helpers/lectura-archivos';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -223,12 +224,13 @@ describe('CreateCaseDialog — "Crear Caso" con los datos completos crea', () =>
             fireEvent.change(input, {
               target: {
                 files: [
-                  new File(['%PDF'], `doc-${i}.pdf`, {
+                  new File(['%PDF-1.4'], `doc-${i}.pdf`, {
                     type: 'application/pdf',
                   }),
                 ],
               },
             });
+            await esperarLecturaDeArchivos();
           });
         }
       }
@@ -278,10 +280,13 @@ describe('CreateCaseDialog — documentos adjuntos', () => {
         fireEvent.change(input, {
           target: {
             files: [
-              new File(['%PDF'], `doc-${i}.pdf`, { type: 'application/pdf' }),
+              new File(['%PDF-1.4'], `doc-${i}.pdf`, {
+                type: 'application/pdf',
+              }),
             ],
           },
         });
+        await esperarLecturaDeArchivos();
       });
     }
     await pulsar('Crear Caso');

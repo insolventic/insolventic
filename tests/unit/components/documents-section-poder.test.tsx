@@ -3,8 +3,8 @@
  */
 
 /**
- * Página 7 (Documentos) — el documento "poder" aparece/desaparece según
- * `existePoderOtorgado` de la Sección XI, sin tocar cédula/tarjeta.
+ * Página 7 (Documentos) — el bloque "Poder" (sus dos piezas) aparece/desaparece
+ * según `existePoderOtorgado` de la Sección XI, sin tocar cédula/tarjeta.
  *
  * `DocumentsSection` deriva su lista de obligatorios con
  * `getRequiredDocuments` (src/features/case/validation-rules.ts), que ya
@@ -38,9 +38,7 @@ describe('DocumentsSection — el documento "poder"', () => {
       screen.getByText(/Tarjeta profesional del apoderado/i),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(
-        /^Poder \(notariado o prueba de envío desde correo del deudor\)$/i,
-      ),
+      screen.queryByRole('region', { name: 'Poder' }),
     ).not.toBeInTheDocument();
   });
 
@@ -60,11 +58,7 @@ describe('DocumentsSection — el documento "poder"', () => {
     expect(
       screen.getByText(/Tarjeta profesional del apoderado/i),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Poder \(notariado o prueba de envío desde correo del deudor\)/i,
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Poder' })).toBeInTheDocument();
   });
 
   it('REGRESIÓN: desmarcar "poder otorgado" lo quita de la lista al re-renderizar, sin tocar cédula/tarjeta', () => {
@@ -77,11 +71,7 @@ describe('DocumentsSection — el documento "poder"', () => {
       />,
     );
 
-    expect(
-      screen.getByText(
-        /Poder \(notariado o prueba de envío desde correo del deudor\)/i,
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Poder' })).toBeInTheDocument();
 
     rerender(
       <DocumentsSection
@@ -93,9 +83,7 @@ describe('DocumentsSection — el documento "poder"', () => {
     );
 
     expect(
-      screen.queryByText(
-        /^Poder \(notariado o prueba de envío desde correo del deudor\)$/i,
-      ),
+      screen.queryByRole('region', { name: 'Poder' }),
     ).not.toBeInTheDocument();
     expect(
       screen.getByText(/Cédula de ciudadanía del apoderado/i),
@@ -153,11 +141,7 @@ describe('DocumentsSection — el documento "poder"', () => {
     expect(
       screen.getByText(/Tarjeta profesional del apoderado/i),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /Poder \(notariado o prueba de envío desde correo del deudor\)/i,
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Poder' })).toBeInTheDocument();
     expect(
       screen.getByText(/El caso tiene apoderado con poder otorgado/i),
     ).toBeInTheDocument();
@@ -176,9 +160,7 @@ describe('DocumentsSection — el documento "poder"', () => {
       screen.getByText(/Cédula de ciudadanía del apoderado/i),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(
-        /^Poder \(notariado o prueba de envío desde correo del deudor\)$/i,
-      ),
+      screen.queryByRole('region', { name: 'Poder' }),
     ).not.toBeInTheDocument();
   });
 
@@ -192,9 +174,7 @@ describe('DocumentsSection — el documento "poder"', () => {
       screen.queryByText(/Tarjeta profesional del apoderado/i),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByText(
-        /Poder \(notariado o prueba de envío desde correo del deudor\)/i,
-      ),
+      screen.queryByRole('region', { name: 'Poder' }),
     ).not.toBeInTheDocument();
   });
 });

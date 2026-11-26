@@ -105,6 +105,7 @@ Element.prototype.scrollTo = function scrollTo() {};
 Element.prototype.scrollIntoView = function scrollIntoView() {};
 
 import { CreateCaseDialog } from '@/app/cases/components/create-case-dialog';
+import { esperarLecturaDeArchivos } from '../../helpers/lectura-archivos';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -456,7 +457,7 @@ describe('CreateCaseDialog — pestaña "7. Documentos": rojo solo tras la acci�
   const filasFaltantes = () =>
     Array.from(document.querySelectorAll('[data-falta]'));
   const pdf = (nombre: string) =>
-    new File(['%PDF'], nombre, { type: 'application/pdf' });
+    new File(['%PDF-1.4'], nombre, { type: 'application/pdf' });
 
   it('al entrar los obligatorios son neutros', async () => {
     renderWizard('INSOLVENCY');
@@ -501,6 +502,7 @@ describe('CreateCaseDialog — pestaña "7. Documentos": rojo solo tras la acci�
         document.querySelectorAll<HTMLInputElement>('input[type="file"]')[0],
         { target: { files: [pdf('cedula.pdf')] } },
       );
+      await esperarLecturaDeArchivos();
     });
 
     await irAPestana(/1\. Solicitante/);
@@ -519,6 +521,7 @@ describe('CreateCaseDialog — pestaña "7. Documentos": rojo solo tras la acci�
         document.querySelectorAll<HTMLInputElement>('input[type="file"]')[0],
         { target: { files: [pdf('cedula.pdf')] } },
       );
+      await esperarLecturaDeArchivos();
     });
     await pulsarCrearCaso();
     await waitFor(() => expect(pestanaActiva()).toBe('1. Solicitante'));
