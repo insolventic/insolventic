@@ -22,7 +22,10 @@ import { isTypeSpecificField } from './type-specific-fields';
  *      `fullCase.debtor`, no en `fullCase` directamente. `gastosMensuales` es
  *      el bloque de gastos del formulario: no es una columna, se arma desde
  *      `gastosMensualesDetalle` (o las columnas legadas) con
- *      `entradaGastosDesdeCaso`.
+ *      `entradaGastosDesdeCaso`. `legalProcesses` llega del caso con otra
+ *      forma (con `description`) y el diálogo la mapea aparte; los ids
+ *      quitados (`legalProcessesEliminados*`) sí van por la vía general:
+ *      arrancan en [] y se envían tal cual.
  *  (c) Pertenece a otro flujo, no a este diálogo: `failureType`/`failureDate`
  *      y `resultType`/`resultDate` los escribe `updateCasePhase` (ver
  *      `phase-transition-dialog.tsx` y `actions.ts:2331-2336`), nunca este
@@ -45,6 +48,7 @@ export const HANDLED_ELSEWHERE = new Set([
   'otherIncomeAmount',
   'hasEmployerCertification',
   'gastosMensuales',
+  'legalProcesses',
   'failureType',
   'failureDate',
   'resultType',

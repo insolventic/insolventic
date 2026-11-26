@@ -76,14 +76,16 @@ import {
 import { generatePaymentSchedule } from '@/features/payment/actions';
 import { parsearMonto } from './monto';
 import {
+  columnasDeProceso,
+  documentoCitaProcesos,
+  planificarCambiosDeProcesos,
+  type PlanDeProcesos,
+} from './procesos-judiciales';
+import {
   calcularGastos,
   type DetalleGastos,
   type gastosMensualesEntradaSchema,
 } from './gastos-mensuales';
-import {
-  requiresOtherDetail,
-  tipoProcesoLabel,
-} from '@/features/case/proceso-judicial-tipos';
 import {
   buildApoderadosCreate,
   mirrorPrincipalApoderado,
@@ -830,24 +832,9 @@ export async function createCase(
             legalProcesses:
               legalProcesses && legalProcesses.length > 0
                 ? {
+                    // Mismas columnas que la edición (procesos-judiciales.ts).
                     create: legalProcesses.map((process: LegalProcessData) => ({
-                      // La descripción es el resumen que se muestra en listados: en
-                      // "Otros" el valor crudo no dice nada, así que se usa el texto
-                      // que escribió el usuario.
-                      description: `${tipoProcesoLabel(
-                        process.processType,
-                        process.processTypeOther,
-                      )} - ${process.plaintiff}`,
-                      processType: process.processType,
-                      processTypeOther: requiresOtherDetail(process.processType)
-                        ? process.processTypeOther
-                        : null,
-                      plaintiff: process.plaintiff,
-                      court: process.court,
-                      originCourt: process.originCourt?.trim() || null,
-                      courtEmail: process.courtEmail || null,
-                      fileNumber: process.fileNumber,
-                      precautionaryMeasure: process.precautionaryMeasure,
+                      ...columnasDeProceso(process),
                       tenantId,
                     })),
                   }
@@ -1126,8 +1113,17 @@ export async function updateCase(
       otherIncomeAmount,
       hasEmployerCertification,
       gastosMensuales,
+      // Procesos judiciales: se aplican aparte, dentro de la transacción.
+      legalProcesses,
+      legalProcessesEliminados,
+      legalProcessesEliminacionConfirmada,
       ...rest
     } = validatedInput;
+
+    const idsEliminados = legalProcessesEliminados ?? [];
+    const idsConfirmados = legalProcessesEliminacionConfirmada ?? [];
+    const tocaProcesos =
+      legalProcesses !== undefined || idsEliminados.length > 0;
 
     const safeRestUpdate = sanitizeJsonFields(rest);
     const gastos = gastosParaGuardar(gastosMensuales);
@@ -1185,7 +1181,12 @@ export async function updateCase(
     );
 
     // Wrap debtor + case update in a transaction with optimistic locking
-    const { updatedCase, antes } = await prisma.$transaction(async (tx) => {
+    const {
+      updatedCase,
+      antes,
+      procesosEliminados,
+      procesosCitadosEnDocumentos,
+    } = await prisma.$transaction(async (tx) => {
       // Se lee siempre (no solo cuando llega `version`): la fase persistida es
       // el punto de partida obligatorio del guard de transición (C-1).
       // Se añaden las columnas del diff de GC-M4 al select que ya existía, en
@@ -1218,6 +1219,34 @@ export async function updateCase(
         );
       }
 
+      // Procesos judiciales: plan de cambios (crear / actualizar / eliminar)
+      // sobre los procesos de ESTE caso y centro. Va después del chequeo de
+      // versión, en la misma transacción que el resto de la edición.
+      let planProcesos: Extract<PlanDeProcesos, { ok: true }> | null = null;
+      let procesosCitadosEnDocumentos = false;
+      if (tocaProcesos) {
+        const existentes = await tx.legalProcess.findMany({
+          where: { caseId: id, tenantId },
+          select: { id: true, court: true, processType: true },
+        });
+        if (idsEliminados.length > 0) {
+          const generados = await tx.document.findMany({
+            where: { caseId: id, tenantId, isGenerated: true },
+            select: { name: true, isGenerated: true },
+          });
+          procesosCitadosEnDocumentos = generados.some(documentoCitaProcesos);
+        }
+        const plan = planificarCambiosDeProcesos({
+          existentes,
+          entrada: legalProcesses,
+          eliminados: idsEliminados,
+          confirmados: idsConfirmados,
+          hayDocumentosQueCitan: procesosCitadosEnDocumentos,
+        });
+        if (!plan.ok) throw new Error(plan.error);
+        planProcesos = plan;
+      }
+
       // C-2: mismas reglas de negocio que en creación, en modo 'update' (solo
       // se evalúa lo que trae el payload; una edición parcial no debe fallar
       // por campos que ni siquiera toca).
@@ -1227,9 +1256,15 @@ export async function updateCase(
       // del que regía al radicar. Si la edición cambia la fecha de radicación,
       // manda la nueva.
       const rulesCheck = validateCaseBusinessRules(
-        gastos.enviado && gastos.detalle
-          ? { ...validatedInput, monthlyExpenses: gastos.detalle.total }
-          : validatedInput,
+        {
+          ...validatedInput,
+          ...(gastos.enviado && gastos.detalle
+            ? { monthlyExpenses: gastos.detalle.total }
+            : {}),
+          // Con procesos en la edición, `hasLegalProcesses` se deriva de lo
+          // que queda (abajo): la regla de coherencia no aplica.
+          ...(planProcesos ? { hasLegalProcesses: undefined } : {}),
+        },
         {
           mode: 'update',
           year: smmlvYearForCase({
@@ -1288,10 +1323,42 @@ export async function updateCase(
         });
       }
 
+      if (planProcesos) {
+        if (planProcesos.eliminar.length > 0) {
+          await tx.legalProcess.deleteMany({
+            where: {
+              id: { in: planProcesos.eliminar.map((e) => e.id) },
+              caseId: id,
+              tenantId,
+            },
+          });
+        }
+        for (const p of planProcesos.actualizar) {
+          await tx.legalProcess.updateMany({
+            where: { id: p.id, caseId: id, tenantId },
+            data: columnasDeProceso(p),
+          });
+        }
+        if (planProcesos.crear.length > 0) {
+          await tx.legalProcess.createMany({
+            data: planProcesos.crear.map((p) => ({
+              ...columnasDeProceso(p),
+              caseId: id,
+              tenantId,
+            })),
+          });
+        }
+      }
+
       const actualizado = await tx.case.update({
         where: { id, tenantId },
         data: {
           ...safeRestUpdate,
+          // Sin interruptor en la interfaz: la bandera refleja si quedan
+          // procesos después de la edición.
+          ...(planProcesos
+            ? { hasLegalProcesses: planProcesos.totalFinal > 0 }
+            : {}),
           ...(gastos.enviado && {
             gastosMensualesDetalle: gastos.detalle ?? Prisma.DbNull,
             totalGastosMensuales: gastos.detalle?.total ?? null,
@@ -1332,7 +1399,12 @@ export async function updateCase(
 
       // GC-M4: `current` es el "antes" del diff; se devuelve junto con la fila
       // actualizada porque el audit log se escribe fuera de la transacción.
-      return { updatedCase: actualizado, antes: current };
+      return {
+        updatedCase: actualizado,
+        antes: current,
+        procesosEliminados: planProcesos?.eliminar ?? [],
+        procesosCitadosEnDocumentos,
+      };
     });
 
     revalidateTag('cases');
@@ -1377,6 +1449,31 @@ export async function updateCase(
         ...valoresAuditables(antes, camposEnviados, camposCambiados),
       },
     });
+
+    // Una entrada por proceso judicial eliminado: proceso, tipo y juzgado
+    // (el demandante no: puede ser un dato personal). Usuario y fecha los
+    // registra el propio audit log.
+    for (const proceso of procesosEliminados) {
+      await createAuditLog({
+        action: 'updated',
+        entityType: 'case',
+        entityId: updatedCase.id,
+        entityName: `${updatedCase.caseNumber} - ${updatedCase.debtorName}`,
+        actor: {
+          userId: user.id,
+          userName: user.name,
+          userCedula: user.professionalCard,
+        },
+        tenantId,
+        metadata: {
+          evento: 'proceso_judicial_eliminado',
+          procesoId: proceso.id,
+          tipoProceso: proceso.processType,
+          juzgado: proceso.court,
+          conDocumentosGenerados: procesosCitadosEnDocumentos,
+        },
+      });
+    }
 
     const result = caseSummarySchema.parse(updatedCase);
     return { success: true, data: result };

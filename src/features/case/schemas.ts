@@ -1523,6 +1523,16 @@ export const updateCaseSchema = z.object({
   firstHearingDate: z.string().optional(),
   firstHearingTime: z.string().optional(),
   hasLegalProcesses: z.boolean().optional(),
+  // Procesos judiciales en la edición (ver procesos-judiciales.ts): filas a
+  // crear (sin id) o actualizar (con id), ids que la persona quitó en la
+  // interfaz, y de esos, los que confirmó quitar aunque el caso ya tenga
+  // documentos generados que los citan. Ausentes = no se tocan.
+  legalProcesses: z.array(legalProcessSchema).max(50).optional(),
+  legalProcessesEliminados: z.array(z.string().min(1)).max(50).optional(),
+  legalProcessesEliminacionConfirmada: z
+    .array(z.string().min(1))
+    .max(50)
+    .optional(),
   courtNumber: z.string().optional(),
   city: z.string().optional(),
   processType: z.string().optional(),
