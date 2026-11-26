@@ -143,7 +143,11 @@ describe('createUser — un usuario del centro A no crea en el centro B', () => 
     });
     mockPrisma.role.findFirst.mockImplementation(
       async ({ where }: { where: { id: string; tenantId: string } }) =>
-        where.tenantId === 'tenant-a' ? { id: where.id } : null,
+        where.tenantId === 'tenant-a'
+          ? // Sin permisos: quien crea no puede dar lo que no tiene, y aquí
+            // la prueba es del centro, no del rol.
+            { id: where.id, name: 'Usuario', permissions: [] }
+          : null,
     );
     mockPrisma.user.create.mockImplementation(
       async ({ data }: { data: Record<string, unknown> }) => ({
