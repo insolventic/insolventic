@@ -563,8 +563,11 @@ export function DocumentGeneration({
           {/* Package selector */}
           <div className="space-y-2">
             <Label htmlFor="package-select">Paquete de Documentos</Label>
+            {/* Sin caso no hay opciones, y Radix solo muestra el placeholder
+                con value '' (shouldShowPlaceholder): con 'all' sin una opción
+                que lo represente, el trigger quedaba vacío. */}
             <Select
-              value={selectedPackage}
+              value={selectedCaseType ? selectedPackage : ''}
               onValueChange={setSelectedPackage}
               disabled={isPending || !selectedCaseType}
             >

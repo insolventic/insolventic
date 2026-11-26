@@ -132,7 +132,10 @@ jest.mock('@/components/ui/command', () => ({
 // values {all, 1, 2, 3, 4, 5} and keeps the legacy id `select-native`. The
 // format Select uses values {pdf, docx, both} and gets `select-native-format`.
 jest.mock('@/components/ui/select', () => {
-  const PACKAGE_VALUES = new Set(['all', '1', '2', '3', '4', '5']);
+  // '' es el valor del selector de paquete sin caso elegido (muestra el
+  // placeholder). Este mock no pinta placeholders: eso lo cubre
+  // document-generation-select-real.test.tsx con el Select real.
+  const PACKAGE_VALUES = new Set(['', 'all', '1', '2', '3', '4', '5']);
   const isPackage = (v: unknown) =>
     typeof v === 'string' && PACKAGE_VALUES.has(v);
   return {
@@ -1272,13 +1275,19 @@ describe('DocumentGeneration', () => {
       expect(screen.getByTestId('select')).toHaveAttribute('data-value', 'all');
     });
 
-    it('defaults to "all" package', async () => {
+    it('sin caso no tiene valor (placeholder); al elegir uno queda en "all"', async () => {
       render(
         <DocumentGeneration onDocumentsGenerated={mockOnDocumentsGenerated} />,
       );
 
-      const selectEl = screen.getByTestId('select');
-      expect(selectEl).toHaveAttribute('data-value', 'all');
+      await waitFor(() => {
+        expect(screen.getByText('INS-2025-001')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('select')).toHaveAttribute('data-value', '');
+
+      fireEvent.click(screen.getAllByTestId('command-item')[0]);
+
+      expect(screen.getByTestId('select')).toHaveAttribute('data-value', 'all');
     });
 
     it('sends undefined packageNumber for "all" selection', async () => {
