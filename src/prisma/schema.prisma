@@ -851,7 +851,12 @@ model LegalProcess {
   // Texto libre, solo cuando processType == 'OTROS'.
   processTypeOther     String?
   plaintiff            String?
+  // Juzgado ACTUAL: el que conoce hoy del proceso y al que se dirigen los
+  // oficios (suspensión, remisión del resultado).
   court                String?
+  // Juzgado de ORIGEN, si el proceso cambió de juzgado. Opcional; en los
+  // documentos se muestra junto al actual solo cuando existe.
+  originCourt          String?
   // Correo del juzgado: es a donde se manda el oficio de suspensión.
   courtEmail           String?
   fileNumber           String?
