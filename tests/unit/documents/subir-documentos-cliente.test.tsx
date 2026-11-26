@@ -30,7 +30,7 @@ import {
 const CUATRO_MB = 4 * 1024 * 1024;
 
 function pdf(nombre: string, tamano = 4): File {
-  const archivo = new File(['%PDF'], nombre, { type: 'application/pdf' });
+  const archivo = new File(['%PDF-1.4'], nombre, { type: 'application/pdf' });
   Object.defineProperty(archivo, 'size', { value: tamano });
   return archivo;
 }
@@ -187,7 +187,7 @@ describe('subirDocumentosDelCaso', () => {
   });
 
   it('un archivo sin tipo declarado viaja con el de su extensión', async () => {
-    const sinTipo = new File(['%PDF'], 'CEDULA.PDF', { type: '' });
+    const sinTipo = new File(['%PDF-1.4'], 'CEDULA.PDF', { type: '' });
 
     await subirDocumentosDelCaso('caso-1', [
       { docName: 'Cédula', files: [sinTipo] },

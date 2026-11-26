@@ -173,7 +173,9 @@ function sesionDe(centro: Centro) {
 }
 
 const pdf = (nombre: string) =>
-  new File([new Uint8Array(10)], nombre, { type: 'application/pdf' });
+  new File(['%PDF-1.4', new Uint8Array(10)], nombre, {
+    type: 'application/pdf',
+  });
 
 /** Lo que cada centro sube: un comprobante, un documento y un adjunto. */
 async function subirTodoDesde(centro: Centro) {

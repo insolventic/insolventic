@@ -151,7 +151,7 @@ function carpetasDeDestino(): string[] {
 }
 
 function adjunto() {
-  return new File([new Uint8Array(10)], 'cedula.pdf', {
+  return new File(['%PDF-1.4', new Uint8Array(10)], 'cedula.pdf', {
     type: 'application/pdf',
   });
 }

@@ -1,5 +1,6 @@
 'use server';
 
+import { motivoContenidoInvalido } from '@/lib/contenido-archivo';
 import { revalidatePath } from 'next/cache';
 
 import { authenticateUser } from '@/features/auth/actions';
@@ -1983,6 +1984,19 @@ export async function uploadCaseDocument(input: {
       return { success: false, error: typeCheck.error };
     }
 
+    // El contenido real, no solo la extensión ni el tipo que declara el
+    // navegador: un ejecutable renombrado a .pdf se rechaza aquí, antes de
+    // tocar Drive.
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const motivoContenido = motivoContenidoInvalido(
+      new Uint8Array(buffer),
+      file.type,
+      file.name,
+    );
+    if (motivoContenido) {
+      return { success: false, error: motivoContenido };
+    }
+
     const { googleDriveService } = await import('@/lib/google-drive');
 
     const caseData = await prisma.case.findUnique({
@@ -2028,7 +2042,6 @@ export async function uploadCaseDocument(input: {
     );
 
     const safeFileName = sanitizeFileName(file.name);
-    const buffer = Buffer.from(await file.arrayBuffer());
     // Con reintento, como las dos rutas de generación: un 429 o un 5xx
     // transitorio de Drive dejaba el adjunto sin subir, y el usuario ya
     // eligió el archivo — no hay nada que reintentar del lado de él.
