@@ -2,6 +2,30 @@
 
 Historial de decisiones técnicas por iteración de trabajo. Material de consulta, separado de `CLAUDE.md`, que apunta aquí.
 
+## 2026-11-26 — Aceptación de términos: bloquea, falla abierto y no guarda IP
+
+**Problema (N-G-07 del diagnóstico del 2026-11-12):** los términos de uso existían, pero nada probaba que un usuario los hubiera aceptado ni qué versión. Sin ese registro, sus cláusulas valen poco como prueba.
+
+**Decisión:**
+
+- **Qué se guarda.** Tabla `aceptaciones_documentos_legales`, solo de inserts: usuario, centro, documento (`terminos` o `privacidad`), versión, `sha256` del texto, `requestId` y fecha. Guarda también el nombre y el correo del usuario en ese momento. Ninguna action edita ni borra una fila (`src/features/legal/actions.ts`).
+- **Sin FK hacia `User`**, como `AuditLog`: la constancia tiene que sobrevivir al borrado de la cuenta. **Tampoco hacia `Tenant`**, para no tocar su bloque del schema, que modifican otras ramas. `purgeTenant` de los tests la borra igual, porque recorre toda tabla con `tenantId`.
+- **Sin IP ni user-agent.** Por el principio de necesidad de la Ley 1581, solo se guarda lo indispensable para la prueba. La identidad la da la sesión autenticada (cuenta personal, `tokenVersion`). Una IP de oficina detrás de NAT aporta poco y sumaría una finalidad que declarar en la política. Si el abogado la pide, es una columna nueva.
+- **Versión y hash.** La versión es la fecha de "Última actualización" y vive en `src/features/legal/documentos.ts`, de donde la toman las páginas. `tests/unit/legal/version-documentos-legales.test.tsx` hashea el texto del cuerpo de cada página y falla si cambió sin tocar `documentos.ts`. Una aceptación cubre la versión vigente solo si coinciden la versión **y** el hash.
+- **Privacidad: lectura, no consentimiento.** La política trata datos de deudores y acreedores. El operador no es su titular y no puede consentir por ellos, así que lo que declara es que la leyó.
+- **Cuándo se pide.** Al primer ingreso y cada vez que cambia la versión de cualquiera de los dos documentos. El diálogo vive en el header compartido (`DashboardHeaderClient`), que está en todas las páginas con sesión. **Bloquea**: no se cierra con Escape ni con un clic afuera, y la única salida sin aceptar es cerrar sesión. Decisión del usuario.
+- **Falla abierto.** Si la consulta de qué falta aceptar falla, el diálogo no aparece y se registra el error. Una caída de la base no puede dejar a un centro sin trabajar en sus casos.
+- **Cuentas existentes:** la migración no inserta filas, porque fabricar aceptaciones sería evidencia falsa. Se les pide al próximo ingreso.
+- **Dónde se ve:** el historial propio en `/profile` y el estado por usuario en la columna "Términos" de `/users` (permiso `Ver usuarios`, que ya existía).
+
+**Descartado:**
+
+- Hacerlo cumplir en el middleware: corre en edge y no puede consultar Prisma. Meter la versión aceptada en el JWT obligaría a reemitir el token al aceptar.
+- Hacerlo cumplir en `authenticateUser`: sumaría una consulta a cada server action, y una falla de esa consulta cerraría toda la app, lo contrario de fallar abierto. La puerta es de UI. La prueba está en la tabla, no en el bloqueo.
+- Un trigger que impida `UPDATE`/`DELETE`: el proyecto evita triggers (ver Iteración 2), y nada en la app escribe sobre esas filas.
+
+**Consecuencias:** cambiar el texto de /terminos o /privacidad obliga a subir la versión, y eso hace que todos vuelvan a aceptar. Pasará cuando se completen los `<Completar>` de la política (N-G-01).
+
 ## 2026-11-22 — Carpetas de Drive: sin lock, convergen en la más antigua
 
 **Diagnóstico:** `createFolderHierarchy` buscaba cada nivel por nombre, sin orden, y se quedaba con la primera carpeta que devolvía Drive. Dos peticiones simultáneas sobre el mismo caso (un Regenerar y una generación de `/documents`, o el primer comprobante y el job del alta) podían no encontrar la subcarpeta, crearla las dos y quedarse cada una con la suya. Las siguientes caían en cualquiera de las dos, y los documentos del caso quedaban repartidos.
