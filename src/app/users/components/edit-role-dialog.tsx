@@ -9,14 +9,21 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,20 +40,15 @@ interface EditRoleDialogProps {
   role: Role;
 }
 
+/** Versión del borrador de este formulario (ver useBorradorFormulario). */
+const VERSION_BORRADOR_ROL_EDICION = 1;
+
 export function EditRoleDialog({
   open,
   onOpenChange,
   role,
 }: Readonly<EditRoleDialogProps>) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-    watch,
-    control,
-  } = useForm({
+  const form = useForm({
     resolver: zodResolver(createRoleSchema),
     // Errores solo tras la acción del usuario: al salir de un campo o al
     // guardar, nunca al abrir.
@@ -57,6 +59,24 @@ export function EditRoleDialog({
       permissions: [],
       color: 'bg-muted text-foreground',
     },
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+    control,
+  } = form;
+
+  // Borrador en el navegador y blindaje del cierre (form-guard).
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'rol-edicion',
+    entidadId: role.id,
+    version: VERSION_BORRADOR_ROL_EDICION,
+    activo: open,
   });
 
   const [isPending, startTransition] = useTransition();
@@ -78,6 +98,7 @@ export function EditRoleDialog({
         toast.success('Rol actualizado exitosamente', {
           description: `El rol ${updatedRole.name} ha sido actualizado correctamente`,
         });
+        borrador.limpiar();
         onOpenChange(false);
       } else {
         toast.error(error || 'Error al actualizar el rol');
@@ -153,14 +174,20 @@ export function EditRoleDialog({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[95vh] flex-col sm:max-w-5xl">
+    <DialogBlindado
+      open={open}
+      onOpenChange={onOpenChange}
+      hayCambios={form.formState.isDirty}
+    >
+      <DialogContentBlindado className="flex max-h-[95vh] flex-col sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Editar Rol: {role.name}</DialogTitle>
           <DialogDescription>
             Modifique la configuración del rol seleccionado
           </DialogDescription>
         </DialogHeader>
+
+        <AvisoBorrador borrador={borrador} />
 
         <form
           onSubmit={handleSubmit(handleUpdateRole)}
@@ -467,6 +494,7 @@ export function EditRoleDialog({
           </div>
 
           <DialogFooter className="shrink-0 border-t pt-4">
+            <BotonDescartarBorrador borrador={borrador} />
             <DialogClose asChild>
               <Button type="button" variant="outline" disabled={isPending}>
                 Cancelar
@@ -484,7 +512,7 @@ export function EditRoleDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DialogContentBlindado>
+    </DialogBlindado>
   );
 }

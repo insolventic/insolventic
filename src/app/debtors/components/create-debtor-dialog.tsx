@@ -9,14 +9,21 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import {
   Form,
   FormControl,
@@ -43,6 +50,9 @@ interface CreateDebtorDialogProps {
   onOpenChange: (open: boolean) => void;
   onDebtorCreated?: () => void;
 }
+
+/** Versión del borrador de este formulario (ver useBorradorFormulario). */
+const VERSION_BORRADOR_DEUDOR_NUEVO = 1;
 
 export function CreateDebtorDialog({
   open,
@@ -78,6 +88,14 @@ export function CreateDebtorDialog({
     },
   });
 
+  // Borrador en el navegador y blindaje del cierre (form-guard).
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'deudor-nuevo',
+    version: VERSION_BORRADOR_DEUDOR_NUEVO,
+    activo: open,
+  });
+
   const [isPending, startTransition] = useTransition();
 
   // El diálogo queda montado aunque se cierre, y antes solo se reseteaba tras
@@ -96,6 +114,7 @@ export function CreateDebtorDialog({
           description: `El deudor ${debtor.name} ha sido creado correctamente`,
         });
         form.reset();
+        borrador.limpiar();
         onOpenChange(false);
         onDebtorCreated?.();
       } else {
@@ -134,14 +153,20 @@ export function CreateDebtorDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+    <DialogBlindado
+      open={open}
+      onOpenChange={onOpenChange}
+      hayCambios={form.formState.isDirty}
+    >
+      <DialogContentBlindado className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Nuevo Deudor</DialogTitle>
           <DialogDescription>
             Registre la información personal y financiera del deudor
           </DialogDescription>
         </DialogHeader>
+
+        <AvisoBorrador borrador={borrador} />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -605,6 +630,7 @@ export function CreateDebtorDialog({
             </Tabs>
 
             <DialogFooter className="mt-6">
+              <BotonDescartarBorrador borrador={borrador} />
               <DialogClose asChild>
                 <Button variant="outline">Cancelar</Button>
               </DialogClose>
@@ -621,7 +647,7 @@ export function CreateDebtorDialog({
             </DialogFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </DialogContentBlindado>
+    </DialogBlindado>
   );
 }

@@ -28,14 +28,21 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import {
   Form,
   FormControl,
@@ -64,6 +71,9 @@ interface EditCreditorDialogProps {
   onCreditorUpdated?: () => void;
 }
 
+/** Versión del borrador de este formulario (ver useBorradorFormulario). */
+const VERSION_BORRADOR_ACREEDOR_EDICION = 1;
+
 export function EditCreditorDialog({
   creditor,
   open,
@@ -90,6 +100,18 @@ export function EditCreditorDialog({
     },
   });
 
+  // Borrador en el navegador y blindaje del cierre (form-guard).
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'acreedor-edicion',
+    entidadId: creditor?.id ?? null,
+    version: VERSION_BORRADOR_ACREEDOR_EDICION,
+    activo: open && !!creditor,
+    versionEntidad: creditor?.lastUpdate
+      ? new Date(creditor.lastUpdate).toISOString()
+      : null,
+  });
+
   const [localContacts, setLocalContacts] = useState<Contact[]>([]);
   const [isPending, startTransition] = useTransition();
 
@@ -105,6 +127,7 @@ export function EditCreditorDialog({
         toast.success('Acreedor actualizado exitosamente', {
           description: `El acreedor ${updatedCreditor.name} ha sido actualizado correctamente`,
         });
+        borrador.limpiar();
         onOpenChange(false);
         onCreditorUpdated?.();
       } else {
@@ -188,8 +211,12 @@ export function EditCreditorDialog({
   if (!creditor) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+    <DialogBlindado
+      open={open}
+      onOpenChange={onOpenChange}
+      hayCambios={form.formState.isDirty}
+    >
+      <DialogContentBlindado className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit className="h-5 w-5" />
@@ -200,6 +227,8 @@ export function EditCreditorDialog({
             obligatorios.
           </DialogDescription>
         </DialogHeader>
+
+        <AvisoBorrador borrador={borrador} />
 
         <Form {...form}>
           <form
@@ -553,6 +582,7 @@ export function EditCreditorDialog({
             </Tabs>
 
             <DialogFooter>
+              <BotonDescartarBorrador borrador={borrador} />
               <DialogClose asChild>
                 <Button variant="outline" disabled={isPending}>
                   Cancelar
@@ -571,7 +601,7 @@ export function EditCreditorDialog({
             </DialogFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </DialogContentBlindado>
+    </DialogBlindado>
   );
 }

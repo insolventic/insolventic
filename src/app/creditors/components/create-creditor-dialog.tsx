@@ -26,14 +26,21 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import {
   Form,
   FormControl,
@@ -58,6 +65,9 @@ interface CreateCreditorDialogProps {
   onOpenChange: (open: boolean) => void;
   onCreditorCreated?: () => void;
 }
+
+/** Versión del borrador de este formulario (ver useBorradorFormulario). */
+const VERSION_BORRADOR_ACREEDOR_NUEVO = 1;
 
 export function CreateCreditorDialog({
   open,
@@ -86,6 +96,14 @@ export function CreateCreditorDialog({
     },
   });
 
+  // Borrador en el navegador y blindaje del cierre (form-guard).
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'acreedor-nuevo',
+    version: VERSION_BORRADOR_ACREEDOR_NUEVO,
+    activo: open,
+  });
+
   const [isPending, startTransition] = useTransition();
 
   // El diálogo queda montado aunque se cierre, y antes solo se reseteaba tras
@@ -104,6 +122,7 @@ export function CreateCreditorDialog({
           description: `El acreedor ${creditor.name} ha sido creado correctamente`,
         });
         form.reset();
+        borrador.limpiar();
         onOpenChange(false);
         onCreditorCreated?.();
       } else {
@@ -137,8 +156,12 @@ export function CreateCreditorDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+    <DialogBlindado
+      open={open}
+      onOpenChange={onOpenChange}
+      hayCambios={form.formState.isDirty}
+    >
+      <DialogContentBlindado className="max-h-[90vh] overflow-y-auto sm:max-w-6xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
@@ -149,6 +172,8 @@ export function CreateCreditorDialog({
             * son obligatorios.
           </DialogDescription>
         </DialogHeader>
+
+        <AvisoBorrador borrador={borrador} />
 
         <Form {...form}>
           <form
@@ -467,6 +492,7 @@ export function CreateCreditorDialog({
             </Tabs>
 
             <DialogFooter className="gap-2">
+              <BotonDescartarBorrador borrador={borrador} />
               <DialogClose asChild>
                 <Button type="button" variant="outline" disabled={isPending}>
                   Cancelar
@@ -485,7 +511,7 @@ export function CreateCreditorDialog({
             </DialogFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </DialogContentBlindado>
+    </DialogBlindado>
   );
 }

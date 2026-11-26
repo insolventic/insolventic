@@ -9,14 +9,21 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import {
   Form,
   FormControl,
@@ -46,6 +53,9 @@ interface EditDebtorDialogProps {
   onOpenChange: (open: boolean) => void;
   onDebtorUpdated?: () => void;
 }
+
+/** Versión del borrador de este formulario (ver useBorradorFormulario). */
+const VERSION_BORRADOR_DEUDOR_EDICION = 1;
 
 export function EditDebtorDialog({
   debtor,
@@ -83,6 +93,18 @@ export function EditDebtorDialog({
     },
   });
 
+  // Borrador en el navegador y blindaje del cierre (form-guard).
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'deudor-edicion',
+    entidadId: debtor.id,
+    version: VERSION_BORRADOR_DEUDOR_EDICION,
+    activo: open,
+    versionEntidad: debtor.lastUpdate
+      ? new Date(debtor.lastUpdate).toISOString()
+      : null,
+  });
+
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = async (data: unknown) => {
@@ -93,6 +115,7 @@ export function EditDebtorDialog({
         toast.success('Deudor actualizado exitosamente', {
           description: `El deudor ${debtor.name} ha sido actualizado correctamente`,
         });
+        borrador.limpiar();
         onOpenChange(false);
         onDebtorUpdated?.();
       } else {
@@ -162,14 +185,20 @@ export function EditDebtorDialog({
   }, [open, debtor, form]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+    <DialogBlindado
+      open={open}
+      onOpenChange={onOpenChange}
+      hayCambios={form.formState.isDirty}
+    >
+      <DialogContentBlindado className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Editar Deudor</DialogTitle>
           <DialogDescription>
             Actualice la información personal y financiera del deudor
           </DialogDescription>
         </DialogHeader>
+
+        <AvisoBorrador borrador={borrador} />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -624,6 +653,7 @@ export function EditDebtorDialog({
             </Tabs>
 
             <DialogFooter className="mt-6">
+              <BotonDescartarBorrador borrador={borrador} />
               <DialogClose asChild>
                 <Button variant="outline">Cancelar</Button>
               </DialogClose>
@@ -640,7 +670,7 @@ export function EditDebtorDialog({
             </DialogFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </DialogContentBlindado>
+    </DialogBlindado>
   );
 }

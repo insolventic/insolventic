@@ -8,14 +8,21 @@ import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -71,6 +78,9 @@ interface CreateDebtorDialogProps {
   onSubmit: (data: QuickDebtorFormData) => Promise<ErrorAlCrearDeudor | null>;
 }
 
+/** Versión del borrador de este formulario (ver useBorradorFormulario). */
+const VERSION_BORRADOR_DEUDOR_RAPIDO = 1;
+
 export function CreateDebtorDialog({
   open,
   onOpenChange,
@@ -79,15 +89,7 @@ export function CreateDebtorDialog({
 }: Readonly<CreateDebtorDialogProps>) {
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    getValues,
-    setValue,
-    setError,
-  } = useForm<QuickDebtorFormData>({
+  const form = useForm<QuickDebtorFormData>({
     resolver: zodResolver(createDebtorQuickSchema),
     // 'onTouched' y no 'onBlur': valida al salir del campo y, desde ahí,
     // en cada cambio, así el error se va mientras el usuario lo corrige.
@@ -101,6 +103,23 @@ export function CreateDebtorDialog({
       city: 'Bogotá',
       department: 'Cundinamarca',
     },
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    getValues,
+    setValue,
+    setError,
+  } = form;
+
+  // Borrador en el navegador y blindaje del cierre (form-guard).
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'deudor-nuevo-rapido',
+    version: VERSION_BORRADOR_DEUDOR_RAPIDO,
+    activo: open,
   });
 
   // Reset form when dialog opens
@@ -122,7 +141,10 @@ export function CreateDebtorDialog({
   const onValid = async (data: QuickDebtorFormData) => {
     setServerError(null);
     const fallo = await onSubmit(data);
-    if (!fallo) return;
+    if (!fallo) {
+      borrador.limpiar();
+      return;
+    }
 
     // El error de un campo del formulario va bajo ese campo; lo demás, a la
     // alerta, como texto.
@@ -169,14 +191,20 @@ export function CreateDebtorDialog({
     errors[campo] ? 'border-red-500 focus-visible:ring-red-500' : '';
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-md">
+    <DialogBlindado
+      open={open}
+      onOpenChange={onOpenChange}
+      hayCambios={form.formState.isDirty}
+    >
+      <DialogContentBlindado className="w-[95vw] max-w-md">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Deudor</DialogTitle>
           <DialogDescription>
             Ingrese la información básica del deudor
           </DialogDescription>
         </DialogHeader>
+
+        <AvisoBorrador borrador={borrador} />
         <form onSubmit={enviar} className="grid gap-4 py-4">
           {serverError && (
             <Alert variant="destructive">
@@ -310,6 +338,7 @@ export function CreateDebtorDialog({
           </div>
 
           <DialogFooter className="mt-2 flex-col gap-2 sm:flex-row sm:gap-0">
+            <BotonDescartarBorrador borrador={borrador} />
             <DialogClose asChild>
               <Button
                 type="button"
@@ -335,7 +364,7 @@ export function CreateDebtorDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DialogContentBlindado>
+    </DialogBlindado>
   );
 }

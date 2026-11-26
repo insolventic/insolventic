@@ -9,14 +9,21 @@ import { useEffect, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DialogBlindado,
+  DialogContentBlindado,
+} from '@/components/form-guard/dialogo-blindado';
+import {
+  AvisoBorrador,
+  BotonDescartarBorrador,
+} from '@/components/form-guard/aviso-borrador';
+import { useBorradorFormulario } from '@/hooks/use-borrador-formulario';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,20 +40,15 @@ interface CreateRoleDialogProps {
   onRoleCreated?: () => void;
 }
 
+/** Versión del borrador de este formulario (ver useBorradorFormulario). */
+const VERSION_BORRADOR_ROL_NUEVO = 1;
+
 export function CreateRoleDialog({
   open,
   onOpenChange,
   onRoleCreated,
 }: Readonly<CreateRoleDialogProps>) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-    watch,
-    control,
-  } = useForm({
+  const form = useForm({
     resolver: zodResolver(createRoleSchema),
     // Errores solo tras la acción del usuario: al salir de un campo o al
     // guardar, nunca al abrir.
@@ -57,6 +59,23 @@ export function CreateRoleDialog({
       permissions: [],
       color: 'bg-muted text-foreground',
     },
+  });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+    control,
+  } = form;
+
+  // Borrador en el navegador y blindaje del cierre (form-guard).
+  const borrador = useBorradorFormulario({
+    form,
+    formulario: 'rol-nuevo',
+    version: VERSION_BORRADOR_ROL_NUEVO,
+    activo: open,
   });
 
   const [isPending, startTransition] = useTransition();
@@ -81,6 +100,7 @@ export function CreateRoleDialog({
           description: `El rol ${role.name} ha sido creado correctamente`,
         });
         reset();
+        borrador.limpiar();
         onOpenChange(false);
         onRoleCreated?.();
       } else {
@@ -144,14 +164,20 @@ export function CreateRoleDialog({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[95vh] w-[95vw] flex-col sm:max-w-2xl md:max-w-3xl lg:max-w-5xl">
+    <DialogBlindado
+      open={open}
+      onOpenChange={onOpenChange}
+      hayCambios={form.formState.isDirty}
+    >
+      <DialogContentBlindado className="flex max-h-[95vh] w-[95vw] flex-col sm:max-w-2xl md:max-w-3xl lg:max-w-5xl">
         <DialogHeader>
           <DialogTitle>Crear Nuevo Rol</DialogTitle>
           <DialogDescription>
             Configure un nuevo rol con permisos específicos
           </DialogDescription>
         </DialogHeader>
+
+        <AvisoBorrador borrador={borrador} />
 
         <form
           onSubmit={handleSubmit(handleCreateRole)}
@@ -448,6 +474,7 @@ export function CreateRoleDialog({
           </div>
 
           <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+            <BotonDescartarBorrador borrador={borrador} />
             <DialogClose asChild>
               <Button
                 type="button"
@@ -474,7 +501,7 @@ export function CreateRoleDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </DialogContentBlindado>
+    </DialogBlindado>
   );
 }
